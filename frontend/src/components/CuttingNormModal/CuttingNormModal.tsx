@@ -8,6 +8,8 @@ import { AssignmentCodeOutputType, CrossSectionInputType, CuttingNormInputType, 
 
 export default function CuttingNormModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<CuttingNormInputType>) => void; selected: CuttingNormOutputType | null }) {
   const [phaseGroup, setPhaseGroup] = useState<string | null>(null)
+  const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([])
+
 
   const { data: phasegroups = [] } = useQuery({
     queryKey: ['phasegroups'],
@@ -45,19 +47,13 @@ export default function CuttingNormModal({ open, setOpen, handleSubmit, selected
       hardness: selected?.hardness?._id || '',
       code: selected?.code || '',
       crossSection: selected?.crossSection?._id || '',
-      norms: selected ?
-        selected.norms.map((item: any) => (
-          {
-            assignmentCode: item.assignmentCode._id,
-            norm: item.norm || undefined
-          }
-        )) :
-        assignmentcodes.map((assignmentcode: AssignmentCodeOutputType) => (
-          {
-            assignmentCode: assignmentcode._id,
-            norm: undefined
-          }
-        ))
+      norms: selected?.norms?.map((item) => ({
+        assignmentCode: item.assignmentCode._id,
+        norm: item.norm
+      })) || assignmentcodes.map((item: any) => ({
+        assignmentCode: item._id,
+        norm: undefined
+      }))
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
@@ -68,7 +64,19 @@ export default function CuttingNormModal({ open, setOpen, handleSubmit, selected
       })
     }
   })
+  useEffect(() => {
+    if (assignmentcodes.length === 0) return;
 
+    if (selected && selected.norms.length > 0) {
+      // Trường hợp sửa
+      const selectedCodes = assignmentcodes.filter((ac: any) =>
+        selected.norms.some(norm => norm.assignmentCode._id === ac._id)
+      );
+      setSelectedAssignmentCodes(selectedCodes);
+    } else {
+      setSelectedAssignmentCodes(assignmentcodes);
+    }
+  }, [selected, assignmentcodes]);
   const handleClose = () => {
     formik.resetForm()
     setOpen(false)
@@ -151,6 +159,35 @@ export default function CuttingNormModal({ open, setOpen, handleSubmit, selected
                 onChange={(event) => {
                   formik.setFieldValue("code", event.target.value);
                 }}
+              />
+              <Autocomplete
+                multiple
+                options={assignmentcodes.filter((opt: AssignmentCodeOutputType) =>
+                  !selectedAssignmentCodes.some(selected => selected._id === opt._id)
+                )}
+                getOptionLabel={(option: AssignmentCodeOutputType) => option.code || ''}
+                value={selectedAssignmentCodes}
+                onChange={(event, newValue) => {
+                  setSelectedAssignmentCodes(newValue);
+
+                  // Cập nhật lại norms trong Formik khi thay đổi mã giao khoán
+                  const updatedNorms = newValue.map((item) => {
+                    const existing = formik.values.norms.find((n: any) => n.assignmentCode === item._id);
+                    return {
+                      assignmentCode: item._id,
+                      norm: existing?.norm || undefined
+                    };
+                  });
+                  formik.setFieldValue('norms', updatedNorms);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Chọn mã giao khoán"
+                    variant="outlined"
+                    placeholder="Chọn..."
+                  />
+                )}
               />
               <FieldArray name="norms">
                 {({ push, remove }) => (

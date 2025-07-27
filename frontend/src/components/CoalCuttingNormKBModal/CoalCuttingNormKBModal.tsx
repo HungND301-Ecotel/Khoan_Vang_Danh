@@ -6,8 +6,16 @@ import { FieldArray, FormikProvider, useFormik } from 'formik'
 import api from '../../config/api.config';
 import { AssignmentCodeOutputType, CrossSectionInputType, CoalCuttingNormKBInputType, CoalCuttingNormKBOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType, ThicknessType, LengthType } from '../../types';
 
+const validationSchema = yup.object().shape({
+  norms: yup.array().of(
+    yup.object().shape({
+      assignmentCode: yup.string().required('Bắt buộc'),
+      norm: yup.number().typeError('Phải là số').required('Bắt buộc'),
+    })
+  ).min(1, 'Phải có ít nhất 1 định mức'),
+});
 export default function CuttingNormKBModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<CoalCuttingNormKBInputType>) => void; selected: CoalCuttingNormKBOutputType | null }) {
-
+  const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([])
   const { data: assignmentcodes = [] } = useQuery({
     queryKey: ['assignmentcodes'],
     queryFn: async () => api.get(`/assignmentcodes`).then(res => res.data.data),
@@ -32,29 +40,38 @@ export default function CuttingNormKBModal({ open, setOpen, handleSubmit, select
       code: selected?.code || '',
       curbSlope: selected?.curbSlope?._id || '',
       thickness: selected?.thickness?._id || '',
-      norms: selected ?
-        selected.norms.map((item: any) => (
-          {
-            assignmentCode: item.assignmentCode._id,
-            norm: item.norm || undefined
-          }
-        )) :
-        assignmentcodes.map((assignmentcode: AssignmentCodeOutputType) => (
-          {
-            assignmentCode: assignmentcode._id,
-            norm: undefined
-          }
-        ))
+      norms: selected?.norms?.map((item) => ({
+        assignmentCode: item.assignmentCode._id,
+        norm: item.norm
+      })) || assignmentcodes.map((item: any) => ({
+        assignmentCode: item._id,
+        norm: undefined
+      }))
     },
     enableReinitialize: true,
+    validationSchema,
     onSubmit: async (values) => {
-
       handleSubmit({
         ...values,
         hardness: values.hardness || undefined,
+
       })
     }
   })
+
+  useEffect(() => {
+    if (assignmentcodes.length === 0) return;
+
+    if (selected && selected.norms.length > 0) {
+      // Trường hợp sửa
+      const selectedCodes = assignmentcodes.filter((ac: any) =>
+        selected.norms.some(norm => norm.assignmentCode._id === ac._id)
+      );
+      setSelectedAssignmentCodes(selectedCodes);
+    } else {
+      setSelectedAssignmentCodes(assignmentcodes);
+    }
+  }, [selected, assignmentcodes]);
 
   const handleClose = () => {
     formik.resetForm()
@@ -68,7 +85,7 @@ export default function CuttingNormKBModal({ open, setOpen, handleSubmit, select
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-               <TextField fullWidth select label="Độ dày vỉa" variant="outlined"
+              <TextField fullWidth select label="Độ dày vỉa" variant="outlined"
                 value={formik.values.thickness}
                 onChange={(event) => {
                   formik.setFieldValue("thickness", event.target.value);
@@ -83,7 +100,7 @@ export default function CuttingNormKBModal({ open, setOpen, handleSubmit, select
                   ))
                 }
               </TextField>
-               <TextField fullWidth select label="Độ dốc vỉa" variant="outlined"
+              <TextField fullWidth select label="Độ dốc vỉa" variant="outlined"
                 value={formik.values.curbSlope}
                 onChange={(event) => {
                   formik.setFieldValue("curbSlope", event.target.value);
@@ -121,6 +138,35 @@ export default function CuttingNormKBModal({ open, setOpen, handleSubmit, select
                   formik.setFieldValue("code", event.target.value);
                 }}
               />
+              <Autocomplete
+                multiple
+                options={assignmentcodes.filter((opt: AssignmentCodeOutputType) =>
+                  !selectedAssignmentCodes.some(selected => selected._id === opt._id)
+                )}
+                getOptionLabel={(option: AssignmentCodeOutputType) => option.code || ''}
+                value={selectedAssignmentCodes}
+                onChange={(event, newValue) => {
+                  setSelectedAssignmentCodes(newValue);
+
+                  // Cập nhật lại norms trong Formik khi thay đổi mã giao khoán
+                  const updatedNorms = newValue.map((item) => {
+                    const existing = formik.values.norms.find((n: any) => n.assignmentCode === item._id);
+                    return {
+                      assignmentCode: item._id,
+                      norm: existing?.norm || undefined
+                    };
+                  });
+                  formik.setFieldValue('norms', updatedNorms);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Chọn mã giao khoán"
+                    variant="outlined"
+                    placeholder="Chọn..."
+                  />
+                )}
+              />
               <FieldArray name="norms">
                 {({ push, remove }) => (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -129,14 +175,14 @@ export default function CuttingNormKBModal({ open, setOpen, handleSubmit, select
                         <TextField
                           fullWidth
                           label="Mã giao khoán"
-                          value={assignmentcodes.find((item: AssignmentCodeOutputType) => item._id === formik.values.norms[index].assignmentCode)?.code}
+                          value={selectedAssignmentCodes.find((item: AssignmentCodeOutputType) => item._id === formik.values.norms[index]?.assignmentCode)?.code}
                           InputLabelProps={{ shrink: true }}
                         />
                         <TextField
                           fullWidth
                           label="Tên vật tư, tài sản"
                           name={`norms[${index}].assignmentCode`}
-                          value={assignmentcodes.find((item: AssignmentCodeOutputType) => item._id === formik.values.norms[index].assignmentCode)?.name}
+                          value={selectedAssignmentCodes.find((item: AssignmentCodeOutputType) => item._id === formik.values.norms[index]?.assignmentCode)?.name}
                           InputLabelProps={{ shrink: true }}
                         />
                         <TextField

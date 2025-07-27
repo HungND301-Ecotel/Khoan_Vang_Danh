@@ -41,9 +41,9 @@ export default function CoalCuttingNormKB() {
   });
   const updateMutation = useMutation({
     mutationFn: (updateCuttingNorm: Partial<CoalCuttingNormKBInputType>) =>
-      api.put(`/coalcuttingnormvhs/${updateCuttingNorm._id}`, updateCuttingNorm).then(res => res.data),
+      api.put(`/coalcuttingnormkbs/${updateCuttingNorm._id}`, updateCuttingNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coalcuttingnormvhs'] });
+      queryClient.invalidateQueries({ queryKey: ['coalcuttingnormkbs'] });
       setOpen(false)
       setSelected(null)
       showSuccessAlert("Sửa thành công")
@@ -66,9 +66,9 @@ export default function CoalCuttingNormKB() {
   };
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      api.delete(`/coalcuttingnormvhs/${id}`).then(res => res.data),
+      api.delete(`/coalcuttingnormkbs/${id}`).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coalcuttingnormvhs'] });
+      queryClient.invalidateQueries({ queryKey: ['coalcuttingnormkbs'] });
       showSuccessAlert('Xóa thành công')
     },
     onError: (error: any) => {

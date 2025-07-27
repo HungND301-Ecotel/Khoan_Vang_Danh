@@ -7,6 +7,7 @@ import api from '../../config/api.config';
 import { AssignmentCodeOutputType, CrossSectionInputType, CoalCuttingNormZHInputType, CoalCuttingNormZHOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType, ThicknessType, LengthType } from '../../types';
 
 export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<CoalCuttingNormZHInputType>) => void; selected: CoalCuttingNormZHOutputType | null }) {
+  const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([])
 
   const { data: assignmentcodes = [] } = useQuery({
     queryKey: ['assignmentcodes'],
@@ -32,19 +33,13 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
       code: selected?.code || '',
       length: selected?.length?._id || '',
       thickness: selected?.thickness?._id || '',
-      norms: selected ?
-        selected.norms.map((item: any) => (
-          {
-            assignmentCode: item.assignmentCode._id,
-            norm: item.norm || undefined
-          }
-        )) :
-        assignmentcodes.map((assignmentcode: AssignmentCodeOutputType) => (
-          {
-            assignmentCode: assignmentcode._id,
-            norm: undefined
-          }
-        ))
+      norms: selected?.norms?.map((item) => ({
+        assignmentCode: item.assignmentCode._id || '',
+        norm: item.norm
+      })) || assignmentcodes.map((item: any) => ({
+        assignmentCode: item._id,
+        norm: undefined
+      }))
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
@@ -55,6 +50,20 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
       })
     }
   })
+
+  useEffect(() => {
+    if (assignmentcodes.length === 0) return;
+
+    if (selected && selected.norms.length > 0) {
+      // Trường hợp sửa
+      const selectedCodes = assignmentcodes.filter((ac: any) =>
+        selected.norms.some(norm => norm.assignmentCode._id === ac._id)
+      );
+      setSelectedAssignmentCodes(selectedCodes);
+    } else {
+      setSelectedAssignmentCodes(assignmentcodes);
+    }
+  }, [selected, assignmentcodes]);
 
   const handleClose = () => {
     formik.resetForm()
@@ -68,7 +77,7 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-               <TextField fullWidth select label="Độ dày vỉa" variant="outlined"
+              <TextField fullWidth select label="Độ dày vỉa" variant="outlined"
                 value={formik.values.thickness}
                 onChange={(event) => {
                   formik.setFieldValue("thickness", event.target.value);
@@ -83,7 +92,7 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
                   ))
                 }
               </TextField>
-               <TextField fullWidth select label="L" variant="outlined"
+              <TextField fullWidth select label="L" variant="outlined"
                 value={formik.values.length}
                 onChange={(event) => {
                   formik.setFieldValue("length", event.target.value);
@@ -120,6 +129,35 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
                 onChange={(event) => {
                   formik.setFieldValue("code", event.target.value);
                 }}
+              />
+              <Autocomplete
+                multiple
+                options={assignmentcodes.filter((opt: AssignmentCodeOutputType) =>
+                  !selectedAssignmentCodes.some(selected => selected._id === opt._id)
+                )}
+                getOptionLabel={(option: AssignmentCodeOutputType) => option.code || ''}
+                value={selectedAssignmentCodes}
+                onChange={(event, newValue) => {
+                  setSelectedAssignmentCodes(newValue);
+
+                  // Cập nhật lại norms trong Formik khi thay đổi mã giao khoán
+                  const updatedNorms = newValue.map((item) => {
+                    const existing = formik.values.norms.find((n: any) => n.assignmentCode === item._id);
+                    return {
+                      assignmentCode: item._id,
+                      norm: existing?.norm || undefined
+                    };
+                  });
+                  formik.setFieldValue('norms', updatedNorms);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Chọn mã giao khoán"
+                    variant="outlined"
+                    placeholder="Chọn..."
+                  />
+                )}
               />
               <FieldArray name="norms">
                 {({ push, remove }) => (
