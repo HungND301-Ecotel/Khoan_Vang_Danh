@@ -90,7 +90,7 @@ export default function ExcavationNormModal({ open, setOpen, handleSubmit, selec
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selected ? 'Chỉnh sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selected ? 'Chỉnh sửa định mức đào lò' : 'Tạo mới định mức đào lò'}</DialogTitle>
       <DialogContent>
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>

@@ -84,27 +84,29 @@ export default function AssignmentCode() {
         <Paper elevation={3} style={{ padding: 16 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">Mã giao khoán</Typography>
-                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới mã giao khoán</Button>
             </Box>
             <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ border: '1px solid grey' }}>Mã giao khoán</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Tên giao khoán</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Đơn vị tính</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Đơn giá</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Thao tác</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Mã thiết bị</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Mã giao khoán</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Tên giao khoán</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>ĐVT</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Đơn giá</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Thao tác</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {assignmentcodes.map((AssignmentCode: AssignmentCodeOutputType) => (
                             <TableRow key={AssignmentCode._id}>
-                                <TableCell sx={{ border: '1px solid grey' }}>{AssignmentCode.code}</TableCell>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>{AssignmentCode.deviceCode?.code}</TableCell>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>{AssignmentCode.code}</TableCell>
                                 <TableCell sx={{ border: '1px solid grey' }}>{AssignmentCode.name}</TableCell>
-                                <TableCell sx={{ border: '1px solid grey' }}>{AssignmentCode.uom?.name}</TableCell>
-                                <TableCell sx={{ border: '1px solid grey' }}>{AssignmentCode.price ? AssignmentCode.price.toLocaleString() : ''}</TableCell>
-                                <TableCell sx={{ border: '1px solid grey' }}>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>{AssignmentCode.uom?.name}</TableCell>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>{AssignmentCode.price ? AssignmentCode.price.toLocaleString() : ''}</TableCell>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>
                                     <IconButton onClick={() => handleOpen(AssignmentCode)}>
                                         <Edit color='primary' />
                                     </IconButton>

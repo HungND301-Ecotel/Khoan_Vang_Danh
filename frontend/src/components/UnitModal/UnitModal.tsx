@@ -28,7 +28,7 @@ export default function UnitModal({ open, setOpen, handleSubmit, selectedUnit }:
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedUnit ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedUnit ? 'Sửa đơn vị tính' : 'tạo mới đơn vị tính'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

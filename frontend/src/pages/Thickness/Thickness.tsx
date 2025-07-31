@@ -87,21 +87,21 @@ export default function Thickness() {
         <Paper elevation={3} style={{ padding: 16 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">Độ dày vỉa</Typography>
-                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới độ dày vỉa</Button>
             </Box>
             <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ border: '1px solid grey' }}>Độ dày vỉa</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Thao tác</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Độ dày vỉa</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Thao tác</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {thickness.map((item: ThicknessType) => (
                             <TableRow key={item._id}>
                                 <TableCell sx={{ border: '1px solid grey' }}>{item.name}</TableCell>
-                                <TableCell sx={{ border: '1px solid grey' }}>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>
                                     <IconButton onClick={() => handleOpen(item)}>
                                         <Edit color='primary' />
                                     </IconButton>

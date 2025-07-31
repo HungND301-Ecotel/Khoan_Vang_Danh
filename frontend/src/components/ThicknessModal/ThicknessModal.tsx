@@ -28,7 +28,7 @@ export default function CurbSlopeModal({ open, setOpen, handleSubmit, selectedTh
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedThickness ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedThickness ? 'Sửa độ dày vỉa' : 'Tạo mới độ dày vỉa'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

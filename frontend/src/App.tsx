@@ -27,6 +27,13 @@ import CuttingNorm from './pages/CuttingNorm/CuttingNorm';
 import CoalCuttingNormZRY from './pages/CoalCuttingNormZRY/CoalCuttingNormZRY';
 import CoalCuttingNormZH from './pages/CoalCuttingNormZH/CoalCuttingNormZH';
 import CoalCuttingNormKB from './pages/CoalCuttingNormKB/CoalCuttingNormKB';
+import RockRatio from './pages/RockRatio/RockRatio';
+import MirrorRatio from './pages/MirrorRatio/MirrorRatio';
+import AdjustmentNormKKT from './pages/AdjustmentNormKKT/AdjustmentNormKKT';
+import AdjustmentNormKDL from './pages/AdjustmentNormKDL/AdjustmentNormKDL';
+import AdjustmentNormCM from './pages/AdjustmentNormCM/AdjustmentNormCM';
+import ProductScope from './pages/ProductionSope/ProductionScope';
+import DeviceCode from './pages/DeviceCode/DeviceCode';
 
 
 interface PrivateRouteProps {
@@ -218,7 +225,63 @@ const App = () => {
           path="/coalcuttingnorm_kb"
           element={
             <PrivateRoute>
-              <CoalCuttingNormKB/>
+              <CoalCuttingNormKB />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/rockratio"
+          element={
+            <PrivateRoute>
+              <RockRatio />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/mirrorratio"
+          element={
+            <PrivateRoute>
+              <MirrorRatio />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/adjustmentnormk_kt"
+          element={
+            <PrivateRoute>
+              <AdjustmentNormKKT />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/adjustmentnormk_dl"
+          element={
+            <PrivateRoute>
+              <AdjustmentNormKDL />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/adjustmentnorm_cm"
+          element={
+            <PrivateRoute>
+              <AdjustmentNormCM />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/productionscope"
+          element={
+            <PrivateRoute>
+              <ProductScope />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/devicecode"
+          element={
+            <PrivateRoute>
+              <DeviceCode />
             </PrivateRoute>
           }
         />

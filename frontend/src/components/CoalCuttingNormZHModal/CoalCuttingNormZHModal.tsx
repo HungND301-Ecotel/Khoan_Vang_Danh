@@ -72,7 +72,7 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selected ? 'Chỉnh sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selected ? 'Chỉnh sửa định mức khấu than - ZH' : 'Tạo mới định mức khấu than - ZH'}</DialogTitle>
       <DialogContent>
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
@@ -92,7 +92,7 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
                   ))
                 }
               </TextField>
-              <TextField fullWidth select label="L" variant="outlined"
+              <TextField fullWidth select label="Chiều dài lò" variant="outlined"
                 value={formik.values.length}
                 onChange={(event) => {
                   formik.setFieldValue("length", event.target.value);

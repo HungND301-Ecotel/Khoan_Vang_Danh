@@ -50,14 +50,13 @@ export default function Materialunitprice() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold' }}>Mã vật tư</TableCell>
-              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold' }}>Mã giao khoán</TableCell>
-              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold' }}>Tên vật tư, tài sản</TableCell>
-              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold' }}>ĐVT</TableCell>
-              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', width: 150 }}>Số lượng</TableCell>
-              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', width: 200 }}>Đơn giá bình quân năm 2024</TableCell>
-              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold' }}>Đơn giá khoán năm 2025</TableCell>
-              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold' }}>Ghi chú</TableCell>
+              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Mã vật tư</TableCell>
+              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Mã giao khoán</TableCell>
+              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Tên vật tư, tài sản</TableCell>
+              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>ĐVT</TableCell>
+              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18, width: 150 }}>Số lượng</TableCell>
+              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18, width: 200 }}>Đơn giá bình quân năm</TableCell>
+              <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Ghi chú</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -65,41 +64,38 @@ export default function Materialunitprice() {
               <>
                 <TableRow>
                   <TableCell sx={{ border: "1px solid grey", color: "blue" }}></TableCell>
-                  <TableCell sx={{ border: "1px solid grey", color: "blue" }}>{materialAssignment.code}</TableCell>
+                  <TableCell align='center' sx={{ border: "1px solid grey", color: "blue" }}>{materialAssignment.code}</TableCell>
                   <TableCell sx={{ border: "1px solid grey", color: "blue" }}>{materialAssignment.name}</TableCell>
-                  <TableCell sx={{ border: "1px solid grey", color: "blue" }}>{materialAssignment.uom}</TableCell>
+                  <TableCell align='center' sx={{ border: "1px solid grey", color: "blue" }}>{materialAssignment.uom}</TableCell>
                   <TableCell sx={{ border: "1px solid grey", color: "blue" }}></TableCell>
-                  <TableCell sx={{ border: "1px solid grey", color: "blue" }}>
+                  <TableCell align='center' sx={{ border: "1px solid grey", color: "blue" }}>
                     {isEditing ? (
                       <TextField size="small" value={materialAssignment.price ? materialAssignment.price.toLocaleString() : ''} />
                     ) : (
                       materialAssignment.price ? materialAssignment.price.toLocaleString() : ''
                     )}
                   </TableCell>
-                  <TableCell sx={{ border: "1px solid grey", color: "blue" }}>{materialAssignment.price ? materialAssignment.price.toLocaleString() : ''}</TableCell>
                   <TableCell sx={{ border: "1px solid grey", color: "blue" }}></TableCell>
                 </TableRow>
                 {materialAssignment.materials.map((material: Materials) => (
                   <TableRow>
-                    <TableCell sx={{ border: "1px solid grey", }}>{material.code}</TableCell>
+                    <TableCell align='center' sx={{ border: "1px solid grey", }}>{material.code}</TableCell>
                     <TableCell sx={{ border: "1px solid grey", }}></TableCell>
                     <TableCell sx={{ border: "1px solid grey", }}>{material.name}</TableCell>
-                    <TableCell sx={{ border: "1px solid grey", }}>{material.uom?.name}</TableCell>
-                    <TableCell sx={{ border: "1px solid grey", }}>
+                    <TableCell align='center' sx={{ border: "1px solid grey", }}>{material.uom?.name}</TableCell>
+                    <TableCell align='center' sx={{ border: "1px solid grey", }}>
                       {isEditing ? (
                         <TextField size="small" value={material.quantity ? material.quantity.toLocaleString() : ''} />
                       ) : (
                         material.quantity ? material.quantity.toLocaleString() : ''
                       )}
                     </TableCell>
-                    <TableCell sx={{ border: "1px solid grey", }}>
+                    <TableCell align='center' sx={{ border: "1px solid grey", }}>
                       {isEditing ? (
                         <TextField size="small" value={material.currentPrice ? material.currentPrice.toLocaleString() : ''} />
                       ) : (
                         material.currentPrice ? material.currentPrice.toLocaleString() : ''
                       )}
-                    </TableCell>
-                    <TableCell sx={{ border: "1px solid grey", }}>
                     </TableCell>
                     <TableCell sx={{ border: "1px solid grey", }}></TableCell>
                   </TableRow>

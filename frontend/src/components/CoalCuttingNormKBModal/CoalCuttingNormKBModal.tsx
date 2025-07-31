@@ -80,7 +80,7 @@ export default function CuttingNormKBModal({ open, setOpen, handleSubmit, select
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selected ? 'Chỉnh sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selected ? 'Sửa định mức khấu than - KB' : 'Tạo mới định mức khấu than - KB'}</DialogTitle>
       <DialogContent>
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>

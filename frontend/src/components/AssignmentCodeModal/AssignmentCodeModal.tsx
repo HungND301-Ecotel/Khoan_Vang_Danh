@@ -3,7 +3,7 @@ import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuIte
 import React, { Dispatch, SetStateAction } from 'react'
 import * as yup from 'yup'
 import { useFormik } from 'formik'
-import { AssignmentCodeInputType, AssignmentCodeOutputType, UnitType } from '../../types'
+import { AssignmentCodeInputType, AssignmentCodeOutputType, DeviceCodeType, UnitType } from '../../types'
 import { useQuery } from '@tanstack/react-query'
 import api from '../../config/api.config'
 
@@ -17,11 +17,16 @@ export default function AssignmentCodeModal({ open, setOpen, handleSubmit, selec
     queryKey: ['units'],
     queryFn: () => api.get('/units').then(res => res.data.data)
   })
+  const { data: devicecodes = [] } = useQuery({
+    queryKey: ['devicecodes'],
+    queryFn: () => api.get('/devicecodes').then(res => res.data.data)
+  })
   const formik = useFormik({
     initialValues: {
       code: selectedAssignmentCode ? selectedAssignmentCode.code : '',
       name: selectedAssignmentCode ? selectedAssignmentCode.name : '',
       uom: selectedAssignmentCode ? selectedAssignmentCode.uom?._id : '',
+      deviceCode: selectedAssignmentCode ? selectedAssignmentCode.deviceCode?._id : '',
       price: selectedAssignmentCode ? selectedAssignmentCode.price : undefined,
     },
     enableReinitialize: true,
@@ -37,7 +42,7 @@ export default function AssignmentCodeModal({ open, setOpen, handleSubmit, selec
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedAssignmentCode ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedAssignmentCode ? 'Sửa mã giao khoán' : 'Tạo mới mã giao khoán'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -45,7 +50,7 @@ export default function AssignmentCodeModal({ open, setOpen, handleSubmit, selec
               fullWidth
               id="code"
               name="code"
-              label="Mã"
+              label="Mã giao khoán"
               value={formik.values.code}
               onChange={formik.handleChange}
               error={formik.touched.code && Boolean(formik.errors.code)}
@@ -55,7 +60,7 @@ export default function AssignmentCodeModal({ open, setOpen, handleSubmit, selec
               fullWidth
               id="name"
               name="name"
-              label="Tên giao khoán"
+              label="Tên mã giao khoán"
               value={formik.values.name}
               onChange={formik.handleChange}
               error={formik.touched.name && Boolean(formik.errors.name)}
@@ -74,6 +79,21 @@ export default function AssignmentCodeModal({ open, setOpen, handleSubmit, selec
             >
               {units.map((unit: UnitType) => (
                 <MenuItem key={unit._id} value={unit._id}>{unit.name}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              fullWidth
+              select
+              id="deviceCode"
+              name="deviceCode"
+              label="Mã thiết bị"
+              value={formik.values.deviceCode}
+              onChange={formik.handleChange}
+              error={formik.touched.deviceCode && Boolean(formik.errors.deviceCode)}
+              helperText={formik.touched.deviceCode && formik.errors.deviceCode}
+            >
+              {devicecodes.map((devicecode: DeviceCodeType) => (
+                <MenuItem key={devicecode._id} value={devicecode._id}>{devicecode.code}</MenuItem>
               ))}
             </TextField>
             <TextField

@@ -87,23 +87,23 @@ export default function MiningTech() {
         <Paper elevation={3} style={{ padding: 16 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">Công nghệ khai thác</Typography>
-                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới công nghệ khai thác</Button>
             </Box>
             <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ border: '1px solid grey' }}>Mã công nghệ khai thác</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Tên công nghệ khai thác</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Thao tác</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Mã công nghệ khai thác</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Tên công nghệ khai thác</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Thao tác</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {miningtechs.map((miningtech: MiningtechType) => (
                             <TableRow key={miningtech._id}>
-                                <TableCell sx={{ border: '1px solid grey' }}>{miningtech.code}</TableCell>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>{miningtech.code}</TableCell>
                                 <TableCell sx={{ border: '1px solid grey' }}>{miningtech.name}</TableCell>
-                                <TableCell sx={{ border: '1px solid grey' }}>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>
                                     <IconButton onClick={() => handleOpen(miningtech)}>
                                         <Edit color='primary' />
                                     </IconButton>

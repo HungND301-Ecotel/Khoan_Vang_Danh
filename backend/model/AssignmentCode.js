@@ -13,6 +13,10 @@ const AssignmentCode = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Unit'
     },
+    deviceCode: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'DeviceCode'
+    },
     price: {
         type: Number
     }

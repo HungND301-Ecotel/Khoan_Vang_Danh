@@ -98,14 +98,14 @@ export default function ExcavationNorm() {
     <Paper elevation={3} style={{ padding: 16 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Định mức đào lò</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới định mức đào lò</Button>
       </Box>
       < TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell align='center' sx={{ border: '1px solid black' }}><b>Mã</b></TableCell>
-              <TableCell align='center' sx={{ border: '1px solid black' }}><b>Thao tác</b></TableCell>
+              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Mã định mức giao khoán</b></TableCell>
+              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Thao tác</b></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -126,36 +126,32 @@ export default function ExcavationNorm() {
                   </TableCell>
                 </TableRow>
                 {expandedRow === axcavationnorm._id && (<TableRow>
-                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#f9f9f9' }}>
-                    < TableContainer component={Paper}>
+                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#D3D3D3' }}>
+                    < TableContainer component={Paper} sx={{ backgroundColor: '#D3D3D3' }}>
                       <Table>
                         <TableHead>
                           <TableRow>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>STT</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Mã giao khoán</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Tên vật tư, tài sản</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>ĐVT</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Định mức {axcavationnorm.phase?.name} {axcavationnorm.hardness?.name} ({axcavationnorm.excavationTech?.name})</TableCell>
+                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid black', fontWeight: 'bold' }}>STT</TableCell>
+                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid black', fontWeight: 'bold' }}>Mã giao khoán</TableCell>
+                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid black', fontWeight: 'bold' }}>Tên vật tư, tài sản</TableCell>
+                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid black', fontWeight: 'bold' }}>ĐVT</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>Định mức {axcavationnorm.phase?.name} {axcavationnorm.hardness?.name} ({axcavationnorm.excavationTech?.name})</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>{axcavationnorm.phaseGroup?.name} {axcavationnorm.step?.name}</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>{axcavationnorm.phaseGroup?.name} {axcavationnorm.step?.name}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
                           <TableRow>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>{axcavationnorm.code}</TableCell>
+                            <TableCell align='center' colSpan={5} sx={{ border: '1px solid black', fontWeight: 'bold' }}>{axcavationnorm.code}</TableCell>
                           </TableRow>
                           {axcavationnorm.norms.map((item: any, index: number) => (
                             <TableRow>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{index + 1}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.code}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.name}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.uom?.name}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.norm ? item.norm.toLocaleString() : ''}</TableCell>
+                              <TableCell align='center' sx={{ border: '1px solid black' }}>{index + 1}</TableCell>
+                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.assignmentCode?.code}</TableCell>
+                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.assignmentCode?.name}</TableCell>
+                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.assignmentCode?.uom?.name}</TableCell>
+                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.norm ? item.norm.toLocaleString() : ''}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

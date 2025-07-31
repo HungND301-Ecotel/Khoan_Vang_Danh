@@ -34,7 +34,7 @@ export default function CrossSection({ open, setOpen, handleSubmit, selectedCros
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedCrossSection ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedCrossSection ? 'Sửa tiết diện lò xén' : 'Tạo mới tiết diện lò xén'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

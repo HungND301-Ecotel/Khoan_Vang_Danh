@@ -84,21 +84,21 @@ export default function Hardness() {
         <Paper elevation={3} style={{ padding: 16 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">Độ cứng của than/ đá (f)</Typography>
-                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới độ cứng của than/ đá</Button>
             </Box>
             <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ border: '1px solid grey' }}>Độ cứng</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Thao tác</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Độ cứng</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Thao tác</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {hardness.map((item: HardnessType) => (
                             <TableRow key={item._id}>
                                 <TableCell sx={{ border: '1px solid grey' }}>{item.name}</TableCell>
-                                <TableCell sx={{ border: '1px solid grey' }}>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>
                                     <IconButton onClick={() => handleOpen(item)}>
                                         <Edit color='primary' />
                                     </IconButton>

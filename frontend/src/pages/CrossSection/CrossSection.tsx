@@ -84,23 +84,23 @@ export default function CrossSection() {
         <Paper elevation={3} style={{ padding: 16 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">Tiết diện lò xén</Typography>
-                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới tiết diện lò xén</Button>
             </Box>
             <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ border: '1px solid grey' }}>Tiết diện lò xén</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Đơn vị tính</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Thao tác</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Tiết diện lò xén</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>ĐVT</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Thao tác</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {crosssections.map((item: CrossSectionOutputType) => (
                             <TableRow key={item._id}>
                                 <TableCell sx={{ border: '1px solid grey' }}>{item.name}</TableCell>
-                                <TableCell sx={{ border: '1px solid grey' }}>{item.uom?.name}</TableCell>
-                                <TableCell sx={{ border: '1px solid grey' }}>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.uom?.name}</TableCell>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>
                                     <IconButton onClick={() => handleOpen(item)}>
                                         <Edit color='primary' />
                                     </IconButton>

@@ -29,7 +29,7 @@ export default function PhaseGroupModal({ open, setOpen, handleSubmit, selectedP
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedPhaseGroup ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedPhaseGroup ? 'Sửa nhóm công đoạn' : 'Tạo mới nhóm công đoạn'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -37,7 +37,7 @@ export default function PhaseGroupModal({ open, setOpen, handleSubmit, selectedP
               fullWidth
               id="code"
               name="code"
-              label="Mã"
+              label="Mã nhóm công đoạn"
               value={formik.values.code}
               onChange={formik.handleChange}
               error={formik.touched.code && Boolean(formik.errors.code)}

@@ -98,14 +98,14 @@ export default function CoalCuttingNormZH() {
     <Paper elevation={3} style={{ padding: 16 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Định mức khấu than - ZH</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới định mức khấu than - ZH</Button>
       </Box>
       < TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell align='center' sx={{ border: '1px solid black' }}><b>Mã</b></TableCell>
-              <TableCell align='center' sx={{ border: '1px solid black' }}><b>Thao tác</b></TableCell>
+              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Mã định mức giao khoán</b></TableCell>
+              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Thao tác</b></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -126,15 +126,15 @@ export default function CoalCuttingNormZH() {
                   </TableCell>
                 </TableRow>
                 {expandedRow === cuttingnorm._id && (<TableRow>
-                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#f9f9f9' }}>
-                    < TableContainer component={Paper}>
+                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#D3D3D3' }}>
+                    < TableContainer component={Paper} sx={{ backgroundColor: '#D3D3D3' }}>
                       <Table>
                         <TableHead>
                           <TableRow>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>STT</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Mã giao khoán</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Thành phần hao phí</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Đơn vị</TableCell>
+                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>STT</TableCell>
+                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Mã giao khoán</TableCell>
+                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Thành phần hao phí</TableCell>
+                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Đơn vị</TableCell>
                             <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>{cuttingnorm.thickness?.name || ''}</TableCell>
                           </TableRow>
                           <TableRow>
@@ -153,7 +153,7 @@ export default function CoalCuttingNormZH() {
                             <TableRow>
                               <TableCell align='center' sx={{ border: '1px solid grey' }}>{index + 1}</TableCell>
                               <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.code}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.name}</TableCell>
+                              <TableCell sx={{ border: '1px solid grey' }}>{item.assignmentCode?.name}</TableCell>
                               <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.uom?.name}</TableCell>
                               <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.norm ? item.norm.toLocaleString() : ''}</TableCell>
                             </TableRow>
@@ -162,12 +162,13 @@ export default function CoalCuttingNormZH() {
                       </Table>
                     </TableContainer>
                   </TableCell>
-                </TableRow>)}
-              </React.Fragment>
+                </TableRow >)
+                }
+              </React.Fragment >
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </TableBody >
+        </Table >
+      </TableContainer >
       <CoalCuttingNormZHModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selected={selected} />
     </Paper >
   );

@@ -28,7 +28,7 @@ export default function ExcavationTechModal({ open, setOpen, handleSubmit, selec
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedExcavationTech ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedExcavationTech ? 'Sửa công nghệ xúc' : 'Tạo mới công nghệ xúc'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

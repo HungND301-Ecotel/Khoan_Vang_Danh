@@ -84,7 +84,7 @@ export default function CuttingNormModal({ open, setOpen, handleSubmit, selected
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selected ? 'Chỉnh sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selected ? 'Chỉnh sửa nhóm công đoạn' : 'Tạo mới nhóm công đoạn'}</DialogTitle>
       <DialogContent>
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>

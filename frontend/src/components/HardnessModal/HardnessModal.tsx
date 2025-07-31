@@ -28,7 +28,7 @@ export default function HardnessModal({ open, setOpen, handleSubmit, selectedHar
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedHardness ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedHardness ? 'Sửa độ cứng' : 'Tạo mới độ cứng'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

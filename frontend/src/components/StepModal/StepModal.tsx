@@ -7,7 +7,7 @@ import { StepType } from '../../types'
 
 
 const validationSchema = yup.object({
-  name: yup.string().required('Loại chống không được để trống')
+  name: yup.string().required('Bước chống không được để trống')
 })
 export default function StepModal({ open, setOpen, handleSubmit, selectedStep }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<StepType>) => void; selectedStep: StepType | null }) {
 
@@ -28,7 +28,7 @@ export default function StepModal({ open, setOpen, handleSubmit, selectedStep }:
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedStep ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedStep ? 'Sửa bước chống' : 'Tạo mới bước chống'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -36,7 +36,7 @@ export default function StepModal({ open, setOpen, handleSubmit, selectedStep }:
               fullWidth
               id="name"
               name="name"
-              label="Loại chống"
+              label="Bước chống"
               value={formik.values.name}
               onChange={formik.handleChange}
               error={formik.touched.name && Boolean(formik.errors.name)}

@@ -20,10 +20,12 @@ const CuttingNormRouter = require('./routes/CuttingNorm')
 const CoalCuttingNormZRYRouter = require('./routes/CoalCuttingNormZRY')
 const CoalCuttingNormZHRouter = require('./routes/CoalCuttingNormZH')
 const CoalCuttingNormKBRouter = require('./routes/CoalCuttingNormKB')
-
-
-
-
+const RockRatioRouter = require('./routes/RockRatio')
+const MirrorRatioRouter = require('./routes/MirrorRatio')
+const AdjustmentNormKRouter = require('./routes/AdjustmentNormK')
+const AdjustmentNormCMRouter = require('./routes/AdjustmentNormCM')
+const ProductionScopeRouter = require('./routes/ProductionScope')
+const DeviceCodeRouter = require('./routes/DeviceCode')
 
 
 
@@ -74,6 +76,16 @@ app.use('/api/cuttingnorms', CuttingNormRouter)
 app.use('/api/coalcuttingnormzhs', CoalCuttingNormZHRouter)
 app.use('/api/coalcuttingnormzrys', CoalCuttingNormZRYRouter)
 app.use('/api/coalcuttingnormkbs', CoalCuttingNormKBRouter)
+app.use('/api/rockratios', RockRatioRouter)
+app.use('/api/mirrorratios', MirrorRatioRouter)
+app.use('/api/adjustmentnormks', AdjustmentNormKRouter)
+app.use('/api/adjustmentnormcms', AdjustmentNormCMRouter)
+app.use('/api/productionscopes', ProductionScopeRouter)
+app.use('/api/devicecodes', DeviceCodeRouter)
+
+
+
+
 
 
 

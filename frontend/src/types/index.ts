@@ -10,13 +10,16 @@ export interface AssignmentCodeInputType {
     name: string;
     uom?: string,
     price?: number,
+    deviceCode?: string,
+
 }
 export interface AssignmentCodeOutputType {
     _id?: string;
     code?: string;
     name: string;
     uom?: UnitType,
-    price?: number
+    price?: number,
+    deviceCode?: DeviceCodeType,
 }
 //
 
@@ -250,4 +253,87 @@ export interface CoalCuttingNormKBOutputType {
         assignmentCode: AssignmentCodeOutputType,
         norm?: number
     }[]
+}
+
+//
+export interface RockRatioType {
+    _id?: string;
+    name: string
+}
+//
+export interface MirrorRatioType {
+    _id?: string;
+    name: string
+}
+//
+
+
+export interface AdjustmentNormKInputType {
+    _id?: string;
+    code: string,
+    rockRatio?: string,
+    hardness?: string,
+    type: string,
+    norms: {
+        assignmentCode?: string,
+        norm?: number
+    }[]
+}
+export interface AdjustmentNormKOutputType {
+    _id?: string;
+    code: string,
+    rockRatio?: RockRatioType,
+    hardness?: HardnessType,
+    type: string,
+    norms: {
+        assignmentCode: AssignmentCodeOutputType,
+        norm?: number
+    }[]
+}
+//
+
+
+export interface AdjustmentNormCMInputType {
+    _id?: string;
+    code: string,
+    mirrorRatio?: string,
+    norms: {
+        assignmentCode?: string,
+        norm?: number
+    }[]
+}
+export interface AdjustmentNormCMOutputType {
+    _id?: string;
+    code: string,
+    mirrorRatio?: MirrorRatioType,
+    norms: {
+        assignmentCode: AssignmentCodeOutputType,
+        norm?: number
+    }[]
+}
+
+//
+export interface ProductionScopeInputType {
+    _id?: string;
+    code: string,
+    name: string
+    phases: {
+        phase?: string,
+        production?: number
+    }[]
+}
+export interface ProductionScopeOutputType {
+    _id?: string;
+    code: string,
+    name: string
+    phases: {
+        phase?: PhaseGroupType,
+        production?: number
+    }[]
+}
+
+//
+export interface DeviceCodeType {
+    _id?: string;
+    code: string,
 }

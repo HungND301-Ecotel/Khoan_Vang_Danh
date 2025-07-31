@@ -84,23 +84,23 @@ export default function PhaseGroup() {
         <Paper elevation={3} style={{ padding: 16 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">Nhóm công đoạn</Typography>
-                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới nhóm công đoạn</Button>
             </Box>
             <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ border: '1px solid grey' }}>Mã nhóm công đoạn</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Tên nhóm công đoạn</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Thao tác</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Mã nhóm công đoạn</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Tên nhóm công đoạn</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Thao tác</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {phasegroups.map((phaseGroup: PhaseGroupType) => (
                             <TableRow key={phaseGroup._id}>
-                                <TableCell sx={{ border: '1px solid grey' }}>{phaseGroup.code}</TableCell>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>{phaseGroup.code}</TableCell>
                                 <TableCell sx={{ border: '1px solid grey' }}>{phaseGroup.name}</TableCell>
-                                <TableCell sx={{ border: '1px solid grey' }}>
+                                <TableCell align='center' sx={{ border: '1px solid grey' }}>
                                     <IconButton onClick={() => handleOpen(phaseGroup)}>
                                         <Edit color='primary' />
                                     </IconButton>

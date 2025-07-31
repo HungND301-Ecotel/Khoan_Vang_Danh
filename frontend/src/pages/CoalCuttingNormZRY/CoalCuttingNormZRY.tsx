@@ -98,14 +98,14 @@ export default function CoalCuttingNormZRY() {
     <Paper elevation={3} style={{ padding: 16 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Định mức khấu than - ZRY</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới định mức khấu than - ZRY</Button>
       </Box>
       < TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell align='center' sx={{ border: '1px solid black' }}><b>Mã</b></TableCell>
-              <TableCell align='center' sx={{ border: '1px solid black' }}><b>Thao tác</b></TableCell>
+              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Mã định mức giao khoán</b></TableCell>
+              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Thao tác</b></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -126,15 +126,15 @@ export default function CoalCuttingNormZRY() {
                   </TableCell>
                 </TableRow>
                 {expandedRow === cuttingnorm._id && (<TableRow>
-                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#f9f9f9' }}>
-                    < TableContainer component={Paper}>
+                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#D3D3D3' }}>
+                    < TableContainer component={Paper} sx={{ backgroundColor: '#D3D3D3' }}>
                       <Table>
                         <TableHead>
                           <TableRow>
                             <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>STT</TableCell>
                             <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Mã khoán</TableCell>
                             <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Thành phần hao phí</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Đơn vị tính</TableCell>
+                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>ĐVT</TableCell>
                             <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>{cuttingnorm.thickness?.name || ''}</TableCell>
                           </TableRow>
                           <TableRow>
@@ -143,17 +143,17 @@ export default function CoalCuttingNormZRY() {
                         </TableHead>
                         <TableBody>
                           <TableRow>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>{cuttingnorm.code}</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}></TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}></TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}></TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}></TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>{cuttingnorm.code}</TableCell>
                           </TableRow>
                           {cuttingnorm.norms.map((item: any, index: number) => (
                             <TableRow>
                               <TableCell align='center' sx={{ border: '1px solid grey' }}>{index + 1}</TableCell>
                               <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.code}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.name}</TableCell>
+                              <TableCell sx={{ border: '1px solid grey' }}>{item.assignmentCode?.name}</TableCell>
                               <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.uom?.name}</TableCell>
                               <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.norm ? item.norm.toLocaleString() : ''}</TableCell>
                             </TableRow>

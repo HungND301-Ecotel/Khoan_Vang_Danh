@@ -30,7 +30,7 @@ export default function MiningTechModal({ open, setOpen, handleSubmit, selectedM
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedMiningTech ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedMiningTech ? 'Sửa công nghệ khai thác' : 'Tạo mới công nghệ khai thác'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

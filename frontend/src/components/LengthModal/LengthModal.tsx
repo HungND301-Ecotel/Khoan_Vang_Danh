@@ -7,7 +7,7 @@ import { LengthType } from '../../types'
 
 
 const validationSchema = yup.object({
-  name: yup.string().required('L không được để trống')
+  name: yup.string().required('Chiều dài lò không được để trống')
 })
 export default function LengthModal({ open, setOpen, handleSubmit, selectedLength }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<LengthType>) => void; selectedLength: LengthType | null }) {
 
@@ -28,7 +28,7 @@ export default function LengthModal({ open, setOpen, handleSubmit, selectedLengt
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedLength ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedLength ? 'Sửa chiều dài lò' : 'Tạo mới chiều dài lò'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -36,7 +36,7 @@ export default function LengthModal({ open, setOpen, handleSubmit, selectedLengt
               fullWidth
               id="name"
               name="name"
-              label="L"
+              label="Chiều dài lò"
               placeholder='VD: L=50m'
               value={formik.values.name}
               onChange={formik.handleChange}

@@ -37,7 +37,7 @@ export default function PhaseModal({ open, setOpen, handleSubmit, selectedPhase 
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedPhase ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedPhase ? 'Sửa công đoạn' : 'Tạo mới công đoạn'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -45,7 +45,7 @@ export default function PhaseModal({ open, setOpen, handleSubmit, selectedPhase 
               fullWidth
               id="code"
               name="code"
-              label="Mã"
+              label="Mã công đoạn"
               value={formik.values.code}
               onChange={formik.handleChange}
               error={formik.touched.code && Boolean(formik.errors.code)}

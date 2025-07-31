@@ -37,9 +37,11 @@ import {
     Notifications,
 } from '@mui/icons-material';
 
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
 import { userAtom } from '../../atoms/userAtoms';
+import api from '../../config/api.config';
+import { PhaseOutputType } from '../../types';
 
 const drawerWidth = 240;
 interface MainLayoutProps {
@@ -75,6 +77,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const [openPhase, setOpenPhase] = useState(false);
     const [openAdjustment, setOpenAdjustment] = useState(false);
     const [openCaculate, setOpenCaculate] = useState(false);
+    const [openHSDC, setOpenHSDC] = useState(false);
+
 
     const [path, setPath] = useState('')
 
@@ -100,12 +104,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const handleMenuCloseCoal = () => setAnchorElCoal(null);
 
 
+
     const handleLogout = () => {
         localStorage.removeItem('token');
         setUser(null);
         navigate('/login');
     };
-
+    const { data: phases = [] } = useQuery({
+        queryKey: ['phases'],
+        queryFn: () => api.get('/phases').then(res => res.data.data)
+    })
 
     const drawer = (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -149,6 +157,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         }}>
                             <ListItemText primary="Đơn vị tính" />
                         </ListItem>
+                        <ListItem button onClick={() => navigate('/devicecode')} sx={{
+                            ...listItemSx, pl: 4,
+                            bgcolor: path === "/devicecode" ? 'primary.main' : 'transparent',
+                            color: location.pathname === '/devicecode' ? 'white' : 'inherit',
+                        }}>
+                            <ListItemText primary="Mã thiết bị" />
+                        </ListItem>
                         <ListItem button onClick={() => navigate('/assignmentcode')} sx={{
                             ...listItemSx, pl: 4,
                             bgcolor: path === "/assignmentcode" ? 'primary.main' : 'transparent',
@@ -163,8 +178,54 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         }}>
                             <ListItemText primary="Vật tư, tài sản" />
                         </ListItem>
-                        <ListItem button onClick={() => setOpenPhase(!openPhase)} sx={{ ...listItemSx, pl: 4 }}>
-                            <ListItemText primary="Công đoạn" />
+                        <ListItem button onClick={() => navigate('/rockratio')} sx={{
+                            ...listItemSx, pl: 4,
+                            bgcolor: path === "/rockratio" ? 'primary.main' : 'transparent',
+                            color: location.pathname === '/rockratio' ? 'white' : 'inherit',
+                        }}>
+                            <ListItemText primary="Tỷ lệ đá lẫn trong gương (Ckẹp)" />
+                        </ListItem>
+                        <ListItem button onClick={() => navigate('/mirrorratio')} sx={{
+                            ...listItemSx, pl: 4,
+                            bgcolor: path === "/mirrorratio" ? 'primary.main' : 'transparent',
+                            color: location.pathname === '/mirrorratio' ? 'white' : 'inherit',
+                        }}>
+                            <ListItemText primary="Tỷ lệ gương than mềm (Cm)" />
+                        </ListItem>
+                        <ListItem button onClick={() => setOpenHSDC(!openHSDC)} sx={{ ...listItemSx, pl: 4 }}>
+                            <ListItemText primary="Hệ số điều chỉnh định mức" />
+                            {openHSDC ? <ExpandLess /> : <ExpandMore />}
+                        </ListItem>
+                        <Collapse in={openHSDC} timeout="auto" unmountOnExit>
+                            <List component="div" disablePadding>
+                                <ListItem button onClick={() => navigate('/adjustmentnormk_kt')} sx={{
+                                    ...listItemSx, pl: 6,
+                                    bgcolor: path === "/adjustmentnormk_kt" ? 'primary.main' : 'transparent',
+                                    color: location.pathname === '/adjustmentnormk_kt' ? 'white' : 'inherit',
+                                }}>
+                                    <ListItemText primary="Hệ số điều chỉnh định mức (CK.KT )" />
+                                </ListItem>
+                                <ListItem button onClick={() => navigate('/adjustmentnormk_dl')} sx={{
+                                    ...listItemSx, pl: 6,
+                                    bgcolor: path === "/adjustmentnormk_dl" ? 'primary.main' : 'transparent',
+                                    color: location.pathname === '/adjustmentnormk_dl' ? 'white' : 'inherit',
+                                }}>
+                                    <ListItemText primary="Hệ số điều chỉnh định mức (CK.ĐL )" />
+                                </ListItem>
+                                <ListItem button onClick={() => navigate('/adjustmentnorm_cm')} sx={{
+                                    ...listItemSx, pl: 6,
+                                    bgcolor: path === "/adjustmentnorm_cm" ? 'primary.main' : 'transparent',
+                                    color: location.pathname === '/adjustmentnorm_cm' ? 'white' : 'inherit',
+                                }}>
+                                    <ListItemText primary="Hệ số điều chỉnh định mức (Cm)" />
+                                </ListItem>
+                            </List>
+                        </Collapse>
+                        <ListItem button onClick={() => setOpenPhase(!openPhase)} sx={listItemSx}>
+                            <ListItemIcon sx={{ justifyContent: 'center', minWidth: 0, mr: mobileOpen ? 2 : 'auto', color: 'primary.main' }}>
+                                <Calculate sx={{ color: 'inherit' }} />
+                            </ListItemIcon>
+                            <ListItemText primary="Công đoạn sản xuất" />
                             {openPhase ? <ExpandLess /> : <ExpandMore />}
                         </ListItem>
                         <Collapse in={openPhase} timeout="auto" unmountOnExit>
@@ -174,17 +235,24 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                                     bgcolor: path === "/phasegroup" ? 'primary.main' : 'transparent',
                                     color: location.pathname === '/phasegroup' ? 'white' : 'inherit',
                                 }}>
-                                    <ListItemText primary="Nhóm" />
+                                    <ListItemText primary="Nhóm công đoạn sản xuất" />
                                 </ListItem>
                                 <ListItem button onClick={() => navigate('/phase')} sx={{
                                     ...listItemSx, pl: 6,
                                     bgcolor: path === "/phase" ? 'primary.main' : 'transparent',
                                     color: location.pathname === '/phase' ? 'white' : 'inherit',
                                 }}>
-                                    <ListItemText primary="Công đoạn" />
+                                    <ListItemText primary="Công đoạn sản xuất" />
                                 </ListItem>
                             </List>
                         </Collapse>
+                        <ListItem button onClick={() => navigate('/productionscope')} sx={{
+                            ...listItemSx, pl: 4,
+                            bgcolor: path === "/productionscope" ? 'primary.main' : 'transparent',
+                            color: location.pathname === '/productionscope' ? 'white' : 'inherit',
+                        }}>
+                            <ListItemText primary="Diện sản xuất" />
+                        </ListItem>
                         <ListItem button onClick={() => setOpenParameter(!openParameter)} sx={{ ...listItemSx, pl: 4, }}>
                             <ListItemText primary="Thông số" />
                             {openParameter ? <ExpandLess /> : <ExpandMore />}
@@ -231,7 +299,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                                     bgcolor: path === "/length" ? 'primary.main' : 'transparent',
                                     color: location.pathname === '/length' ? 'white' : 'inherit',
                                 }}>
-                                    <ListItemText primary="L" />
+                                    <ListItemText primary="Chiều dài" />
                                 </ListItem>
                                 <ListItem button onClick={() => navigate('/miningtechs')} sx={{
                                     ...listItemSx, pl: 6,
@@ -289,6 +357,24 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         </ListItem>
                     </List>
                 </Collapse>
+                <ListItem button onClick={() => setOpenCaculate(!openCaculate)} sx={listItemSx}>
+                    <ListItemIcon sx={{ justifyContent: 'center', minWidth: 0, mr: mobileOpen ? 2 : 'auto', color: 'primary.main' }}>
+                        <Calculate sx={{ color: 'inherit' }} />
+                    </ListItemIcon>
+                    <ListItemText primary="Thống kê vận hành" />
+                    {openCaculate ? <ExpandLess /> : <ExpandMore />}
+                </ListItem>
+                <Collapse in={openCaculate} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <ListItem button onClick={() => navigate('/materialunitprice')} sx={{
+                            ...listItemSx, pl: 4,
+                            bgcolor: path === "/materialunitprice" ? 'primary.main' : 'transparent',
+                            color: location.pathname === '/materialunitprice' ? 'white' : 'inherit',
+                        }}>
+                            <ListItemText primary="Đơn giá vật tư giao khoán" />
+                        </ListItem>
+                    </List >
+                </Collapse>
             </List >
             <Divider />
             <List>
@@ -325,36 +411,33 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'left' }}
             >
-                <MenuItem onClick={() => {
-                    navigate('/coalcuttingnorm_zry')
-                    setAnchorElCoal(null)
-                }} sx={{
-                    ...listItemSx,
-                    bgcolor: path === "/coalcuttingnorm_zry" ? 'primary.main' : 'transparent',
-                    color: location.pathname === '/coalcuttingnorm_zry' ? 'white' : 'inherit',
-                }} >
-                    Khấu than- ZRY
-                </MenuItem>
-                <MenuItem onClick={() => {
-                    setAnchorElCoal(null)
-                    navigate('/coalcuttingnorm_zh')
-                }} sx={{
-                    ...listItemSx,
-                    bgcolor: path === "/coalcuttingnorm_zh" ? 'primary.main' : 'transparent',
-                    color: location.pathname === '/coalcuttingnorm_zh' ? 'white' : 'inherit',
-                }}>
-                    Khấu than- ZH
-                </MenuItem>
-                <MenuItem onClick={() => {
-                    setAnchorElCoal(null)
-                    navigate('/coalcuttingnorm_kb')
-                }} sx={{
-                    ...listItemSx,
-                    bgcolor: path === "/coalcuttingnorm_kb" ? 'primary.main' : 'transparent',
-                    color: location.pathname === '/coalcuttingnorm_kb' ? 'white' : 'inherit',
-                }}>
-                    Khấu than- KB
-                </MenuItem>
+                {phases.filter((i: PhaseOutputType) =>
+                    i.phaseGroup?.name?.toLowerCase() === "khấu than".toLowerCase()
+                ).map((p: PhaseOutputType) => {
+                    const route =
+                        p.code === "ZRY"
+                            ? "/coalcuttingnorm_zry"
+                            : p.code === "KB"
+                                ? "/coalcuttingnorm_kb"
+                                : "/coalcuttingnorm_zh";
+
+                    return (
+                        <MenuItem
+                            key={p._id}
+                            onClick={() => {
+                                navigate(route);
+                                setAnchorElCoal(null);
+                            }}
+                            sx={{
+                                ...listItemSx,
+                                bgcolor: location.pathname === route ? "primary.main" : "transparent",
+                                color: location.pathname === route ? "white" : "inherit",
+                            }}
+                        >
+                            {p.code}
+                        </MenuItem>
+                    );
+                })}
             </Menu>
         </Box >
     );

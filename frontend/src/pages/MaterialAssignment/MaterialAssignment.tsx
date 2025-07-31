@@ -85,36 +85,34 @@ export default function MaterialAssignment() {
         <Paper elevation={3} style={{ padding: 16 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">Vật tư, tài sản</Typography>
-                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Thêm mới</Button>
+                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới vật tư/ tài sản</Button>
             </Box>
             <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ border: '1px solid grey' }}>Mã vật tư</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Tên vật tư</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Đơn vị tính</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Mã giao khoán</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Số lượng</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Đơn giá</TableCell>
-                            <TableCell sx={{ border: '1px solid grey' }}>Thao tác</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Mã vật tư</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Tên vật tư</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>ĐVT</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Số lượng</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Đơn giá</TableCell>
+                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Thao tác</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {materialAssignments.map((materialAssignment: MaterialAssignmentOutputType) => (
                             <>
                                 <TableRow>
-                                    <TableCell colSpan={6} sx={{ border: '1px solid grey', fontWeight: 600 }}>{materialAssignment.code}</TableCell>
+                                    <TableCell colSpan={6} sx={{ border: '1px solid grey', fontWeight: 600 }}>{materialAssignment.code} - {materialAssignment.name}</TableCell>
                                 </TableRow>
                                 {materialAssignment.materials.map((item: Materials) => (
                                     <TableRow key={item._id}>
-                                        <TableCell sx={{ border: '1px solid grey' }}>{item.code}</TableCell>
+                                        <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.code}</TableCell>
                                         <TableCell sx={{ border: '1px solid grey' }}>{item.name}</TableCell>
-                                        <TableCell sx={{ border: '1px solid grey' }}>{item.uom?.name}</TableCell>
-                                        <TableCell sx={{ border: '1px solid grey' }}>{item?.assignmentCode?.code}</TableCell>
-                                        <TableCell sx={{ border: '1px solid grey' }}>{item?.quantity}</TableCell>
-                                        <TableCell sx={{ border: '1px solid grey' }}>{item?.currentPrice ? item?.currentPrice.toLocaleString() : ''}</TableCell>
-                                        <TableCell sx={{ border: '1px solid grey' }}>
+                                        <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.uom?.name}</TableCell>
+                                        <TableCell align='center' sx={{ border: '1px solid grey' }}>{item?.quantity}</TableCell>
+                                        <TableCell align='center' sx={{ border: '1px solid grey' }}>{item?.currentPrice ? item?.currentPrice.toLocaleString() : ''}</TableCell>
+                                        <TableCell align='center' sx={{ border: '1px solid grey' }}>
                                             <IconButton onClick={() => handleOpen(item)}>
                                                 <Edit color='primary' />
                                             </IconButton>

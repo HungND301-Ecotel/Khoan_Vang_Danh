@@ -3,8 +3,8 @@ const AssignmentCode = require('../model/AssignmentCode')
 
 exports.create = async (req, res) => {
     try {
-        const { code, name, uom, price } = req.body
-        const newAssignmentCode = new AssignmentCode({ code, name, uom, price })
+        const { code, name, uom, price, deviceCode } = req.body
+        const newAssignmentCode = new AssignmentCode({ code, name, uom, price, deviceCode })
         await newAssignmentCode.save()
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
     } catch (err) {
@@ -38,7 +38,7 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await AssignmentCode.find().populate("uom")
+        const data = await AssignmentCode.find().populate("uom").populate("deviceCode")
 
         res.status(200).json({ status: 'success', data: data })
     } catch (err) {

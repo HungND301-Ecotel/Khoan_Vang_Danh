@@ -67,7 +67,7 @@ export default function MaterialAssignmentModal({ open, setOpen, handleSubmit, s
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedMaterialAssignment ? 'Sửa' : 'Thêm mới'}</DialogTitle>
+      <DialogTitle>{selectedMaterialAssignment ? 'Sửa vật tư' : 'Tạo mới vật tư'}</DialogTitle>
       <DialogContent>
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
@@ -76,7 +76,7 @@ export default function MaterialAssignmentModal({ open, setOpen, handleSubmit, s
                 fullWidth
                 id="code"
                 name="code"
-                label="Mã"
+                label="Mã vật tư, tài sản"
                 value={formik.values.code}
                 onChange={formik.handleChange}
                 error={formik.touched.code && Boolean(formik.errors.code)}
@@ -86,7 +86,7 @@ export default function MaterialAssignmentModal({ open, setOpen, handleSubmit, s
                 fullWidth
                 id="name"
                 name="name"
-                label="Tên vật tư"
+                label="Tên vật tư, tài sản"
                 value={formik.values.name}
                 onChange={formik.handleChange}
                 error={formik.touched.name && Boolean(formik.errors.name)}
