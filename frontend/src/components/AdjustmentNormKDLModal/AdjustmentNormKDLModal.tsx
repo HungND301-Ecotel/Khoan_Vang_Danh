@@ -4,9 +4,9 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import * as yup from 'yup'
 import { FieldArray, FormikProvider, useFormik } from 'formik'
 import api from '../../config/api.config';
-import { AssignmentCodeOutputType, AdjustmentNormKInputType, AdjustmentNormKOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType } from '../../types';
+import { AssignmentCodeOutputType, AdjustmentNormInputType, AdjustmentNormOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType } from '../../types';
 
-export default function AdjustmentNormKDLModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<AdjustmentNormKInputType>) => void; selected: AdjustmentNormKOutputType | null }) {
+export default function AdjustmentNormKDLModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<AdjustmentNormInputType>) => void; selected: AdjustmentNormOutputType | null }) {
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([])
 
 
@@ -29,7 +29,7 @@ export default function AdjustmentNormKDLModal({ open, setOpen, handleSubmit, se
       hardness: selected?.hardness?._id || '',
       rockRatio: selected?.rockRatio?._id || '',
       code: selected?.code || '',
-      type: 'KDL',
+      type: 'CKĐL',
       norms: selected?.norms?.map((item) => ({
         assignmentCode: item.assignmentCode._id,
         norm: item.norm
@@ -41,6 +41,7 @@ export default function AdjustmentNormKDLModal({ open, setOpen, handleSubmit, se
       handleSubmit({
         ...values,
         hardness: values.hardness || undefined,
+        type: values.type as 'CM' | 'CKKT' | 'CKĐL'
       })
     }
   })

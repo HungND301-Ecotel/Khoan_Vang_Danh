@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../config/api.config';
-import { AdjustmentNormCMInputType, AdjustmentNormCMOutputType } from '../../types';
+import { AdjustmentNormInputType, AdjustmentNormOutputType } from '../../types';
 import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
 import AdjustmentNormCMModal from '../../components/AdjustmentNormCMModal/AdjustmentNormCMModal';
 import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
@@ -10,27 +10,27 @@ import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../compon
 
 export default function AdjustmentNormCM() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AdjustmentNormCMOutputType | null>(null)
+  const [selected, setSelected] = useState<AdjustmentNormOutputType | null>(null)
   const [open, setOpen] = useState(false)
 
   const queryClient = useQueryClient()
 
-  const { data: adjustmentnormcms = [] } = useQuery({
-    queryKey: ['adjustmentnormcms'],
-    queryFn: async () => api.get('/adjustmentnormcms').then(res => res.data.data)
+  const { data: adjustmentnorms = [] } = useQuery({
+    queryKey: ['adjustmentnorms'],
+    queryFn: async () => api.get('/adjustmentnorms').then(res => res.data.data)
   })
 
-  const handleToggleExpand = (axcavationnorm: AdjustmentNormCMOutputType) => {
+  const handleToggleExpand = (axcavationnorm: AdjustmentNormOutputType) => {
     const id = axcavationnorm?._id;
     if (!id) return;
 
     setExpandedRow(prev => (prev === id ? null : id));
   };
   const createMutation = useMutation({
-    mutationFn: (newExcavationNorm: Partial<AdjustmentNormCMInputType>) =>
-      api.post('/adjustmentnormcms', newExcavationNorm).then(res => res.data),
+    mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
+      api.post('/adjustmentnorms', newExcavationNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adjustmentnormcms'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
       setOpen(false)
       showSuccessAlert("Thêm mới thành công")
     },
@@ -40,10 +40,10 @@ export default function AdjustmentNormCM() {
     }
   });
   const updateMutation = useMutation({
-    mutationFn: (updateExcavationNorm: Partial<AdjustmentNormCMInputType>) =>
-      api.put(`/adjustmentnormcms/${updateExcavationNorm._id}`, updateExcavationNorm).then(res => res.data),
+    mutationFn: (updateExcavationNorm: Partial<AdjustmentNormInputType>) =>
+      api.put(`/adjustmentnorms/${updateExcavationNorm._id}`, updateExcavationNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adjustmentnormcms'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
       setOpen(false)
       setSelected(null)
       showSuccessAlert("Sửa thành công")
@@ -66,9 +66,9 @@ export default function AdjustmentNormCM() {
   };
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      api.delete(`/adjustmentnormcms/${id}`).then(res => res.data),
+      api.delete(`/adjustmentnorms/${id}`).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adjustmentnormcms'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
       showSuccessAlert('Xóa thành công')
     },
     onError: (error: any) => {
@@ -76,14 +76,14 @@ export default function AdjustmentNormCM() {
       showErrorAlert(error.response.data.message || error.response || 'Lỗi')
     }
   });
-  const handleSubmit = (values: Partial<AdjustmentNormCMInputType>) => {
+  const handleSubmit = (values: Partial<AdjustmentNormInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
     } else {
       createMutation.mutate(values);
     }
   };
-  const handleOpen = (excavationNorm?: AdjustmentNormCMOutputType) => {
+  const handleOpen = (excavationNorm?: AdjustmentNormOutputType) => {
     if (excavationNorm) {
       setSelected(excavationNorm)
     } else {
@@ -109,7 +109,7 @@ export default function AdjustmentNormCM() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {adjustmentnormcms.map((adjustmentnorm: AdjustmentNormCMOutputType) => (
+            {adjustmentnorms.filter((i:AdjustmentNormOutputType)=>i.type==="CM").map((adjustmentnorm: AdjustmentNormOutputType) => (
               <React.Fragment>
                 <TableRow>
                   <TableCell align='center' sx={{ border: '1px solid black' }}>{adjustmentnorm.code}</TableCell>

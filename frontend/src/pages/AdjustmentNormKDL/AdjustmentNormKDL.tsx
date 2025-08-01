@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../config/api.config';
-import { AdjustmentNormKInputType, AdjustmentNormKOutputType } from '../../types';
+import { AdjustmentNormInputType, AdjustmentNormOutputType } from '../../types';
 import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
 import AdjustmentNormKDLModal from '../../components/AdjustmentNormKDLModal/AdjustmentNormKDLModal';
 import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
@@ -10,27 +10,27 @@ import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../compon
 
 export default function AdjustmentNormKDL() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AdjustmentNormKOutputType | null>(null)
+  const [selected, setSelected] = useState<AdjustmentNormOutputType | null>(null)
   const [open, setOpen] = useState(false)
 
   const queryClient = useQueryClient()
 
-  const { data: adjustmentnormks = [] } = useQuery({
-    queryKey: ['adjustmentnormks'],
-    queryFn: async () => api.get('/adjustmentnormks').then(res => res.data.data)
+  const { data: adjustmentnorms = [] } = useQuery({
+    queryKey: ['adjustmentnorms'],
+    queryFn: async () => api.get('/adjustmentnorms').then(res => res.data.data)
   })
 
-  const handleToggleExpand = (axcavationnorm: AdjustmentNormKOutputType) => {
+  const handleToggleExpand = (axcavationnorm: AdjustmentNormOutputType) => {
     const id = axcavationnorm?._id;
     if (!id) return;
 
     setExpandedRow(prev => (prev === id ? null : id));
   };
   const createMutation = useMutation({
-    mutationFn: (newExcavationNorm: Partial<AdjustmentNormKInputType>) =>
-      api.post('/adjustmentnormks', newExcavationNorm).then(res => res.data),
+    mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
+      api.post('/adjustmentnorms', newExcavationNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adjustmentnormks'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
       setOpen(false)
       showSuccessAlert("Thêm mới thành công")
     },
@@ -40,10 +40,10 @@ export default function AdjustmentNormKDL() {
     }
   });
   const updateMutation = useMutation({
-    mutationFn: (updateExcavationNorm: Partial<AdjustmentNormKInputType>) =>
-      api.put(`/adjustmentnormks/${updateExcavationNorm._id}`, updateExcavationNorm).then(res => res.data),
+    mutationFn: (updateExcavationNorm: Partial<AdjustmentNormInputType>) =>
+      api.put(`/adjustmentnorms/${updateExcavationNorm._id}`, updateExcavationNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adjustmentnormks'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
       setOpen(false)
       setSelected(null)
       showSuccessAlert("Sửa thành công")
@@ -66,9 +66,9 @@ export default function AdjustmentNormKDL() {
   };
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      api.delete(`/adjustmentnormks/${id}`).then(res => res.data),
+      api.delete(`/adjustmentnorms/${id}`).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adjustmentnormks'] });
+      queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
       showSuccessAlert('Xóa thành công')
     },
     onError: (error: any) => {
@@ -76,14 +76,14 @@ export default function AdjustmentNormKDL() {
       showErrorAlert(error.response.data.message || error.response || 'Lỗi')
     }
   });
-  const handleSubmit = (values: Partial<AdjustmentNormKInputType>) => {
+  const handleSubmit = (values: Partial<AdjustmentNormInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
     } else {
       createMutation.mutate(values);
     }
   };
-  const handleOpen = (excavationNorm?: AdjustmentNormKOutputType) => {
+  const handleOpen = (excavationNorm?: AdjustmentNormOutputType) => {
     if (excavationNorm) {
       setSelected(excavationNorm)
     } else {
@@ -109,7 +109,7 @@ export default function AdjustmentNormKDL() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {adjustmentnormks.filter((i: AdjustmentNormKOutputType) => i.type === "KDL").map((adjustmentnorm: AdjustmentNormKOutputType) => (
+            {adjustmentnorms.filter((i: AdjustmentNormOutputType) => i.type === "CKĐL").map((adjustmentnorm: AdjustmentNormOutputType) => (
               <React.Fragment>
                 <TableRow>
                   <TableCell align='center' sx={{ border: '1px solid black' }}>{adjustmentnorm.code}</TableCell>

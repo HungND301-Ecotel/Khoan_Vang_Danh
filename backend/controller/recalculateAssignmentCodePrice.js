@@ -4,6 +4,9 @@ const MaterialAssignment = require('../model/MaterialAssignment')
 
 const recalculateAssignmentCodePrice = async (assignmentCodeId) => {
     const allMaterials = await MaterialAssignment.find({ assignmentCode: assignmentCodeId });
+    if (allMaterials.length === 0) {
+        return
+    }
 
     const todayStr = new Date().toISOString().split('T')[0];
 

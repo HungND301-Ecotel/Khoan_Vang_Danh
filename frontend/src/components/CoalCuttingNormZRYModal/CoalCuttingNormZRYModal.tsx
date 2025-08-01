@@ -4,9 +4,9 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import * as yup from 'yup'
 import { FieldArray, FormikProvider, useFormik } from 'formik'
 import api from '../../config/api.config';
-import { AssignmentCodeOutputType, CrossSectionInputType, CoalCuttingNormZRYInputType, CoalCuttingNormZRYOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType, ThicknessType, LengthType } from '../../types';
+import { AssignmentCodeOutputType, CrossSectionInputType, AssignmentNormInputType, AssignmentNormOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType, ThicknessType, LengthType } from '../../types';
 
-export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<CoalCuttingNormZRYInputType>) => void; selected: CoalCuttingNormZRYOutputType | null }) {
+export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<AssignmentNormInputType>) => void; selected: AssignmentNormOutputType | null }) {
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([])
 
   const { data: assignmentcodes = [] } = useQuery({
@@ -33,6 +33,7 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
       code: selected?.code || '',
       length: selected?.length?._id || '',
       thickness: selected?.thickness?._id || '',
+      type: 'coal_zry',
       norms: selected?.norms?.map((item) => ({
         assignmentCode: item.assignmentCode._id,
         norm: item.norm
@@ -47,6 +48,7 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
       handleSubmit({
         ...values,
         hardness: values.hardness || undefined,
+        type: values.type as "excavation" | "cutting" | "coal_kb" | "coal_zh" | "coal_zry"
       })
     }
   })
@@ -90,7 +92,7 @@ export default function CuttingNormZRYModal({ open, setOpen, handleSubmit, selec
                   ))
                 }
               </TextField>
-              <TextField fullWidth select label="L" variant="outlined"
+              <TextField fullWidth select label="Chiều dài lò" variant="outlined"
                 value={formik.values.length}
                 onChange={(event) => {
                   formik.setFieldValue("length", event.target.value);

@@ -34,6 +34,7 @@ import AdjustmentNormKDL from './pages/AdjustmentNormKDL/AdjustmentNormKDL';
 import AdjustmentNormCM from './pages/AdjustmentNormCM/AdjustmentNormCM';
 import ProductScope from './pages/ProductionSope/ProductionScope';
 import DeviceCode from './pages/DeviceCode/DeviceCode';
+import MaterialBudget from './pages/MaterialBudget/MaterialBudget';
 
 
 interface PrivateRouteProps {
@@ -282,6 +283,14 @@ const App = () => {
           element={
             <PrivateRoute>
               <DeviceCode />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/materialbudget"
+          element={
+            <PrivateRoute>
+              <MaterialBudget />
             </PrivateRoute>
           }
         />

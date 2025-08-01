@@ -134,8 +134,8 @@ export interface ExcavationNormInputType {
     code: string,
     phase?: string,
     phaseGroup?: string,
-    step?: string,
     hardness?: string,
+    step?: string,
     excavationTech?: string,
     norms: {
         assignmentCode: string,
@@ -147,8 +147,8 @@ export interface ExcavationNormOutputType {
     code: string,
     phase?: PhaseInputType,
     phaseGroup?: PhaseGroupType,
-    step?: StepType,
     hardness?: HardnessType,
+    step?: StepType,
     excavationTech?: ExcavationTechType,
     norms: {
         assignmentCode: AssignmentCodeOutputType,
@@ -162,8 +162,8 @@ export interface CuttingNormInputType {
     code: string,
     phase?: string,
     phaseGroup?: string,
-    hardness?: string,
     crossSection?: string,
+    hardness?: string,
     norms: {
         assignmentCode: string,
         norm?: number
@@ -174,8 +174,8 @@ export interface CuttingNormOutputType {
     code: string,
     phase?: PhaseInputType,
     phaseGroup?: PhaseGroupType,
-    hardness?: HardnessType,
     crossSection?: CrossSectionOutputType,
+    hardness?: HardnessType,
     norms: {
         assignmentCode: AssignmentCodeOutputType,
         norm?: number
@@ -256,6 +256,44 @@ export interface CoalCuttingNormKBOutputType {
 }
 
 //
+
+export interface AssignmentNormInputType {
+    _id?: string;
+    code: string,
+    phase?: string,
+    phaseGroup?: string,
+    crossSection?: string,
+    length?: string;
+    curbSlope?: string;
+    hardness?: string,
+    thickness?: string,
+    step?: string,
+    excavationTech?: string,
+    type: 'cutting' | 'excavation' | 'coal_kb' | 'coal_zh' | 'coal_zry'
+    norms: {
+        assignmentCode: string,
+        norm?: number
+    }[]
+}
+export interface AssignmentNormOutputType {
+    _id?: string;
+    code: string,
+    phase?: PhaseInputType,
+    phaseGroup?: PhaseGroupType,
+    crossSection?: CrossSectionOutputType,
+    length?: LengthType;
+    curbSlope?: CurbSlopeType;
+    hardness?: HardnessType,
+    thickness?: ThicknessType,
+    step?: StepType,
+    excavationTech?: ExcavationTechType,
+    type: 'cutting' | 'excavation' | 'coal_kb' | 'coal_zh' | 'coal_zry'
+    norms: {
+        assignmentCode: AssignmentCodeOutputType,
+        norm?: number
+    }[]
+}
+//
 export interface RockRatioType {
     _id?: string;
     name: string
@@ -311,6 +349,31 @@ export interface AdjustmentNormCMOutputType {
         norm?: number
     }[]
 }
+//
+export interface AdjustmentNormInputType {
+    _id?: string;
+    code: string,
+    rockRatio?: string,
+    hardness?: string,
+    mirrorRatio?: string,
+    type: 'CM' | 'CKKT' | 'CKĐL',
+    norms: {
+        assignmentCode?: string,
+        norm?: number
+    }[]
+}
+export interface AdjustmentNormOutputType {
+    _id?: string;
+    code: string,
+    rockRatio?: RockRatioType,
+    hardness?: HardnessType,
+    mirrorRatio?: MirrorRatioType,
+    type: 'CM' | 'CKKT' | 'CKĐL',
+    norms: {
+        assignmentCode: AssignmentCodeOutputType,
+        norm?: number
+    }[]
+}
 
 //
 export interface ProductionScopeInputType {
@@ -336,4 +399,16 @@ export interface ProductionScopeOutputType {
 export interface DeviceCodeType {
     _id?: string;
     code: string,
+}
+
+//
+
+export interface MaterialBudgetInputType {
+    _id?: string;
+    code: string;
+    phase?: string,
+    phaseGroup?: string,
+    production?: number,
+    assignmentNormCode: string,
+    adjustmentNormCode: string
 }

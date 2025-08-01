@@ -4,7 +4,7 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import * as yup from 'yup'
 import { FieldArray, FormikProvider, useFormik } from 'formik'
 import api from '../../config/api.config';
-import { AssignmentCodeOutputType, CrossSectionInputType, CoalCuttingNormKBInputType, CoalCuttingNormKBOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType, ThicknessType, LengthType } from '../../types';
+import { AssignmentCodeOutputType, CrossSectionInputType, AssignmentNormInputType, AssignmentNormOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType, ThicknessType, LengthType } from '../../types';
 
 const validationSchema = yup.object().shape({
   norms: yup.array().of(
@@ -14,7 +14,7 @@ const validationSchema = yup.object().shape({
     })
   ).min(1, 'Phải có ít nhất 1 định mức'),
 });
-export default function CuttingNormKBModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<CoalCuttingNormKBInputType>) => void; selected: CoalCuttingNormKBOutputType | null }) {
+export default function CuttingNormKBModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<AssignmentNormInputType>) => void; selected: AssignmentNormOutputType | null }) {
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([])
   const { data: assignmentcodes = [] } = useQuery({
     queryKey: ['assignmentcodes'],
@@ -40,6 +40,7 @@ export default function CuttingNormKBModal({ open, setOpen, handleSubmit, select
       code: selected?.code || '',
       curbSlope: selected?.curbSlope?._id || '',
       thickness: selected?.thickness?._id || '',
+      type: 'coal_kb',
       norms: selected?.norms?.map((item) => ({
         assignmentCode: item.assignmentCode._id,
         norm: item.norm
@@ -54,6 +55,7 @@ export default function CuttingNormKBModal({ open, setOpen, handleSubmit, select
       handleSubmit({
         ...values,
         hardness: values.hardness || undefined,
+        type: values.type as "excavation" | "cutting" | "coal_kb" | "coal_zh" | "coal_zry"
 
       })
     }

@@ -50,7 +50,9 @@ exports.get = async (req, res) => {
         const result = [];
 
         for (const assignment of assignments) {
-            const materials = await MaterialAssignment.find({ assignmentCode: assignment._id }).populate('uom');
+            await recalculateAssignmentCodePrice(assignment._id);
+
+            const materials = await MaterialAssignment.find({ assignmentCode: assignment._id }).populate('assignmentCode').populate('uom');
 
             const todayStr = new Date().toISOString().split('T')[0];
 

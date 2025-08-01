@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../config/api.config';
-import { CuttingNormInputType, CuttingNormOutputType } from '../../types';
+import { AssignmentCodeInputType, AssignmentNormOutputType } from '../../types';
 import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
 import CuttingNormModal from '../../components/CuttingNormModal/CuttingNormModal';
 import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
@@ -10,27 +10,27 @@ import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../compon
 
 export default function CuttingNorm() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<CuttingNormOutputType | null>(null)
+  const [selected, setSelected] = useState<AssignmentNormOutputType | null>(null)
   const [open, setOpen] = useState(false)
 
   const queryClient = useQueryClient()
 
-  const { data: cuttingnorms = [] } = useQuery({
-    queryKey: ['cuttingnorms'],
-    queryFn: async () => api.get('/cuttingnorms').then(res => res.data.data)
+  const { data: assignmentnorms = [] } = useQuery({
+    queryKey: ['assignmentnorms'],
+    queryFn: async () => api.get('/assignmentnorms').then(res => res.data.data)
   })
 
-  const handleToggleExpand = (cuttingnorm: CuttingNormOutputType) => {
+  const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
     const id = cuttingnorm?._id;
     if (!id) return;
 
     setExpandedRow(prev => (prev === id ? null : id));
   };
   const createMutation = useMutation({
-    mutationFn: (newCuttingNorm: Partial<CuttingNormInputType>) =>
-      api.post('/cuttingnorms', newCuttingNorm).then(res => res.data),
+    mutationFn: (newCuttingNorm: Partial<AssignmentCodeInputType>) =>
+      api.post('/assignmentnorms', newCuttingNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cuttingnorms'] });
+      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
       setOpen(false)
       showSuccessAlert("Thêm mới thành công")
     },
@@ -40,10 +40,10 @@ export default function CuttingNorm() {
     }
   });
   const updateMutation = useMutation({
-    mutationFn: (updateCuttingNorm: Partial<CuttingNormInputType>) =>
-      api.put(`/cuttingnorms/${updateCuttingNorm._id}`, updateCuttingNorm).then(res => res.data),
+    mutationFn: (updateCuttingNorm: Partial<AssignmentCodeInputType>) =>
+      api.put(`/assignmentnorms/${updateCuttingNorm._id}`, updateCuttingNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cuttingnorms'] });
+      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
       setOpen(false)
       setSelected(null)
       showSuccessAlert("Sửa thành công")
@@ -66,9 +66,9 @@ export default function CuttingNorm() {
   };
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      api.delete(`/cuttingnorms/${id}`).then(res => res.data),
+      api.delete(`/assignmentnorms/${id}`).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cuttingnorms'] });
+      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
       showSuccessAlert('Xóa thành công')
     },
     onError: (error: any) => {
@@ -76,14 +76,14 @@ export default function CuttingNorm() {
       showErrorAlert(error.response.data.message || error.response || 'Lỗi')
     }
   });
-  const handleSubmit = (values: Partial<CuttingNormInputType>) => {
+  const handleSubmit = (values: Partial<AssignmentCodeInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
     } else {
       createMutation.mutate(values);
     }
   };
-  const handleOpen = (CuttingNorm?: CuttingNormOutputType) => {
+  const handleOpen = (CuttingNorm?: AssignmentNormOutputType) => {
     if (CuttingNorm) {
       setSelected(CuttingNorm)
     } else {
@@ -109,7 +109,7 @@ export default function CuttingNorm() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {cuttingnorms.map((cuttingnorm: CuttingNormOutputType) => (
+            {assignmentnorms.filter((i: AssignmentNormOutputType) => i.type === "cutting").map((cuttingnorm: AssignmentNormOutputType) => (
               <React.Fragment>
                 <TableRow>
                   <TableCell align='center' sx={{ border: '1px solid black' }}>{cuttingnorm.code}</TableCell>

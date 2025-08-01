@@ -117,7 +117,7 @@ export default function MaterialAssignmentModal({ open, setOpen, handleSubmit, s
                 onChange={(event) => {
                   formik.setFieldValue("assignmentCode", event.target.value);
                 }}
-                error={formik.touched.name && Boolean(formik.errors.name)}
+                error={formik.touched.assignmentCode && Boolean(formik.errors.assignmentCode)}
                 helperText={formik.touched.assignmentCode && formik.errors.assignmentCode}
               >
                 {assignmentCodes.map((assignmentCode: AssignmentCodeOutputType) => (

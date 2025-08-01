@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../config/api.config';
-import { CoalCuttingNormZHInputType, CoalCuttingNormZHOutputType } from '../../types';
+import { AssignmentNormInputType, AssignmentNormOutputType } from '../../types';
 import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
 import CoalCuttingNormZHModal from '../../components/CoalCuttingNormZHModal/CoalCuttingNormZHModal';
 import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
@@ -10,27 +10,27 @@ import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../compon
 
 export default function CoalCuttingNormZH() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<CoalCuttingNormZHOutputType | null>(null)
+  const [selected, setSelected] = useState<AssignmentNormOutputType | null>(null)
   const [open, setOpen] = useState(false)
 
   const queryClient = useQueryClient()
 
-  const { data: coalcuttingnormzhs = [] } = useQuery({
-    queryKey: ['coalcuttingnormzhs'],
-    queryFn: async () => api.get('/coalcuttingnormzhs').then(res => res.data.data)
+  const { data: assignmentnorms = [] } = useQuery({
+    queryKey: ['assignmentnorms'],
+    queryFn: async () => api.get('/assignmentnorms').then(res => res.data.data)
   })
 
-  const handleToggleExpand = (cuttingnorm: CoalCuttingNormZHOutputType) => {
+  const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
     const id = cuttingnorm?._id;
     if (!id) return;
 
     setExpandedRow(prev => (prev === id ? null : id));
   };
   const createMutation = useMutation({
-    mutationFn: (newCuttingNorm: Partial<CoalCuttingNormZHInputType>) =>
-      api.post('/coalcuttingnormzhs', newCuttingNorm).then(res => res.data),
+    mutationFn: (newCuttingNorm: Partial<AssignmentNormInputType>) =>
+      api.post('/assignmentnorms', newCuttingNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coalcuttingnormzhs'] });
+      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
       setOpen(false)
       showSuccessAlert("Thêm mới thành công")
     },
@@ -40,10 +40,10 @@ export default function CoalCuttingNormZH() {
     }
   });
   const updateMutation = useMutation({
-    mutationFn: (updateCuttingNorm: Partial<CoalCuttingNormZHInputType>) =>
-      api.put(`/coalcuttingnormzhs/${updateCuttingNorm._id}`, updateCuttingNorm).then(res => res.data),
+    mutationFn: (updateCuttingNorm: Partial<AssignmentNormInputType>) =>
+      api.put(`/assignmentnorms/${updateCuttingNorm._id}`, updateCuttingNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coalcuttingnormzhs'] });
+      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
       setOpen(false)
       setSelected(null)
       showSuccessAlert("Sửa thành công")
@@ -66,9 +66,9 @@ export default function CoalCuttingNormZH() {
   };
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      api.delete(`/coalcuttingnormzhs/${id}`).then(res => res.data),
+      api.delete(`/assignmentnorms/${id}`).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coalcuttingnormzhs'] });
+      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
       showSuccessAlert('Xóa thành công')
     },
     onError: (error: any) => {
@@ -76,14 +76,14 @@ export default function CoalCuttingNormZH() {
       showErrorAlert(error.response.data.message || error.response || 'Lỗi')
     }
   });
-  const handleSubmit = (values: Partial<CoalCuttingNormZHInputType>) => {
+  const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
     } else {
       createMutation.mutate(values);
     }
   };
-  const handleOpen = (CuttingNorm?: CoalCuttingNormZHOutputType) => {
+  const handleOpen = (CuttingNorm?: AssignmentNormOutputType) => {
     if (CuttingNorm) {
       setSelected(CuttingNorm)
     } else {
@@ -109,7 +109,7 @@ export default function CoalCuttingNormZH() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {coalcuttingnormzhs.map((cuttingnorm: CoalCuttingNormZHOutputType) => (
+            {assignmentnorms.filter((i: AssignmentNormOutputType) => i.type === "coal_zh").map((cuttingnorm: AssignmentNormOutputType) => (
               <React.Fragment>
                 <TableRow>
                   <TableCell align='center' sx={{ border: '1px solid black' }}>{cuttingnorm.code}</TableCell>

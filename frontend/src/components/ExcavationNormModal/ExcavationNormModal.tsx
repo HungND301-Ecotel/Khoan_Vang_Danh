@@ -4,9 +4,9 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import * as yup from 'yup'
 import { FieldArray, FormikProvider, useFormik } from 'formik'
 import api from '../../config/api.config';
-import { AssignmentCodeOutputType, ExcavationNormInputType, ExcavationNormOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType } from '../../types';
+import { AssignmentCodeOutputType, AssignmentNormInputType, AssignmentNormOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType } from '../../types';
 
-export default function ExcavationNormModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<ExcavationNormInputType>) => void; selected: ExcavationNormOutputType | null }) {
+export default function ExcavationNormModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<AssignmentNormInputType>) => void; selected: AssignmentNormOutputType | null }) {
   const [phaseGroup, setPhaseGroup] = useState<string | null>(null)
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([])
 
@@ -38,19 +38,18 @@ export default function ExcavationNormModal({ open, setOpen, handleSubmit, selec
   })
 
   useEffect(() => {
-    if (selected?.phaseGroup?._id) {
-      setPhaseGroup(selected.phaseGroup._id);
-    }
-  }, [selected]);
+    setPhaseGroup(phasegroups.find((p: PhaseGroupType) => p.name?.toLowerCase() === "đào lò".toLowerCase())?._id);
+  }, [phasegroups]);
 
   const formik = useFormik({
     initialValues: {
-      phaseGroup: selected?.phaseGroup?._id || '',
+      phaseGroup: phaseGroup || '',
       phase: selected?.phase?._id || '',
       step: selected?.step?._id || '',
       hardness: selected?.hardness?._id || '',
       code: selected?.code || '',
       excavationTech: selected?.excavationTech?._id || '',
+      type: 'excavation',
       norms: selected?.norms?.map((item) => ({
         assignmentCode: item.assignmentCode._id,
         norm: item.norm
@@ -65,6 +64,7 @@ export default function ExcavationNormModal({ open, setOpen, handleSubmit, selec
       handleSubmit({
         ...values,
         hardness: values.hardness || undefined,
+        type: values.type as "excavation" | "cutting" | "coal_kb" | "coal_zh" | "coal_zry"
       })
     }
   })
@@ -100,6 +100,7 @@ export default function ExcavationNormModal({ open, setOpen, handleSubmit, selec
                 label="Nhóm công đoạn"
                 variant="outlined"
                 value={formik.values.phaseGroup}
+                InputProps={{ readOnly: true }}
                 onChange={(event) => {
                   setPhaseGroup(event.target.value)
                   formik.setFieldValue("phaseGroup", event.target.value);

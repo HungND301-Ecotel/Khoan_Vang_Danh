@@ -373,6 +373,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         }}>
                             <ListItemText primary="Đơn giá vật tư giao khoán" />
                         </ListItem>
+                        <ListItem button onClick={() => navigate('/materialbudget')} sx={{
+                            ...listItemSx, pl: 4,
+                            bgcolor: path === "/materialbudget" ? 'primary.main' : 'transparent',
+                            color: location.pathname === '/materialbudget' ? 'white' : 'inherit',
+                        }}>
+                            <ListItemText primary="Chi phí vật tư kế hoạch (Zkh)" />
+                        </ListItem>
                     </List >
                 </Collapse>
             </List >

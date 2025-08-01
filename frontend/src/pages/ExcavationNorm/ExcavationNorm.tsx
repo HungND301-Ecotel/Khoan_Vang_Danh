@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../config/api.config';
-import { ExcavationNormInputType, ExcavationNormOutputType } from '../../types';
+import { AssignmentNormInputType, AssignmentNormOutputType } from '../../types';
 import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
 import ExcavationNormModal from '../../components/ExcavationNormModal/ExcavationNormModal';
 import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
@@ -10,27 +10,27 @@ import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../compon
 
 export default function ExcavationNorm() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<ExcavationNormOutputType | null>(null)
+  const [selected, setSelected] = useState<AssignmentNormOutputType | null>(null)
   const [open, setOpen] = useState(false)
 
   const queryClient = useQueryClient()
 
-  const { data: excavationnorms = [] } = useQuery({
-    queryKey: ['excavationnorms'],
-    queryFn: async () => api.get('/excavationnorms').then(res => res.data.data)
+  const { data: assignmentnorms = [] } = useQuery({
+    queryKey: ['assignmentnorms'],
+    queryFn: async () => api.get('/assignmentnorms').then(res => res.data.data)
   })
 
-  const handleToggleExpand = (axcavationnorm: ExcavationNormOutputType) => {
+  const handleToggleExpand = (axcavationnorm: AssignmentNormOutputType) => {
     const id = axcavationnorm?._id;
     if (!id) return;
 
     setExpandedRow(prev => (prev === id ? null : id));
   };
   const createMutation = useMutation({
-    mutationFn: (newExcavationNorm: Partial<ExcavationNormInputType>) =>
-      api.post('/excavationnorms', newExcavationNorm).then(res => res.data),
+    mutationFn: (newExcavationNorm: Partial<AssignmentNormInputType>) =>
+      api.post('/assignmentnorms', newExcavationNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['excavationnorms'] });
+      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
       setOpen(false)
       showSuccessAlert("Thêm mới thành công")
     },
@@ -40,10 +40,10 @@ export default function ExcavationNorm() {
     }
   });
   const updateMutation = useMutation({
-    mutationFn: (updateExcavationNorm: Partial<ExcavationNormInputType>) =>
-      api.put(`/excavationnorms/${updateExcavationNorm._id}`, updateExcavationNorm).then(res => res.data),
+    mutationFn: (updateExcavationNorm: Partial<AssignmentNormInputType>) =>
+      api.put(`/assignmentnorms/${updateExcavationNorm._id}`, updateExcavationNorm).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['excavationnorms'] });
+      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
       setOpen(false)
       setSelected(null)
       showSuccessAlert("Sửa thành công")
@@ -66,9 +66,9 @@ export default function ExcavationNorm() {
   };
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      api.delete(`/excavationnorms/${id}`).then(res => res.data),
+      api.delete(`/assignmentnorms/${id}`).then(res => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['excavationnorms'] });
+      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
       showSuccessAlert('Xóa thành công')
     },
     onError: (error: any) => {
@@ -76,14 +76,14 @@ export default function ExcavationNorm() {
       showErrorAlert(error.response.data.message || error.response || 'Lỗi')
     }
   });
-  const handleSubmit = (values: Partial<ExcavationNormInputType>) => {
+  const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
     } else {
       createMutation.mutate(values);
     }
   };
-  const handleOpen = (excavationNorm?: ExcavationNormOutputType) => {
+  const handleOpen = (excavationNorm?: AssignmentNormOutputType) => {
     if (excavationNorm) {
       setSelected(excavationNorm)
     } else {
@@ -109,7 +109,7 @@ export default function ExcavationNorm() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {excavationnorms.map((axcavationnorm: ExcavationNormOutputType) => (
+            {assignmentnorms.filter((i: AssignmentNormOutputType) => i.type === "excavation").map((axcavationnorm: AssignmentNormOutputType) => (
               <React.Fragment>
                 <TableRow>
                   <TableCell align='center' sx={{ border: '1px solid black' }}>{axcavationnorm.code}</TableCell>

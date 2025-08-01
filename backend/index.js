@@ -26,6 +26,10 @@ const AdjustmentNormKRouter = require('./routes/AdjustmentNormK')
 const AdjustmentNormCMRouter = require('./routes/AdjustmentNormCM')
 const ProductionScopeRouter = require('./routes/ProductionScope')
 const DeviceCodeRouter = require('./routes/DeviceCode')
+const AssignmentNormRouter = require('./routes/AssignmentNorm')
+const AdjustmentNormRouter = require('./routes/AdjustmentNorm')
+const MaterialBudgetRouter = require('./routes/MaterialBudget')
+
 
 
 
@@ -82,6 +86,12 @@ app.use('/api/adjustmentnormks', AdjustmentNormKRouter)
 app.use('/api/adjustmentnormcms', AdjustmentNormCMRouter)
 app.use('/api/productionscopes', ProductionScopeRouter)
 app.use('/api/devicecodes', DeviceCodeRouter)
+app.use('/api/assignmentnorms', AssignmentNormRouter)
+app.use('/api/adjustmentnorms', AdjustmentNormRouter)
+app.use('/api/materialbudgets', MaterialBudgetRouter)
+
+
+
 
 
 

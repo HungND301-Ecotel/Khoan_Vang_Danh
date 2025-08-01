@@ -4,9 +4,9 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import * as yup from 'yup'
 import { FieldArray, FormikProvider, useFormik } from 'formik'
 import api from '../../config/api.config';
-import { AssignmentCodeOutputType, AdjustmentNormCMInputType, AdjustmentNormCMOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType } from '../../types';
+import { AssignmentCodeOutputType, AdjustmentNormInputType, AdjustmentNormOutputType, ExcavationTechType, HardnessType, PhaseGroupType, PhaseOutputType, StepType } from '../../types';
 
-export default function AdjustmentNormCMModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<AdjustmentNormCMInputType>) => void; selected: AdjustmentNormCMOutputType | null }) {
+export default function AdjustmentNormCMModal({ open, setOpen, handleSubmit, selected }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<AdjustmentNormInputType>) => void; selected: AdjustmentNormOutputType | null }) {
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([])
 
 
@@ -28,6 +28,7 @@ export default function AdjustmentNormCMModal({ open, setOpen, handleSubmit, sel
     initialValues: {
       mirrorRatio: selected?.mirrorRatio?._id || '',
       code: selected?.code || '',
+      type: 'CM',
       norms: selected?.norms?.map((item) => ({
         assignmentCode: item.assignmentCode._id,
         norm: item.norm
@@ -35,8 +36,10 @@ export default function AdjustmentNormCMModal({ open, setOpen, handleSubmit, sel
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
-
-      handleSubmit(values)
+      handleSubmit({
+        ...values,
+        type: values.type as 'CM' | 'CKKT' | 'CKĐL'
+      })
     }
   })
 

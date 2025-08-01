@@ -1,12 +1,11 @@
-const AssignmentCode = require('../model/AssignmentCode')
-const recalculateAssignmentCodePrice = require('./recalculateAssignmentCodePrice')
+const AdjustmentNorm = require('../model/AdjustmentNorm')
 
 
 exports.create = async (req, res) => {
     try {
-        const { code, name, uom, price, deviceCode } = req.body
-        const newAssignmentCode = new AssignmentCode({ code, name, uom, price, deviceCode })
-        await newAssignmentCode.save()
+        const { code, mirrorRatio, hardness, rockRatio, type, norms } = req.body
+        const newAdjustmentNorm = new AdjustmentNorm({ code, hardness, mirrorRatio, rockRatio, type, norms })
+        await newAdjustmentNorm.save()
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
@@ -15,7 +14,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const updateData = await AssignmentCode.findByIdAndUpdate(req.params.id, req.body, { new: true })
+        const updateData = await AdjustmentNorm.findByIdAndUpdate(req.params.id, req.body, { new: true })
         if (!updateData) {
             return res.status(404).json({ status: 'error', message: 'Sửa thất bại' })
         }
@@ -27,7 +26,7 @@ exports.update = async (req, res) => {
 
 exports.delete = async (req, res) => {
     try {
-        const deleteData = await AssignmentCode.findByIdAndDelete(req.params.id)
+        const deleteData = await AdjustmentNorm.findByIdAndDelete(req.params.id)
         if (!deleteData) {
             return res.status(404).json({ status: 'error', message: 'Xóa thất bại' })
         }
@@ -39,10 +38,14 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await AssignmentCode.find().populate("uom").populate("deviceCode")
-        for (const assignment of data) {
-            await recalculateAssignmentCodePrice(assignment._id);
-        }
+        const data = await AdjustmentNorm.find()
+            .populate('mirrorRatio')
+            .populate('rockRatio')
+            .populate('hardness')
+            .populate({
+                path: 'norms.assignmentCode',
+                populate: 'uom'
+            })
 
         res.status(200).json({ status: 'success', data: data })
     } catch (err) {
