@@ -412,3 +412,26 @@ export interface MaterialBudgetInputType {
     assignmentNormCode: string,
     adjustmentNormCode: string
 }
+
+//
+
+export interface MaterialCostUsedInputType {
+    _id?: string;
+    code: string;
+    productionScope?: string,
+    materials: {
+        material?: string,
+        quantity: number
+    }
+}
+
+export interface MaterialCostUsedOutputType {
+    _id?: string;
+    code: string;
+    productionScope?: ProductionScopeOutputType,
+    materials: {
+        material?: Materials,
+        quantity: number,
+        cost: number
+    }[]
+}

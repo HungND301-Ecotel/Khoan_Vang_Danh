@@ -88,3 +88,34 @@ exports.get = async (req, res) => {
         res.status(500).json({ status: 'error', message: err.message });
     }
 };
+
+
+exports.getAll = async (req, res) => {
+    try {
+
+        const materials = await MaterialAssignment.find().populate('assignmentCode').populate('uom');
+
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const materialsWithPrice = materials.map(item => {
+            let currentPrice = null;
+
+            if (Array.isArray(item.priceHistory)) {
+                const matched = item.priceHistory.find(priceItem => {
+                    return todayStr >= priceItem.startDate && todayStr <= priceItem.endDate;
+                });
+
+                if (matched) currentPrice = matched.price;
+            }
+
+            return {
+                ...item.toObject(),
+                currentPrice
+            };
+        });
+
+        res.status(200).json({ status: 'success', data: materialsWithPrice });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};

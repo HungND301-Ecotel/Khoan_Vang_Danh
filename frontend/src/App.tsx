@@ -35,6 +35,8 @@ import AdjustmentNormCM from './pages/AdjustmentNormCM/AdjustmentNormCM';
 import ProductScope from './pages/ProductionSope/ProductionScope';
 import DeviceCode from './pages/DeviceCode/DeviceCode';
 import MaterialBudget from './pages/MaterialBudget/MaterialBudget';
+import MaterialCostUsed from './pages/MaterialCostUsed/MaterialCostUsed';
+import Setttlementreport from './pages/SettlementReport/SettlementReport';
 
 
 interface PrivateRouteProps {
@@ -291,6 +293,22 @@ const App = () => {
           element={
             <PrivateRoute>
               <MaterialBudget />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/materialcostused"
+          element={
+            <PrivateRoute>
+              <MaterialCostUsed />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/settlementreports"
+          element={
+            <PrivateRoute>
+              <Setttlementreport />
             </PrivateRoute>
           }
         />

@@ -78,6 +78,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const [openAdjustment, setOpenAdjustment] = useState(false);
     const [openCaculate, setOpenCaculate] = useState(false);
     const [openHSDC, setOpenHSDC] = useState(false);
+    const [openStastic, setOpenStastic] = useState(false);
 
 
     const [path, setPath] = useState('')
@@ -357,28 +358,42 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         </ListItem>
                     </List>
                 </Collapse>
-                <ListItem button onClick={() => setOpenCaculate(!openCaculate)} sx={listItemSx}>
+                <ListItem button onClick={() => setOpenStastic(!openStastic)} sx={listItemSx}>
                     <ListItemIcon sx={{ justifyContent: 'center', minWidth: 0, mr: mobileOpen ? 2 : 'auto', color: 'primary.main' }}>
                         <Calculate sx={{ color: 'inherit' }} />
                     </ListItemIcon>
                     <ListItemText primary="Thống kê vận hành" />
-                    {openCaculate ? <ExpandLess /> : <ExpandMore />}
+                    {openStastic ? <ExpandLess /> : <ExpandMore />}
                 </ListItem>
-                <Collapse in={openCaculate} timeout="auto" unmountOnExit>
+                <Collapse in={openStastic} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding>
-                        <ListItem button onClick={() => navigate('/materialunitprice')} sx={{
+                        {/* <ListItem button onClick={() => navigate('/materialunitprice')} sx={{
                             ...listItemSx, pl: 4,
                             bgcolor: path === "/materialunitprice" ? 'primary.main' : 'transparent',
                             color: location.pathname === '/materialunitprice' ? 'white' : 'inherit',
                         }}>
                             <ListItemText primary="Đơn giá vật tư giao khoán" />
-                        </ListItem>
+                        </ListItem> */}
                         <ListItem button onClick={() => navigate('/materialbudget')} sx={{
                             ...listItemSx, pl: 4,
                             bgcolor: path === "/materialbudget" ? 'primary.main' : 'transparent',
                             color: location.pathname === '/materialbudget' ? 'white' : 'inherit',
                         }}>
                             <ListItemText primary="Chi phí vật tư kế hoạch (Zkh)" />
+                        </ListItem>
+                        <ListItem button onClick={() => navigate('/materialcostused')} sx={{
+                            ...listItemSx, pl: 4,
+                            bgcolor: path === "/materialcostused" ? 'primary.main' : 'transparent',
+                            color: location.pathname === '/materialcostused' ? 'white' : 'inherit',
+                        }}>
+                            <ListItemText primary="Chi phí vật tư thực hiện(Zkh)" />
+                        </ListItem>
+                        <ListItem button onClick={() => navigate('/settlementreports')} sx={{
+                            ...listItemSx, pl: 4,
+                            bgcolor: path === "/settlementreports" ? 'primary.main' : 'transparent',
+                            color: location.pathname === '/settlementreports' ? 'white' : 'inherit',
+                        }}>
+                            <ListItemText primary="Quyết toán giao khoán" />
                         </ListItem>
                     </List >
                 </Collapse>

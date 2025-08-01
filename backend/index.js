@@ -29,6 +29,7 @@ const DeviceCodeRouter = require('./routes/DeviceCode')
 const AssignmentNormRouter = require('./routes/AssignmentNorm')
 const AdjustmentNormRouter = require('./routes/AdjustmentNorm')
 const MaterialBudgetRouter = require('./routes/MaterialBudget')
+const MaterialCostUsedRouter = require('./routes/MaterialCostUsed')
 
 
 
@@ -89,6 +90,7 @@ app.use('/api/devicecodes', DeviceCodeRouter)
 app.use('/api/assignmentnorms', AssignmentNormRouter)
 app.use('/api/adjustmentnorms', AdjustmentNormRouter)
 app.use('/api/materialbudgets', MaterialBudgetRouter)
+app.use('/api/materialcostuseds', MaterialCostUsedRouter)
 
 
 

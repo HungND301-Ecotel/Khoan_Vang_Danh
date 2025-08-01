@@ -53,7 +53,7 @@ export default function ProductionScopeModal({ open, setOpen, handleSubmit, sele
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selected ? 'Chỉnh sửa hệ số điều chỉnh định mức' : 'Tạo mới hệ số điều chỉnh định mức'}</DialogTitle>
+      <DialogTitle>{selected ? 'Chỉnh sửa diện sản xuất' : 'Tạo mới diện sản xuất'}</DialogTitle>
       <DialogContent>
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
