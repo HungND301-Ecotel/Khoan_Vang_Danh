@@ -149,7 +149,10 @@ export default function MaterialBudget() {
                             <TableCell colSpan={12} sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Mã định mức giao khoán: {data?.materialbudget?.code}</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell colSpan={12} sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Sản lượng: {data?.materialbudget?.production} ({data?.phaseGroup?.name.toLowerCase() === "khấu than".toLowerCase() ? 'tấn' : 'mét'})</TableCell>
+                            <TableCell colSpan={12} sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Mã hệ số định mức: {data?.materialbudget?.adjustmentNormCode?.code}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell colSpan={12} sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Sản lượng: {data?.materialbudget?.production ? data?.materialbudget?.production.toLocaleString() : 0} ({data?.phaseGroup?.name.toLowerCase() === "khấu than".toLowerCase() ? 'tấn' : 'mét'})</TableCell>
                           </TableRow>
                           <TableRow>
                             <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Mã vật tư</TableCell>

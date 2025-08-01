@@ -77,16 +77,18 @@ exports.getOne = async (req, res) => {
 
         const result = [];
 
-        for (const norm of assignmentNorms) {
+        for (const norm of adjustmentNorms) {
             const assignment = norm.assignmentCode;
             if (!assignment?._id) continue;
             await recalculateAssignmentCodePrice(assignment._id);
 
+            console.log(assignment._id)
 
 
-            const adjustmentNorm = adjustmentNorms.find(a => (
+            const adjustmentNorm = assignmentNorms.find(a => (
                 a.assignmentCode?._id?.toString() === assignment._id.toString()
             ));
+
 
             const materials = await MaterialAssignment.find({ assignmentCode: assignment._id }).populate('uom');
 
