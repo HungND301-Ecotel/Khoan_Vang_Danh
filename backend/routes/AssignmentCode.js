@@ -3,7 +3,7 @@ const AssignmentCodeController=require('../controller/AssignmentCode')
 
 router.post('/',AssignmentCodeController.create)
 router.put('/:id',AssignmentCodeController.update)
-router.delete('/:id',AssignmentCodeController.delete)
+router.delete('/',AssignmentCodeController.delete)
 router.get('/',AssignmentCodeController.get)
 
 module.exports=router

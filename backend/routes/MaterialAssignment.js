@@ -6,6 +6,7 @@ router.put('/:id', materialAssignmentController.update)
 router.delete('/:id', materialAssignmentController.delete)
 router.get('/', materialAssignmentController.get)
 router.get('/getAll', materialAssignmentController.getAll)
+router.get('/getFilter', materialAssignmentController.getFilter)
 
 
 module.exports = router

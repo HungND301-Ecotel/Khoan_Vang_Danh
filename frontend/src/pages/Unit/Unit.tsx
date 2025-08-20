@@ -1,20 +1,24 @@
-import { Add, Delete, Edit } from '@mui/icons-material'
-import { Box, Button, Container, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
+import { Add, ArrowDropDown, Delete, Edit, FileDownload, FileUpload, Filter, Filter1Outlined, FilterList, ImportExport, Mail, Print, Search } from '@mui/icons-material'
+import { Box, Breadcrumbs, Button, Container, IconButton, InputAdornment, Link, Paper, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
 import React, { useState } from 'react'
 import UnitModal from '../../components/UnitModal/UnitModal'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { UnitType } from '../../types'
 import api from '../../config/api.config'
 import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert'
+import { Table, TableProps } from "antd";
+import { TableRowSelection } from 'antd/es/table/interface'
 
 export default function Unit() {
     const [open, setOpen] = useState(false)
     const [selectedUnit, setSelectedUnit] = useState<UnitType | null>(null)
+    const [selectedUnits, setSelectedUnits] = useState<React.Key[]>([]);
+    const [searchValue, setSearchValue] = useState('')
 
     const queryClient = useQueryClient()
     const { data: units = [] } = useQuery({
-        queryKey: ['units'],
-        queryFn: () => api.get('/units').then(res => res.data.data)
+        queryKey: ['units', searchValue],
+        queryFn: () => api.get(`/units?q=${searchValue}`).then(res => res.data.data)
     })
 
     const createMutation = useMutation({
@@ -44,23 +48,24 @@ export default function Unit() {
             showErrorAlert(error.response.data.message || error.response || 'Lỗi')
         }
     });
-    const handleDelete = (id?: string) => {
-        if (!id) {
+    const handleDelete = () => {
+        if (selectedUnits.length === 0) {
             showErrorAlert('Không tìm thấy bản ghi');
             return;
         }
-        showConfirmAlert('Bạn có muốn xóa bản ghi này?').then((result) => {
+        showConfirmAlert(`Bạn có muốn xóa ${selectedUnits.length} bản ghi? hành động này không thể hoàn tác.`).then((result) => {
             if (result.isConfirmed) {
-                deleteMutation.mutate(id)
+                deleteMutation.mutate(selectedUnits)
             }
         });
     };
     const deleteMutation = useMutation({
-        mutationFn: (id: string) =>
-            api.delete(`/units/${id}`).then(res => res.data),
-        onSuccess: () => {
+        mutationFn: (ids: React.Key[]) =>
+            api.delete(`/units`, { data: { ids } }).then(res => res.data.message),
+        onSuccess: (message) => {
             queryClient.invalidateQueries({ queryKey: ['units'] });
-            showSuccessAlert('Xóa thành công')
+            setSelectedUnits([])
+            showSuccessAlert(message || 'Xóa thành công')
         },
         onError: (error: any) => {
             console.log(error.response.data.message || error.response || 'Lỗi')
@@ -83,39 +88,94 @@ export default function Unit() {
         setOpen(true)
     }
 
-    return (
-        <Paper elevation={3} style={{ padding: 16 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h4">Đơn vị tính</Typography>
-                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới đơn vị tính</Button>
-            </Box>
-            <TableContainer>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Đơn vị tính</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18  }}>Thao tác</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {units.map((Unit: UnitType) => (
-                            <TableRow key={Unit._id}>
-                                <TableCell align='center' sx={{ border: '1px solid grey' }}>{Unit.name}</TableCell>
-                                <TableCell align='center' sx={{ border: '1px solid grey' }}>
-                                    <IconButton onClick={() => handleOpen(Unit)}>
-                                        <Edit color='primary' />
-                                    </IconButton>
-                                    <IconButton onClick={() => handleDelete(Unit._id)}>
-                                        <Delete color='error' />
-                                    </IconButton>
-                                </TableCell>
+    const columns: TableProps<UnitType>['columns'] = [
+        {
+            title: '',
+            dataIndex: 'number',
+            key: 'number',
+            width: 50,
+            render: (value, record, index) => (
+                <Typography>{index + 1}</Typography>
+            )
+        },
+        {
+            title: <Typography sx={{ fontWeight: 'bold' }}>Đơn vị tính</Typography>,
+            dataIndex: 'name',
+            key: 'name',
+            render: (_, record) => (
+                <Typography sx={{ fontWeight: 'bold' }}>{record.name}</Typography>
+            ),
+            sorter: (a, b) =>
+                (a.name ?? '').localeCompare(b.name ?? '', 'vi', { sensitivity: 'base' }),
+        },
+        {
+            title: <Typography sx={{ fontWeight: 'bold' }}>Sửa</Typography>,
+            dataIndex: 'edit',
+            width: 50,
+            render: (_, record) => (
+                <IconButton onClick={() => handleOpen(record)}>
+                    <Edit />
+                </IconButton>
+            )
+        },
+    ]
 
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+    const rowSelection: TableRowSelection<UnitType> = {
+        selectedRowKeys: selectedUnits,
+        onChange: (newSelectedUnits: React.Key[]) => {
+            setSelectedUnits(newSelectedUnits);
+        },
+    };
+
+    return (
+        <Box>
+            <Breadcrumbs aria-label="breadcrumb">
+                <Typography>Danh mục</Typography>
+                <Typography>Đơn vị tính</Typography>
+            </Breadcrumbs>
+            <Box mt={3}>
+                <Box>
+                    <Box sx={{ mb: 2 }}>
+                        <Typography variant="h4" sx={{ color: 'blue' }}>Đơn vị tính</Typography>
+                        <Box display={'flex'} gap={4} mt={2} justifyContent='space-between'>
+                            <Box display={'flex'} gap={2}>
+                                <Button variant='contained' color='warning' endIcon={<Add />} onClick={() => handleOpen()}>Tạo mới</Button>
+                                <Button variant='contained' color='error' endIcon={<Delete />} onClick={() => handleDelete()}>Xóa</Button>
+                            </Box>
+                            <Box display={'flex'} flex={1} gap={2}>
+                                <Button variant='outlined' color='inherit' startIcon={<FilterList />}>Lọc</Button>
+                                <TextField fullWidth size='small'
+                                    placeholder='Tìm kiếm'
+                                    onChange={(e) => setSearchValue(e.target.value)}
+                                    InputProps={{
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <Search sx={{ fontSize: 24 }} />
+                                            </InputAdornment>
+                                        )
+                                    }} />
+                            </Box>
+                            <Box display={'flex'} gap={2}>
+                                <Button variant='outlined' color='inherit' startIcon={<FileUpload />}>Tải lên</Button>
+                                <Button variant='outlined' color='inherit' startIcon={<FileDownload />}>Xuất file</Button>
+                                <Button variant='outlined' color='inherit' startIcon={<Print />}>In</Button>
+                                <Button variant='outlined' color='inherit' startIcon={<Mail />} endIcon={<ArrowDropDown />}>Gửi</Button>
+                            </Box>
+                        </Box>
+                    </Box>
+                    <Table<UnitType> rowKey="_id" rowSelection={rowSelection}
+                        pagination={{
+                            position: ['bottomCenter'],
+                            showSizeChanger: true,
+                            pageSizeOptions: ['10', '20', '50', '100'],
+                            defaultPageSize: 10,
+                            showTotal: (total, range) => <div style={{ flex: 1, textAlign: 'left' }}>
+                                Hiển thị {range[0]}-{range[1]} trên {total} mục
+                            </div>,
+                        }} columns={columns} dataSource={units} />
+                </Box>
+            </Box>
             <UnitModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selectedUnit={selectedUnit} />
-        </Paper>
+        </Box>
     )
 }

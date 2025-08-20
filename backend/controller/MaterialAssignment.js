@@ -1,5 +1,8 @@
 const MaterialAssignment = require('../model/MaterialAssignment')
 const AssignmentCode = require('../model/AssignmentCode')
+const dayjs = require('dayjs');
+const quarterOfYear = require('dayjs/plugin/quarterOfYear');
+dayjs.extend(quarterOfYear);
 
 const recalculateAssignmentCodePrice = require('./recalculateAssignmentCodePrice')
 
@@ -43,9 +46,11 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const assignments = await AssignmentCode.find().populate({
-            path: 'uom'
-        });
+        const assignments = await AssignmentCode.find()
+            .populate('deviceCode')
+            .populate({
+                path: 'uom'
+            });
 
         const result = [];
 
@@ -79,6 +84,7 @@ exports.get = async (req, res) => {
                 code: assignment.code,
                 uom: assignment.uom?.name,
                 price: assignment.price,
+                device: assignment.deviceCode?.code,
                 materials: materialsWithPrice
             });
         }
@@ -94,7 +100,15 @@ exports.getAll = async (req, res) => {
     try {
 
         const materials = await MaterialAssignment.find().populate('assignmentCode').populate('uom');
+        const assignmentIds = [
+            ...new Set(
+                materials
+                    .map(m => m.assignmentCode?._id?.toString())
+                    .filter(Boolean)
+            ),
+        ];
 
+        await Promise.all(assignmentIds.map(id => recalculateAssignmentCodePrice(id)));
         const todayStr = new Date().toISOString().split('T')[0];
 
         const materialsWithPrice = materials.map(item => {
@@ -115,6 +129,81 @@ exports.getAll = async (req, res) => {
         });
 
         res.status(200).json({ status: 'success', data: materialsWithPrice });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+
+
+exports.getFilter = async (req, res) => {
+    try {
+        const { month, quarter, year } = req.query
+        let startDate, endDate;
+
+        if (month && year) {
+            startDate = dayjs(`${year}-${month}-01`).startOf('month').format('YYYY-MM-DD');
+            endDate = dayjs(startDate).endOf('month').format('YYYY-MM-DD');
+        } else if (quarter && year) {
+            startDate = dayjs().year(year).quarter(quarter).startOf('quarter').format('YYYY-MM-DD');
+            endDate = dayjs(startDate).endOf('quarter').format('YYYY-MM-DD');
+        } else {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Thiếu month/year hoặc quarter/year trong query.',
+            });
+        }
+        const assignments = await AssignmentCode.find()
+            .populate('deviceCode')
+            .populate({
+                path: 'uom'
+            });
+
+        const result = [];
+
+        for (const assignment of assignments) {
+
+            const materials = await MaterialAssignment.find({ assignmentCode: assignment._id }).populate('assignmentCode').populate('uom');
+            let totalQty = 0;
+            let totalValue = 0;
+            const materialsWithPrice = materials.map(item => {
+                let currentPrice = null;
+
+                if (Array.isArray(item.priceHistory)) {
+                    const matched = item.priceHistory.find(priceItem => {
+                        return (
+                            priceItem.startDate <= endDate &&
+                            priceItem.endDate >= startDate
+                        );
+                    });
+
+                    if (matched) {
+                        currentPrice = matched.price;
+                    }
+                }
+                const qty = item.quantity || 0;
+                totalQty += qty;
+                totalValue += qty * currentPrice;
+                return {
+                    ...item.toObject(),
+                    currentPrice
+                };
+            });
+
+            const averagePrice = totalQty > 0 ? Math.round(totalValue / totalQty) : null;
+
+            result.push({
+                _id: assignment._id,
+                name: assignment.name,
+                code: assignment.code,
+                uom: assignment.uom?.name,
+                price: averagePrice,
+                device: assignment.deviceCode?.code,
+                materials: materialsWithPrice
+            });
+        }
+
+        res.status(200).json({ status: 'success', data: result });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
     }

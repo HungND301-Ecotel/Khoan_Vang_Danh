@@ -43,6 +43,7 @@ export interface MaterialAssignmentOutputType {
     code: string;
     uom: string;
     price: number,
+    device:string,
     materials: Materials[]
 }
 export interface MaterialAssignmentInputType {

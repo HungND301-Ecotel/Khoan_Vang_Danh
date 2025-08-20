@@ -28,7 +28,7 @@ export default function DeviceCode({ open, setOpen, handleSubmit, selectedDevice
   }
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedDeviceCode ? 'Sửa mã thiết bị' : 'Tạo mới mã thiết bị'}</DialogTitle>
+      <DialogTitle>{selectedDeviceCode ? 'Chỉnh sửa mã thiết bị' : 'Tạo mới mã thiết bị'}</DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -48,7 +48,7 @@ export default function DeviceCode({ open, setOpen, handleSubmit, selectedDevice
       <DialogActions>
         <Button onClick={handleClose}>Hủy</Button>
         <Button onClick={() => formik.submitForm()} variant="contained">
-          {selectedDeviceCode ? 'Cập nhật' : 'Thêm mới'}
+          {selectedDeviceCode ? 'Cập nhật' : 'Xác nhận'}
         </Button>
       </DialogActions>
     </Dialog>

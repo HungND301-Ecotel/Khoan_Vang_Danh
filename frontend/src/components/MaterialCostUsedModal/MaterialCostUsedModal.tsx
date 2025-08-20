@@ -22,7 +22,7 @@ export default function MaterialCostUsedModal({ open, setOpen, handleSubmit, sel
   const formik = useFormik({
     initialValues: {
       code: selected?.code || '',
-      productionScope: selected?.productionScope?._id,
+      productionScope: selected?.productionScope?._id || '',
       materials: selected?.materials?.map((item) => ({
         material: item.material?._id,
         quantity: item.quantity

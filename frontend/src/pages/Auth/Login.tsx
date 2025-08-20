@@ -52,10 +52,6 @@ export default function Login() {
         onSuccess: (data) => {
             localStorage.setItem('token', data.data.token);
             setUser(data.data.user)
-            if (data.data.user?.role === 'staff') {
-                alert('Bạn không có quyền truy cập hệ thống.');
-                return;
-            }
             navigate('/');
         },
         onError: (error: any) => {
