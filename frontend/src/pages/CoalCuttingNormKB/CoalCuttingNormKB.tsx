@@ -1,81 +1,93 @@
-import React, { useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton } from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import api from '../../config/api.config';
-import { AssignmentNormOutputType, AssignmentNormInputType } from '../../types';
-import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
-import CoalCuttingNormKBModal from '../../components/CoalCuttingNormKBModal/CoalCuttingNormKBModal';
-import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
-
+import React, { useState } from "react";
+import {
+  Box,
+  Button,
+  Typography,
+  InputAdornment,
+  TextField,
+  IconButton,
+} from "@mui/material";
+import {
+  Add,
+  Delete,
+  Edit,
+  RemoveRedEyeOutlined,
+  FilterList,
+  Print,
+  Search,
+  FileUpload,
+  FileDownload,
+  Mail,
+  ArrowDropDown,
+} from "@mui/icons-material";
+import { Table, TableProps } from "antd";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "../../config/api.config";
+import CoalCuttingNormKBModal from "../../components/CoalCuttingNormKBModal/CoalCuttingNormKBModal";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../../components/Alert";
+import { AssignmentNormOutputType, AssignmentNormInputType } from "../../types";
+import { TableRowSelection } from "antd/es/table/interface";
 
 export default function CoalCuttingNormKB() {
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AssignmentNormOutputType | null>(null)
-  const [open, setOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selected, setSelected] = useState<AssignmentNormOutputType | null>(
+    null
+  );
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [searchValue, setSearchValue] = useState("");
 
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const { data: assignmentnorms = [] } = useQuery({
-    queryKey: ['assignmentnorms'],
-    queryFn: async () => api.get('/assignmentnorms').then(res => res.data.data)
-  })
+    queryKey: ["assignmentnorms", searchValue],
+    queryFn: async () =>
+      api.get(`/assignmentnorms?q=${searchValue}`).then((res) => res.data.data),
+  });
 
-  const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
-    const id = cuttingnorm?._id;
-    if (!id) return;
-
-    setExpandedRow(prev => (prev === id ? null : id));
-  };
   const createMutation = useMutation({
-    mutationFn: (newCuttingNorm: Partial<AssignmentNormInputType>) =>
-      api.post('/assignmentnorms', newCuttingNorm).then(res => res.data),
+    mutationFn: (newItem: Partial<AssignmentNormInputType>) =>
+      api.post("/assignmentnorms", newItem).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
-      setOpen(false)
-      showSuccessAlert("Thêm mới thành công")
+      queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
+      setModalOpen(false);
+      showSuccessAlert("Thêm mới thành công");
     },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+    onError: (err: any) => {
+      showErrorAlert(err.response?.data?.message || err.message || "Lỗi");
+    },
   });
+
   const updateMutation = useMutation({
-    mutationFn: (updateCuttingNorm: Partial<AssignmentNormInputType>) =>
-      api.put(`/assignmentnorms/${updateCuttingNorm._id}`, updateCuttingNorm).then(res => res.data),
+    mutationFn: (item: Partial<AssignmentNormInputType>) =>
+      api.put(`/assignmentnorms/${item._id}`, item).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
-      setOpen(false)
-      setSelected(null)
-      showSuccessAlert("Sửa thành công")
+      queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
+      setModalOpen(false);
+      setSelected(null);
+      showSuccessAlert("Sửa thành công");
     },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+    onError: (err: any) => {
+      showErrorAlert(err.response?.data?.message || err.message || "Lỗi");
+    },
   });
-  const handleDelete = (id?: string) => {
-    if (!id) {
-      showErrorAlert('Không tìm thấy bản ghi');
-      return;
-    }
-    showConfirmAlert('Bạn có muốn xóa bản ghi này?').then((result) => {
-      if (result.isConfirmed) {
-        deleteMutation.mutate(id)
-      }
-    });
-  };
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/assignmentnorms/${id}`).then(res => res.data),
+
+  const deleteManyMutation = useMutation({
+    mutationFn: (ids: React.Key[]) =>
+      api.delete("/assignmentnorms", { data: { ids } }).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignmentnorms'] });
-      showSuccessAlert('Xóa thành công')
+      queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
+      setSelectedRowKeys([]);
+      showSuccessAlert("Xóa thành công");
     },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+    onError: (err: any) => {
+      showErrorAlert(err.response?.data?.message || err.message || "Lỗi");
+    },
   });
+
   const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
@@ -83,95 +95,196 @@ export default function CoalCuttingNormKB() {
       createMutation.mutate(values);
     }
   };
-  const handleOpen = (CuttingNorm?: AssignmentNormOutputType) => {
-    if (CuttingNorm) {
-      setSelected(CuttingNorm)
-    } else {
-      setSelected(null)
+
+  const handleOpenModal = (item?: AssignmentNormOutputType) => {
+    setSelected(item || null);
+    setModalOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      showErrorAlert("Không tìm thấy bản ghi");
+      return;
     }
-    setOpen(true)
-  }
+    showConfirmAlert(
+      `Bạn có muốn xóa ${selectedRowKeys.length} bản ghi? hành động này không thể hoàn tác.`
+    ).then((result) => {
+      if (result.isConfirmed) {
+        deleteManyMutation.mutate(selectedRowKeys);
+      }
+    });
+  };
 
+  const columns: TableProps<AssignmentNormOutputType>["columns"] = [
+    {
+      title: "",
+      dataIndex: "number",
+      key: "number",
+      width: 50,
+      render: (_value, _record, index) => <Typography>{index + 1}</Typography>,
+    },
+    {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>
+          Mã định mức giao khoán
+        </Typography>
+      ),
+      dataIndex: "code",
+      key: "code",
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+          sensitivity: "base",
+        }),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
+      dataIndex: "view",
+      key: "view",
+      width: 60,
+      render: (_v, record) => (
+        <IconButton
+          size="small"
+          onClick={() => {
+            // nếu cần mở modal xem, set selected và mở modal read-only
+            console.log("Xem", record);
+          }}
+        >
+          <RemoveRedEyeOutlined />
+        </IconButton>
+      ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+      dataIndex: "edit",
+      key: "edit",
+      width: 60,
+      render: (_v, record) => (
+        <IconButton size="small" onClick={() => handleOpenModal(record)}>
+          <Edit />
+        </IconButton>
+      ),
+    },
+  ];
 
+  const rowSelection: TableRowSelection<AssignmentNormOutputType> = {
+    selectedRowKeys,
+    onChange: (newSelected) => setSelectedRowKeys(newSelected),
+  };
 
   return (
-    <Paper elevation={3} style={{ padding: 16 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Định mức khấu than - KB</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới định mức khấu than - KB</Button>
+    <Box>
+      <Box mt={3}>
+        <Box>
+          <Box sx={{ mb: 2 }}>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  endIcon={<Add />}
+                  onClick={() => handleOpenModal()}
+                >
+                  Tạo mới
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<Delete />}
+                  onClick={() => handleDelete()}
+                >
+                  Xóa
+                </Button>
+              </Box>
+
+              <Box display={"flex"} flex={1} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FilterList />}
+                >
+                  Lọc
+                </Button>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Search sx={{ fontSize: 24 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                >
+                  Tải lên
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                >
+                  Xuất file
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                >
+                  In
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                >
+                  Gửi
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+
+          <Table<AssignmentNormOutputType>
+            rowKey="_id"
+            rowSelection={rowSelection}
+            pagination={{
+              position: ["bottomCenter"],
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              defaultPageSize: 10,
+              showTotal: (total, range) => (
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                </div>
+              ),
+            }}
+            columns={columns}
+            dataSource={assignmentnorms.filter(
+              (i: any) => i.type === "coal_kb"
+            )}
+          />
+
+          <CoalCuttingNormKBModal
+            open={modalOpen}
+            setOpen={setModalOpen}
+            handleSubmit={handleSubmit}
+            selected={selected}
+          />
+        </Box>
       </Box>
-      < TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Mã định mức giao khoán</b></TableCell>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Thao tác</b></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {assignmentnorms.filter((i: AssignmentNormOutputType) => i.type === "coal_kb").map((cuttingnorm: AssignmentNormOutputType) => (
-              <React.Fragment>
-                <TableRow>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>{cuttingnorm.code}</TableCell>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>
-                    <IconButton onClick={() => handleToggleExpand(cuttingnorm)}>
-                      <Visibility color="secondary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleOpen(cuttingnorm)}>
-                      <Edit color="primary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(cuttingnorm._id)}>
-                      <Delete color="error" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-                {expandedRow === cuttingnorm._id && (<TableRow>
-                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#D3D3D3' }}>
-                    < TableContainer component={Paper} sx={{ backgroundColor: '#D3D3D3' }}>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell align='center' rowSpan={3} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>STT</TableCell>
-                            <TableCell align='center' rowSpan={3} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Mã giao khoán</TableCell>
-                            <TableCell align='center' rowSpan={3} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Thành phần hao phí</TableCell>
-                            <TableCell align='center' rowSpan={3} sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Đơn vị</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Độ dốc vỉa {cuttingnorm.curbSlope?.name || ''}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>Chiều dày vỉa (m)</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>{cuttingnorm.thickness?.name || ''}</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          <TableRow>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold' }}>{cuttingnorm.code}</TableCell>
-                          </TableRow>
-                          {cuttingnorm.norms.map((item: any, index: number) => (
-                            <TableRow>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{index + 1}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.code}</TableCell>
-                              <TableCell sx={{ border: '1px solid grey' }}>{item.assignmentCode?.name}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.assignmentCode?.uom?.name}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.norm ? item.norm.toLocaleString() : ''}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </TableCell>
-                </TableRow>)}
-              </React.Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <CoalCuttingNormKBModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selected={selected} />
-    </Paper >
+    </Box>
   );
 }

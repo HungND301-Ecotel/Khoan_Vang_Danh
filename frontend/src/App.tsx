@@ -40,13 +40,14 @@ import Setttlementreport from './pages/SettlementReport/SettlementReport';
 import Ratedadjustmentfactor from './pages/Ratedadjustmentfactor/Ratedadjustmentfactor';
 import Adjustmentfactorfornorms from './pages/Adjustmentfactorfornorms/Adjustmentfactorfornorms';
 import Parameter from './pages/Parameter/Parameter';
+import CoalCuttingNorm from './pages/CoalCuttingNorm/CoalCuttingNorm';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
 }
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   const [user] = useAtom(userAtom);
   // if (!token) {
   //   return <Navigate to="/login" />;
@@ -55,8 +56,8 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 };
 
 const App = () => {
-  const token = localStorage.getItem('token');
-  const [user, setUser] = useAtom(userAtom)
+  const token = localStorage.getItem("token");
+  const [user, setUser] = useAtom(userAtom);
 
   // const { data, isLoading } = useQuery({
   //   queryKey: ['user', token],
@@ -235,26 +236,10 @@ const App = () => {
           }
         />
         <Route
-          path="/coalcuttingnorm_zry"
+          path="/coalcuttingnorms"
           element={
             <PrivateRoute>
-              <CoalCuttingNormZRY />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/coalcuttingnorm_zh"
-          element={
-            <PrivateRoute>
-              <CoalCuttingNormZH />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/coalcuttingnorm_kb"
-          element={
-            <PrivateRoute>
-              <CoalCuttingNormKB />
+              <CoalCuttingNorm />
             </PrivateRoute>
           }
         />
@@ -343,4 +328,4 @@ const App = () => {
   );
 };
 
-export default App; 
+export default App;
