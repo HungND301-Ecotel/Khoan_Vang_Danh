@@ -1,50 +1,51 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import Login from './pages/Auth/Login';
-import api from './config/api.config';
-import { userAtom } from './atoms/userAtoms';
-import { useAtom } from 'jotai'
-import MainLayout from './components/layout/Mainlayout';
-import Dashboard from './pages/Dashboard/Dashboard';
-import AssignmentCode from './pages/AssignmentCode/AssignmentCode';
+import React, { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
+import Login from "./pages/Auth/Login";
+import api from "./config/api.config";
+import { userAtom } from "./atoms/userAtoms";
+import { useAtom } from "jotai";
+import MainLayout from "./components/layout/Mainlayout";
+import Dashboard from "./pages/Dashboard/Dashboard";
+import AssignmentCode from "./pages/AssignmentCode/AssignmentCode";
 
-import Unit from './pages/Unit/Unit';
-import MaterialAssignment from './pages/MaterialAssignment/MaterialAssignment';
-import PhaseGroup from './pages/PhaseGroup/PhaseGroup';
-import Phase from './pages/Phase/Phase';
-import ExcavationTech from './pages/ExcavationTech/ExcavationTech';
-import Hardness from './pages/Hardness/Hardness';
-import CrossSection from './pages/CrossSection/CrossSection';
-import CurbSlope from './pages/CurbSlope/CurbSlope';
-import Thickness from './pages/Thickness/Thickness';
-import Length from './pages/Length/Length';
-import MiningTech from './pages/MiningTech/MiningTech';
-import Materialunitprice from './pages/MaterialUnitPrice/Materialunitprice';
-import Step from './pages/Step/Step';
-import ExcavationNorm from './pages/ExcavationNorm/ExcavationNorm';
-import CuttingNorm from './pages/CuttingNorm/CuttingNorm';
-import CoalCuttingNormZRY from './pages/CoalCuttingNormZRY/CoalCuttingNormZRY';
-import CoalCuttingNormZH from './pages/CoalCuttingNormZH/CoalCuttingNormZH';
-import CoalCuttingNormKB from './pages/CoalCuttingNormKB/CoalCuttingNormKB';
-import RockRatio from './pages/RockRatio/RockRatio';
-import MirrorRatio from './pages/MirrorRatio/MirrorRatio';
-import AdjustmentNormKKT from './pages/AdjustmentNormKKT/AdjustmentNormKKT';
-import AdjustmentNormKDL from './pages/AdjustmentNormKDL/AdjustmentNormKDL';
-import AdjustmentNormCM from './pages/AdjustmentNormCM/AdjustmentNormCM';
-import ProductScope from './pages/ProductionSope/ProductionScope';
-import DeviceCode from './pages/DeviceCode/DeviceCode';
-import MaterialBudget from './pages/MaterialBudget/MaterialBudget';
-import MaterialCostUsed from './pages/MaterialCostUsed/MaterialCostUsed';
-import Setttlementreport from './pages/SettlementReport/SettlementReport';
-
+import Unit from "./pages/Unit/Unit";
+import MaterialAssignment from "./pages/MaterialAssignment/MaterialAssignment";
+import PhaseGroup from "./pages/PhaseGroup/PhaseGroup";
+import Phase from "./pages/Phase/Phase";
+import ExcavationTech from "./pages/ExcavationTech/ExcavationTech";
+import Hardness from "./pages/Hardness/Hardness";
+import CrossSection from "./pages/CrossSection/CrossSection";
+import CurbSlope from "./pages/CurbSlope/CurbSlope";
+import Thickness from "./pages/Thickness/Thickness";
+import Length from "./pages/Length/Length";
+import MiningTech from "./pages/MiningTech/MiningTech";
+import Materialunitprice from "./pages/MaterialUnitPrice/Materialunitprice";
+import Step from "./pages/Step/Step";
+import ExcavationNorm from "./pages/ExcavationNorm/ExcavationNorm";
+import CuttingNorm from "./pages/CuttingNorm/CuttingNorm";
+import CoalCuttingNorm from "./pages/CoalCuttingNorm/CoalCuttingNorm";
+import RockRatio from "./pages/RockRatio/RockRatio";
+import MirrorRatio from "./pages/MirrorRatio/MirrorRatio";
+import AdjustmentNormKKT from "./pages/AdjustmentNormKKT/AdjustmentNormKKT";
+import AdjustmentNormKDL from "./pages/AdjustmentNormKDL/AdjustmentNormKDL";
+import AdjustmentNormCM from "./pages/AdjustmentNormCM/AdjustmentNormCM";
+import ProductScope from "./pages/ProductionSope/ProductionScope";
+import DeviceCode from "./pages/DeviceCode/DeviceCode";
+import MaterialBudget from "./pages/MaterialBudget/MaterialBudget";
+import MaterialCostUsed from "./pages/MaterialCostUsed/MaterialCostUsed";
+import Setttlementreport from "./pages/SettlementReport/SettlementReport";
 
 interface PrivateRouteProps {
   children: React.ReactNode;
 }
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   const [user] = useAtom(userAtom);
   // if (!token) {
   //   return <Navigate to="/login" />;
@@ -53,8 +54,8 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 };
 
 const App = () => {
-  const token = localStorage.getItem('token');
-  const [user, setUser] = useAtom(userAtom)
+  const token = localStorage.getItem("token");
+  const [user, setUser] = useAtom(userAtom);
 
   // const { data, isLoading } = useQuery({
   //   queryKey: ['user', token],
@@ -209,26 +210,10 @@ const App = () => {
           }
         />
         <Route
-          path="/coalcuttingnorm_zry"
+          path="/coalcuttingnorms"
           element={
             <PrivateRoute>
-              <CoalCuttingNormZRY />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/coalcuttingnorm_zh"
-          element={
-            <PrivateRoute>
-              <CoalCuttingNormZH />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/coalcuttingnorm_kb"
-          element={
-            <PrivateRoute>
-              <CoalCuttingNormKB />
+              <CoalCuttingNorm />
             </PrivateRoute>
           }
         />
@@ -317,4 +302,4 @@ const App = () => {
   );
 };
 
-export default App; 
+export default App;
