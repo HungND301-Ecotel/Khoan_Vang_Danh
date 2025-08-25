@@ -1,37 +1,35 @@
 import React, { useState } from "react";
 import {
+  TableContainer,
+  TextField,
+  Paper,
   Box,
   Button,
   Typography,
-  InputAdornment,
-  TextField,
   IconButton,
-  TableContainer,
-  Paper,
 } from "@mui/material";
-import {
-  Add,
-  Delete,
-  Edit,
-  RemoveRedEyeOutlined,
-  FilterList,
-  Print,
-  Search,
-  FileUpload,
-  FileDownload,
-  Mail,
-  ArrowDropDown,
-} from "@mui/icons-material";
-import { Table, TableProps } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import { AssignmentNormInputType, AssignmentNormOutputType } from "../../types";
+import {
+  Add,
+  ArrowDropDown,
+  Delete,
+  Edit,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Visibility,
+} from "@mui/icons-material";
 import CoalCuttingNormZHModal from "../../components/CoalCuttingNormZHModal/CoalCuttingNormZHModal";
 import {
   showConfirmAlert,
   showErrorAlert,
   showSuccessAlert,
 } from "../../components/Alert";
+import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 
 export default function CoalCuttingNormZH() {
@@ -41,16 +39,21 @@ export default function CoalCuttingNormZH() {
   );
   const [open, setOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
 
   const { data: assignmentnorms = [] } = useQuery({
-    queryKey: ["assignmentnorms", searchValue],
+    queryKey: ["assignmentnorms"],
     queryFn: async () =>
-      api.get(`/assignmentnorms?q=${searchValue}`).then((res) => res.data.data),
+      api.get("/assignmentnorms").then((res) => res.data.data),
   });
 
+  const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
+    const id = cuttingnorm?._id;
+    if (!id) return;
+
+    setExpandedRow((prev) => (prev === id ? null : id));
+  };
   const createMutation = useMutation({
     mutationFn: (newCuttingNorm: Partial<AssignmentNormInputType>) =>
       api.post("/assignmentnorms", newCuttingNorm).then((res) => res.data),
@@ -60,10 +63,10 @@ export default function CoalCuttingNormZH() {
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
-      showErrorAlert(error.response?.data?.message || error.message || "Lỗi");
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
-
   const updateMutation = useMutation({
     mutationFn: (updateCuttingNorm: Partial<AssignmentNormInputType>) =>
       api
@@ -76,22 +79,38 @@ export default function CoalCuttingNormZH() {
       showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
-      showErrorAlert(error.response?.data?.message || error.message || "Lỗi");
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
-
+  const handleDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      showErrorAlert("Không tìm thấy bản ghi");
+      return;
+    }
+    showConfirmAlert(
+      `Bạn có muốn xóa ${selectedRowKeys.length} bản ghi? hành động này không thể hoàn tác.`
+    ).then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(selectedRowKeys);
+      }
+    });
+  };
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/assignmentnorms/${id}`).then((res) => res.data),
-    onSuccess: () => {
+    mutationFn: (ids: React.Key[]) =>
+      api
+        .delete(`/assignmentnorms`, { data: { ids } })
+        .then((res) => res.data.message),
+    onSuccess: (message) => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
-      showSuccessAlert("Xóa thành công");
+      setSelectedRowKeys([]);
+      showSuccessAlert(message || "Xóa thành công");
     },
     onError: (error: any) => {
-      showErrorAlert(error.response?.data?.message || error.message || "Lỗi");
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
-
   const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
@@ -99,26 +118,14 @@ export default function CoalCuttingNormZH() {
       createMutation.mutate(values);
     }
   };
-
-  const handleOpen = (item?: AssignmentNormOutputType) => {
-    setSelected(item ?? null);
+  const handleOpen = (CuttingNorm?: AssignmentNormOutputType) => {
+    if (CuttingNorm) {
+      setSelected(CuttingNorm);
+    } else {
+      setSelected(null);
+    }
     setOpen(true);
   };
-
-  const handleToggleExpand = (record: AssignmentNormOutputType) => {
-    const id = record?._id;
-    if (!id) return;
-    setExpandedRow((prev) => (prev === id ? null : id));
-  };
-
-  const handleDelete = (id?: string) => {
-    if (!id) return showErrorAlert("Không tìm thấy bản ghi");
-    showConfirmAlert("Bạn có muốn xóa bản ghi này?").then((res) => {
-      if (res.isConfirmed) deleteMutation.mutate(id);
-    });
-  };
-
-  // Columns: index, code (bold), view, edit
   const columns: TableProps<AssignmentNormOutputType>["columns"] = [
     {
       title: "",
@@ -154,7 +161,7 @@ export default function CoalCuttingNormZH() {
           onClick={() => handleToggleExpand(record)}
           aria-label="xem"
         >
-          <RemoveRedEyeOutlined />
+          <Visibility />
         </IconButton>
       ),
     },
@@ -182,6 +189,7 @@ export default function CoalCuttingNormZH() {
     onChange: (keys) => setSelectedRowKeys(keys),
   };
 
+  // Expanded content renderer (bảng con) — giữ structure tương tự file bạn gửi
   const expandedRowRender = (record: AssignmentNormOutputType) => {
     const norms = record.norms || [];
     const thicknessLabel = record.thickness?.name || "";
@@ -304,35 +312,7 @@ export default function CoalCuttingNormZH() {
                 variant="contained"
                 color="error"
                 endIcon={<Delete />}
-                onClick={() => {
-                  if (selectedRowKeys.length === 0) {
-                    showErrorAlert("Chưa chọn bản ghi để xóa");
-                    return;
-                  }
-                  showConfirmAlert(
-                    `Bạn có muốn xóa ${selectedRowKeys.length} bản ghi?`
-                  ).then((res) => {
-                    if (res.isConfirmed) {
-                      // nếu backend hỗ trợ xóa nhiều, gọi API tương ứng
-                      api
-                        .delete("/assignmentnorms", {
-                          data: { ids: selectedRowKeys },
-                        })
-                        .then(() => {
-                          queryClient.invalidateQueries({
-                            queryKey: ["assignmentnorms"],
-                          });
-                          setSelectedRowKeys([]);
-                          showSuccessAlert("Xóa thành công");
-                        })
-                        .catch((err) => {
-                          showErrorAlert(
-                            err.response?.data?.message || err.message || "Lỗi"
-                          );
-                        });
-                    }
-                  });
-                }}
+                onClick={() => handleDelete()}
               >
                 Xóa
               </Button>
@@ -346,20 +326,7 @@ export default function CoalCuttingNormZH() {
               >
                 Lọc
               </Button>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Tìm kiếm"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Search sx={{ fontSize: 24 }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
+              <TextField fullWidth size="small" placeholder="Tìm kiếm" />
             </Box>
 
             <Box display={"flex"} gap={2}>
@@ -400,7 +367,7 @@ export default function CoalCuttingNormZH() {
             showSizeChanger: true,
             pageSizeOptions: ["10", "20", "50", "100"],
             defaultPageSize: 10,
-            showTotal: (total, range) => (
+            showTotal: (total: number, range: [number, number]) => (
               <div style={{ flex: 1, textAlign: "left" }}>
                 Hiển thị {range[0]}-{range[1]} trên {total} mục
               </div>
