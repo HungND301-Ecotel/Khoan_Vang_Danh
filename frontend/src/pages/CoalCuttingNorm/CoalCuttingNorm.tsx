@@ -48,16 +48,20 @@ export default function CoalCuttingNorm() {
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
+  const coalPhases = phases.filter(
+    (i: PhaseOutputType) => i.phaseGroup?.name?.toLowerCase() === "khấu than"
+  );
+
   return (
     <>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Đơn giá và định mức</Typography>
         <Typography>Định mức khấu than</Typography>
-        <Typography>KB</Typography>
+        <Typography>{coalPhases[currentTab]?.code ?? "KB"}</Typography>
       </Breadcrumbs>
 
       <Typography variant="h4" sx={{ color: "blue", mt: 2 }}>
-        Định mức than
+        Định mức khấu than
       </Typography>
 
       <Box sx={{ mt: 2 }}>

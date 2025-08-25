@@ -385,7 +385,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           Định mức xén lò
         </MenuItem>
 
-        <Divider />
         <MenuItem
           onClick={() => {
             navigate("/coalcuttingnorms");
