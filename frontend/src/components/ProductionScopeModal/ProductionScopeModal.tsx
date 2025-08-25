@@ -53,14 +53,14 @@ export default function ProductionScopeModal({ open, setOpen, handleSubmit, sele
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selected ? 'Chỉnh sửa diện sản xuất' : 'Tạo mới diện sản xuất'}</DialogTitle>
+      <DialogTitle>{selected ? 'Chỉnh sửa điện sản xuất' : 'Tạo mới điện sản xuất'}</DialogTitle>
       <DialogContent>
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <TextField
                 fullWidth
-                label="Mã diện sản xuất"
+                label="Mã Điện sản xuất"
                 value={formik.values.code}
                 onChange={(event) => {
                   formik.setFieldValue("code", event.target.value);
@@ -68,7 +68,7 @@ export default function ProductionScopeModal({ open, setOpen, handleSubmit, sele
               />
               <TextField
                 fullWidth
-                label="Tên diện sản xuất"
+                label="Tên điện sản xuất"
                 value={formik.values.name}
                 onChange={(event) => {
                   formik.setFieldValue("name", event.target.value);

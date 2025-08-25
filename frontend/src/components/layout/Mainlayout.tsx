@@ -180,14 +180,29 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 >
                     Tỷ lệ gương than mềm (Cm)
                 </MenuItem>
-
-                <Divider />
+                {/* <MenuItem
+                onClick={() => {
+                    navigate("/miningtechs");
+                    setMenuDanhMucEl(null);
+                }}
+                >
+                Thông số
+                </MenuItem> */}
+                {/* <Divider /> */}
 
                 {/* Hệ số điều chỉnh */}
-                <Box sx={{ px: 2, pt: 1, pb: 0.5, color: "text.secondary", fontSize: 12 }}>
+                {/* <Box sx={{ px: 2, pt: 1, pb: 0.5, color: "text.secondary", fontSize: 12 }}>
                     Hệ số điều chỉnh định mức
-                </Box>
-                <MenuItem
+                </Box> */}
+                  <MenuItem
+                onClick={() => {
+                    navigate("/adjustmentfactorfornorms");
+                    setMenuDanhMucEl(null);
+                }}
+                >
+                Hệ số điều chỉnh định mức
+                </MenuItem>
+                {/* <MenuItem
                     onClick={() => {
                         navigate("/adjustmentnormk_kt");
                         setMenuDanhMucEl(null);
@@ -210,15 +225,21 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     }}
                 >
                     (Cm)
-                </MenuItem>
+                </MenuItem> */}
 
-                <Divider />
+                {/* <Divider /> */}
 
                 {/* Công đoạn sản xuất */}
-                <Box sx={{ px: 2, pt: 1, pb: 0.5, color: "text.secondary", fontSize: 12 }}>
+                   <MenuItem
+                    onClick={() => {
+                        navigate("/ratedadjustmentfactor");
+                        setMenuDanhMucEl(null);
+                    }}
+                >
                     Công đoạn sản xuất
-                </Box>
-                <MenuItem
+                </MenuItem>
+
+                {/* <MenuItem
                     onClick={() => {
                         navigate("/phasegroup");
                         setMenuDanhMucEl(null);
@@ -233,15 +254,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     }}
                 >
                     Công đoạn sản xuất
-                </MenuItem>
+                </MenuItem> */}
 
-                <Divider />
+                {/* <Divider /> */}
 
                 {/* Các thông số */}
-                <Box sx={{ px: 2, pt: 1, pb: 0.5, color: "text.secondary", fontSize: 12 }}>
+                {/* <Box sx={{ px: 2, pt: 1, pb: 0.5, color: "text.secondary", fontSize: 12 }}>
                     Thông số
-                </Box>
-                <MenuItem onClick={() => { navigate("/excavationtech"); setMenuDanhMucEl(null); }}>
+                </Box> */}
+                
+                     <MenuItem onClick={() => { navigate("/parameter"); setMenuDanhMucEl(null); }}>
+                     Thông số
+                </MenuItem>
+
+                {/* <MenuItem onClick={() => { navigate("/excavationtech"); setMenuDanhMucEl(null); }}>
                     Công nghệ xúc
                 </MenuItem>
                 <MenuItem onClick={() => { navigate("/crosssections"); setMenuDanhMucEl(null); }}>
@@ -264,9 +290,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </MenuItem>
                 <MenuItem onClick={() => { navigate("/steps"); setMenuDanhMucEl(null); }}>
                     Chống
-                </MenuItem>
+                </MenuItem> */}
 
-                <Divider />
+                {/* <Divider /> */}
 
                 <MenuItem
                     onClick={() => {
@@ -274,7 +300,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         setMenuDanhMucEl(null);
                     }}
                 >
-                    Diện sản xuất
+                    Điện sản xuất
                 </MenuItem>
             </Menu>
 

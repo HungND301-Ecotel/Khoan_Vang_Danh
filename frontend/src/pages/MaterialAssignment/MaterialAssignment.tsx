@@ -15,12 +15,18 @@ export default function MaterialAssignment() {
     const [selectedMaterialAssignments, setSelectedMaterialAssignments] = useState<React.Key[]>([])
     const [searchValue, setSearchValue] = useState('')
 
-
     const queryClient = useQueryClient()
     const { data: materialAssignments = [] } = useQuery({
         queryKey: ['materialAssignments'],
         queryFn: () => api.get('/materialassignments/getAll').then(res => res.data.data)
     })
+
+    const filteredData = materialAssignments.filter((item: Materials) => 
+        item.assignmentCode?.code?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        item.code?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        item.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        item.uom?.name?.toLowerCase().includes(searchValue.toLowerCase())
+    )
 
     const createMutation = useMutation({
         mutationFn: (newMaterialAssignment: Partial<MaterialAssignmentInputType>) =>
@@ -31,9 +37,10 @@ export default function MaterialAssignment() {
             showSuccessAlert('Thêm thành công')
         },
         onError: (error: any) => {
-            showErrorAlert(error.response.data.message || error.response || 'Lỗi')
+            showErrorAlert(error.response?.data?.message || error.response || 'Lỗi')
         }
     });
+    
     const updateMutation = useMutation({
         mutationFn: (updateMaterialAssignment: Partial<MaterialAssignmentInputType>) =>
             api.put(`/materialassignments/${updateMaterialAssignment._id}`, updateMaterialAssignment).then(res => res.data),
@@ -44,9 +51,10 @@ export default function MaterialAssignment() {
             showSuccessAlert('Sửa thành công')
         },
         onError: (error: any) => {
-            showErrorAlert(error.response.data.message || error.response || 'Lỗi')
+            showErrorAlert(error.response?.data?.message || error.response || 'Lỗi')
         }
     });
+    
     const handleDelete = (id?: string) => {
         if (!id) {
             showErrorAlert('Không tìm thấy bản ghi');
@@ -58,6 +66,33 @@ export default function MaterialAssignment() {
             }
         });
     };
+
+    const handleDeleteMultiple = () => {
+        if (selectedMaterialAssignments.length === 0) {
+            showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
+            return;
+        }
+        
+        showConfirmAlert(`Bạn có muốn xóa ${selectedMaterialAssignments.length} bản ghi đã chọn?`).then((result) => {
+            if (result.isConfirmed) {
+                const deletePromises = selectedMaterialAssignments.map(id => 
+                    api.delete(`/materialassignments/${id}`)
+                );
+                
+                Promise.all(deletePromises)
+                    .then(() => {
+                        queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
+                        setSelectedMaterialAssignments([]);
+                        showSuccessAlert(`Đã xóa ${selectedMaterialAssignments.length} bản ghi thành công`);
+                    })
+                    .catch((error) => {
+                        console.error("Lỗi khi xóa:", error);
+                        showErrorAlert("Có lỗi xảy ra khi xóa các bản ghi");
+                    });
+            }
+        });
+    };
+    
     const deleteMutation = useMutation({
         mutationFn: (id: string) =>
             api.delete(`/materialassignments/${id}`).then(res => res.data),
@@ -66,9 +101,10 @@ export default function MaterialAssignment() {
             showSuccessAlert('Xóa thành công')
         },
         onError: (error: any) => {
-            showErrorAlert(error.response.data.message || error.response || 'Lỗi')
+            showErrorAlert(error.response?.data?.message || error.response || 'Lỗi')
         }
     });
+    
     const handleSubmit = (values: Partial<MaterialAssignmentInputType>) => {
         if (selectedMaterialAssignment) {
             updateMutation.mutate({ ...values, _id: selectedMaterialAssignment._id });
@@ -85,6 +121,7 @@ export default function MaterialAssignment() {
         }
         setOpen(true)
     }
+
     const columns: TableProps<Materials>['columns'] = [
         {
             title: '',
@@ -158,6 +195,16 @@ export default function MaterialAssignment() {
                 </IconButton>
             )
         },
+        // {
+        //     title: <Typography sx={{ fontWeight: 'bold' }}>Xóa</Typography>,
+        //     dataIndex: 'delete',
+        //     width: 50,
+        //     render: (_, record) => (
+        //         <IconButton onClick={() => handleDelete(record._id)} color="error">
+        //             <Delete />
+        //         </IconButton>
+        //     )
+        // },
     ]
 
     const rowSelection: TableRowSelection<Materials> = {
@@ -166,6 +213,7 @@ export default function MaterialAssignment() {
             setSelectedMaterialAssignments(newSelectedMaterialAssignments);
         },
     };
+
     return (
         <Box>
             <Breadcrumbs aria-label="breadcrumb">
@@ -178,12 +226,26 @@ export default function MaterialAssignment() {
                         <Typography variant="h4" sx={{ color: 'blue' }}>Vật tư tài sản</Typography>
                         <Box display={'flex'} gap={4} mt={2} justifyContent='space-between'>
                             <Box display={'flex'} gap={2}>
-                                <Button variant='contained' color='warning' endIcon={<Add />} onClick={() => handleOpen()}>Tạo mới</Button>
-                                <Button variant='contained' color='error' endIcon={<Delete />} onClick={() => handleDelete()}>Xóa</Button>
+                                <Button variant='contained' color='warning' endIcon={<Add />} onClick={() => handleOpen()}>
+                                    Tạo mới
+                                </Button>
+                                <Button 
+                                    variant='contained' 
+                                    color='error' 
+                                    endIcon={<Delete />} 
+                                    onClick={handleDeleteMultiple}
+                                    disabled={selectedMaterialAssignments.length === 0}
+                                >
+                                    Xóa ({selectedMaterialAssignments.length})
+                                </Button>
                             </Box>
                             <Box display={'flex'} flex={1} gap={2}>
-                                <Button variant='outlined' color='inherit' startIcon={<FilterList />}>Lọc</Button>
-                                <TextField fullWidth size='small'
+                                <Button variant='outlined' color='inherit' startIcon={<FilterList />}>
+                                    Lọc
+                                </Button>
+                                <TextField 
+                                    fullWidth 
+                                    size='small'
                                     placeholder='Tìm kiếm'
                                     onChange={(e) => setSearchValue(e.target.value)}
                                     InputProps={{
@@ -192,17 +254,28 @@ export default function MaterialAssignment() {
                                                 <Search sx={{ fontSize: 24 }} />
                                             </InputAdornment>
                                         )
-                                    }} />
+                                    }} 
+                                />
                             </Box>
                             <Box display={'flex'} gap={2}>
-                                <Button variant='outlined' color='inherit' startIcon={<FileUpload />}>Tải lên</Button>
-                                <Button variant='outlined' color='inherit' startIcon={<FileDownload />}>Xuất file</Button>
-                                <Button variant='outlined' color='inherit' startIcon={<Print />}>In</Button>
-                                <Button variant='outlined' color='inherit' startIcon={<Mail />} endIcon={<ArrowDropDown />}>Gửi</Button>
+                                <Button variant='outlined' color='inherit' startIcon={<FileUpload />}>
+                                    Tải lên
+                                </Button>
+                                <Button variant='outlined' color='inherit' startIcon={<FileDownload />}>
+                                    Xuất file
+                                </Button>
+                                <Button variant='outlined' color='inherit' startIcon={<Print />}>
+                                    In
+                                </Button>
+                                <Button variant='outlined' color='inherit' startIcon={<Mail />} endIcon={<ArrowDropDown />}>
+                                    Gửi
+                                </Button>
                             </Box>
                         </Box>
                     </Box>
-                    <Table<Materials> rowKey="_id" rowSelection={rowSelection}
+                    <Table<Materials> 
+                        rowKey="_id" 
+                        rowSelection={rowSelection}
                         pagination={{
                             position: ['bottomCenter'],
                             showSizeChanger: true,
@@ -211,7 +284,10 @@ export default function MaterialAssignment() {
                             showTotal: (total, range) => <div style={{ flex: 1, textAlign: 'left' }}>
                                 Hiển thị {range[0]}-{range[1]} trên {total} mục
                             </div>,
-                        }} columns={columns} dataSource={materialAssignments} />
+                        }} 
+                        columns={columns} 
+                        dataSource={filteredData} 
+                    />
                 </Box>
             </Box>
             <MaterialAssignmentModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selectedMaterialAssignment={selectedMaterialAssignment} />

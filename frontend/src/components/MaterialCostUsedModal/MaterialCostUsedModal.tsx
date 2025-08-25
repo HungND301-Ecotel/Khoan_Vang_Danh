@@ -66,7 +66,7 @@ export default function MaterialCostUsedModal({ open, setOpen, handleSubmit, sel
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <TextField
                 fullWidth select
-                label="Mã diện sản xuất"
+                label="Mã điện sản xuất"
                 variant="outlined"
                 value={formik.values.productionScope}
                 onChange={(event) => {

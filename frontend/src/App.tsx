@@ -37,7 +37,9 @@ import DeviceCode from './pages/DeviceCode/DeviceCode';
 import MaterialBudget from './pages/MaterialBudget/MaterialBudget';
 import MaterialCostUsed from './pages/MaterialCostUsed/MaterialCostUsed';
 import Setttlementreport from './pages/SettlementReport/SettlementReport';
-
+import Ratedadjustmentfactor from './pages/Ratedadjustmentfactor/Ratedadjustmentfactor';
+import Adjustmentfactorfornorms from './pages/Adjustmentfactorfornorms/Adjustmentfactorfornorms';
+import Parameter from './pages/Parameter/Parameter';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -79,6 +81,30 @@ const App = () => {
               <Dashboard />
             </PrivateRoute>
           }
+        />
+         <Route
+          path="/ratedadjustmentfactor"
+          element={
+            <PrivateRoute>
+              <Ratedadjustmentfactor />
+            </PrivateRoute>
+          }
+        />
+          <Route
+          path="/parameter"
+          element={
+            <PrivateRoute>
+              <Parameter />
+            </PrivateRoute>
+          }
+        />
+        <Route
+        path="/adjustmentfactorfornorms"
+        element={
+          <PrivateRoute>
+            <Adjustmentfactorfornorms/>
+          </PrivateRoute>
+        }
         />
         <Route
           path="/unit"

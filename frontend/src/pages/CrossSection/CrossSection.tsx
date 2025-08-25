@@ -1,120 +1,269 @@
-import { Add, Delete, Edit } from '@mui/icons-material'
-import { Box, Button, Container, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
-import React, { useState } from 'react'
-import CrossSectionModal from '../../components/CrossSectionModal/CrossSectionModal'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CrossSectionOutputType, CrossSectionInputType } from '../../types'
-import api from '../../config/api.config'
-import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert'
+import { Add, ArrowDropDown, Delete, Edit, FileDownload, FileUpload, FilterList, Mail, Print, Search } from "@mui/icons-material";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  IconButton,
+  InputAdornment,
+  TextField,
+  Typography,
+} from "@mui/material";
+import React, { useState } from "react";
+import CrossSectionModal from "../../components/CrossSectionModal/CrossSectionModal";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CrossSectionOutputType, CrossSectionInputType } from "../../types";
+import api from "../../config/api.config";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../../components/Alert";
+import { TableRowSelection } from 'antd/es/table/interface';
+import { TableProps, Table } from 'antd';
 
 export default function CrossSection() {
-    const [open, setOpen] = useState(false)
-    const [selectedCrossSection, setSelectedCrossSection] = useState<CrossSectionOutputType | null>(null)
+  const [open, setOpen] = useState(false);
+  const [selectedCrossSection, setSelectedCrossSection] = useState<CrossSectionOutputType | null>(null);
+  const [selectedCrossSections, setSelectedCrossSections] = useState<React.Key[]>([]);
+  const [searchValue, setSearchValue] = useState('');
 
-    const queryClient = useQueryClient()
-    const { data: crosssections = [] } = useQuery({
-        queryKey: ['crosssections'],
-        queryFn: () => api.get('/crosssections').then(res => res.data.data)
-    })
+  const queryClient = useQueryClient();
+  const { data: crosssections = [] } = useQuery({
+    queryKey: ["crosssections"],
+    queryFn: () => api.get("/crosssections").then((res) => res.data.data),
+  });
 
-    const createMutation = useMutation({
-        mutationFn: (newCrossSection: Partial<CrossSectionInputType>) =>
-            api.post('/crosssections', newCrossSection).then(res => res.data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['crosssections'] });
-            setOpen(false)
-            showSuccessAlert('Thêm thành công')
-        },
-        onError: (error: any) => {
-            showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-        }
-    });
-    const updateMutation = useMutation({
-        mutationFn: (updateCrossSection: Partial<CrossSectionInputType>) =>
-            api.put(`/crosssections/${updateCrossSection._id}`, updateCrossSection).then(res => res.data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['crosssections'] });
-            setOpen(false)
-            setSelectedCrossSection(null)
-            showSuccessAlert('Sửa thành công')
-        },
-        onError: (error: any) => {
-            showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-        }
-    });
-    const handleDelete = (id?: string) => {
-        if (!id) {
-            showErrorAlert('Không tìm thấy bản ghi');
-            return;
-        }
-        showConfirmAlert('Bạn có muốn xóa bản ghi này?').then((result) => {
-            if (result.isConfirmed) {
-                deleteMutation.mutate(id)
-            }
-        });
-    };
-    const deleteMutation = useMutation({
-        mutationFn: (id: string) =>
-            api.delete(`/crosssections/${id}`).then(res => res.data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['crosssections'] });
-            showSuccessAlert('Xóa thành công')
-        },
-        onError: (error: any) => {
-            showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-        }
-    });
-    const handleSubmit = (values: Partial<CrossSectionInputType>) => {
-        if (selectedCrossSection) {
-            updateMutation.mutate({ ...values, _id: selectedCrossSection._id });
-        } else {
-            createMutation.mutate(values);
-        }
-    };
-    const handleOpen = (CrossSection?: CrossSectionOutputType) => {
-        if (CrossSection) {
-            setSelectedCrossSection(CrossSection)
-        } else {
-            setSelectedCrossSection(null)
-        }
-        setOpen(true)
+  const createMutation = useMutation({
+    mutationFn: (newCrossSection: Partial<CrossSectionInputType>) =>
+      api.post("/crosssections", newCrossSection).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["crosssections"] });
+      setOpen(false);
+      showSuccessAlert("Thêm thành công");
+    },
+    onError: (error: any) => {
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (updateCrossSection: Partial<CrossSectionInputType>) =>
+      api
+        .put(`/crosssections/${updateCrossSection._id}`, updateCrossSection)
+        .then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["crosssections"] });
+      setOpen(false);
+      setSelectedCrossSection(null);
+      showSuccessAlert("Sửa thành công");
+    },
+    onError: (error: any) => {
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+
+  const handleDelete = (id?: string) => {
+    if (!id) {
+      showErrorAlert("Không tìm thấy bản ghi");
+      return;
     }
+    showConfirmAlert("Bạn có muốn xóa bản ghi này?").then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(id);
+      }
+    });
+  };
 
-    return (
-        <Paper elevation={3} style={{ padding: 16 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h4">Tiết diện lò xén</Typography>
-                <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới tiết diện lò xén</Button>
+   const handleDeleteMultiple = () => {
+    if (selectedCrossSections.length === 0) {
+      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
+      return;
+    }
+    
+    showConfirmAlert(`Bạn có muốn xóa ${selectedCrossSections.length} bản ghi đã chọn?`).then((result) => {
+      if (result.isConfirmed) {
+        // Tạo mảng các promise để xóa từng bản ghi
+        const deletePromises = selectedCrossSections.map(id => 
+          api.delete(`/crosssections/${id}`)
+        );
+        
+        // Thực hiện xóa tất cả
+        Promise.all(deletePromises)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ["crosssections"] });
+            setSelectedCrossSections([]);
+            showSuccessAlert(`Đã xóa ${selectedCrossSections.length} bản ghi thành công`);
+          })
+          .catch((error) => {
+            console.error("Lỗi khi xóa:", error);
+            showErrorAlert("Có lỗi xảy ra khi xóa các bản ghi");
+          });
+      }
+    });
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      api.delete(`/crosssections/${id}`).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["crosssections"] });
+      showSuccessAlert("Xóa thành công");
+    },
+    onError: (error: any) => {
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+
+  const handleSubmit = (values: Partial<CrossSectionInputType>) => {
+    if (selectedCrossSection) {
+      updateMutation.mutate({ ...values, _id: selectedCrossSection._id });
+    } else {
+      createMutation.mutate(values);
+    }
+  };
+
+  const handleOpen = (crossSection?: CrossSectionOutputType) => {
+    if (crossSection) {
+      setSelectedCrossSection(crossSection);
+    } else {
+      setSelectedCrossSection(null);
+    }
+    setOpen(true);
+  };
+
+  const columns: TableProps<CrossSectionOutputType>['columns'] = [
+    {
+      title: '',
+      dataIndex: 'number',
+      key: 'number',
+      width: 50,
+      render: (value, record, index) => (
+        <Typography>{index + 1}</Typography>
+      )
+    },
+    {
+      title: <Typography sx={{ fontWeight: 'bold' }}>Tiết diện lò xén</Typography>,
+      dataIndex: 'name',
+      key: 'name',
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: 'bold' }}>{record.name}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.name ?? '').localeCompare(b.name ?? '', 'vi', { sensitivity: 'base' }),
+    },
+    {
+      title: <Typography sx={{ fontWeight: 'bold' }}>ĐVT</Typography>,
+      dataIndex: 'uom',
+      key: 'uom',
+      render: (_, record) => (
+        <Typography>{record.uom?.name}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.uom?.name ?? '').localeCompare(b.uom?.name ?? '', 'vi', { sensitivity: 'base' }),
+    },
+    {
+      title: <Typography sx={{ fontWeight: 'bold' }}>Sửa</Typography>,
+      dataIndex: 'edit',
+      width: 50,
+      render: (_, record) => (
+        <IconButton onClick={() => handleOpen(record)}>
+          <Edit />
+        </IconButton>
+      )
+    },
+  ];
+
+  const rowSelection: TableRowSelection<CrossSectionOutputType> = {
+    selectedRowKeys: selectedCrossSections,
+    onChange: (newSelectedCrossSections: React.Key[]) => {
+      setSelectedCrossSections(newSelectedCrossSections);
+    },
+  };
+
+  // Lọc dữ liệu dựa trên giá trị tìm kiếm
+  const filteredCrossSections = crosssections.filter((item: CrossSectionOutputType) => 
+    item.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    item.uom?.name?.toLowerCase().includes(searchValue.toLowerCase())
+  );
+
+  return (
+    <Box>
+      {/* <Breadcrumbs aria-label="breadcrumb">
+        <Typography>Danh mục</Typography>
+        <Typography>Tiết diện lò xén</Typography>
+      </Breadcrumbs> */}
+      <Box mt={3}>
+        <Box>
+          <Box sx={{ mb: 2 }}>
+            {/* <Typography variant="h4" sx={{ color: 'blue' }}>
+              Tiết diện lò xén
+            </Typography> */}
+            <Box display={'flex'} gap={4} mt={2} justifyContent='space-between'>
+              <Box display={'flex'} gap={2}>
+                <Button variant='contained' color='warning' endIcon={<Add />} onClick={() => handleOpen()}>
+                  Tạo mới
+                </Button>
+                <Button variant='contained' color='error' endIcon={<Delete />} onClick={handleDeleteMultiple}>
+                  Xóa
+                </Button>
+              </Box>
+              <Box display={'flex'} flex={1} gap={2}>
+                <Button variant='outlined' color='inherit' startIcon={<FilterList />}>
+                  Lọc
+                </Button>
+                <TextField 
+                  fullWidth 
+                  size='small'
+                  placeholder='Tìm kiếm'
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Search sx={{ fontSize: 24 }} />
+                      </InputAdornment>
+                    )
+                  }} 
+                />
+              </Box>
+              <Box display={'flex'} gap={2}>
+                <Button variant='outlined' color='inherit' startIcon={<FileUpload />}>
+                  Tải lên
+                </Button>
+                <Button variant='outlined' color='inherit' startIcon={<FileDownload />}>
+                  Xuất file
+                </Button>
+                <Button variant='outlined' color='inherit' startIcon={<Print />}>
+                  In
+                </Button>
+                <Button variant='outlined' color='inherit' startIcon={<Mail />} endIcon={<ArrowDropDown />}>
+                  Gửi
+                </Button>
+              </Box>
             </Box>
-            <TableContainer>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Tiết diện lò xén</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>ĐVT</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid grey', fontWeight: 'bold', fontSize: 18 }}>Thao tác</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {crosssections.map((item: CrossSectionOutputType) => (
-                            <TableRow key={item._id}>
-                                <TableCell sx={{ border: '1px solid grey' }}>{item.name}</TableCell>
-                                <TableCell align='center' sx={{ border: '1px solid grey' }}>{item.uom?.name}</TableCell>
-                                <TableCell align='center' sx={{ border: '1px solid grey' }}>
-                                    <IconButton onClick={() => handleOpen(item)}>
-                                        <Edit color='primary' />
-                                    </IconButton>
-                                    <IconButton onClick={() => handleDelete(item._id)}>
-                                        <Delete color='error' />
-                                    </IconButton>
-                                </TableCell>
-
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-            <CrossSectionModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selectedCrossSection={selectedCrossSection} />
-        </Paper>
-    )
+          </Box>
+          <Table<CrossSectionOutputType> 
+            rowKey="_id" 
+            rowSelection={rowSelection}
+            pagination={{
+              position: ['bottomCenter'],
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              defaultPageSize: 10,
+              showTotal: (total, range) => <div style={{ flex: 1, textAlign: 'left' }}>
+                Hiển thị {range[0]}-{range[1]} trên {total} mục
+              </div>,
+            }} 
+            columns={columns} 
+            dataSource={filteredCrossSections} 
+          />
+        </Box>
+      </Box>
+      <CrossSectionModal
+        open={open}
+        setOpen={setOpen}
+        handleSubmit={handleSubmit}
+        selectedCrossSection={selectedCrossSection}
+      />
+    </Box>
+  );
 }

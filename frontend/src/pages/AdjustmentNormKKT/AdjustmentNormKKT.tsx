@@ -1,47 +1,63 @@
 import React, { useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton, Breadcrumbs, InputAdornment } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../config/api.config';
 import { AdjustmentNormInputType, AdjustmentNormOutputType } from '../../types';
-import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
+import { Add, Delete, Edit, Visibility, ArrowDropDown, FileDownload, FileUpload, FilterList, Print, Mail, Search } from '@mui/icons-material';
 import AdjustmentNormKCTModal from '../../components/AdjustmentNormKKTModal/AdjustmentNormKKTModal';
 import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
-
+import { Table as AntTable, TableProps } from "antd";
+import { TableRowSelection } from 'antd/es/table/interface';
 
 export default function AdjustmentNormKKT() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [selected, setSelected] = useState<AdjustmentNormOutputType | null>(null)
   const [open, setOpen] = useState(false)
+  const [selectedItems, setSelectedItems] = useState<React.Key[]>([]);
+  const [searchValue, setSearchValue] = useState('')
 
   const queryClient = useQueryClient()
 
-  const { data: adjustmentnorms = [] } = useQuery({
-    queryKey: ['adjustmentnorms'],
-    queryFn: async () => api.get('/adjustmentnorms').then(res => res.data.data)
+  const { data: adjustmentnorms = [], isLoading } = useQuery({
+    queryKey: ['adjustmentnorms', searchValue],
+    queryFn: async () => {
+      try {
+        const response = await api.get(`/adjustmentnorms?q=${searchValue}`);
+        return response.data.data || [];
+      } catch (error) {
+        showErrorAlert('Không thể tải dữ liệu');
+        return [];
+      }
+    }
   })
 
-  const handleToggleExpand = (axcavationnorm: AdjustmentNormOutputType) => {
-    const id = axcavationnorm?._id;
+  const filteredData = adjustmentnorms.filter((i: AdjustmentNormOutputType) => i.type === "CKKT");
+
+  const handleToggleExpand = (adjustmentnorm: AdjustmentNormOutputType) => {
+    const id = adjustmentnorm?._id;
     if (!id) return;
 
     setExpandedRow(prev => (prev === id ? null : id));
   };
+
   const createMutation = useMutation({
-    mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
-      api.post('/adjustmentnorms', newExcavationNorm).then(res => res.data),
+    mutationFn: (newAdjustmentNorm: Partial<AdjustmentNormInputType>) =>
+      api.post('/adjustmentnorms', newAdjustmentNorm).then(res => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
       setOpen(false)
       showSuccessAlert("Thêm mới thành công")
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
+      const errorMessage = error.response?.data?.message || error.response?.statusText || 'Lỗi không xác định';
+      console.error('Create error:', errorMessage);
+      showErrorAlert(errorMessage);
     }
   });
+
   const updateMutation = useMutation({
-    mutationFn: (updateExcavationNorm: Partial<AdjustmentNormInputType>) =>
-      api.put(`/adjustmentnorms/${updateExcavationNorm._id}`, updateExcavationNorm).then(res => res.data),
+    mutationFn: (updateAdjustmentNorm: Partial<AdjustmentNormInputType>) =>
+      api.put(`/adjustmentnorms/${updateAdjustmentNorm._id}`, updateAdjustmentNorm).then(res => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
       setOpen(false)
@@ -49,21 +65,12 @@ export default function AdjustmentNormKKT() {
       showSuccessAlert("Sửa thành công")
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
+      const errorMessage = error.response?.data?.message || error.response?.statusText || 'Lỗi không xác định';
+      console.error('Update error:', errorMessage);
+      showErrorAlert(errorMessage);
     }
   });
-  const handleDelete = (id?: string) => {
-    if (!id) {
-      showErrorAlert('Không tìm thấy bản ghi');
-      return;
-    }
-    showConfirmAlert('Bạn có muốn xóa bản ghi này?').then((result) => {
-      if (result.isConfirmed) {
-        deleteMutation.mutate(id)
-      }
-    });
-  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
       api.delete(`/adjustmentnorms/${id}`).then(res => res.data),
@@ -76,6 +83,25 @@ export default function AdjustmentNormKKT() {
       showErrorAlert(error.response.data.message || error.response || 'Lỗi')
     }
   });
+
+  const handleDelete = () => {
+    if (selectedItems.length === 0) {
+      showErrorAlert('Vui lòng chọn ít nhất một bản ghi để xóa');
+      return;
+    }
+    
+    showConfirmAlert('Bạn có muốn xóa các bản ghi đã chọn?').then((result) => {
+      if (result.isConfirmed) {
+
+        selectedItems.forEach(id => {
+          if (typeof id === 'string') {
+            deleteMutation.mutate(id);
+          }
+        });
+      }
+    });
+  };
+
   const handleSubmit = (values: Partial<AdjustmentNormInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
@@ -83,86 +109,174 @@ export default function AdjustmentNormKKT() {
       createMutation.mutate(values);
     }
   };
-  const handleOpen = (excavationNorm?: AdjustmentNormOutputType) => {
-    if (excavationNorm) {
-      setSelected(excavationNorm)
+
+  const handleOpen = (adjustmentNorm?: AdjustmentNormOutputType) => {
+    if (adjustmentNorm) {
+      setSelected(adjustmentNorm)
     } else {
       setSelected(null)
     }
     setOpen(true)
   }
 
+  const columns: TableProps<AdjustmentNormOutputType>['columns'] = [
+    {
+      title: 'STT',
+      dataIndex: 'number',
+      key: 'number',
+      width: 50,
+      render: (value, record, index) => (
+        <Typography>{index + 1}</Typography>
+      )
+    },
+    {
+      title: <Typography sx={{ fontWeight: 'bold' }}>Mã định mức giao khoán</Typography>,
+      dataIndex: 'code',
+      key: 'code',
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: 'bold' }}>{record.code}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.code ?? '').localeCompare(b.code ?? '', 'vi', { sensitivity: 'base' }),
+    },
+    {
+      title: <Typography sx={{ fontWeight: 'bold' }}>Xem</Typography>,
+      dataIndex: 'view',
+      width: 80,
+      render: (_, record) => (
+        <IconButton onClick={() => handleToggleExpand(record)}>
+          <Visibility color="secondary" />
+        </IconButton>
+      )
+    },
+    {
+      title: <Typography sx={{ fontWeight: 'bold' }}>Sửa</Typography>,
+      dataIndex: 'edit',
+      width: 50,
+      render: (_, record) => (
+        <IconButton onClick={() => handleOpen(record)}>
+          <Edit />
+        </IconButton>
+      )
+    },
+  ]
 
+  const rowSelection: TableRowSelection<AdjustmentNormOutputType> = {
+    selectedRowKeys: selectedItems,
+    onChange: (newSelectedItems: React.Key[]) => {
+      setSelectedItems(newSelectedItems);
+    },
+  };
+
+  const expandedRowRender = (record: AdjustmentNormOutputType) => {
+    return (
+      <Box sx={{ backgroundColor: '#D3D3D3', p: 2 }}>
+        <TableContainer component={Paper} sx={{ backgroundColor: '#D3D3D3' }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell align='center' colSpan={4} sx={{ border: '1px solid black', fontWeight: 'bold' }}>Độ cứng của đá lẫn trong gương</TableCell>
+                <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>{record.hardness?.name}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell align='center' colSpan={4} sx={{ border: '1px solid black', fontWeight: 'bold' }}>Tỉ lệ đá lẫn trong gương (Ckẹp)</TableCell>
+                <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>{record.rockRatio?.name}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell align='center' colSpan={5} sx={{ border: '1px solid black', fontWeight: 'bold' }}>{record.code}</TableCell>
+              </TableRow>
+              {record.norms?.map((item: any, index: number) => (
+                <TableRow key={index}>
+                  <TableCell align='center' sx={{ border: '1px solid black' }}>{index + 1}</TableCell>
+                  <TableCell align='center' sx={{ border: '1px solid black', color: 'blue' }}>{item.assignmentCode?.code}</TableCell>
+                  <TableCell align='center' sx={{ border: '1px solid black' }}>{item.assignmentCode?.name}</TableCell>
+                  <TableCell align='center' sx={{ border: '1px solid black' }}>1</TableCell>
+                  <TableCell align='center' sx={{ border: '1px solid black' }}>{item.norm ? item.norm.toLocaleString() : ''}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    );
+  };
 
   return (
-    <Paper elevation={3} style={{ padding: 16 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Hệ số điều chỉnh định mức CK.KT</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới Hệ số điều chỉnh định mức CK.KT</Button>
+    <Box>
+      {/* <Breadcrumbs aria-label="breadcrumb">
+        <Typography>Danh mục</Typography>
+        <Typography>Hệ số điều chỉnh định mức CK.KT</Typography>
+      </Breadcrumbs> */}
+      <Box mt={3}>
+        <Box>
+          <Box sx={{ mb: 2 }}>
+            {/* <Typography variant="h4" sx={{ color: 'blue' }}>Hệ số điều chỉnh định mức CK.KT</Typography> */}
+            <Box display={'flex'} gap={4} mt={2} justifyContent='space-between'>
+              <Box display={'flex'} gap={2}>
+                <Button variant='contained' color='warning' endIcon={<Add />} onClick={() => handleOpen()}>Tạo mới</Button>
+                <Button 
+                  variant='contained' 
+                  color='error' 
+                  endIcon={<Delete />} 
+                  onClick={handleDelete} // Đã sửa
+                  disabled={selectedItems.length === 0 || deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? 'Đang xóa...' : `Xóa (${selectedItems.length})`}
+                </Button>
+              </Box>
+              <Box display={'flex'} flex={1} gap={2} maxWidth={400}>
+                <Button variant='outlined' color='inherit' startIcon={<FilterList />}>Lọc</Button>
+                <TextField 
+                  fullWidth 
+                  size='small'
+                  placeholder='Tìm kiếm'
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Search sx={{ fontSize: 24 }} />
+                      </InputAdornment>
+                    )
+                  }} 
+                />
+              </Box>
+              <Box display={'flex'} gap={2}>
+                <Button variant='outlined' color='inherit' startIcon={<FileUpload />}>Tải lên</Button>
+                <Button variant='outlined' color='inherit' startIcon={<FileDownload />}>Xuất file</Button>
+                <Button variant='outlined' color='inherit' startIcon={<Print />}>In</Button>
+                <Button variant='outlined' color='inherit' startIcon={<Mail />} endIcon={<ArrowDropDown />}>Gửi</Button>
+              </Box>
+            </Box>
+          </Box>
+          <AntTable<AdjustmentNormOutputType> 
+            rowKey="_id" 
+            rowSelection={rowSelection}
+            loading={isLoading}
+            expandable={{
+              expandedRowKeys: expandedRow ? [expandedRow] : [],
+              onExpand: (expanded, record) => {
+                setExpandedRow(expanded ? (record._id || null) : null);
+              },
+              expandedRowRender,
+            }}
+            pagination={{
+              position: ['bottomCenter'],
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              defaultPageSize: 10,
+              showTotal: (total, range) => <div style={{ flex: 1, textAlign: 'left' }}>
+                Hiển thị {range[0]}-{range[1]} trên {total} mục
+              </div>,
+            }} 
+            columns={columns} 
+            dataSource={filteredData} 
+          />
+        </Box>
       </Box>
-      < TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Mã định mức giao khoán</b></TableCell>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Thao tác</b></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {adjustmentnorms.filter((i: AdjustmentNormOutputType) => i.type === "CKKT").map((adjustmentnorm: AdjustmentNormOutputType) => (
-              <React.Fragment>
-                <TableRow>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>{adjustmentnorm.code}</TableCell>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>
-                    <IconButton onClick={() => handleToggleExpand(adjustmentnorm)}>
-                      <Visibility color="secondary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleOpen(adjustmentnorm)}>
-                      <Edit color="primary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(adjustmentnorm._id)}>
-                      <Delete color="error" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-                {expandedRow === adjustmentnorm._id && (<TableRow>
-                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#D3D3D3' }}>
-                    < TableContainer component={Paper} sx={{ backgroundColor: '#D3D3D3' }}>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell align='center' colSpan={4} sx={{ border: '1px solid black', fontWeight: 'bold' }}>Độ cứng của đá lẫn trong gương</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>{adjustmentnorm.hardness?.name}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell align='center' colSpan={4} sx={{ border: '1px solid black', fontWeight: 'bold' }}>Tỉ lệ đã lẫn trong gương (Ckẹp)</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>{adjustmentnorm.rockRatio?.name}</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          <TableRow>
-                            <TableCell align='center' colSpan={5} sx={{ border: '1px solid black', fontWeight: 'bold' }}>{adjustmentnorm.code}</TableCell>
-                          </TableRow>
-                          {adjustmentnorm.norms.map((item: any, index: number) => (
-                            <TableRow>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>{index + 1}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black', color: 'blue' }}>{item.assignmentCode?.code}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.assignmentCode?.name}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>1</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.norm ? item.norm.toLocaleString() : ''}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </TableCell>
-                </TableRow>)}
-              </React.Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
       <AdjustmentNormKCTModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selected={selected} />
-    </Paper >
+    </Box>
   );
 }

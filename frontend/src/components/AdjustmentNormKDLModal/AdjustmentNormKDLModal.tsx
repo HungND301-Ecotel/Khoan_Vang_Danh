@@ -31,7 +31,7 @@ export default function AdjustmentNormKDLModal({ open, setOpen, handleSubmit, se
       code: selected?.code || '',
       type: 'CKĐL',
       norms: selected?.norms?.map((item) => ({
-        assignmentCode: item.assignmentCode._id,
+        assignmentCode: item.assignmentCode?._id || '',
         norm: item.norm
       })) || []
     },
@@ -52,7 +52,7 @@ export default function AdjustmentNormKDLModal({ open, setOpen, handleSubmit, se
     if (selected && selected.norms.length > 0) {
       // Trường hợp sửa
       const selectedCodes = assignmentcodes.filter((ac: any) =>
-        selected.norms.some(norm => norm.assignmentCode._id === ac._id)
+        selected.norms.some(norm => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
     }

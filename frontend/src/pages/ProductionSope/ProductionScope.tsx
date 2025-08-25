@@ -1,81 +1,127 @@
-import React, { useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton } from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import api from '../../config/api.config';
-import { ProductionScopeInputType, ProductionScopeOutputType } from '../../types';
-import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
-import ProductionScopeModal from '../../components/ProductionScopeModal/ProductionScopeModal';
-import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
-
+import React, { useState } from "react";
+import {
+  Add,
+  ArrowDropDown,
+  Delete,
+  Edit,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Search,
+  Visibility,
+} from "@mui/icons-material";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  IconButton,
+  InputAdornment,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "../../config/api.config";
+import {
+  ProductionScopeInputType,
+  ProductionScopeOutputType,
+} from "../../types";
+import ProductionScopeModal from "../../components/ProductionScopeModal/ProductionScopeModal";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../../components/Alert";
+import { Table, TableProps } from "antd";
+import { TableRowSelection } from "antd/es/table/interface";
 
 export default function ProductScope() {
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<ProductionScopeOutputType | null>(null)
-  const [open, setOpen] = useState(false)
+  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
+  const [selected, setSelected] = useState<ProductionScopeOutputType | null>(
+    null
+  );
+  const [open, setOpen] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
+  const [searchValue, setSearchValue] = useState("");
 
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const { data: productionscopes = [] } = useQuery({
-    queryKey: ['productionscopes'],
-    queryFn: async () => api.get('/productionscopes').then(res => res.data.data)
-  })
+    queryKey: ["productionscopes", searchValue],
+    queryFn: async () =>
+      api
+        .get(`/productionscopes?q=${searchValue}`)
+        .then((res) => res.data.data),
+  });
 
-  const handleToggleExpand = (axcavationnorm: ProductionScopeOutputType) => {
-    const id = axcavationnorm?._id;
-    if (!id) return;
-
-    setExpandedRow(prev => (prev === id ? null : id));
-  };
   const createMutation = useMutation({
     mutationFn: (newExcavationNorm: Partial<ProductionScopeInputType>) =>
-      api.post('/productionscopes', newExcavationNorm).then(res => res.data),
+      api.post("/productionscopes", newExcavationNorm).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['productionscopes'] });
-      setOpen(false)
-      showSuccessAlert("Thêm mới thành công")
+      queryClient.invalidateQueries({ queryKey: ["productionscopes"] });
+      setOpen(false);
+      showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
   });
+
   const updateMutation = useMutation({
     mutationFn: (updateExcavationNorm: Partial<ProductionScopeInputType>) =>
-      api.put(`/productionscopes/${updateExcavationNorm._id}`, updateExcavationNorm).then(res => res.data),
+      api
+        .put(
+          `/productionscopes/${updateExcavationNorm._id}`,
+          updateExcavationNorm
+        )
+        .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['productionscopes'] });
-      setOpen(false)
-      setSelected(null)
-      showSuccessAlert("Sửa thành công")
+      queryClient.invalidateQueries({ queryKey: ["productionscopes"] });
+      setOpen(false);
+      setSelected(null);
+      showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
   });
-  const handleDelete = (id?: string) => {
-    if (!id) {
-      showErrorAlert('Không tìm thấy bản ghi');
+
+  const handleDelete = () => {
+    if (selectedRows.length === 0) {
+      showErrorAlert('Vui lòng chọn ít nhất một bản ghi để xóa');
       return;
     }
-    showConfirmAlert('Bạn có muốn xóa bản ghi này?').then((result) => {
+    
+    showConfirmAlert('Bạn có muốn xóa các bản ghi đã chọn?').then((result) => {
       if (result.isConfirmed) {
-        deleteMutation.mutate(id)
+        deleteMutation.mutate(selectedRows);
       }
     });
   };
+
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/productionscopes/${id}`).then(res => res.data),
+    mutationFn: async (ids: React.Key[]) => {
+      const deletePromises = ids.map((id) =>
+        api.delete(`/productionscopes/${id}`).then((res) => res.data)
+      );
+      return Promise.all(deletePromises);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['productionscopes'] });
-      showSuccessAlert('Xóa thành công')
+      queryClient.invalidateQueries({ queryKey: ["productionscopes"] });
+      setSelectedRows([]);
+      showSuccessAlert("Xóa thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi không xác định";
+      console.error(errorMessage);
+      showErrorAlert(errorMessage);
+    },
   });
+
   const handleSubmit = (values: Partial<ProductionScopeInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
@@ -83,78 +129,263 @@ export default function ProductScope() {
       createMutation.mutate(values);
     }
   };
+
   const handleOpen = (excavationNorm?: ProductionScopeOutputType) => {
     if (excavationNorm) {
-      setSelected(excavationNorm)
+      setSelected(excavationNorm);
     } else {
-      setSelected(null)
+      setSelected(null);
     }
-    setOpen(true)
-  }
+    setOpen(true);
+  };
 
+  const handleView = (record: ProductionScopeOutputType) => {
+    const key = record._id;
+    if (key && expandedRowKeys.includes(key)) {
+      setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
+    } else if (key) {
+      setExpandedRowKeys([...expandedRowKeys, key]);
+    }
+  };
 
+  const expandedRowRender = (record: ProductionScopeOutputType) => {
+    const innerColumns = [
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Công đoạn</Typography>,
+        dataIndex: "phase",
+        key: "phase",
+        render: (phase: any) => (
+          <Typography sx={{ color: "blue" }}>{phase?.name}</Typography>
+        ),
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Sản lượng</Typography>,
+        dataIndex: "production",
+        key: "production",
+        render: (production: number) =>
+          production ? production.toLocaleString() : "0",
+      },
+    ];
+
+    return (
+      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+        <Table
+          columns={innerColumns}
+          dataSource={record.phases}
+          pagination={false}
+          size="small"
+          rowKey={(item, index) => `${record._id}-${index}`}
+        />
+      </Box>
+    );
+  };
+
+  const columns: TableProps<ProductionScopeOutputType>["columns"] = [
+    {
+      title: "",
+      dataIndex: "number",
+      key: "number",
+      width: 50,
+      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+    },
+    {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>Mã điện sản xuất</Typography>
+      ),
+      dataIndex: "code",
+      key: "code",
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+          sensitivity: "base",
+        }),
+    },
+    {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>Tên điện sản xuất</Typography>
+      ),
+      dataIndex: "name",
+      key: "name",
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>{record.name}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? "", "vi", {
+          sensitivity: "base",
+        }),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
+      dataIndex: "view",
+      key: "view",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <IconButton
+          onClick={() => handleView(record)}
+          sx={{ 
+            color: "#666",
+            "&:hover": {
+              color: "#1976d2",
+              backgroundColor: "rgba(25, 118, 210, 0.04)"
+            }
+          }}
+        >
+          <Visibility />
+        </IconButton>
+      ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+      dataIndex: "edit",
+      key: "edit",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <IconButton 
+          onClick={() => handleOpen(record)}
+          sx={{ 
+            color: "#666",
+            "&:hover": {
+              color: "#1976d2",
+              backgroundColor: "rgba(25, 118, 210, 0.04)"
+            }
+          }}
+        >
+          <Edit />
+        </IconButton>
+      ),
+    },
+  ];
+
+  const rowSelection: TableRowSelection<ProductionScopeOutputType> = {
+    selectedRowKeys: selectedRows,
+    onChange: (newSelectedRows: React.Key[]) => {
+      setSelectedRows(newSelectedRows);
+    },
+  };
 
   return (
-    <Paper elevation={3} style={{ padding: 16 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Diện sản xuất</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới diện sản xuất</Button>
+    <Box>
+      <Breadcrumbs aria-label="breadcrumb">
+        <Typography>Danh mục</Typography>
+        <Typography>Điện sản xuất</Typography>
+      </Breadcrumbs>
+      <Box mt={3}>
+        <Box>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" sx={{ color: "blue" }}>
+              Điện sản xuất
+            </Typography>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  endIcon={<Add />}
+                  onClick={() => handleOpen()}
+                >
+                  Tạo mới
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<Delete />}
+                  onClick={() => handleDelete()}
+                >
+                  Xóa
+                </Button>
+              </Box>
+              <Box display={"flex"} flex={1} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FilterList />}
+                >
+                  Lọc
+                </Button>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Search sx={{ fontSize: 24 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                >
+                  Tải lên
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                >
+                  Xuất file
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                >
+                  In
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                >
+                  Gửi
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+          <Table<ProductionScopeOutputType>
+            rowKey="_id"
+            rowSelection={rowSelection}
+            expandable={{
+              expandedRowKeys,
+              onExpandedRowsChange: (keys) =>
+                setExpandedRowKeys(keys as React.Key[]),
+              expandedRowRender,
+              showExpandColumn: false,
+            }}
+            pagination={{
+              position: ["bottomCenter"],
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              defaultPageSize: 10,
+              showTotal: (total, range) => (
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                </div>
+              ),
+            }}
+            columns={columns}
+            dataSource={productionscopes}
+          />
+        </Box>
       </Box>
-      < TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Mã diện sản xuất</b></TableCell>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Tên diện sản xuất</b></TableCell>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Thao tác</b></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {productionscopes.map((productscope: ProductionScopeOutputType) => (
-              <React.Fragment>
-                <TableRow>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>{productscope.code}</TableCell>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>{productscope.name}</TableCell>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>
-                    <IconButton onClick={() => handleToggleExpand(productscope)}>
-                      <Visibility color="secondary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleOpen(productscope)}>
-                      <Edit color="primary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(productscope._id)}>
-                      <Delete color="error" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-                {expandedRow === productscope._id && (<TableRow>
-                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#D3D3D3' }}>
-                    < TableContainer component={Paper} sx={{ backgroundColor: '#D3D3D3' }}>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>Công đoạn </TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>Sản lượng</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {productscope.phases.map((item, index) => (
-                            <TableRow>
-                              <TableCell align='center' sx={{ border: '1px solid black', color: 'blue' }}>{item.phase?.name}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.production ? item.production.toLocaleString() : 0}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </TableCell>
-                </TableRow>)}
-              </React.Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <ProductionScopeModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selected={selected} />
-    </Paper >
+      <ProductionScopeModal
+        open={open}
+        setOpen={setOpen}
+        handleSubmit={handleSubmit}
+        selected={selected}
+      />
+    </Box>
   );
 }

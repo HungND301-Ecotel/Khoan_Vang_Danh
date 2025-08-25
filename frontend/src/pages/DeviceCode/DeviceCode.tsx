@@ -163,8 +163,9 @@ export default function DeviceCode() {
                             </Box>
                         </Box>
                     </Box>
-                    <Table<DeviceCodeType> rowKey="_id" rowSelection={rowSelection}
-                        pagination={{
+                    <Table<DeviceCodeType> 
+                    rowKey="_id" rowSelection={rowSelection}
+                        pagination={{   
                             position: ['bottomCenter'],
                             showSizeChanger: true,
                             pageSizeOptions: ['10', '20', '50', '100'],
