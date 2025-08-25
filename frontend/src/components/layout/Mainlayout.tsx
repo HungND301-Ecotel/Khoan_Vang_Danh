@@ -15,8 +15,33 @@ import {
   Avatar,
   Tooltip,
   ListItemIcon,
+  AppBar,
+  Toolbar,
+  Box,
+  CssBaseline,
+  IconButton,
+  Typography,
+  Button,
+  Badge,
+  Menu,
+  MenuItem,
+  Divider,
+  Avatar,
+  Tooltip,
+  ListItemIcon,
 } from "@mui/material";
 import {
+  Dashboard as DashboardIcon,
+  ListAlt,
+  Calculate,
+  Equalizer,
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  Notifications,
+  VpnKeyOutlined,
+  BarChart,
+  Person2,
+  ArrowDropDown,
   Dashboard as DashboardIcon,
   ListAlt,
   Calculate,
@@ -37,9 +62,13 @@ import { PhaseOutputType } from "../../types";
 
 interface MainLayoutProps {
   children?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [user, setUser] = useAtom(userAtom);
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useAtom(userAtom);
@@ -62,7 +91,21 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     setUser(null);
     navigate("/login");
   };
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    navigate("/login");
+  };
 
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
+      <CssBaseline />
   return (
     <Box
       sx={{
@@ -88,7 +131,62 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         >
           {/* Logo + Company */}
           <img src="/logo.png" style={{ width: 150, height: 100 }} />
+      {/* TOP APP BAR */}
+      <AppBar
+        position="fixed"
+        color="default"
+        elevation={5}
+        sx={{
+          bgcolor: "background.paper",
+          borderBottom: (t) => `1px solid ${t.palette.divider}`,
+        }}
+      >
+        <Toolbar
+          sx={{ gap: 4, height: 100, display: "flex", alignItems: "center" }}
+        >
+          {/* Logo + Company */}
+          <img src="/logo.png" style={{ width: 150, height: 100 }} />
 
+          {/* NAV BUTTONS */}
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              gap: 1.25,
+              ml: 3,
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Button
+              startIcon={<DashboardIcon sx={{ color: "blue" }} />}
+              sx={{ color: "black" }}
+              onClick={() => navigate("/")}
+            >
+              TỔNG QUAN
+            </Button>
+            <Button
+              startIcon={<ListAlt sx={{ color: "blue" }} />}
+              sx={{ color: "black" }}
+              onClick={(e) => setMenuDanhMucEl(e.currentTarget)}
+            >
+              DANH MỤC
+            </Button>
+            <Button
+              startIcon={<Calculate sx={{ color: "blue" }} />}
+              sx={{ color: "black" }}
+              onClick={(e) => setMenuDonGiaEl(e.currentTarget)}
+            >
+              ĐƠN GIÁ VÀ ĐỊNH MỨC
+            </Button>
+            <Button
+              startIcon={<Equalizer sx={{ color: "blue" }} />}
+              sx={{ color: "black" }}
+              onClick={(e) => setMenuThongKeEl(e.currentTarget)}
+            >
+              THỐNG KÊ VẬN HÀNH
+            </Button>
+          </Box>
           {/* NAV BUTTONS */}
           <Box
             sx={{
@@ -334,15 +432,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                 {/* <Divider /> */}
 
-                <MenuItem
-                    onClick={() => {
-                        navigate("/productionscope");
-                        setMenuDanhMucEl(null);
-                    }}
-                >
-                    Điện sản xuất
-                </MenuItem>
-
         <MenuItem
           onClick={() => {
             navigate("/productionscope");
@@ -353,6 +442,37 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
       </Menu>
 
+      {/* MENU: ĐƠN GIÁ & ĐỊNH MỨC */}
+      <Menu
+        anchorEl={menuDonGiaEl}
+        open={Boolean(menuDonGiaEl)}
+        onClose={() => setMenuDonGiaEl(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <MenuItem
+          onClick={() => {
+            navigate("/materialunitprice");
+            setMenuDonGiaEl(null);
+          }}
+        >
+          Đơn giá vật tư giao khoán
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/excavationnorms");
+            setMenuDonGiaEl(null);
+          }}
+        >
+          Định mức đào lò
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/cuttingnorms");
+            setMenuDonGiaEl(null);
+          }}
+        >
+          Định mức xén lò
+        </MenuItem>
       {/* MENU: ĐƠN GIÁ & ĐỊNH MỨC */}
       <Menu
         anchorEl={menuDonGiaEl}
@@ -427,7 +547,81 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           Quyết toán giao khoán
         </MenuItem>
       </Menu>
+      {/* MENU: THỐNG KÊ VẬN HÀNH */}
+      <Menu
+        anchorEl={menuThongKeEl}
+        open={Boolean(menuThongKeEl)}
+        onClose={() => setMenuThongKeEl(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <MenuItem
+          onClick={() => {
+            navigate("/materialbudget");
+            setMenuThongKeEl(null);
+          }}
+        >
+          Chi phí vật tư kế hoạch (Zkh)
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/materialcostused");
+            setMenuThongKeEl(null);
+          }}
+        >
+          Chi phí vật tư thực hiện (Zkh)
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/settlementreports");
+            setMenuThongKeEl(null);
+          }}
+        >
+          Quyết toán giao khoán
+        </MenuItem>
+      </Menu>
 
+      {/* MENU: SETTINGS */}
+      <Menu
+        anchorEl={menuSettingsEl}
+        open={Boolean(menuSettingsEl)}
+        onClose={() => setMenuSettingsEl(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Box
+          display="flex"
+          flexDirection="column"
+          alignItems="flex-end"
+          padding={2}
+        >
+          <Typography>Nguyễn Hà</Typography>
+          <Typography>Kế toán</Typography>
+        </Box>
+        <MenuItem>
+          <ListItemIcon>
+            <Person2 fontSize="small" />
+          </ListItemIcon>
+          Thông tin tài khoản
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            // mở modal đổi mật khẩu nếu bạn có
+            setMenuSettingsEl(null);
+          }}
+        >
+          <ListItemIcon>
+            <VpnKeyOutlined fontSize="small" />
+          </ListItemIcon>
+          Đổi mật khẩu
+        </MenuItem>
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" />
+          </ListItemIcon>
+          Đăng xuất
+        </MenuItem>
+      </Menu>
+    </Box>
+  );
       {/* MENU: SETTINGS */}
       <Menu
         anchorEl={menuSettingsEl}
