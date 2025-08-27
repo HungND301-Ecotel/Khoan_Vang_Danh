@@ -1,13 +1,12 @@
 import {
   Box,
+  Breadcrumbs,
   Button,
-  Table,
-  TableBody,
-  TableCell,
+  IconButton,
+  Paper,
   TableContainer,
-  TableHead,
-  TableRow,
   TextField,
+  Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
@@ -18,17 +17,84 @@ import {
   MaterialAssignmentOutputType,
   Materials,
 } from "../../types";
-import { showErrorAlert, showSuccessAlert } from "../../components/Alert";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../../components/Alert";
+import { TableRowSelection } from "antd/es/table/interface";
+import { Table, TableProps } from "antd";
+import {
+  Add,
+  ArrowDropDown,
+  Delete,
+  Edit,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Visibility,
+} from "@mui/icons-material";
+
+interface FlatMaterial {
+  _id: string;
+  code: string;
+  materialCode?: string;
+  name: string;
+  uom?: string;
+  quantity?: number;
+  price?: number;
+  note: string;
+}
 
 export default function Materialunitprice() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<MaterialAssignmentOutputType[]>([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [selected, setSelected] = useState<MaterialAssignmentOutputType | null>(
+    null
+  );
+  const [open, setOpen] = useState(false);
 
   const { data: materialAssignments = [] } = useQuery({
     queryKey: ["materialAssignments"],
     queryFn: () =>
-      api.get("/materialassignments").then((res) => setData(res.data.data)),
+      api.get("/materialassignments").then((res) => {
+        setData(res.data.data);
+        return res.data.data;
+      }),
+  });
+
+  const handleDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      showErrorAlert("Không tìm thấy bản ghi");
+      return;
+    }
+    showConfirmAlert(
+      `Bạn có muốn xóa ${selectedRowKeys.length} bản ghi? hành động này không thể hoàn tác.`
+    ).then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(selectedRowKeys);
+      }
+    });
+  };
+  const deleteMutation = useMutation({
+    mutationFn: (ids: React.Key[]) =>
+      api
+        .delete(`/materialassignments`, { data: { ids } })
+        .then((res) => res.data.message),
+    onSuccess: (message) => {
+      queryClient.invalidateQueries({ queryKey: ["materialassignments"] });
+      setSelectedRowKeys([]);
+      showSuccessAlert(message || "Xóa thành công");
+    },
+    onError: (error: any) => {
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
   });
 
   const updateAssignmentMutation = useMutation({
@@ -49,6 +115,7 @@ export default function Materialunitprice() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const updatematerialMutation = useMutation({
     mutationFn: (updateAssignmentCode: Partial<AssignmentCodeInputType>) =>
       api
@@ -66,191 +133,220 @@ export default function Materialunitprice() {
     },
   });
 
+  const handleToggleExpand = (cuttingnorm: MaterialAssignmentOutputType) => {
+    const id = cuttingnorm?._id;
+    if (!id) return;
+
+    setExpandedRow((prev) => (prev === id ? null : id));
+  };
+
+  const handleOpen = (record?: MaterialAssignmentOutputType) => {
+    setSelected(record ?? null);
+    setOpen(true);
+  };
+
+  const columns: TableProps<FlatMaterial>["columns"] = [
+    {
+      title: "",
+      dataIndex: "number",
+      key: "number",
+      width: 50,
+      render: (_v, _r, idx) => <Typography>{idx + 1}</Typography>,
+    },
+    {
+      title: (
+        <Typography style={{ fontWeight: "bold" }}>Mã giao khoán</Typography>
+      ),
+      dataIndex: "code",
+      key: "code",
+      align: "center",
+      width: 180,
+      render: (_v, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+          sensitivity: "base",
+        }),
+    },
+    {
+      title: <Typography style={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
+      dataIndex: "materialCode",
+      key: "materialCode",
+      align: "center",
+      render: (_v, record) => (
+        <Typography>{record.materialCode ?? ""}</Typography>
+      ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
+      dataIndex: "uom",
+      key: "uom",
+      align: "center",
+      render: (_v, record) => record.uom ?? "",
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
+      dataIndex: "quantity",
+      key: "quantity",
+      width: 130,
+      align: "center",
+      render: (_v, record) =>
+        record.quantity ? record.quantity.toLocaleString() : "",
+    },
+    {
+      title: (
+        <Box sx={{ textAlign: "center" }}>
+          <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>
+          <Typography sx={{ fontWeight: "bold" }}>bình quân năm</Typography>
+        </Box>
+      ),
+      dataIndex: "price",
+      key: "price",
+      align: "center",
+      width: 180,
+      render: (_v, record) =>
+        record.price ? record.price.toLocaleString() : "",
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Ghi chú</Typography>,
+      key: "note",
+      width: 70,
+      align: "center",
+      render: (_v, record) => (
+        <Box display="flex" gap={1} justifyContent="center">
+          <IconButton
+            size="small"
+            onClick={() => console.log("Ghi chú của:", record)}
+            aria-label="ghi-chu"
+          >
+            <Edit />
+          </IconButton>
+        </Box>
+      ),
+    },
+  ];
+
+  const rowSelection: TableRowSelection<FlatMaterial> = {
+    selectedRowKeys,
+    onChange: (keys) => setSelectedRowKeys(keys),
+  };
+
+  const flatData: FlatMaterial[] = data.flatMap(
+    (assignment: MaterialAssignmentOutputType) =>
+      (assignment.materials || []).map((material: Materials) => ({
+        _id: `${assignment._id}-${material.code ?? ""}`,
+        code: assignment.code ?? "",
+        materialCode: material.code,
+        name: material.name ?? "",
+        uom: material.uom?.name,
+        quantity: material.quantity,
+        price: material.currentPrice,
+        note: "",
+      }))
+  );
+
   return (
     <Box>
-      {/* <Box display={'flex'} justifyContent={'flex-end'} gap={2} mb={3}>
-        <Button variant='contained' onClick={() => setIsEditing(true)}>Chỉnh sửa</Button>
-        <Button variant='contained' onClick={() => setIsEditing(false)}>Lưu lại</Button>
-        <Button variant='contained' onClick={() => setIsEditing(false)}>Hủy bỏ</Button>
-      </Box> */}
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid grey",
-                  fontWeight: "bold",
-                  fontSize: 18,
-                }}
+      <Breadcrumbs aria-label="breadcrumb">
+        <Typography>Đơn giá và định mức</Typography>
+        <Typography>Đơn giá vật tư giao khoán</Typography>
+      </Breadcrumbs>
+      <Typography variant="h4" sx={{ color: "blue", mt: 2 }}>
+        Đơn giá vật tư giao khoán
+      </Typography>
+      <Box mt={3}>
+        <Box sx={{ mb: 2 }}>
+          <Box
+            display={"flex"}
+            gap={4}
+            mt={2}
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Box display={"flex"} gap={2}>
+              <Button
+                variant="contained"
+                color="warning"
+                endIcon={<Add />}
+                onClick={() => handleOpen()}
               >
-                Mã vật tư
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid grey",
-                  fontWeight: "bold",
-                  fontSize: 18,
-                }}
+                Tạo mới
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                endIcon={<Delete />}
+                onClick={() => handleDelete()}
               >
-                Mã giao khoán
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid grey",
-                  fontWeight: "bold",
-                  fontSize: 18,
-                }}
+                Xóa
+              </Button>
+            </Box>
+
+            <Box display={"flex"} flex={1} gap={2}>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<FilterList />}
               >
-                Tên vật tư, tài sản
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid grey",
-                  fontWeight: "bold",
-                  fontSize: 18,
-                }}
+                Lọc
+              </Button>
+              <TextField fullWidth size="small" placeholder="Tìm kiếm" />
+            </Box>
+
+            <Box display={"flex"} gap={2}>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<FileUpload />}
               >
-                ĐVT
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid grey",
-                  fontWeight: "bold",
-                  fontSize: 18,
-                  width: 150,
-                }}
+                Tải lên
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<FileDownload />}
               >
-                Số lượng
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid grey",
-                  fontWeight: "bold",
-                  fontSize: 18,
-                  width: 200,
-                }}
+                Xuất file
+              </Button>
+              <Button variant="outlined" color="inherit" startIcon={<Print />}>
+                In
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<Mail />}
+                endIcon={<ArrowDropDown />}
               >
-                Đơn giá bình quân năm
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid grey",
-                  fontWeight: "bold",
-                  fontSize: 18,
-                }}
-              >
-                Ghi chú
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.map((materialAssignment: MaterialAssignmentOutputType) => (
-              <>
-                <TableRow>
-                  <TableCell
-                    sx={{ border: "1px solid grey", color: "blue" }}
-                  ></TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ border: "1px solid grey", color: "blue" }}
-                  >
-                    {materialAssignment.code}
-                  </TableCell>
-                  <TableCell sx={{ border: "1px solid grey", color: "blue" }}>
-                    {materialAssignment.name}
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ border: "1px solid grey", color: "blue" }}
-                  >
-                    {materialAssignment.uom}
-                  </TableCell>
-                  <TableCell
-                    sx={{ border: "1px solid grey", color: "blue" }}
-                  ></TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ border: "1px solid grey", color: "blue" }}
-                  >
-                    {isEditing ? (
-                      <TextField
-                        size="small"
-                        value={
-                          materialAssignment.price
-                            ? materialAssignment.price.toLocaleString()
-                            : ""
-                        }
-                      />
-                    ) : materialAssignment.price ? (
-                      materialAssignment.price.toLocaleString()
-                    ) : (
-                      ""
-                    )}
-                  </TableCell>
-                  <TableCell
-                    sx={{ border: "1px solid grey", color: "blue" }}
-                  ></TableCell>
-                </TableRow>
-                {materialAssignment.materials.map((material: Materials) => (
-                  <TableRow>
-                    <TableCell align="center" sx={{ border: "1px solid grey" }}>
-                      {material.code}
-                    </TableCell>
-                    <TableCell sx={{ border: "1px solid grey" }}></TableCell>
-                    <TableCell sx={{ border: "1px solid grey" }}>
-                      {material.name}
-                    </TableCell>
-                    <TableCell align="center" sx={{ border: "1px solid grey" }}>
-                      {material.uom?.name}
-                    </TableCell>
-                    <TableCell align="center" sx={{ border: "1px solid grey" }}>
-                      {isEditing ? (
-                        <TextField
-                          size="small"
-                          value={
-                            material.quantity
-                              ? material.quantity.toLocaleString()
-                              : ""
-                          }
-                        />
-                      ) : material.quantity ? (
-                        material.quantity.toLocaleString()
-                      ) : (
-                        ""
-                      )}
-                    </TableCell>
-                    <TableCell align="center" sx={{ border: "1px solid grey" }}>
-                      {isEditing ? (
-                        <TextField
-                          size="small"
-                          value={
-                            material.currentPrice
-                              ? material.currentPrice.toLocaleString()
-                              : ""
-                          }
-                        />
-                      ) : material.currentPrice ? (
-                        material.currentPrice.toLocaleString()
-                      ) : (
-                        ""
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ border: "1px solid grey" }}></TableCell>
-                  </TableRow>
-                ))}
-              </>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                Gửi
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+
+        <Table<FlatMaterial>
+          rowKey="_id"
+          rowSelection={rowSelection}
+          pagination={{
+            position: ["bottomCenter"],
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50", "100"],
+            defaultPageSize: 10,
+            showTotal: (total: number, range: [number, number]) => (
+              <div style={{ flex: 1, textAlign: "left" }}>
+                Hiển thị {range[0]}-{range[1]} trên {total} mục
+              </div>
+            ),
+          }}
+          columns={columns}
+          dataSource={flatData}
+        />
+      </Box>
     </Box>
   );
 }
