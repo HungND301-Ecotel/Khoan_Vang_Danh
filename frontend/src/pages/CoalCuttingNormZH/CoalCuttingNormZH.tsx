@@ -126,6 +126,7 @@ export default function CoalCuttingNormZH() {
     }
     setOpen(true);
   };
+
   const columns: TableProps<AssignmentNormOutputType>["columns"] = [
     {
       title: "",
@@ -189,102 +190,84 @@ export default function CoalCuttingNormZH() {
     onChange: (keys) => setSelectedRowKeys(keys),
   };
 
-  // Expanded content renderer (bảng con) — giữ structure tương tự file bạn gửi
   const expandedRowRender = (record: AssignmentNormOutputType) => {
     const norms = record.norms || [];
     const thicknessLabel = record.thickness?.name || "";
-    const lengthLabel = record.length?.name || "";
+    const slopeLabel = record.curbSlope?.name || "";
+
+    const innerColumns = [
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}></Typography>,
+        key: "index",
+        align: "center" as const,
+        width: "5%",
+        render: (_: any, __: any, index: number) => index + 1,
+      },
+      {
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>
+        ),
+        dataIndex: ["assignmentCode", "code"],
+        key: "assignmentCode",
+        align: "center" as const,
+        width: "20%",
+      },
+      {
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>
+            Thành phần hao phí
+          </Typography>
+        ),
+        dataIndex: ["assignmentCode", "name"],
+        key: "name",
+        width: "55%",
+        render: (text: string) => (
+          <Typography sx={{ color: "blue" }}>{text}</Typography>
+        ),
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Đơn vị</Typography>,
+        key: "uom",
+        align: "center" as const,
+        width: "10%",
+        render: (_: any, record: any) => record.assignmentCode?.uom?.name || "",
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
+        dataIndex: "norm",
+        key: "norm",
+        align: "center" as const,
+        width: "10%",
+        render: (value: number) => (value ? value.toLocaleString() : ""),
+      },
+    ];
 
     return (
-      <TableContainer
-        component={Paper}
-        sx={{ backgroundColor: "#f5f5f5", p: 1 }}
-      >
-        <TableContainer component={Paper} elevation={0}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ border: "1px solid #ccc", padding: 8 }}>STT</th>
-                <th style={{ border: "1px solid #ccc", padding: 8 }}>
-                  Mã giao khoán
-                </th>
-                <th style={{ border: "1px solid #ccc", padding: 8 }}>
-                  Thành phần hao phí
-                </th>
-                <th style={{ border: "1px solid #ccc", padding: 8 }}>Đơn vị</th>
-                <th
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: 8,
-                    fontWeight: 600,
-                  }}
-                >
-                  {thicknessLabel} / {lengthLabel}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {norms.map((item: any, idx: number) => (
-                <tr key={idx}>
-                  <td
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: 8,
-                      textAlign: "center",
-                    }}
-                  >
-                    {idx + 1}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: 8,
-                      textAlign: "center",
-                    }}
-                  >
-                    {item.assignmentCode?.code}
-                  </td>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>
-                    {item.assignmentCode?.name}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: 8,
-                      textAlign: "center",
-                    }}
-                  >
-                    {item.assignmentCode?.uom?.name}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: 8,
-                      textAlign: "center",
-                    }}
-                  >
-                    {item.norm ? item.norm.toLocaleString() : ""}
-                  </td>
-                </tr>
-              ))}
-              {norms.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={5}
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: 8,
-                      textAlign: "center",
-                    }}
-                  >
-                    Không có dữ liệu
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </TableContainer>
-      </TableContainer>
+      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+        {/* Header */}
+        <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+          <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
+            Độ dốc vỉa {slopeLabel}
+          </Typography>
+          <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
+            Chiều dày vỉa (m)
+            <Box component="span" sx={{ ml: 30 }}>
+              {thicknessLabel}
+            </Box>
+          </Typography>
+        </Box>
+
+        {/* Bảng con */}
+        <Table
+          columns={innerColumns}
+          dataSource={norms}
+          pagination={false}
+          size="small"
+          tableLayout="fixed"
+          rowKey={(item, idx) => `${record._id}-${idx}`}
+          locale={{ emptyText: "Không có dữ liệu" }}
+        />
+      </Box>
     );
   };
 

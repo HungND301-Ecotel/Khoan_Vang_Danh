@@ -1,68 +1,104 @@
-import React, { useState } from 'react';
-import { Add, ArrowDropDown, Delete, Edit, FileDownload, FileUpload, FilterList, Mail, Print, Search, Visibility } from '@mui/icons-material';
-import { Box, Breadcrumbs, Button, IconButton, InputAdornment, TextField, Typography } from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import api from '../../config/api.config';
-import { AdjustmentNormInputType, AdjustmentNormOutputType } from '../../types';
-import AdjustmentNormKDLModal from '../../components/AdjustmentNormKDLModal/AdjustmentNormKDLModal';
-import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
+import React, { useState } from "react";
+import {
+  Add,
+  ArrowDropDown,
+  Delete,
+  Edit,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Search,
+  Visibility,
+} from "@mui/icons-material";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  IconButton,
+  InputAdornment,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "../../config/api.config";
+import { AdjustmentNormInputType, AdjustmentNormOutputType } from "../../types";
+import AdjustmentNormKDLModal from "../../components/AdjustmentNormKDLModal/AdjustmentNormKDLModal";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../../components/Alert";
 import { Table, TableProps } from "antd";
-import { TableRowSelection } from 'antd/es/table/interface';
+import { TableRowSelection } from "antd/es/table/interface";
 
 export default function AdjustmentNormKDL() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
-  const [selected, setSelected] = useState<AdjustmentNormOutputType | null>(null);
+  const [selected, setSelected] = useState<AdjustmentNormOutputType | null>(
+    null
+  );
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
 
   const { data: adjustmentnorms = [] } = useQuery({
-    queryKey: ['adjustmentnorms', searchValue],
-    queryFn: async () => api.get(`/adjustmentnorms?q=${searchValue}`).then(res => res.data.data)
+    queryKey: ["adjustmentnorms", searchValue],
+    queryFn: async () =>
+      api.get(`/adjustmentnorms?q=${searchValue}`).then((res) => res.data.data),
   });
 
-  const filteredData = adjustmentnorms.filter((i: AdjustmentNormOutputType) => i.type === "CKĐL");
+  const filteredData = adjustmentnorms.filter(
+    (i: AdjustmentNormOutputType) => i.type === "CKĐL"
+  );
 
   const createMutation = useMutation({
     mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
-      api.post('/adjustmentnorms', newExcavationNorm).then(res => res.data),
+      api.post("/adjustmentnorms", newExcavationNorm).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
+      queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       setOpen(false);
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || error.message || 'Lỗi không xác định';
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi không xác định";
       console.error(errorMessage);
       showErrorAlert(errorMessage);
-    }
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: (updateExcavationNorm: Partial<AdjustmentNormInputType>) =>
-      api.put(`/adjustmentnorms/${updateExcavationNorm._id}`, updateExcavationNorm).then(res => res.data),
+      api
+        .put(
+          `/adjustmentnorms/${updateExcavationNorm._id}`,
+          updateExcavationNorm
+        )
+        .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
+      queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       setOpen(false);
       setSelected(null);
       showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || error.message || 'Lỗi không xác định';
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi không xác định";
       console.error(errorMessage);
       showErrorAlert(errorMessage);
-    }
+    },
   });
 
   const handleDelete = () => {
     if (selectedRows.length === 0) {
-      showErrorAlert('Vui lòng chọn ít nhất một bản ghi để xóa');
+      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
       return;
     }
-    
-    showConfirmAlert('Bạn có muốn xóa các bản ghi đã chọn?').then((result) => {
+
+    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
         deleteMutation.mutate(selectedRows);
       }
@@ -71,21 +107,22 @@ export default function AdjustmentNormKDL() {
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: React.Key[]) => {
-      const deletePromises = ids.map(id => 
-        api.delete(`/adjustmentnorms/${id}`).then(res => res.data)
+      const deletePromises = ids.map((id) =>
+        api.delete(`/adjustmentnorms/${id}`).then((res) => res.data)
       );
       return Promise.all(deletePromises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adjustmentnorms'] });
+      queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       setSelectedRows([]);
-      showSuccessAlert('Xóa thành công');
+      showSuccessAlert("Xóa thành công");
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || error.message || 'Lỗi không xác định';
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi không xác định";
       console.error(errorMessage);
       showErrorAlert(errorMessage);
-    }
+    },
   });
 
   const handleSubmit = (values: Partial<AdjustmentNormInputType>) => {
@@ -108,47 +145,53 @@ export default function AdjustmentNormKDL() {
   const expandedRowRender = (record: AdjustmentNormOutputType) => {
     const innerColumns = [
       {
-        title: 'STT',
-        dataIndex: 'index',
-        key: 'index',
+        title: "STT",
+        dataIndex: "index",
+        key: "index",
         width: 60,
         render: (_: any, __: any, index: number) => index + 1,
       },
       {
-        title: <Typography sx={{ fontWeight: 'bold', color: 'blue' }}>Mã công việc</Typography>,
-        dataIndex: 'assignmentCode',
-        key: 'assignmentCode',
+        title: (
+          <Typography sx={{ fontWeight: "bold", color: "blue" }}>
+            Mã công việc
+          </Typography>
+        ),
+        dataIndex: "assignmentCode",
+        key: "assignmentCode",
         render: (assignmentCode: any) => (
-          <Typography sx={{ color: 'blue' }}>{assignmentCode?.code}</Typography>
+          <Typography sx={{ color: "blue" }}>{assignmentCode?.code}</Typography>
         ),
       },
       {
-        title: <Typography sx={{ fontWeight: 'bold' }}>Tên công việc</Typography>,
-        dataIndex: 'assignmentCode',
-        key: 'name',
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>Tên công việc</Typography>
+        ),
+        dataIndex: "assignmentCode",
+        key: "name",
         render: (assignmentCode: any) => assignmentCode?.name,
       },
       {
-        title: <Typography sx={{ fontWeight: 'bold' }}>Đơn vị</Typography>,
-        dataIndex: 'unit',
-        key: 'unit',
-        render: () => '1',
+        title: <Typography sx={{ fontWeight: "bold" }}>Đơn vị</Typography>,
+        dataIndex: "unit",
+        key: "unit",
+        render: () => "1",
       },
       {
-        title: <Typography sx={{ fontWeight: 'bold' }}>Định mức</Typography>,
-        dataIndex: 'norm',
-        key: 'norm',
-        render: (norm: number) => norm ? norm.toLocaleString() : '',
+        title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
+        dataIndex: "norm",
+        key: "norm",
+        render: (norm: number) => (norm ? norm.toLocaleString() : ""),
       },
     ];
 
     return (
-      <Box sx={{ backgroundColor: '#f5f5f5', p: 2, borderRadius: 1 }}>
+      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
             Độ cứng của đá lẫn trong gương: {record.hardness?.name}
           </Typography>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
             Tỉ lệ đá lẫn trong gương (Ckẹp): {record.rockRatio?.name}
           </Typography>
         </Box>
@@ -163,77 +206,78 @@ export default function AdjustmentNormKDL() {
     );
   };
 
-  const columns: TableProps<AdjustmentNormOutputType>['columns'] = [
+  const columns: TableProps<AdjustmentNormOutputType>["columns"] = [
     {
-      title: '',
-      dataIndex: 'number',
-      key: 'number',
+      title: "",
+      dataIndex: "number",
+      key: "number",
       width: 50,
-      render: (value, record, index) => (
-        <Typography>{index + 1}</Typography>
-      )
+      render: (value, record, index) => <Typography>{index + 1}</Typography>,
     },
     {
-      title: <Typography sx={{ fontWeight: 'bold' }}>Mã định mức giao khoán</Typography>,
-      dataIndex: 'code',
-      key: 'code',
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>
+          Mã định mức giao khoán
+        </Typography>
+      ),
+      dataIndex: "code",
+      key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: 'bold' }}>{record.code}</Typography>
+        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
       ),
       sorter: (a, b) =>
-        (a.code ?? '').localeCompare(b.code ?? '', 'vi', { sensitivity: 'base' }),
+        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+          sensitivity: "base",
+        }),
     },
-  
-{
-  title: (
-    <Box display="flex" alignItems="center" justifyContent="center">
-      <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>
-    </Box>
-  ),
-  dataIndex: "view",
-  key: "view",
-  width: 80,
-  align: "center",
-  render: (_, record) => (
-    <Box display="flex" justifyContent="center">
-      <IconButton
-        onClick={() => {
-          const key = record._id as React.Key;
-          if (expandedRowKeys.includes(key)) {
-            setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
-          } else {
-            setExpandedRowKeys([...expandedRowKeys, key]);
-          }
-        }}
-        size="small"
-      >
-        <Visibility color="secondary" />
-      </IconButton>
-    </Box>
-  ),
-},
 
-{
-  title: (
-    <Box display="flex" alignItems="center" justifyContent="center">
-      <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>
-    </Box>
-  ),
-  dataIndex: "edit",
-  key: "edit", 
-  width: 80,
-  align: "center",
-  render: (_, record) => (
-    <Box display="flex" justifyContent="center">
-      <IconButton 
-        onClick={() => handleOpen(record)}
-        size="small"
-      >
-        <Edit color="primary" />
-      </IconButton>
-    </Box>
-  ),
-}
+    {
+      title: (
+        <Box display="flex" alignItems="center" justifyContent="center">
+          <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>
+        </Box>
+      ),
+      dataIndex: "view",
+      key: "view",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Box display="flex" justifyContent="center">
+          <IconButton
+            onClick={() => {
+              const key = record._id as React.Key;
+              if (expandedRowKeys.includes(key)) {
+                setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
+              } else {
+                setExpandedRowKeys([...expandedRowKeys, key]);
+              }
+            }}
+            size="small"
+          >
+            <Visibility color="secondary" />
+          </IconButton>
+        </Box>
+      ),
+    },
+
+    {
+      title: (
+        <Box display="flex" alignItems="center" justifyContent="center">
+          <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>
+        </Box>
+      ),
+      dataIndex: "edit",
+      key: "edit",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Box display="flex" justifyContent="center">
+          <IconButton onClick={() => handleOpen(record)} size="small">
+            <Edit color="primary" />
+          </IconButton>
+        </Box>
+      ),
+    },
   ];
 
   const rowSelection: TableRowSelection<AdjustmentNormOutputType> = {
@@ -253,27 +297,40 @@ export default function AdjustmentNormKDL() {
         <Box>
           <Box sx={{ mb: 2 }}>
             {/* <Typography variant="h4" sx={{ color: 'blue' }}>Hệ số điều chỉnh định mức CK.ĐL</Typography> */}
-            <Box display={'flex'} gap={4} mt={2} justifyContent='space-between'>
-              <Box display={'flex'} gap={2}>
-                <Button variant='contained' color='warning' endIcon={<Add />} onClick={() => handleOpen()}>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  endIcon={<Add />}
+                  onClick={() => handleOpen()}
+                >
                   Tạo mới
                 </Button>
-                <Button 
-                  variant='contained' 
-                  color='error' 
-                  endIcon={<Delete />} 
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<Delete />}
                   onClick={() => handleDelete()}
-                  disabled={selectedRows.length === 0 || deleteMutation.isPending}
+                  disabled={
+                    selectedRows.length === 0 || deleteMutation.isPending
+                  }
                 >
-                  {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa'}
+                  {deleteMutation.isPending ? "Đang xóa..." : "Xóa"}
                 </Button>
               </Box>
-              <Box display={'flex'} flex={1} gap={2}>
-                <Button variant='outlined' color='inherit' startIcon={<FilterList />}>Lọc</Button>
-                <TextField 
-                  fullWidth 
-                  size='small'
-                  placeholder='Tìm kiếm'
+              <Box display={"flex"} flex={1} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FilterList />}
+                >
+                  Lọc
+                </Button>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   InputProps={{
@@ -281,42 +338,75 @@ export default function AdjustmentNormKDL() {
                       <InputAdornment position="end">
                         <Search sx={{ fontSize: 24 }} />
                       </InputAdornment>
-                    )
-                  }} 
+                    ),
+                  }}
                 />
               </Box>
-              <Box display={'flex'} gap={2}>
-                <Button variant='outlined' color='inherit' startIcon={<FileUpload />}>Tải lên</Button>
-                <Button variant='outlined' color='inherit' startIcon={<FileDownload />}>Xuất file</Button>
-                <Button variant='outlined' color='inherit' startIcon={<Print />}>In</Button>
-                <Button variant='outlined' color='inherit' startIcon={<Mail />} endIcon={<ArrowDropDown />}>Gửi</Button>
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                >
+                  Tải lên
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                >
+                  Xuất file
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                >
+                  In
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                >
+                  Gửi
+                </Button>
               </Box>
             </Box>
           </Box>
-          <Table<AdjustmentNormOutputType> 
-            rowKey="_id" 
+          <Table<AdjustmentNormOutputType>
+            rowKey="_id"
             rowSelection={rowSelection}
             expandable={{
               expandedRowKeys,
-              onExpandedRowsChange: (keys) => setExpandedRowKeys(keys as React.Key[]),
+              onExpandedRowsChange: (keys) =>
+                setExpandedRowKeys(keys as React.Key[]),
               expandedRowRender,
               showExpandColumn: false,
             }}
             pagination={{
-              position: ['bottomCenter'],
+              position: ["bottomCenter"],
               showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100'],
+              pageSizeOptions: ["10", "20", "50", "100"],
               defaultPageSize: 10,
-              showTotal: (total, range) => <div style={{ flex: 1, textAlign: 'left' }}>
-                Hiển thị {range[0]}-{range[1]} trên {total} mục
-              </div>,
-            }} 
-            columns={columns} 
-            dataSource={filteredData} 
+              showTotal: (total, range) => (
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                </div>
+              ),
+            }}
+            columns={columns}
+            dataSource={filteredData}
           />
         </Box>
       </Box>
-      <AdjustmentNormKDLModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selected={selected} />
+      <AdjustmentNormKDLModal
+        open={open}
+        setOpen={setOpen}
+        handleSubmit={handleSubmit}
+        selected={selected}
+      />
     </Box>
   );
 }
