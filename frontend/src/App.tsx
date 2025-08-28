@@ -41,6 +41,8 @@ import Ratedadjustmentfactor from './pages/Ratedadjustmentfactor/Ratedadjustment
 import Adjustmentfactorfornorms from './pages/Adjustmentfactorfornorms/Adjustmentfactorfornorms';
 import Parameter from './pages/Parameter/Parameter';
 import CoalCuttingNorm from './pages/CoalCuttingNorm/CoalCuttingNorm';
+// import Quarterlycontractsettlement from './pages/Quarterlycontractsettlement/Quarterlycontractsettlement';
+import SettlementReport123 from './pages/SettlementReport123/SettlementReport123';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -83,6 +85,14 @@ const App = () => {
             </PrivateRoute>
           }
         />
+         <Route
+          path="/settlementReport123"
+          element={
+            <PrivateRoute>
+              <SettlementReport123 />
+            </PrivateRoute>
+          }
+        /> 
          <Route
           path="/ratedadjustmentfactor"
           element={

@@ -55,7 +55,6 @@ export default function CuttingNormKBModal({
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<
     AssignmentCodeOutputType[]
   >([]);
-  console.log("AAAAAAAAAAAAAAAAAAAAAA" + selected);
   const { data: assignmentcodes = [] } = useQuery({
     queryKey: ["assignmentcodes"],
     queryFn: async () =>

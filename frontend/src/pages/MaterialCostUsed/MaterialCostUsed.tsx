@@ -1,187 +1,496 @@
-import React, { useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Paper, Container, Box, MenuItem, Grid, Button, Typography, IconButton } from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import api from '../../config/api.config';
-import { AssignmentNormInputType, MaterialCostUsedInputType, MaterialCostUsedOutputType } from '../../types';
-import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
-import MaterialCostUsedModal from '../../components/MaterialCostUsedModal/MaterialCostUsedModal';
-import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert';
-
+import React, { useState } from "react";
+import {
+  Add,
+  ArrowDropDown,
+  Delete,
+  Edit,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Search,
+  Visibility,
+} from "@mui/icons-material";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  IconButton,
+  InputAdornment,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "../../config/api.config";
+import {
+  MaterialCostUsedInputType,
+  MaterialCostUsedOutputType,
+} from "../../types";
+import MaterialCostUsedModal from "../../components/MaterialCostUsedModal/MaterialCostUsedModal";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../../components/Alert";
+import { Table, TableProps } from "antd";
+import { TableRowSelection } from "antd/es/table/interface";
 
 export default function MaterialCostUsed() {
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<MaterialCostUsedOutputType | null>(null)
-  const [open, setOpen] = useState(false)
+  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
+  const [selected, setSelected] = useState<MaterialCostUsedOutputType | null>(
+    null
+  );
+  const [open, setOpen] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
 
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const { data: materialcostuseds = [] } = useQuery({
-    queryKey: ['materialcostuseds'],
-    queryFn: async () => api.get('/materialcostuseds').then(res => res.data.data)
-  })
+    queryKey: ["materialcostuseds", searchValue],
+    queryFn: async () => {
+      const query = searchValue ? `?q=${searchValue}` : "";
+      try {
+        const res = await api.get(`/materialcostuseds${query}`);
+        return res.data?.data || [];
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.message || "Lỗi khi tải dữ liệu";
+        showErrorAlert(errorMessage);
+        return [];
+      }
+    },
+  });
 
-  const handleToggleExpand = (materialcostused: MaterialCostUsedOutputType) => {
-    const id = materialcostused?._id;
-    if (!id) return;
-
-    setExpandedRow(prev => (prev === id ? null : id));
-  };
   const createMutation = useMutation({
-    mutationFn: (newmaterialCostUsed: Partial<AssignmentNormInputType>) =>
-      api.post('/materialcostuseds', newmaterialCostUsed).then(res => res.data),
+    mutationFn: (newMaterialCostUsed: Partial<MaterialCostUsedInputType>) =>
+      api
+        .post("/materialcostuseds", newMaterialCostUsed)
+        .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materialcostuseds'] });
-      setOpen(false)
-      showSuccessAlert("Thêm mới thành công")
+      queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
+      setOpen(false);
+      showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+      const errorMessage = error.response?.data?.message || "Lỗi khi thêm mới";
+      console.log(errorMessage);
+      showErrorAlert(errorMessage);
+    },
   });
+
   const updateMutation = useMutation({
-    mutationFn: (updatematerialCostUsed: Partial<AssignmentNormInputType>) =>
-      api.put(`/materialcostuseds/${updatematerialCostUsed._id}`, updatematerialCostUsed).then(res => res.data),
+    mutationFn: (updateMaterialCostUsed: Partial<MaterialCostUsedInputType>) =>
+      api
+        .put(
+          `/materialcostuseds/${updateMaterialCostUsed._id}`,
+          updateMaterialCostUsed
+        )
+        .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materialcostuseds'] });
-      setOpen(false)
-      setSelected(null)
-      showSuccessAlert("Sửa thành công")
+      queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
+      setOpen(false);
+      setSelected(null);
+      showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+      const errorMessage = error.response?.data?.message || "Lỗi khi cập nhật";
+      console.log(errorMessage);
+      showErrorAlert(errorMessage);
+    },
   });
-  const handleDelete = (id?: string) => {
-    if (!id) {
-      showErrorAlert('Không tìm thấy bản ghi');
+
+  const handleDelete = () => {
+    if (selectedRows.length === 0) {
+      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
       return;
     }
-    showConfirmAlert('Bạn có muốn xóa bản ghi này?').then((result) => {
+
+    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
-        deleteMutation.mutate(id)
+        deleteMutation.mutate(selectedRows);
       }
     });
   };
+
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/materialcostuseds/${id}`).then(res => res.data),
+    mutationFn: async (ids: React.Key[]) => {
+      const deletePromises = ids.map((id) =>
+        api.delete(`/materialcostuseds/${id}`).then((res) => res.data)
+      );
+      return Promise.all(deletePromises);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materialcostuseds'] });
-      showSuccessAlert('Xóa thành công')
+      queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
+      setSelectedRows([]);
+      showSuccessAlert("Xóa thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi khi xóa";
+      console.error(errorMessage);
+      showErrorAlert(errorMessage);
+    },
   });
-  const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
+
+ const getOneMutation = useMutation({
+  mutationFn: (id: string) =>
+    api.get(`/materialcostuseds/${id}`).then((res) => res.data.data),
+  onSuccess: (data, id) => {
+    setExpandedData((prev) => ({ ...prev, [id]: data }));
+  },
+  onError: (error: any, variables) => {
+    const errorMessage = error.response?.data?.message || "Không tìm thấy dữ liệu";
+    console.log(errorMessage);
+    setExpandedData((prev) => ({ ...prev, [variables]: null }));
+    if (error.response?.status !== 404) {
+      showErrorAlert(errorMessage);
+    }
+  },
+});
+
+  const handleSubmit = (values: Partial<MaterialCostUsedInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
     } else {
       createMutation.mutate(values);
     }
   };
+
   const handleOpen = (materialCostUsed?: MaterialCostUsedOutputType) => {
     if (materialCostUsed) {
-      setSelected(materialCostUsed)
+      setSelected(materialCostUsed);
     } else {
-      setSelected(null)
+      setSelected(null);
     }
-    setOpen(true)
-  }
+    setOpen(true);
+  };
 
+  const handleView = (record: MaterialCostUsedOutputType) => {
+    const key = record._id;
+    if (!key) {
+      showErrorAlert("Không tìm thấy ID của bản ghi");
+      return;
+    }
+    
+    if (expandedRowKeys.includes(key)) {
+      setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
+    } else {
+      setExpandedRowKeys([...expandedRowKeys, key]);
+      if (!expandedData[key] && expandedData[key] !== null) {
+        getOneMutation.mutate(key);
+      }
+    }
+  };
 
+  const expandedRowRender = (record: MaterialCostUsedOutputType) => {
+    const key = record._id || "";
+    const data = expandedData[key] || record;
+
+    // Hiển thị thông báo lỗi nếu không tìm thấy dữ liệu chi tiết
+    if (data === null) {
+      return (
+        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
+          <Typography color="error">
+            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
+          </Typography>
+        </Box>
+      );
+    }
+
+    // Hiển thị loading khi đang tải dữ liệu
+    if (!data.materials) {
+      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
+    }
+
+    const innerColumns = [
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>STT</Typography>,
+        dataIndex: "index",
+        key: "index",
+        width: 60,
+        align: "center" as const,
+        render: (text: string, item: any, index: number) => (
+          <Typography>{index + 1}</Typography>
+        ),
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
+        dataIndex: "code",
+        key: "code",
+        render: (text: string, item: any) => (
+          <Typography>{item.material?.code}</Typography>
+        ),
+      },
+      {
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>
+            Tên vật tư, tài sản
+          </Typography>
+        ),
+        dataIndex: "name",
+        key: "name",
+        render: (text: string, item: any) => (
+          <Typography>{item.material?.name}</Typography>
+        ),
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
+        dataIndex: "uom",
+        key: "uom",
+        render: (text: string, item: any) => (
+          <Typography>{item.material?.uom?.name}</Typography>
+        ),
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
+        dataIndex: "quantity",
+        key: "quantity",
+        align: "center" as const,
+        render: (value: number) => (
+          <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        ),
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>,
+        dataIndex: "price",
+        key: "price",
+        align: "center" as const,
+        render: (text: string, item: any) => (
+          <Typography>
+            {item.material?.currentPrice
+              ? item.material?.currentPrice.toLocaleString()
+              : ""}
+          </Typography>
+        ),
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Chi phí</Typography>,
+        dataIndex: "cost",
+        key: "cost",
+        align: "center" as const,
+        render: (value: number) => (
+          <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        ),
+      },
+    ];
+
+    return (
+      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+        <Box sx={{ mb: 2 }}>
+          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
+            Mã chi phí thực hiện : {data.code}
+          </Typography>
+        </Box>
+        <Typography sx={{ fontWeight: "bold", fontSize: 14, mb: 1 }}>
+          Vật tư khai thác:
+        </Typography>
+        <Table
+          columns={innerColumns}
+          dataSource={data.materials || []}
+          pagination={false}
+          size="small"
+          rowKey={(item) => item._id}
+        />
+      </Box>
+    );
+  };
+
+  const columns: TableProps<MaterialCostUsedOutputType>["columns"] = [
+    {
+      title: "",
+      dataIndex: "number",
+      key: "number",
+      width: 50,
+      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+    },
+    {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>
+          Mã chi phí thực hiện{" "}
+        </Typography>
+      ),
+      dataIndex: "code",
+      key: "code",
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+          sensitivity: "base",
+        }),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
+      dataIndex: "view",
+      key: "view",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <IconButton
+          onClick={() => handleView(record)}
+          sx={{
+            color: "#666",
+            "&:hover": {
+              color: "#1976d2",
+              backgroundColor: "rgba(25, 118, 210, 0.04)",
+            },
+          }}
+        >
+          <Visibility />
+        </IconButton>
+      ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+      dataIndex: "edit",
+      key: "edit",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <IconButton
+          onClick={() => handleOpen(record)}
+          sx={{
+            color: "#666",
+            "&:hover": {
+              color: "#1976d2",
+              backgroundColor: "rgba(25, 118, 210, 0.04)",
+            },
+          }}
+        >
+          <Edit />
+        </IconButton>
+      ),
+    },
+  ];
+
+  const rowSelection: TableRowSelection<MaterialCostUsedOutputType> = {
+    selectedRowKeys: selectedRows,
+    onChange: (newSelectedRows: React.Key[]) => {
+      setSelectedRows(newSelectedRows);
+    },
+  };
 
   return (
-    <Paper elevation={3} style={{ padding: 16 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Chi phí vật tư thực hiện (Zth)</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Tạo mới chi phí vật tư thực hiện (Zth)</Button>
+    <Box>
+      <Breadcrumbs aria-label="breadcrumb">
+        <Typography>Thống kê vận hành</Typography>
+        <Typography>Chi phí vật tư thực hiện </Typography>
+      </Breadcrumbs>
+      <Box mt={3}>
+        <Box>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" sx={{ color: "blue" }}>
+              Chi phí vật tư thực hiện
+            </Typography>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  endIcon={<Add />}
+                  onClick={() => handleOpen()}
+                >
+                  Tạo mới
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<Delete />}
+                  onClick={() => handleDelete()}
+                >
+                  Xóa
+                </Button>
+              </Box>
+              <Box display={"flex"} flex={1} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FilterList />}
+                >
+                  Lọc
+                </Button>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Search sx={{ fontSize: 24 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                >
+                  Tải lên
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                >
+                  Xuất file
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                >
+                  In
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                >
+                  Gửi
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+          <Table<MaterialCostUsedOutputType>
+            rowKey="_id"
+            rowSelection={rowSelection}
+            expandable={{
+              expandedRowKeys,
+              onExpandedRowsChange: (keys) =>
+                setExpandedRowKeys(keys as React.Key[]),
+              expandedRowRender,
+              showExpandColumn: false,
+            }}
+            pagination={{
+              position: ["bottomCenter"],
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              defaultPageSize: 10,
+              showTotal: (total, range) => (
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                </div>
+              ),
+            }}
+            columns={columns}
+            dataSource={materialcostuseds}
+          />
+        </Box>
       </Box>
-      < TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Mã chi phí thức hiện (Zth)</b></TableCell>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Thao tác</b></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {materialcostuseds.map((materialcostused: MaterialCostUsedOutputType) => (
-              <React.Fragment>
-                <TableRow>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>{materialcostused.code}</TableCell>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>
-                    <IconButton onClick={() => handleToggleExpand(materialcostused)}>
-                      <Visibility color="secondary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleOpen(materialcostused)}>
-                      <Edit color="primary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(materialcostused._id)}>
-                      <Delete color="error" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-                {expandedRow === materialcostused._id && (<TableRow>
-                  <TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#D3D3D3' }}>
-                    < TableContainer component={Paper} sx={{ backgroundColor: '#D3D3D3' }}>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid black', fontWeight: 'bold' }}>STT</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid black', fontWeight: 'bold' }}>Mã vật tư</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid black', fontWeight: 'bold' }}>Tên vật tư, tài sản</TableCell>
-                            <TableCell align='center' rowSpan={2} sx={{ border: '1px solid black', fontWeight: 'bold' }}>ĐVT</TableCell>
-                            <TableCell align='center' colSpan={3} sx={{ border: '1px solid black', fontWeight: 'bold' }}>{materialcostused.code}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell align='center' colSpan={3} sx={{ border: '1px solid black', fontWeight: 'bold' }}>{materialcostused.productionScope?.name}</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {materialcostused.productionScope?.phases.map((item) => (
-                            <TableRow key={item.phase?._id}>
-                              <TableCell sx={{ border: '1px solid black', fontWeight: 'bold' }}></TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}></TableCell>
-                              <TableCell sx={{ border: '1px solid black', fontWeight: 'bold' }}>{item.phase?.name}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>{item.phase?.name.toLowerCase() === "khấu than".toLowerCase() ? 'Tấn' : 'Mét'}</TableCell>
-                              <TableCell align='center' colSpan={3} sx={{ border: '1px solid black', fontWeight: 'bold' }}>{item.production ? item.production.toLocaleString() : ''}</TableCell>
-                            </TableRow>
-                          ))}
-                          <TableRow>
-                            <TableCell sx={{ border: '1px solid black', fontWeight: 'bold' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}></TableCell>
-                            <TableCell sx={{ border: '1px solid black', fontWeight: 'bold' }}>Vật tư khai thác</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}></TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>Số lượng</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>Đơn giá</TableCell>
-                            <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold' }}>Chi phí</TableCell>
-                          </TableRow>
-                          {materialcostused.materials.map((item: any, index: number) => (
-                            <TableRow>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>{index + 1}</TableCell>
-                              <TableCell sx={{ border: '1px solid black' }}>{item.material?.code}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.material?.name}</TableCell>
-                              <TableCell sx={{ border: '1px solid black' }}>{item.material?.uom?.name}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.quantity ? item.quantity.toLocaleString() : ''}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item.material?.currentPrice ? item.material?.currentPrice.toLocaleString() : ''}</TableCell>
-                              <TableCell align='center' sx={{ border: '1px solid black' }}>{item?.cost ? item?.cost.toLocaleString() : ''}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </TableCell>
-                </TableRow>)}
-              </React.Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <MaterialCostUsedModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selected={selected} />
-    </Paper >
+      <MaterialCostUsedModal
+        open={open}
+        setOpen={setOpen}
+        handleSubmit={handleSubmit}
+        selected={selected}
+      />
+    </Box>
   );
 }

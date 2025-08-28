@@ -350,7 +350,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Diện sản xuất
+          Điện sản xuất
         </MenuItem>
       </Menu>
 
@@ -421,12 +421,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/settlementreports");
+            navigate("/settlementReport123");
             setMenuThongKeEl(null);
           }}
         >
           Quyết toán giao khoán
         </MenuItem>
+
       </Menu>
 
       {/* MENU: SETTINGS */}

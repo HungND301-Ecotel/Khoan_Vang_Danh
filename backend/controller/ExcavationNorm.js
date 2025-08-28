@@ -1,6 +1,5 @@
 const ExcavationNorm = require('../model/ExcavationNorm')
 
-
 exports.create = async (req, res) => {
     try {
         const { code, phaseGroup, phase, excavationTech, hardness, step, norms } = req.body

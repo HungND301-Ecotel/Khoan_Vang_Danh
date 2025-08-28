@@ -1,82 +1,135 @@
-import { Box, Button, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import React, { useEffect, useState } from 'react'
-import api from '../../config/api.config'
-import { AssignmentCodeInputType, MaterialAssignmentInputType, MaterialAssignmentOutputType, MaterialBudgetInputType, Materials } from '../../types'
-import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert'
-import { Add, Delete, Edit, Visibility } from '@mui/icons-material'
-import MaterialBudgetModal from '../../components/MaterialBudgetModal/MaterialBudgetModal'
+import React, { useState } from "react";
+import {
+  Add,
+  ArrowDropDown,
+  Delete,
+  Edit,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Search,
+  Visibility,
+} from "@mui/icons-material";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  IconButton,
+  InputAdornment,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "../../config/api.config";
+import { MaterialBudgetInputType, Materials } from "../../types";
+import MaterialBudgetModal from "../../components/MaterialBudgetModal/MaterialBudgetModal";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../../components/Alert";
+import { Table, TableProps } from "antd";
+import { TableRowSelection } from "antd/es/table/interface";
 
 export default function MaterialBudget() {
-  const queryClient = useQueryClient()
-  const [data, setData] = useState<any | null>(null)
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
   const [selected, setSelected] = useState<MaterialBudgetInputType | null>(null);
   const [open, setOpen] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
 
-  const handleToggleExpand = (id?: string) => {
-    if (!id) return;
-
-    setExpandedRow(prev => (prev === id ? null : id));
-    getOneMutation.mutate(id)
-  };
+  const queryClient = useQueryClient();
 
   const { data: materialbudgets = [] } = useQuery({
-    queryKey: ['materialbudgets'],
-    queryFn: () => api.get('/materialbudgets').then(res => res.data.data)
-  })
-
+    queryKey: ["materialbudgets", searchValue],
+    queryFn: async () =>
+      api
+        .get(`/materialbudgets?q=${searchValue}`)
+        .then((res) => res.data.data),
+  });
 
   const createMutation = useMutation({
-    mutationFn: (newmaterialBudget: Partial<MaterialBudgetInputType>) =>
-      api.post('/materialbudgets', newmaterialBudget).then(res => res.data),
+    mutationFn: (newMaterialBudget: Partial<MaterialBudgetInputType>) =>
+      api.post("/materialbudgets", newMaterialBudget).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materialbudgets'] });
-      setOpen(false)
-      showSuccessAlert("Thêm mới thành công")
+      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
+      setOpen(false);
+      showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
   });
+
   const updateMutation = useMutation({
-    mutationFn: (updatematerialBudget: Partial<MaterialBudgetInputType>) =>
-      api.put(`/materialbudgets/${updatematerialBudget._id}`, updatematerialBudget).then(res => res.data),
+    mutationFn: (updateMaterialBudget: Partial<MaterialBudgetInputType>) =>
+      api
+        .put(
+          `/materialbudgets/${updateMaterialBudget._id}`,
+          updateMaterialBudget
+        )
+        .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materialbudgets'] });
-      setOpen(false)
-      setSelected(null)
-      showSuccessAlert("Sửa thành công")
+      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
+      setOpen(false);
+      setSelected(null);
+      showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
   });
-  const handleDelete = (id?: string) => {
-    if (!id) {
-      showErrorAlert('Không tìm thấy bản ghi');
+
+  const handleDelete = () => {
+    if (selectedRows.length === 0) {
+      showErrorAlert('Vui lòng chọn ít nhất một bản ghi để xóa');
       return;
     }
-    showConfirmAlert('Bạn có muốn xóa bản ghi này?').then((result) => {
+    
+    showConfirmAlert('Bạn có muốn xóa các bản ghi đã chọn?').then((result) => {
       if (result.isConfirmed) {
-        deleteMutation.mutate(id)
+        deleteMutation.mutate(selectedRows);
       }
     });
   };
+
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/materialbudgets/${id}`).then(res => res.data),
+    mutationFn: async (ids: React.Key[]) => {
+      const deletePromises = ids.map((id) =>
+        api.delete(`/materialbudgets/${id}`).then((res) => res.data)
+      );
+      return Promise.all(deletePromises);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materialbudgets'] });
-      showSuccessAlert('Xóa thành công')
+      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
+      setSelectedRows([]);
+      showSuccessAlert("Xóa thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi không xác định";
+      console.error(errorMessage);
+      showErrorAlert(errorMessage);
+    },
   });
+
+  const getOneMutation = useMutation({
+    mutationFn: (id: string) =>
+      api.get(`/materialbudgets/getOne/${id}`).then((res) => res.data.data),
+    onSuccess: (data, id) => {
+      setExpandedData(prev => ({ ...prev, [id]: data }));
+    },
+    onError: (error: any) => {
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+
   const handleSubmit = (values: Partial<MaterialBudgetInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
@@ -84,141 +137,466 @@ export default function MaterialBudget() {
       createMutation.mutate(values);
     }
   };
+
   const handleOpen = (materialBudget?: MaterialBudgetInputType) => {
     if (materialBudget) {
-      setSelected(materialBudget)
+      setSelected(materialBudget);
     } else {
-      setSelected(null)
+      setSelected(null);
     }
-    setOpen(true)
-  }
+    setOpen(true);
+  };
 
-  const getOneMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.get(`/materialbudgets/getOne/${id}`).then(res => res.data.data),
-    onSuccess: (data) => {
-      setData(data)
+const handleView = (record: MaterialBudgetInputType) => {
+const key = record._id;
+    if (!key) {
+      showErrorAlert("Không tìm thấy ID của bản ghi");
+      return;
+    }
+    if (expandedRowKeys.includes(key)) {
+      setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
+    } else {
+      setExpandedRowKeys([...expandedRowKeys, key]);
+      if (!expandedData[key] && expandedData[key] !== null) {
+        getOneMutation.mutate(key);
+      }
+    }
+};
+
+  const expandedRowRender = (record: MaterialBudgetInputType) => {
+    const data = expandedData[record._id || ""];
+    const innerColumns = [
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
+        dataIndex: "code",
+        key: "materialCode",
+        render: (text: string, assignment: any, index: number) => {
+          if (assignment.isHeader) {
+            return null;
+          }
+          return assignment.materials?.map((material: Materials, materialIndex: number) => (
+            <div key={materialIndex} style={{ padding: "4px 0" }}>
+              {material.code}
+            </div>
+          ));
+        },
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
+        dataIndex: "code",
+        key: "assignmentCode",
+        render: (text: string, assignment: any) => (
+          <Typography sx={{ color: "blue", fontWeight: "bold" }}>
+            {assignment.code}
+          </Typography>
+        ),
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư, tài sản</Typography>,
+        dataIndex: "name",
+        key: "name",
+        render: (text: string, assignment: any) => {
+          if (assignment.isHeader) {
+            return null;
+          }
+          return (
+            <div>
+              <Typography sx={{ color: "blue", marginBottom: 1 }}>
+                {assignment.name}
+              </Typography>
+              {assignment.materials?.map((material: Materials, index: number) => (
+                <div key={index} style={{ padding: "4px 0" }}>
+                  {material.name}
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
+        dataIndex: "uom",
+        key: "uom",
+        render: (text: string, assignment: any) => {
+          if (assignment.isHeader) {
+            return null;
+          }
+          return (
+            <div>
+              <Typography sx={{ color: "blue", marginBottom: 1 }}>
+                {assignment.uom}
+              </Typography>
+              {assignment.materials?.map((material: Materials, index: number) => (
+                <div key={index} style={{ padding: "4px 0" }}>
+                  {material.uom?.name}
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Định mức gốc</Typography>,
+        dataIndex: "assignmentNorm",
+        key: "assignmentNorm",
+        align: "center" as const,
+        render: (value: number, assignment: any) => {
+          if (assignment.isHeader) {
+            return null;
+          }
+          return (
+            <div>
+              <Typography sx={{ color: "blue", marginBottom: 1 }}>
+                {value ? value.toLocaleString() : ""}
+              </Typography>
+              {assignment.materials?.map((_: Materials, index: number) => (
+                <div key={index} style={{ padding: "4px 0" }}>
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Hệ số điều chỉnh định mức</Typography>,
+        dataIndex: "adjustmentNorm",
+        key: "adjustmentNorm",
+        align: "center" as const,
+        render: (value: number, assignment: any) => {
+          if (assignment.isHeader) {
+            return null;
+          }
+          return (
+            <div>
+              <Typography sx={{ marginBottom: 1 }}>
+                {value ? value.toLocaleString() : ""}
+              </Typography>
+              {assignment.materials?.map((_: Materials, index: number) => (
+                <div key={index} style={{ padding: "4px 0" }}>
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
+        dataIndex: "totalNorm",
+        key: "totalNorm",
+        align: "center" as const,
+        render: (value: number, assignment: any) => {
+          if (assignment.isHeader) {
+            return null;
+          }
+          return (
+            <div>
+              <Typography sx={{ marginBottom: 1 }}>
+                {value ? value.toLocaleString() : ""}
+              </Typography>
+              {assignment.materials?.map((_: Materials, index: number) => (
+                <div key={index} style={{ padding: "4px 0" }}>
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
+        dataIndex: "quantity",
+        key: "quantity",
+        align: "center" as const,
+        render: (value: number, assignment: any) => {
+          if (assignment.isHeader) {
+            return null;
+          }
+          return (
+            <div>
+              <Typography sx={{ marginBottom: 1 }}>
+                {value ? value.toLocaleString() : ""}
+              </Typography>
+              {assignment.materials?.map((_: Materials, index: number) => (
+                <div key={index} style={{ padding: "4px 0" }}>
+
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá bình quân năm</Typography>,
+        dataIndex: "price",
+        key: "price",
+        align: "center" as const,
+        render: (value: number, assignment: any) => {
+          if (assignment.isHeader) {
+            return null;
+          }
+          return (
+            <div>
+              <Typography sx={{ color: "blue", marginBottom: 1 }}>
+                {value ? value.toLocaleString() : ""}
+              </Typography>
+              {assignment.materials?.map((material: Materials, index: number) => (
+                <div key={index} style={{ padding: "4px 0" }}>
+                  {material.currentPrice ? material.currentPrice.toLocaleString() : ""}
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Chi phí kế hoạch</Typography>,
+        dataIndex: "cost",
+        key: "cost",
+        align: "center" as const,
+        render: (value: number, assignment: any) => {
+          if (assignment.isHeader) {
+            return null;
+          }
+          return (
+            <div>
+              <Typography sx={{ marginBottom: 1 }}>
+                {value ? value.toLocaleString() : ""}
+              </Typography>
+              {assignment.materials?.map((_: Materials, index: number) => (
+                <div key={index} style={{ padding: "4px 0" }}>
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold" }}>Ghi chú</Typography>,
+        dataIndex: "note",
+        key: "note",
+        render: () => "",
+      },
+    ];
+
+    return (
+      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+        <Box sx={{ mb: 2 }}>
+          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
+            Công đoạn: {data?.materialbudget?.phase?.name}
+          </Typography>
+          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
+            Mã định mức giao khoán: {data?.materialbudget?.code}
+          </Typography>
+          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
+            Mã hệ số định mức: {data?.materialbudget?.adjustmentNormCode?.code}
+          </Typography>
+          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
+            Sản lượng: {data?.materialbudget?.production ? data?.materialbudget?.production.toLocaleString() : 0} ({data?.phaseGroup?.name?.toLowerCase() === "khấu than".toLowerCase() ? 'tấn' : 'mét'})
+          </Typography>
+        </Box>
+
+        <Table
+          columns={innerColumns}
+          dataSource={data?.assignments || []}
+          pagination={false}
+          size="small"
+          rowKey={(item) => `${record._id}-${item._id || item.code || Math.random()}`}
+        />
+      </Box>
+    );
+  };
+
+  const columns: TableProps<MaterialBudgetInputType>["columns"] = [
+    {
+      title: "",
+      dataIndex: "number",
+      key: "number",
+      width: 50,
+      render: (value, record, index) => <Typography>{index + 1}</Typography>,
     },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || 'Lỗi')
-      showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-    }
-  });
+    {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>Mã định mức giao khoán</Typography>
+      ),
+      dataIndex: "code",
+      key: "code",
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+          sensitivity: "base",
+        }),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
+      dataIndex: "view",
+      key: "view",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <IconButton
+          onClick={() => handleView(record)}
+          sx={{ 
+            color: "#666",
+            "&:hover": {
+              color: "#1976d2",
+              backgroundColor: "rgba(25, 118, 210, 0.04)"
+            }
+          }}
+        >
+          <Visibility />
+        </IconButton>
+      ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+      dataIndex: "edit",
+      key: "edit",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <IconButton 
+          onClick={() => handleOpen(record)}
+          sx={{ 
+            color: "#666",
+            "&:hover": {
+              color: "#1976d2",
+              backgroundColor: "rgba(25, 118, 210, 0.04)"
+            }
+          }}
+        >
+          <Edit />
+        </IconButton>
+      ),
+    },
+  ];
 
+  const rowSelection: TableRowSelection<MaterialBudgetInputType> = {
+    selectedRowKeys: selectedRows,
+    onChange: (newSelectedRows: React.Key[]) => {
+      setSelectedRows(newSelectedRows);
+    },
+  };
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Chi phí vật tư kế hoạch (Zth)</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)}>Tạo mới chi phí vật tư kế hoạch (Zth)</Button>
+      <Breadcrumbs aria-label="breadcrumb">
+        <Typography>Thống kê vận hành</Typography>
+        <Typography>Chi phí vật tư kế hoạch (Zth)</Typography>
+      </Breadcrumbs>
+      <Box mt={3}>
+        <Box>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" sx={{ color: "blue" }}>
+              Chi phí vật tư kế hoạch (Zth)
+            </Typography>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  endIcon={<Add />}
+                  onClick={() => handleOpen()}
+                >
+                  Tạo mới
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<Delete />}
+                  onClick={() => handleDelete()}
+                >
+                  Xóa
+                </Button>
+              </Box>
+              <Box display={"flex"} flex={1} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FilterList />}
+                >
+                  Lọc
+                </Button>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Search sx={{ fontSize: 24 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                >
+                  Tải lên
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                >
+                  Xuất file
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                >
+                  In
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                >
+                  Gửi
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+          <Table<MaterialBudgetInputType>
+            rowKey={(record) => record._id || Math.random().toString()}
+            rowSelection={rowSelection}
+            expandable={{
+              expandedRowKeys,
+              onExpandedRowsChange: (keys) =>
+                setExpandedRowKeys(keys as React.Key[]),
+              expandedRowRender,
+              showExpandColumn: false,
+            }}
+            pagination={{
+              position: ["bottomCenter"],
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              defaultPageSize: 10,
+              showTotal: (total, range) => (
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                </div>
+              ),
+            }}
+            columns={columns}
+            dataSource={materialbudgets}
+          />
+        </Box>
       </Box>
-      < TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Mã định mức</b></TableCell>
-              <TableCell align='center' sx={{ border: '1px solid black', fontWeight: 'bold', fontSize: 18 }}><b>Thao tác</b></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {materialbudgets.map((materialbudget: MaterialBudgetInputType) => (
-              <React.Fragment>
-                <TableRow>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>{materialbudget.code}</TableCell>
-                  <TableCell align='center' sx={{ border: '1px solid black' }}>
-                    <IconButton onClick={() => handleToggleExpand(materialbudget._id)}>
-                      <Visibility color="secondary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleOpen(materialbudget)}>
-                      <Edit color="primary" />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(materialbudget._id)}>
-                      <Delete color="error" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  {expandedRow === materialbudget._id && (<TableCell colSpan={3} sx={{ border: '1px solid black', backgroundColor: '#D3D3D3' }}>
-                    < TableContainer component={Paper} sx={{ backgroundColor: '#D3D3D3' }}>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell colSpan={12} sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Công đoạn: {data?.materialbudget?.phase?.name}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell colSpan={12} sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Mã định mức giao khoán: {data?.materialbudget?.code}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell colSpan={12} sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Mã hệ số định mức: {data?.materialbudget?.adjustmentNormCode?.code}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell colSpan={12} sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Sản lượng: {data?.materialbudget?.production ? data?.materialbudget?.production.toLocaleString() : 0} ({data?.phaseGroup?.name.toLowerCase() === "khấu than".toLowerCase() ? 'tấn' : 'mét'})</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Mã vật tư</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Mã giao khoán</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Tên vật tư, tài sản</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>ĐVT</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Định mức gốc</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Hệ số điều chỉnh định mức</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Định mức</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18, width: 150 }}>Số lượng</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18, width: 200 }}>Đơn giá bình quân năm</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18, width: 200 }}>Chi phí kế hoạch</TableCell>
-                            <TableCell align='center' sx={{ border: "1px solid grey", fontWeight: 'bold', fontSize: 18 }}>Ghi chú</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {data?.assignments.map((assignment: any) => (
-                            <>
-                              <TableRow>
-                                <TableCell sx={{ border: "1px solid grey", color: "blue" }}></TableCell>
-                                <TableCell align='center' sx={{ border: "1px solid grey", color: "blue" }}>{assignment.code}</TableCell>
-                                <TableCell sx={{ border: "1px solid grey", color: "blue" }}>{assignment.name}</TableCell>
-                                <TableCell align='center' sx={{ border: "1px solid grey", color: "blue" }}>{assignment.uom}</TableCell>
-                                <TableCell align='center' sx={{ border: "1px solid grey", }}>{assignment.assignmentNorm ? assignment.assignmentNorm.toLocaleString() : ''}</TableCell>
-                                <TableCell align='center' sx={{ border: "1px solid grey", }}>{assignment.adjustmentNorm ? assignment.adjustmentNorm.toLocaleString() : ''}</TableCell>
-                                <TableCell align='center' sx={{ border: "1px solid grey", }}>{assignment.totalNorm ? assignment.totalNorm.toLocaleString() : ''}</TableCell>
-                                <TableCell align='center' sx={{ border: "1px solid grey", }}>{assignment.quantity ? assignment.quantity.toLocaleString() : ''}</TableCell>
-                                <TableCell align='center' sx={{ border: "1px solid grey", color: "blue" }}>
-                                  {assignment.price ? assignment.price.toLocaleString() : ''}
-                                </TableCell>
-                                <TableCell align='center' sx={{ border: "1px solid grey", }}>{assignment.cost ? assignment.cost.toLocaleString() : ''}</TableCell>
-                                <TableCell align='center' sx={{ border: "1px solid grey", }}></TableCell>
-                              </TableRow>
-                              {assignment.materials.map((material: Materials) => (
-                                <TableRow>
-                                  <TableCell align='center' sx={{ border: "1px solid grey", }}>{material.code}</TableCell>
-                                  <TableCell align='center' sx={{ border: "1px solid grey", }}></TableCell>
-                                  <TableCell align='center' sx={{ border: "1px solid grey", }}>{material.name}</TableCell>
-                                  <TableCell align='center' sx={{ border: "1px solid grey", }}>{material.uom?.name}</TableCell>
-                                  <TableCell align='center' sx={{ border: "1px solid grey", }}></TableCell>
-                                  <TableCell align='center' sx={{ border: "1px solid grey", }}></TableCell>
-                                  <TableCell align='center' sx={{ border: "1px solid grey", }}></TableCell>
-                                  <TableCell align='center' sx={{ border: "1px solid grey", }}>
-                                    {/* {material.quantity ? material.quantity.toLocaleString() : ''} */}
-                                  </TableCell>
-                                  <TableCell align='center' sx={{ border: "1px solid grey", }}>
-                                    {material.currentPrice ? material.currentPrice.toLocaleString() : ''}
-                                  </TableCell>
-                                  <TableCell sx={{ border: "1px solid grey", }}></TableCell>
-                                  <TableCell sx={{ border: "1px solid grey" }}></TableCell>
-                                </TableRow>
-                              ))}
-                            </>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </TableCell>)}
-                </TableRow>
-              </React.Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <MaterialBudgetModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selected={selected} />
+      <MaterialBudgetModal
+        open={open}
+        setOpen={setOpen}
+        handleSubmit={handleSubmit}
+        selected={selected}
+      />
     </Box>
-  )
+  );
 }
-  
