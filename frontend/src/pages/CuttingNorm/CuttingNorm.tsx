@@ -159,14 +159,14 @@ export default function CuttingNorm() {
       },
       {
         title: (
-          <Typography sx={{ fontWeight: "bold", color: "blue" }}>
+          <Typography sx={{ fontWeight: "bold", color: "black" }}>
             Mã giao khoán
           </Typography>
         ),
         dataIndex: "assignmentCode",
         key: "assignmentCode",
         render: (assignmentCode: any) => (
-          <Typography sx={{ color: "blue" }}>{assignmentCode?.code}</Typography>
+          <Typography sx={{ color: "black" }}>{assignmentCode?.code}</Typography>
         ),
       },
       {
@@ -195,9 +195,10 @@ export default function CuttingNorm() {
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+            Xén trong đá:
             {record.phase?.name || ""} {record.hardness?.name || ""}
           </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          <Typography variant="body2" sx={{ color: "text.secondary"}}>
             Tiết diện lò xén: {record.crossSection?.name || ""} (
             {record.crossSection?.uom?.name || ""})
           </Typography>

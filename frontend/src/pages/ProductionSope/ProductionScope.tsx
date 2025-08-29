@@ -155,7 +155,7 @@ export default function ProductScope() {
         dataIndex: "phase",
         key: "phase",
         render: (phase: any) => (
-          <Typography sx={{ color: "blue" }}>{phase?.name}</Typography>
+          <Typography sx={{ color: "black" }}>{phase?.name}</Typography>
         ),
       },
       {

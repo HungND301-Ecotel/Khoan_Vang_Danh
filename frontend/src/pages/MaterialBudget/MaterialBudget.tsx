@@ -186,7 +186,7 @@ const key = record._id;
         dataIndex: "code",
         key: "assignmentCode",
         render: (text: string, assignment: any) => (
-          <Typography sx={{ color: "blue", fontWeight: "bold" }}>
+          <Typography sx={{ color: "black", fontWeight: "bold" }}>
             {assignment.code}
           </Typography>
         ),
@@ -201,7 +201,7 @@ const key = record._id;
           }
           return (
             <div>
-              <Typography sx={{ color: "blue", marginBottom: 1 }}>
+              <Typography sx={{ color: "black", marginBottom: 1 }}>
                 {assignment.name}
               </Typography>
               {assignment.materials?.map((material: Materials, index: number) => (
@@ -223,7 +223,7 @@ const key = record._id;
           }
           return (
             <div>
-              <Typography sx={{ color: "blue", marginBottom: 1 }}>
+              <Typography sx={{ color: "black", marginBottom: 1 }}>
                 {assignment.uom}
               </Typography>
               {assignment.materials?.map((material: Materials, index: number) => (
@@ -246,7 +246,7 @@ const key = record._id;
           }
           return (
             <div>
-              <Typography sx={{ color: "blue", marginBottom: 1 }}>
+              <Typography sx={{ color: "bue", marginBottom: 1 }}>
                 {value ? value.toLocaleString() : ""}
               </Typography>
               {assignment.materials?.map((_: Materials, index: number) => (
@@ -335,7 +335,7 @@ const key = record._id;
           }
           return (
             <div>
-              <Typography sx={{ color: "blue", marginBottom: 1 }}>
+              <Typography sx={{ color: "black", marginBottom: 1 }}>
                 {value ? value.toLocaleString() : ""}
               </Typography>
               {assignment.materials?.map((material: Materials, index: number) => (
@@ -487,7 +487,7 @@ const key = record._id;
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "blue" }}>
+            <Typography variant="h4" sx={{ color: "black" }}>
               Chi phí vật tư kế hoạch (Zth)
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">

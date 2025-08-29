@@ -18,6 +18,11 @@ import {
   Button,
   IconButton,
   InputAdornment,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -30,7 +35,7 @@ import {
   showErrorAlert,
   showSuccessAlert,
 } from "../../components/Alert";
-import { Table, TableProps } from "antd";
+import { Table as AntTable, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 
 export default function AdjustmentNormCM() {
@@ -89,37 +94,37 @@ export default function AdjustmentNormCM() {
   });
 
   const handleDelete = () => {
-      if (selectedRows.length === 0) {
-        showErrorAlert('Vui lòng chọn ít nhất một bản ghi để xóa');
-        return;
-      }
-      
-      showConfirmAlert('Bạn có muốn xóa các bản ghi đã chọn?').then((result) => {
-        if (result.isConfirmed) {
-          deleteMutation.mutate(selectedRows);
-        }
-      });
-    };
+    if (selectedRows.length === 0) {
+      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
+      return;
+    }
 
-const deleteMutation = useMutation({
-  mutationFn: async (ids: React.Key[]) => {
-    const deletePromises = ids.map((id) =>
-      api.delete(`/adjustmentnorms/${id}`).then((res) => res.data)
-    );
-    return Promise.all(deletePromises);
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
-    setSelectedRows([]);
-    showSuccessAlert("Xóa thành công");
-  },
-  onError: (error: any) => {
-    const errorMessage =
-      error.response?.data?.message || error.message || "Lỗi không xác định";
-    console.error(errorMessage);
-    showErrorAlert(errorMessage);
-  },
-}); 
+    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(selectedRows);
+      }
+    });
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: React.Key[]) => {
+      const deletePromises = ids.map((id) =>
+        api.delete(`/adjustmentnorms/${id}`).then((res) => res.data)
+      );
+      return Promise.all(deletePromises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
+      setSelectedRows([]);
+      showSuccessAlert("Xóa thành công");
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi không xác định";
+      console.error(errorMessage);
+      showErrorAlert(errorMessage);
+    },
+  });
 
   const handleSubmit = (values: Partial<AdjustmentNormInputType>) => {
     if (selected) {
@@ -138,66 +143,61 @@ const deleteMutation = useMutation({
     setOpen(true);
   };
 
-  const expandedRowRender = (record: AdjustmentNormOutputType) => {
-    const innerColumns = [
-      {
-        title: "STT",
-        dataIndex: "index",
-        key: "index",
-        width: 60,
-        render: (_: any, __: any, index: number) => index + 1,
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold", color: "blue" }}>
-            Mã công việc
-          </Typography>
-        ),
-        dataIndex: "assignmentCode",
-        key: "assignmentCode",
-        render: (assignmentCode: any) => (
-          <Typography sx={{ color: "blue" }}>{assignmentCode?.code}</Typography>
-        ),
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold" }}>Tên công việc</Typography>
-        ),
-        dataIndex: "assignmentCode",
-        key: "name",
-        render: (assignmentCode: any) => assignmentCode?.name,
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Đơn vị</Typography>,
-        dataIndex: "unit",
-        key: "unit",
-        render: () => "1",
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
-        dataIndex: "norm",
-        key: "norm",
-        render: (norm: number) => (norm ? norm.toLocaleString() : ""),
-      },
-    ];
-
-    return (
-      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-            Tỷ lệ gương than mềm (Cm): {record.mirrorRatio?.name}
-          </Typography>
-        </Box>
+  const expandedRowRender = (record: AdjustmentNormOutputType) => (
+    <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+      <TableContainer>
         <Table
-          columns={innerColumns}
-          dataSource={record.norms}
-          pagination={false}
-          size="small"
-          rowKey={(item, index) => `${record._id}-${index}`}
-        />
-      </Box>
-    );
-  };
+          sx={{
+            "& td, & th": { border: 0 },
+          }}
+        >
+          <TableBody>
+            {/* Hàng thông tin chung */}
+
+            <TableRow sx={{ height: 28 }}>
+              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
+                Tỷ lệ % gương than mềm (Cm)
+              </TableCell>
+              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
+                {record.mirrorRatio?.name || "-"}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+
+          {/* Phần bảng dữ liệu norms nền trắng */}
+          <TableBody sx={{ backgroundColor: "#fff" }}>
+            {record.norms?.map((item: any, index: number) => (
+              <TableRow key={index}>
+                <TableCell align="center" sx={{ width: "5%" }}>
+                  {index + 1}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "20%" }}>
+                  {item.assignmentCode?.code}
+                </TableCell>
+                <TableCell sx={{ width: "55%" }}>
+                  {item.assignmentCode?.name}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "10%" }}>
+                  {item.assignmentCode?.uom?.name || ""}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "10%" }}>
+                  {item.norm ? item.norm.toLocaleString() : ""}
+                </TableCell>
+              </TableRow>
+            ))}
+
+            {(!record.norms || record.norms.length === 0) && (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  Không có dữ liệu
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
 
   const columns: TableProps<AdjustmentNormOutputType>["columns"] = [
     {
@@ -223,59 +223,54 @@ const deleteMutation = useMutation({
           sensitivity: "base",
         }),
     },
-   
-    
-{
-  title: (
-    <Box display="flex" alignItems="center" justifyContent="center">
-      <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>
-    </Box>
-  ),
-  dataIndex: "view",
-  key: "view",
-  width: 80,
-  align: "center",
-  render: (_, record) => (
-    <Box display="flex" justifyContent="center">
-      <IconButton
-        onClick={() => {
-          const key = record._id as React.Key;
-          if (expandedRowKeys.includes(key)) {
-            setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
-          } else {
-            setExpandedRowKeys([...expandedRowKeys, key]);
-          }
-        }}
-        size="small"
-      >
-        <Visibility color="secondary" />
-      </IconButton>
-    </Box>
-  ),
-},
 
+    {
+      title: (
+        <Box display="flex" alignItems="center" justifyContent="center">
+          <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>
+        </Box>
+      ),
+      dataIndex: "view",
+      key: "view",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Box display="flex" justifyContent="center">
+          <IconButton
+            onClick={() => {
+              const key = record._id as React.Key;
+              if (expandedRowKeys.includes(key)) {
+                setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
+              } else {
+                setExpandedRowKeys([...expandedRowKeys, key]);
+              }
+            }}
+            size="small"
+          >
+            <Visibility color="secondary" />
+          </IconButton>
+        </Box>
+      ),
+    },
 
-{
-  title: (
-    <Box display="flex" alignItems="center" justifyContent="center">
-      <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>
-    </Box>
-  ),
-  dataIndex: "edit",
-  key: "edit", 
-  width: 80,
-  align: "center",
-  render: (_, record) => (
-    <Box display="flex" justifyContent="center">
-      <IconButton 
-        onClick={() => handleOpen(record)}
-        size="small"
-      >
-        <Edit color="primary" />
-      </IconButton>
-    </Box>
-  ),
-}
+    {
+      title: (
+        <Box display="flex" alignItems="center" justifyContent="center">
+          <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>
+        </Box>
+      ),
+      dataIndex: "edit",
+      key: "edit",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Box display="flex" justifyContent="center">
+          <IconButton onClick={() => handleOpen(record)} size="small">
+            <Edit color="primary" />
+          </IconButton>
+        </Box>
+      ),
+    },
   ];
 
   const rowSelection: TableRowSelection<AdjustmentNormOutputType> = {
@@ -372,7 +367,7 @@ const deleteMutation = useMutation({
               </Box>
             </Box>
           </Box>
-          <Table<AdjustmentNormOutputType>
+          <AntTable<AdjustmentNormOutputType>
             rowKey="_id"
             rowSelection={rowSelection}
             expandable={{

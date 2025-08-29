@@ -150,14 +150,14 @@ const deleteMutation = useMutation({
       },
       {
         title: (
-          <Typography sx={{ fontWeight: "bold", color: "blue" }}>
+          <Typography sx={{ fontWeight: "bold", color: "black" }}>
             Mã giao khoán
           </Typography>
         ),
         dataIndex: "assignmentCode",
         key: "assignmentCode",
         render: (assignmentCode: any) => (
-          <Typography sx={{ color: "blue" }}>{assignmentCode?.code}</Typography>
+          <Typography sx={{ color: "black" }}>{assignmentCode?.code}</Typography>
         ),
       },
       {

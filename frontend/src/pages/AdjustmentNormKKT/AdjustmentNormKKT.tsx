@@ -220,81 +220,71 @@ export default function AdjustmentNormKKT() {
     },
   };
 
-  const expandedRowRender = (record: AdjustmentNormOutputType) => {
-    return (
-      <Box sx={{ backgroundColor: "#D3D3D3", p: 2 }}>
-        <TableContainer component={Paper} sx={{ backgroundColor: "#f3eeeeff" }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  align="center"
-                  colSpan={4}
-                  sx={{ border: "1px solid black", fontWeight: "bold" }}
-                >
-                  Độ cứng của đá lẫn trong gương
+  const expandedRowRender = (record: AdjustmentNormOutputType) => (
+    <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+      <TableContainer>
+        <Table
+          sx={{
+            "& td, & th": { border: 0 },
+          }}
+        >
+          <TableBody>
+            {/* Hàng thông tin chung */}
+            <TableRow sx={{ height: 28 }}>
+              {" "}
+              {/* ép chiều cao */}
+              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
+                Độ cứng của đá lẫn trong gương
+              </TableCell>
+              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
+                {record.hardness?.name || "-"}
+              </TableCell>
+            </TableRow>
+
+            <TableRow sx={{ height: 28 }}>
+              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
+                Tỉ lệ đá lẫn trong gương (Ckẹp)
+              </TableCell>
+              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
+                {record.rockRatio?.name || "-"}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+
+          {/* Phần bảng dữ liệu norms nền trắng */}
+          <TableBody sx={{ backgroundColor: "#fff" }}>
+            {record.norms?.map((item: any, index: number) => (
+              <TableRow key={index}>
+                <TableCell align="center" sx={{ width: "5%" }}>
+                  {index + 1}
                 </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{ border: "1px solid black", fontWeight: "bold" }}
-                >
-                  {record.hardness?.name}
+                <TableCell align="center" sx={{ width: "20%" }}>
+                  {item.assignmentCode?.code}
+                </TableCell>
+                <TableCell sx={{ width: "55%" }}>
+                  {item.assignmentCode?.name}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "10%" }}>
+                  {item.assignmentCode?.uom?.name || ""}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "10%" }}>
+                  {item.norm ? item.norm.toLocaleString() : ""}
                 </TableCell>
               </TableRow>
+            ))}
+
+            {(!record.norms || record.norms.length === 0) && (
               <TableRow>
-                <TableCell
-                  align="center"
-                  colSpan={4}
-                  sx={{ border: "1px solid black", fontWeight: "bold" }}
-                >
-                  Tỉ lệ đá lẫn trong gương (Ckẹp)
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{ border: "1px solid black", fontWeight: "bold" }}
-                >
-                  {record.rockRatio?.name}
+                <TableCell colSpan={5} align="center">
+                  Không có dữ liệu
                 </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                <TableCell
-                  align="center"
-                  colSpan={5}
-                  sx={{ border: "1px solid black", fontWeight: "bold" }}
-                >
-                  {record.code}
-                </TableCell>
-              </TableRow>
-              {record.norms?.map((item: any, index: number) => (
-                <TableRow key={index}>
-                  <TableCell align="center" sx={{ border: "1px solid black" }}>
-                    {index + 1}
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ border: "1px solid black", color: "blue" }}
-                  >
-                    {item.assignmentCode?.code}
-                  </TableCell>
-                  <TableCell align="center" sx={{ border: "1px solid black" }}>
-                    {item.assignmentCode?.name}
-                  </TableCell>
-                  <TableCell align="center" sx={{ border: "1px solid black" }}>
-                    1
-                  </TableCell>
-                  <TableCell align="center" sx={{ border: "1px solid black" }}>
-                    {item.norm ? item.norm.toLocaleString() : ""}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
-    );
-  };
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
 
   return (
     <Box>

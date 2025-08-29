@@ -1,6 +1,20 @@
+
 export interface LoginType {
     username: string;
     password: string;
+}
+
+//
+
+// Trong file types/index.ts
+export interface MaterialAssignmentOutputType {
+  _id?: string;
+  code: string;
+  name: string;
+  uom: string;
+  price: number;
+  device: string;
+  materials:Materials[]
 }
 
 //

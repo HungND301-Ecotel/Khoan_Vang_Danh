@@ -18,6 +18,11 @@ import {
   Button,
   IconButton,
   InputAdornment,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -30,7 +35,7 @@ import {
   showErrorAlert,
   showSuccessAlert,
 } from "../../components/Alert";
-import { Table, TableProps } from "antd";
+import { Table as AntTable, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 
 export default function AdjustmentNormKDL() {
@@ -142,69 +147,71 @@ export default function AdjustmentNormKDL() {
     setOpen(true);
   };
 
-  const expandedRowRender = (record: AdjustmentNormOutputType) => {
-    const innerColumns = [
-      {
-        title: "STT",
-        dataIndex: "index",
-        key: "index",
-        width: 60,
-        render: (_: any, __: any, index: number) => index + 1,
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold", color: "blue" }}>
-            Mã công việc
-          </Typography>
-        ),
-        dataIndex: "assignmentCode",
-        key: "assignmentCode",
-        render: (assignmentCode: any) => (
-          <Typography sx={{ color: "blue" }}>{assignmentCode?.code}</Typography>
-        ),
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold" }}>Tên công việc</Typography>
-        ),
-        dataIndex: "assignmentCode",
-        key: "name",
-        render: (assignmentCode: any) => assignmentCode?.name,
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Đơn vị</Typography>,
-        dataIndex: "unit",
-        key: "unit",
-        render: () => "1",
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
-        dataIndex: "norm",
-        key: "norm",
-        render: (norm: number) => (norm ? norm.toLocaleString() : ""),
-      },
-    ];
-
-    return (
-      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-            Độ cứng của đá lẫn trong gương: {record.hardness?.name}
-          </Typography>
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-            Tỉ lệ đá lẫn trong gương (Ckẹp): {record.rockRatio?.name}
-          </Typography>
-        </Box>
+  const expandedRowRender = (record: AdjustmentNormOutputType) => (
+    <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+      <TableContainer>
         <Table
-          columns={innerColumns}
-          dataSource={record.norms}
-          pagination={false}
-          size="small"
-          rowKey={(item, index) => `${record._id}-${index}`}
-        />
-      </Box>
-    );
-  };
+          sx={{
+            "& td, & th": { border: 0 },
+          }}
+        >
+          <TableBody>
+            {/* Hàng thông tin chung */}
+            <TableRow sx={{ height: 28 }}>
+              {" "}
+              {/* ép chiều cao */}
+              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
+                Độ cứng của đá lẫn trong gương
+              </TableCell>
+              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
+                {record.hardness?.name || "-"}
+              </TableCell>
+            </TableRow>
+
+            <TableRow sx={{ height: 28 }}>
+              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
+                Tỉ lệ đá lẫn trong gương (Ckẹp)
+              </TableCell>
+              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
+                {record.rockRatio?.name || "-"}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+
+          {/* Phần bảng dữ liệu norms nền trắng */}
+          <TableBody sx={{ backgroundColor: "#fff" }}>
+            {record.norms?.map((item: any, index: number) => (
+              <TableRow key={index}>
+                <TableCell align="center" sx={{ width: "5%" }}>
+                  {index + 1}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "20%" }}>
+                  {item.assignmentCode?.code}
+                </TableCell>
+                <TableCell sx={{ width: "55%" }}>
+                  {item.assignmentCode?.name}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "10%" }}>
+                  {item.assignmentCode?.uom?.name || ""}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "10%" }}>
+                  {item.norm ? item.norm.toLocaleString() : ""}
+                </TableCell>
+              </TableRow>
+            ))}
+
+            {(!record.norms || record.norms.length === 0) && (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  Không có dữ liệu
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
 
   const columns: TableProps<AdjustmentNormOutputType>["columns"] = [
     {
@@ -375,7 +382,7 @@ export default function AdjustmentNormKDL() {
               </Box>
             </Box>
           </Box>
-          <Table<AdjustmentNormOutputType>
+          <AntTable<AdjustmentNormOutputType>
             rowKey="_id"
             rowSelection={rowSelection}
             expandable={{

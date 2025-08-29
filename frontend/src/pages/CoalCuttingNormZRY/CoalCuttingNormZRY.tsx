@@ -222,7 +222,7 @@ export default function CoalCuttingNormZRY() {
         key: "name",
         width: "55%",
         render: (text: string) => (
-          <Typography sx={{ color: "blue" }}>{text}</Typography>
+          <Typography sx={{ color: "black" }}>{text}</Typography>
         ),
       },
       {
