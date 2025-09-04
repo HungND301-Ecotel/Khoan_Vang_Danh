@@ -1,212 +1,385 @@
-import { Add, ArrowDropDown, Delete, Edit, FileDownload, FileUpload, FilterList, Mail, Print, Search } from '@mui/icons-material'
-import { Box, Breadcrumbs, Button, Container, IconButton, InputAdornment, Paper, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material'
-import React, { useState } from 'react'
-import AssignmentCodeModal from '../../components/AssignmentCodeModal/AssignmentCodeModal'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AssignmentCodeInputType, AssignmentCodeOutputType } from '../../types'
-import api from '../../config/api.config'
-import { showConfirmAlert, showErrorAlert, showSuccessAlert } from '../../components/Alert'
-import { TableRowSelection } from 'antd/es/table/interface'
-import { Table, TableProps } from 'antd'
+import {
+  Add,
+  ArrowDropDown,
+  Delete,
+  Edit,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Search,
+} from "@mui/icons-material";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  Container,
+  IconButton,
+  InputAdornment,
+  Paper,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from "@mui/material";
+import React, { useState } from "react";
+import AssignmentCodeModal from "../../components/AssignmentCodeModal/AssignmentCodeModal";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AssignmentCodeInputType, AssignmentCodeOutputType } from "../../types";
+import api from "../../config/api.config";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../../components/Alert";
+import { TableRowSelection } from "antd/es/table/interface";
+import { Table, TableProps } from "antd";
 
 export default function AssignmentCode() {
-    const [open, setOpen] = useState(false)
-    const [selectedAssignmentCode, setSelectedAssignmentCode] = useState<AssignmentCodeOutputType | null>(null)
-    const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<React.Key[]>([])
-    const [searchValue, setSearchValue] = useState('')
+  const [open, setOpen] = useState(false);
+  const [selectedAssignmentCode, setSelectedAssignmentCode] =
+    useState<AssignmentCodeOutputType | null>(null);
+  const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<
+    React.Key[]
+  >([]);
+  const [searchValue, setSearchValue] = useState("");
 
-    const queryClient = useQueryClient()
-    const { data: assignmentcodes = [] } = useQuery({
-        queryKey: ['assignmentcodes', searchValue],
-        queryFn: () => api.get(`/assignmentcodes?q=${searchValue}`).then(res => res.data.data)
-    })
+  const queryClient = useQueryClient();
+  const { data: assignmentcodes = [] } = useQuery({
+    queryKey: ["assignmentcodes", searchValue],
+    queryFn: () =>
+      api.get(`/assignmentcodes?q=${searchValue}`).then((res) => res.data.data),
+  });
 
-    const createMutation = useMutation({
-        mutationFn: (newAssignmentCode: Partial<AssignmentCodeInputType>) =>
-            api.post('/assignmentcodes', newAssignmentCode).then(res => res.data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['assignmentcodes'] });
-            setOpen(false)
-            showSuccessAlert('Thêm thành công')
-        },
-        onError: (error: any) => {
-            showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-        }
-    });
-    const updateMutation = useMutation({
-        mutationFn: (updateAssignmentCode: Partial<AssignmentCodeInputType>) =>
-            api.put(`/assignmentcodes/${updateAssignmentCode._id}`, updateAssignmentCode).then(res => res.data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['assignmentcodes'] });
-            setOpen(false)
-            setSelectedAssignmentCode(null)
-            showSuccessAlert('Sửa thành công')
-        },
-        onError: (error: any) => {
-            showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-        }
-    });
-    const handleDelete = () => {
-        if (selectedAssignmentCodes.length === 0) {
-            showErrorAlert('Không tìm thấy bản ghi');
-            return;
-        }
-        showConfirmAlert(`Bạn có muốn xóa ${selectedAssignmentCodes.length} bản ghi? hành động này không thể hoàn tác.`).then((result) => {
-            if (result.isConfirmed) {
-                deleteMutation.mutate(selectedAssignmentCodes)
-            }
-        });
-    };
-    const deleteMutation = useMutation({
-        mutationFn: (ids: React.Key[]) =>
-            api.delete(`/assignmentcodes`, { data: { ids } }).then(res => res.data.message),
-        onSuccess: (message) => {
-            queryClient.invalidateQueries({ queryKey: ['assignmentcodes'] });
-            setSelectedAssignmentCodes([])
-            showSuccessAlert(message || 'Xóa thành công')
-        },
-        onError: (error: any) => {
-            console.log(error.response.data.message || error.response || 'Lỗi')
-            showErrorAlert(error.response.data.message || error.response || 'Lỗi')
-        }
-    });
-    const handleSubmit = (values: Partial<AssignmentCodeInputType>) => {
-        if (selectedAssignmentCode) {
-            updateMutation.mutate({ ...values, _id: selectedAssignmentCode._id });
-        } else {
-            createMutation.mutate(values);
-        }
-    };
-    const handleOpen = (AssignmentCode?: AssignmentCodeOutputType) => {
-        if (AssignmentCode) {
-            setSelectedAssignmentCode(AssignmentCode)
-        } else {
-            setSelectedAssignmentCode(null)
-        }
-        setOpen(true)
+  const createMutation = useMutation({
+    mutationFn: (newAssignmentCode: Partial<AssignmentCodeInputType>) =>
+      api.post("/assignmentcodes", newAssignmentCode).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
+      setOpen(false);
+      showSuccessAlert("Thêm thành công");
+    },
+    onError: (error: any) => {
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+  const updateMutation = useMutation({
+    mutationFn: (updateAssignmentCode: Partial<AssignmentCodeInputType>) =>
+      api
+        .put(
+          `/assignmentcodes/${updateAssignmentCode._id}`,
+          updateAssignmentCode
+        )
+        .then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
+      setOpen(false);
+      setSelectedAssignmentCode(null);
+      showSuccessAlert("Sửa thành công");
+    },
+    onError: (error: any) => {
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+  const handleDelete = () => {
+    if (selectedAssignmentCodes.length === 0) {
+      showErrorAlert("Không tìm thấy bản ghi");
+      return;
     }
+    showConfirmAlert(
+      `Bạn có muốn xóa ${selectedAssignmentCodes.length} bản ghi? hành động này không thể hoàn tác.`
+    ).then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(selectedAssignmentCodes);
+      }
+    });
+  };
+  const deleteMutation = useMutation({
+    mutationFn: (ids: React.Key[]) =>
+      api
+        .delete(`/assignmentcodes`, { data: { ids } })
+        .then((res) => res.data.message),
+    onSuccess: (message) => {
+      queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
+      setSelectedAssignmentCodes([]);
+      showSuccessAlert(message || "Xóa thành công");
+    },
+    onError: (error: any) => {
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+  const handleSubmit = (values: Partial<AssignmentCodeInputType>) => {
+    if (selectedAssignmentCode) {
+      updateMutation.mutate({ ...values, _id: selectedAssignmentCode._id });
+    } else {
+      createMutation.mutate(values);
+    }
+  };
+  const handleOpen = (AssignmentCode?: AssignmentCodeOutputType) => {
+    if (AssignmentCode) {
+      setSelectedAssignmentCode(AssignmentCode);
+    } else {
+      setSelectedAssignmentCode(null);
+    }
+    setOpen(true);
+  };
 
-    const columns: TableProps<AssignmentCodeOutputType>['columns'] = [
-        {
-            title: '',
-            dataIndex: 'number',
-            key: 'number',
-            width: 50,
-            render: (value, record, index) => (
-                <Typography>{index + 1}</Typography>
-            )
-        },
-        {
-            title: <Typography sx={{ fontWeight: 'bold' }}>Mã thiết bị</Typography>,
-            dataIndex: 'deviceCode',
-            key: 'deviceCode',
-            render: (_, record) => (
-                <Typography sx={{ fontWeight: 'bold' }}>{record.deviceCode?.code}</Typography>
-            ),
-            sorter: (a, b) =>
-                (a.deviceCode?.code ?? '').localeCompare(b.deviceCode?.code ?? '', 'vi', { sensitivity: 'base' }),
-        },
-        {
-            title: <Typography sx={{ fontWeight: 'bold' }}>Mã giao khoán</Typography>,
-            dataIndex: 'code',
-            key: 'code',
-            render: (_, record) => (
-                <Typography sx={{ fontWeight: 'bold' }}>{record.code}</Typography>
-            ),
-            sorter: (a, b) =>
-                (a.code ?? '').localeCompare(b.code ?? '', 'vi', { sensitivity: 'base' }),
-        },
-        {
-            title: <Typography sx={{ fontWeight: 'bold' }}>Tên giao khoán</Typography>,
-            dataIndex: 'name',
-            key: 'name',
-            sorter: (a, b) =>
-                (a.name ?? '').localeCompare(b.name ?? '', 'vi', { sensitivity: 'base' }),
-        },
-        {
-            title: <Typography sx={{ fontWeight: 'bold' }}>ĐVT</Typography>,
-            dataIndex: 'uom',
-            key: 'uom',
-            render: (_, record) => (
-                <Typography sx={{ fontWeight: 'bold' }}>{record.uom?.name}</Typography>
-            ),
-        },
-        {
-            title: <Typography sx={{ fontWeight: 'bold' }}>Đơn giá</Typography>,
-            dataIndex: 'price',
-            key: 'price',
-            render: (_, record) => (
-                <Typography sx={{ fontWeight: 'bold' }}>{record.price ? record.price.toLocaleString() : ''}</Typography>
-            ),
-        },
-        {
-            title: <Typography sx={{ fontWeight: 'bold' }}>Sửa</Typography>,
-            dataIndex: 'edit',
-            width: 50,
-            render: (_, record) => (
-                <IconButton onClick={() => handleOpen(record)}>
-                    <Edit />
-                </IconButton>
-            )
-        },
-    ]
+  const columns: TableProps<AssignmentCodeOutputType>["columns"] = [
+    {
+      title: "",
+      dataIndex: "number",
+      key: "number",
+      width: 50,
+      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Mã thiết bị</Typography>,
+      dataIndex: "deviceCode",
+      key: "deviceCode",
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>
+          {record.deviceCode?.code}
+        </Typography>
+      ),
+      sorter: (a, b) =>
+        (a.deviceCode?.code ?? "").localeCompare(
+          b.deviceCode?.code ?? "",
+          "vi",
+          { sensitivity: "base" }
+        ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
+      dataIndex: "code",
+      key: "code",
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+      ),
+      sorter: (a, b) =>
+        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+          sensitivity: "base",
+        }),
+    },
+    {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>Tên giao khoán</Typography>
+      ),
+      dataIndex: "name",
+      key: "name",
+      sorter: (a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? "", "vi", {
+          sensitivity: "base",
+        }),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
+      dataIndex: "uom",
+      key: "uom",
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>{record.uom?.name}</Typography>
+      ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>,
+      dataIndex: "price",
+      key: "price",
+      render: (_, record) => (
+        <Typography sx={{ fontWeight: "bold" }}>
+          {record.price ? record.price.toLocaleString() : ""}
+        </Typography>
+      ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+      dataIndex: "edit",
+      width: 50,
+      render: (_, record) => (
+        <IconButton onClick={() => handleOpen(record)}>
+          <Edit />
+        </IconButton>
+      ),
+    },
+  ];
 
-    const rowSelection: TableRowSelection<AssignmentCodeOutputType> = {
-        selectedRowKeys: selectedAssignmentCodes,
-        onChange: (newSelectedAssignmentCodes: React.Key[]) => {
-            setSelectedAssignmentCodes(newSelectedAssignmentCodes);
-        },
-    };
+  const rowSelection: TableRowSelection<AssignmentCodeOutputType> = {
+    selectedRowKeys: selectedAssignmentCodes,
+    onChange: (newSelectedAssignmentCodes: React.Key[]) => {
+      setSelectedAssignmentCodes(newSelectedAssignmentCodes);
+    },
+  };
 
-    return (
+  return (
+    <Box>
+      <Breadcrumbs aria-label="breadcrumb">
+        <Typography>Danh mục</Typography>
+        <Typography>Mã giao khoán</Typography>
+      </Breadcrumbs>
+      <Box mt={3}>
         <Box>
-            <Breadcrumbs aria-label="breadcrumb">
-                <Typography>Danh mục</Typography>
-                <Typography>Mã giao khoán</Typography>
-            </Breadcrumbs>
-            <Box mt={3}>
-                <Box>
-                    <Box sx={{ mb: 2 }}>
-                        <Typography variant="h4" sx={{ color: 'blue' }}>Mã giao khoán</Typography>
-                        <Box display={'flex'} gap={4} mt={2} justifyContent='space-between'>
-                            <Box display={'flex'} gap={2}>
-                                <Button variant='contained' color='warning' endIcon={<Add />} onClick={() => handleOpen()}>Tạo mới</Button>
-                                <Button variant='contained' color='error' endIcon={<Delete />} onClick={() => handleDelete()}>Xóa</Button>
-                            </Box>
-                            <Box display={'flex'} flex={1} gap={2}>
-                                <Button variant='outlined' color='inherit' startIcon={<FilterList />}>Lọc</Button>
-                                <TextField fullWidth size='small'
-                                    placeholder='Tìm kiếm'
-                                    onChange={(e) => setSearchValue(e.target.value)}
-                                    InputProps={{
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <Search sx={{ fontSize: 24 }} />
-                                            </InputAdornment>
-                                        )
-                                    }} />
-                            </Box>
-                            <Box display={'flex'} gap={2}>
-                                <Button variant='outlined' color='inherit' startIcon={<FileUpload />}>Tải lên</Button>
-                                <Button variant='outlined' color='inherit' startIcon={<FileDownload />}>Xuất file</Button>
-                                <Button variant='outlined' color='inherit' startIcon={<Print />}>In</Button>
-                                <Button variant='outlined' color='inherit' startIcon={<Mail />} endIcon={<ArrowDropDown />}>Gửi</Button>
-                            </Box>
-                        </Box>
-                    </Box>
-                    <Table<AssignmentCodeOutputType> rowKey="_id" rowSelection={rowSelection}
-                        pagination={{
-                            position: ['bottomCenter'],
-                            showSizeChanger: true,
-                            pageSizeOptions: ['10', '20', '50', '100'],
-                            defaultPageSize: 10,
-                            showTotal: (total, range) => <div style={{ flex: 1, textAlign: 'left' }}>
-                                Hiển thị {range[0]}-{range[1]} trên {total} mục
-                            </div>,
-                        }} columns={columns} dataSource={assignmentcodes} />
-                </Box>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" sx={{ color: "blue" }}>
+              Mã giao khoán
+            </Typography>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  endIcon={<Add />}
+                  onClick={() => handleOpen()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Tạo mới
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<Delete />}
+                  onClick={() => handleDelete()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Xóa
+                </Button>
+              </Box>
+              <Box display={"flex"} flex={1} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Lọc
+                </Button>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm"
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Search sx={{ fontSize: 24 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Tải lên
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Xuất file
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  In
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Gửi
+                </Button>
+              </Box>
             </Box>
-            <AssignmentCodeModal open={open} setOpen={setOpen} handleSubmit={handleSubmit} selectedAssignmentCode={selectedAssignmentCode} />
+          </Box>
+          <Table<AssignmentCodeOutputType>
+            rowKey="_id"
+            rowSelection={rowSelection}
+            pagination={{
+              position: ["bottomCenter"],
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              defaultPageSize: 10,
+              showTotal: (total, range) => (
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                </div>
+              ),
+            }}
+            columns={columns}
+            dataSource={assignmentcodes}
+          />
         </Box>
-    )
+      </Box>
+      <AssignmentCodeModal
+        open={open}
+        setOpen={setOpen}
+        handleSubmit={handleSubmit}
+        selectedAssignmentCode={selectedAssignmentCode}
+      />
+    </Box>
+  );
 }

@@ -1,4 +1,15 @@
-import { Add, ArrowDropDown, Delete, Edit, FileDownload, FileUpload, FilterList, Mail, Print, Search } from "@mui/icons-material";
+import {
+  Add,
+  ArrowDropDown,
+  Delete,
+  Edit,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Search,
+} from "@mui/icons-material";
 import {
   Box,
   Breadcrumbs,
@@ -18,14 +29,17 @@ import {
   showErrorAlert,
   showSuccessAlert,
 } from "../../components/Alert";
-import { TableRowSelection } from 'antd/es/table/interface';
-import { TableProps, Table } from 'antd';
+import { TableRowSelection } from "antd/es/table/interface";
+import { TableProps, Table } from "antd";
 
 export default function MirrorRatio() {
   const [open, setOpen] = useState(false);
-  const [selectedMirrorRatio, setSelectedMirrorRatio] = useState<MirrorRatioType | null>(null);
-  const [selectedMirrorRatios, setSelectedMirrorRatios] = useState<React.Key[]>([]);
-  const [searchValue, setSearchValue] = useState('');
+  const [selectedMirrorRatio, setSelectedMirrorRatio] =
+    useState<MirrorRatioType | null>(null);
+  const [selectedMirrorRatios, setSelectedMirrorRatios] = useState<React.Key[]>(
+    []
+  );
+  const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
   const { data: mirrorratios = [] } = useQuery({
@@ -79,13 +93,14 @@ export default function MirrorRatio() {
       showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
       return;
     }
-    showConfirmAlert(`Bạn có muốn xóa ${selectedMirrorRatios.length} bản ghi đã chọn?`).then((result) => {
+    showConfirmAlert(
+      `Bạn có muốn xóa ${selectedMirrorRatios.length} bản ghi đã chọn?`
+    ).then((result) => {
       if (result.isConfirmed) {
         deleteMultipleMutation.mutate(selectedMirrorRatios as string[]);
       }
     });
   };
-
 
   const deleteSingleMutation = useMutation({
     mutationFn: (id: string) =>
@@ -101,7 +116,7 @@ export default function MirrorRatio() {
 
   const deleteMultipleMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const promises = ids.map(id => api.delete(`/mirrorratios/${id}`));
+      const promises = ids.map((id) => api.delete(`/mirrorratios/${id}`));
       return Promise.all(promises);
     },
     onSuccess: () => {
@@ -131,29 +146,33 @@ export default function MirrorRatio() {
     setOpen(true);
   };
 
-  const columns: TableProps<MirrorRatioType>['columns'] = [
+  const columns: TableProps<MirrorRatioType>["columns"] = [
     {
-      title: '',
-      dataIndex: 'number',
-      key: 'number',
+      title: "",
+      dataIndex: "number",
+      key: "number",
       width: 50,
-      render: (value, record, index) => (
-        <Typography>{index + 1}</Typography>
-      )
+      render: (value, record, index) => <Typography>{index + 1}</Typography>,
     },
     {
-      title: <Typography sx={{ fontWeight: 'bold' }}>Tỉ lệ gương than mềm</Typography>,
-      dataIndex: 'name',
-      key: 'name',
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>
+          Tỉ lệ gương than mềm
+        </Typography>
+      ),
+      dataIndex: "name",
+      key: "name",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: 'bold' }}>{record.name}</Typography>
+        <Typography sx={{ fontWeight: "bold" }}>{record.name}</Typography>
       ),
       sorter: (a, b) =>
-        (a.name ?? '').localeCompare(b.name ?? '', 'vi', { sensitivity: 'base' }),
+        (a.name ?? "").localeCompare(b.name ?? "", "vi", {
+          sensitivity: "base",
+        }),
     },
     {
-      title: <Typography sx={{ fontWeight: 'bold' }}>sửa</Typography>,
-      dataIndex: 'actions',
+      title: <Typography sx={{ fontWeight: "bold" }}>sửa</Typography>,
+      dataIndex: "actions",
       width: 100,
       render: (_, record) => (
         <Box display="flex" gap={1}>
@@ -164,7 +183,7 @@ export default function MirrorRatio() {
             <Delete color="error" />
           </IconButton> */}
         </Box>
-      )
+      ),
     },
   ];
 
@@ -184,32 +203,65 @@ export default function MirrorRatio() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: 'blue' }}>
+            <Typography variant="h4" sx={{ color: "blue" }}>
               Tỉ lệ gương than mềm
             </Typography>
-            <Box display={'flex'} gap={4} mt={2} justifyContent='space-between'>
-              <Box display={'flex'} gap={2}>
-                <Button variant='contained' color='warning' endIcon={<Add />} onClick={() => handleOpen()}>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  endIcon={<Add />}
+                  onClick={() => handleOpen()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Tạo mới
                 </Button>
-                <Button 
-                  variant='contained' 
-                  color='error' 
-                  endIcon={<Delete />} 
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<Delete />}
                   onClick={handleDeleteMultiple}
                   disabled={selectedMirrorRatios.length === 0}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xóa ({selectedMirrorRatios.length})
                 </Button>
               </Box>
-              <Box display={'flex'} flex={1} gap={2}>
-                <Button variant='outlined' color='inherit' startIcon={<FilterList />}>
+              <Box display={"flex"} flex={1} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Lọc
                 </Button>
-                <TextField 
-                  fullWidth 
-                  size='small'
-                  placeholder='Tìm kiếm'
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   InputProps={{
@@ -217,42 +269,93 @@ export default function MirrorRatio() {
                       <InputAdornment position="end">
                         <Search sx={{ fontSize: 24 }} />
                       </InputAdornment>
-                    )
-                  }} 
+                    ),
+                  }}
                 />
               </Box>
-              <Box display={'flex'} gap={2}>
-                <Button variant='outlined' color='inherit' startIcon={<FileUpload />}>
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Tải lên
                 </Button>
-                <Button variant='outlined' color='inherit' startIcon={<FileDownload />}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Xuất file
                 </Button>
-                <Button variant='outlined' color='inherit' startIcon={<Print />}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   In
                 </Button>
-                <Button variant='outlined' color='inherit' startIcon={<Mail />} endIcon={<ArrowDropDown />}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Gửi
                 </Button>
               </Box>
             </Box>
           </Box>
-          <Table<MirrorRatioType> 
-            rowKey="_id" 
+          <Table<MirrorRatioType>
+            rowKey="_id"
             rowSelection={rowSelection}
             pagination={{
-              position: ['bottomCenter'],
+              position: ["bottomCenter"],
               showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100'],
+              pageSizeOptions: ["10", "20", "50", "100"],
               defaultPageSize: 10,
-              showTotal: (total, range) => <div style={{ flex: 1, textAlign: 'left' }}>
-                Hiển thị {range[0]}-{range[1]} trên {total} mục
-              </div>,
-            }} 
-            columns={columns} 
-            dataSource={mirrorratios.filter((item: MirrorRatioType) => 
+              showTotal: (total, range) => (
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                </div>
+              ),
+            }}
+            columns={columns}
+            dataSource={mirrorratios.filter((item: MirrorRatioType) =>
               item.name?.toLowerCase().includes(searchValue.toLowerCase())
-            )} 
+            )}
           />
         </Box>
       </Box>

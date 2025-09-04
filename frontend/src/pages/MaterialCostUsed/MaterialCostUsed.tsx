@@ -56,7 +56,8 @@ export default function MaterialCostUsed() {
         const res = await api.get(`/materialcostuseds${query}`);
         return res.data?.data || [];
       } catch (error: any) {
-        const errorMessage = error.response?.data?.message || "Lỗi khi tải dữ liệu";
+        const errorMessage =
+          error.response?.data?.message || "Lỗi khi tải dữ liệu";
         showErrorAlert(errorMessage);
         return [];
       }
@@ -134,21 +135,22 @@ export default function MaterialCostUsed() {
     },
   });
 
- const getOneMutation = useMutation({
-  mutationFn: (id: string) =>
-    api.get(`/materialcostuseds/${id}`).then((res) => res.data.data),
-  onSuccess: (data, id) => {
-    setExpandedData((prev) => ({ ...prev, [id]: data }));
-  },
-  onError: (error: any, variables) => {
-    const errorMessage = error.response?.data?.message || "Không tìm thấy dữ liệu";
-    console.log(errorMessage);
-    setExpandedData((prev) => ({ ...prev, [variables]: null }));
-    if (error.response?.status !== 404) {
-      showErrorAlert(errorMessage);
-    }
-  },
-});
+  const getOneMutation = useMutation({
+    mutationFn: (id: string) =>
+      api.get(`/materialcostuseds/${id}`).then((res) => res.data.data),
+    onSuccess: (data, id) => {
+      setExpandedData((prev) => ({ ...prev, [id]: data }));
+    },
+    onError: (error: any, variables) => {
+      const errorMessage =
+        error.response?.data?.message || "Không tìm thấy dữ liệu";
+      console.log(errorMessage);
+      setExpandedData((prev) => ({ ...prev, [variables]: null }));
+      if (error.response?.status !== 404) {
+        showErrorAlert(errorMessage);
+      }
+    },
+  });
 
   const handleSubmit = (values: Partial<MaterialCostUsedInputType>) => {
     if (selected) {
@@ -173,7 +175,7 @@ export default function MaterialCostUsed() {
       showErrorAlert("Không tìm thấy ID của bản ghi");
       return;
     }
-    
+
     if (expandedRowKeys.includes(key)) {
       setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
     } else {
@@ -391,6 +393,14 @@ export default function MaterialCostUsed() {
                   color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tạo mới
                 </Button>
@@ -399,6 +409,14 @@ export default function MaterialCostUsed() {
                   color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xóa
                 </Button>
@@ -408,6 +426,14 @@ export default function MaterialCostUsed() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Lọc
                 </Button>
@@ -431,6 +457,14 @@ export default function MaterialCostUsed() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tải lên
                 </Button>
@@ -438,6 +472,14 @@ export default function MaterialCostUsed() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xuất file
                 </Button>
@@ -445,6 +487,14 @@ export default function MaterialCostUsed() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   In
                 </Button>
@@ -453,6 +503,14 @@ export default function MaterialCostUsed() {
                   color="inherit"
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Gửi
                 </Button>

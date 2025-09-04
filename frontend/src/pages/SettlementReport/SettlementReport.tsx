@@ -15,6 +15,7 @@ import {
   Breadcrumbs,
   Tabs,
   Tab,
+  Checkbox,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -23,6 +24,7 @@ import {
   MaterialBudgetInputType,
   PhaseOutputType,
 } from "../../types";
+import { CalendarToday } from "@mui/icons-material";
 
 export default function SettlementReport() {
   const [selectedMonth, setSelectedMonth] = useState<Number>();
@@ -74,22 +76,38 @@ export default function SettlementReport() {
   };
 
   return (
-    <Box>
+    <Box sx={{ p: 2 }}>
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
-                <Grid container spacing={3} mb={3}>
+                <Grid container spacing={2} mb={3}>
                   <Grid item xs={4}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#333' }}>
                       Ngày bắt đầu
                     </Typography>
                     <TextField
                       fullWidth
-                      sx={{ minWidth: 240 }}
+                      size="small"
+                      placeholder="Placeholder"
+                      sx={{ 
+                        minWidth: 10,
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: '#f8f9fa',
+                          '& fieldset': {
+                            borderColor: '#e0e0e0',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: '#bdbdbd',
+                          },
+                        }
+                      }}
                       select
                       value={selectedYear}
+                      InputProps={{
+                        endAdornment: <CalendarToday />, 
+                      }}
                       SelectProps={{
                         MenuProps: {
                           PaperProps: {
@@ -98,6 +116,7 @@ export default function SettlementReport() {
                             },
                           },
                         },
+                        IconComponent: () => null,
                       }}
                       onChange={(e) =>
                         setSelectedYear(parseInt(e.target.value))
@@ -111,13 +130,29 @@ export default function SettlementReport() {
                     </TextField>
                   </Grid>
                   <Grid item xs={4}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#333' }}>
                       Ngày kết thúc
                     </Typography>
                     <TextField
                       fullWidth
-                      sx={{ minWidth: 240 }}
+                      size="small"
+                      placeholder="Placeholder"
+                      sx={{ 
+                        minWidth: 10,
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: '#f8f9fa',
+                          '& fieldset': {
+                            borderColor: '#e0e0e0',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: '#bdbdbd',
+                          },
+                        }
+                      }}
                       select
+                      InputProps={{
+                        endAdornment: <CalendarToday />, 
+                      }}
                       SelectProps={{
                         MenuProps: {
                           PaperProps: {
@@ -126,6 +161,7 @@ export default function SettlementReport() {
                             },
                           },
                         },
+                        IconComponent: () => null,
                       }}
                       onChange={(e) =>
                         setSelectedMonth(parseInt(e.target.value))
@@ -139,12 +175,25 @@ export default function SettlementReport() {
                     </TextField>
                   </Grid>
                   <Grid item xs={4}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#333' }}>
                       Chọn công đoạn
                     </Typography>
                     <TextField
                       fullWidth
-                      sx={{ minWidth: 240 }}
+                      size="small"
+                      placeholder="Placeholder"
+                      sx={{ 
+                        minWidth: 492,
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: '#f8f9fa',
+                          '& fieldset': {
+                            borderColor: '#e0e0e0',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: '#bdbdbd',
+                          },
+                        }
+                      }}
                       select
                       variant="outlined"
                     >
@@ -159,28 +208,32 @@ export default function SettlementReport() {
               </Box>
             </Box>
           </Box>
-
-          {/* Phần hiển thị bảng */}
-          <TableContainer component={Paper}>
-            <Table sx={{ width: "100%" }}>
+          <TableContainer component={Paper} sx={{ boxShadow: 'none', border: '1px solid #e0e0e0' }}>
+            <Table sx={{ width: "100%" }} size="small">
               <TableHead>
-                {/* Hàng 1 */}
                 <TableRow>
                   <TableCell
                     align="center"
-                    colSpan={7}
-                    sx={{ border: "1px solid black", fontWeight: "bold" }}
+                    sx={{ border: "1px solid #ddd", fontWeight: "bold", p: 0.5, minWidth: 40 }}
                   >
-                    {/* Ô trống */}
+                    <Checkbox size="small" />
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    colSpan={6}
+                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}
+                  >
                   </TableCell>
 
                   <TableCell
                     align="center"
                     colSpan={7}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
+                      fontSize: '0.75rem',
+                      p: 0.5
                     }}
                   >
                     Kế hoạch
@@ -189,87 +242,89 @@ export default function SettlementReport() {
                     align="center"
                     colSpan={4}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
+                      fontSize: '0.75rem',
+                      p: 0.5
                     }}
                   >
                     Thực hiện
                   </TableCell>
                   <TableCell
                     align="center"
-                    colSpan={4}
+                    colSpan={2}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#FF620040",
+                      fontSize: '0.75rem',
+                      p: 0.5
                     }}
                   >
                     So sánh lãi(+); lỗ(-)
                   </TableCell>
                 </TableRow>
-
-                {/* Hàng 2 */}
                 <TableRow>
-                  {/* Bên trái */}
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid black", fontWeight: "bold" }}
+                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 40 }}
                   >
                     STT
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid black", fontWeight: "bold" }}
+                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 80 }}
                   >
                     Mã vật tư
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid black", fontWeight: "bold" }}
+                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 80 }}
                   >
                     Mã thiết bị
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid black", fontWeight: "bold" }}
+                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 100 }}
                   >
                     Mã giao khoán
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid black", fontWeight: "bold" }}
+                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 150 }}
                   >
                     Tên vật tư, tài sản
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid black", fontWeight: "bold" }}
+                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 60 }}
                   >
                     ĐVT
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid black", fontWeight: "bold" }}
+                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 80 }}
                   >
                     Đơn giá khoán
                   </TableCell>
-
-                  {/* Kế hoạch */}
                   <TableCell
                     align="center"
                     rowSpan={2}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Định mức gốc
@@ -278,9 +333,12 @@ export default function SettlementReport() {
                     align="center"
                     rowSpan={2}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 80
                     }}
                   >
                     Hệ số điều chỉnh định mức
@@ -289,9 +347,12 @@ export default function SettlementReport() {
                     align="center"
                     rowSpan={2}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Định mức
@@ -300,9 +361,11 @@ export default function SettlementReport() {
                     align="center"
                     colSpan={3}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
+                      fontSize: '0.7rem',
+                      p: 0.5
                     }}
                   >
                     Số lượng
@@ -311,22 +374,25 @@ export default function SettlementReport() {
                     align="center"
                     rowSpan={2}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Giá trị
                   </TableCell>
-
-                  {/* Thực hiện */}
                   <TableCell
                     align="center"
                     colSpan={3}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
+                      fontSize: '0.7rem',
+                      p: 0.5
                     }}
                   >
                     Số lượng
@@ -335,22 +401,26 @@ export default function SettlementReport() {
                     align="center"
                     rowSpan={2}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Giá trị
                   </TableCell>
-
-                  {/* So sánh lãi lỗ */}
                   <TableCell
                     align="center"
                     rowSpan={2}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#FF620040",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Số lượng
@@ -359,24 +429,27 @@ export default function SettlementReport() {
                     align="center"
                     rowSpan={2}
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#FF620040",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Giá trị
                   </TableCell>
                 </TableRow>
-
-                {/* Hàng 3 */}
                 <TableRow>
-                  {/* Số lượng kế hoạch */}
                   <TableCell
                     align="center"
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 60
                     }}
                   >
                     Tổng
@@ -384,9 +457,12 @@ export default function SettlementReport() {
                   <TableCell
                     align="center"
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Trong khoán
@@ -394,21 +470,25 @@ export default function SettlementReport() {
                   <TableCell
                     align="center"
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Ngoài khoán
                   </TableCell>
-
-                  {/* Số lượng thực hiện */}
                   <TableCell
                     align="center"
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 60
                     }}
                   >
                     Tổng
@@ -416,9 +496,12 @@ export default function SettlementReport() {
                   <TableCell
                     align="center"
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Trong khoán
@@ -426,9 +509,12 @@ export default function SettlementReport() {
                   <TableCell
                     align="center"
                     sx={{
-                      border: "1px solid black",
+                      border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
+                      fontSize: '0.7rem',
+                      p: 0.5,
+                      minWidth: 70
                     }}
                   >
                     Ngoài khoán
@@ -438,162 +524,210 @@ export default function SettlementReport() {
 
               <TableBody>
                 <TableRow>
-                  {Array.from({ length: 20 }).map((_, index) => (
+                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                    <Checkbox size="small" />
+                  </TableCell>
+                  {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
+                      key={index}
                       sx={{
-                        border: "1px solid black",
+                        border: "1px solid #ddd",
                         fontWeight: "bold",
+                        fontSize: '0.75rem',
+                        p: 0.5,
                         bgcolor:
-                          index >= 7 && index <= 13
+                          index >= 6 && index <= 12
                             ? "#F3D01640"
-                            : index >= 14 && index <= 17
+                            : index >= 13 && index <= 16
                             ? "#4CAF503D"
-                            : index >= 18 && index <= 20
+                            : index >= 17 && index <= 18
                             ? "#FF620040"
                             : "white",
                       }}
                     >
-                      {index === 4 ? "Chỉ tiêu hiện vật" : ""}
+                      {index === 3 ? "Chỉ tiêu hiện vật" : ""}
                     </TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
-                  {Array.from({ length: 20 }).map((_, index) => (
+                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                    <Checkbox size="small" />
+                  </TableCell>
+                  {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
+                      key={index}
                       sx={{
-                        border: "1px solid black",
+                        border: "1px solid #ddd",
                         fontWeight: "bold",
+                        fontSize: '0.75rem',
+                        p: 0.5,
                         bgcolor:
-                          index >= 7 && index <= 13
+                          index >= 6 && index <= 12
                             ? "#F3D01640"
-                            : index >= 14 && index <= 17
+                            : index >= 13 && index <= 16
                             ? "#4CAF503D"
-                            : index >= 18 && index <= 20
+                            : index >= 17 && index <= 18
                             ? "#FF620040"
                             : "white",
                       }}
                     >
-                      {index === 4 ? "Than nguyên khai" : ""}
+                      {index === 3 ? "Than nguyên khai" : ""}
                     </TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
-                  {Array.from({ length: 20 }).map((_, index) => (
+                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                    <Checkbox size="small" />
+                  </TableCell>
+                  {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
+                      key={index}
                       sx={{
-                        border: "1px solid black",
+                        border: "1px solid #ddd",
                         fontWeight: "bold",
+                        fontSize: '0.75rem',
+                        p: 0.5,
                         bgcolor:
-                          index >= 7 && index <= 13
+                          index >= 6 && index <= 12
                             ? "#F3D01640"
-                            : index >= 14 && index <= 17
+                            : index >= 13 && index <= 16
                             ? "#4CAF503D"
-                            : index >= 18 && index <= 20
+                            : index >= 17 && index <= 18
                             ? "#FF620040"
                             : "white",
                       }}
                     >
-                      {index === 4 ? "Mét lò đào" : ""}
+                      {index === 3 ? "Mét lò đào" : ""}
                     </TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
-                  {Array.from({ length: 20 }).map((_, index) => (
+                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                    <Checkbox size="small" />
+                  </TableCell>
+                  {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
+                      key={index}
                       sx={{
-                        border: "1px solid black",
+                        border: "1px solid #ddd",
                         fontWeight: "bold",
+                        fontSize: '0.75rem',
+                        p: 0.5,
                         bgcolor:
-                          index >= 7 && index <= 13
+                          index >= 6 && index <= 12
                             ? "#F3D01640"
-                            : index >= 14 && index <= 17
+                            : index >= 13 && index <= 16
                             ? "#4CAF503D"
-                            : index >= 18 && index <= 20
+                            : index >= 17 && index <= 18
                             ? "#FF620040"
                             : "white",
                       }}
                     >
-                      {index === 4 ? "Mét lò xén" : ""}
+                      {index === 3 ? "Mét lò xén" : ""}
                     </TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
-                  {Array.from({ length: 20 }).map((_, index) => (
+                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                    <Checkbox size="small" />
+                  </TableCell>
+                  {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
+                      key={index}
                       sx={{
-                        border: "1px solid black",
+                        border: "1px solid #ddd",
                         fontWeight: "bold",
+                        fontSize: '0.75rem',
+                        p: 0.5,
                         bgcolor:
-                          index >= 7 && index <= 13
+                          index >= 6 && index <= 12
                             ? "#F3D01640"
-                            : index >= 14 && index <= 17
+                            : index >= 13 && index <= 16
                             ? "#4CAF503D"
-                            : index >= 18 && index <= 20
+                            : index >= 17 && index <= 18
                             ? "#FF620040"
                             : "white",
                       }}
                     >
-                      {index === 4 ? "Tỉ lệ đá lẫn trong gương (Ckep)" : ""}
+                      {index === 3 ? "Tỉ lệ đá lẫn trong gương (Ckep)" : ""}
                     </TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
-                  {Array.from({ length: 20 }).map((_, index) => (
+                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                    <Checkbox size="small" />
+                  </TableCell>
+                  {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
+                      key={index}
                       sx={{
-                        border: "1px solid black",
+                        border: "1px solid #ddd",
                         fontWeight: "bold",
+                        fontSize: '0.75rem',
+                        p: 0.5,
                         bgcolor:
-                          index >= 7 && index <= 13
+                          index >= 6 && index <= 12
                             ? "#F3D01640"
-                            : index >= 14 && index <= 17
+                            : index >= 13 && index <= 16
                             ? "#4CAF503D"
-                            : index >= 18 && index <= 20
+                            : index >= 17 && index <= 18
                             ? "#FF620040"
                             : "white",
                       }}
                     >
-                      {index === 4 ? "Các chỉ tiêu vật tư" : ""}
+                      {index === 3 ? "Các chỉ tiêu vật tư" : ""}
                     </TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
-                  {Array.from({ length: 20 }).map((_, index) => (
+                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                    <Checkbox size="small" />
+                  </TableCell>
+                  {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
+                      key={index}
                       sx={{
-                        border: "1px solid black",
+                        border: "1px solid #ddd",
                         fontWeight: "bold",
+                        fontSize: '0.75rem',
+                        p: 0.5,
                         bgcolor:
-                          index >= 7 && index <= 13
+                          index >= 6 && index <= 12
                             ? "#F3D01640"
-                            : index >= 14 && index <= 17
+                            : index >= 13 && index <= 16
                             ? "#4CAF503D"
-                            : index >= 18 && index <= 20
+                            : index >= 17 && index <= 18
                             ? "#FF620040"
                             : "white",
                       }}
                     >
-                      {index === 4 ? "Vật tư có định mức" : ""}
+                      {index === 3 ? "Vật tư có định mức" : ""}
                     </TableCell>
                   ))}
                 </TableRow>
                 <TableRow>
-                  {Array.from({ length: 20 }).map((_, index) => (
+                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                    <Checkbox size="small" />
+                  </TableCell>
+                  {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
+                      key={index}
                       sx={{
-                        border: "1px solid black",
+                        border: "1px solid #ddd",
                         fontWeight: "bold",
+                        fontSize: '0.75rem',
+                        p: 0.5,
                         bgcolor:
-                          index >= 7 && index <= 13
+                          index >= 6 && index <= 12
                             ? "#F3D01640"
-                            : index >= 14 && index <= 17
+                            : index >= 13 && index <= 16
                             ? "#4CAF503D"
-                            : index >= 18 && index <= 20
+                            : index >= 17 && index <= 18
                             ? "#FF620040"
                             : "white",
                       }}
                     >
-                      {index === 4 ? "Vật tư chủ yếu" : ""}
+                      {index === 3 ? "Vật tư chủ yếu" : ""}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -604,24 +738,31 @@ export default function SettlementReport() {
                         <TableCell
                           align="center"
                           sx={{
-                            border: "1px solid black",
+                            border: "1px solid #ddd",
                             fontWeight: "bold",
-                            bgcolor: "#F3D01640",
+                            fontSize: '0.75rem',
+                            p: 0.5
+                          }}
+                        >
+                          <Checkbox size="small" />
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            border: "1px solid #ddd",
+                            fontWeight: "bold",
+                            fontSize: '0.75rem',
+                            p: 0.5
                           }}
                         ></TableCell>
                         <TableCell
                           align="center"
                           sx={{
-                            border: "1px solid black",
+                            border: "1px solid #ddd",
                             fontWeight: "bold",
-                          }}
-                        ></TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            border: "1px solid black",
-                            fontWeight: "bold",
-                            color: "blue",
+                            color: "black",
+                            fontSize: '0.75rem',
+                            p: 0.5
                           }}
                         >
                           {material.device}
@@ -629,18 +770,21 @@ export default function SettlementReport() {
                         <TableCell
                           align="center"
                           sx={{
-                            border: "1px solid black",
+                            border: "1px solid #ddd",
                             fontWeight: "bold",
-                            color: "blue",
+                            color: "black",
+                            fontSize: '0.75rem',
+                            p: 0.5
                           }}
                         >
                           {material.code}
                         </TableCell>
                         <TableCell
                           sx={{
-                            border: "1px solid black",
+                            border: "1px solid #ddd",
                             fontWeight: "bold",
-                            bgcolor: "#F3D01640",
+                            fontSize: '0.75rem',
+                            p: 0.5
                           }}
                         >
                           {material.name}
@@ -648,9 +792,10 @@ export default function SettlementReport() {
                         <TableCell
                           align="center"
                           sx={{
-                            border: "1px solid black",
+                            border: "1px solid #ddd",
                             fontWeight: "bold",
-                            bgcolor: "#F3D01640",
+                            fontSize: '0.75rem',
+                            p: 0.5
                           }}
                         >
                           {material.uom}
@@ -658,10 +803,11 @@ export default function SettlementReport() {
                         <TableCell
                           align="center"
                           sx={{
-                            border: "1px solid black",
+                            border: "1px solid #ddd",
                             fontWeight: "bold",
-                            color: "blue",
-                            bgcolor: "#F3D01640",
+                            color: "black",
+                            fontSize: '0.75rem',
+                            p: 0.5
                           }}
                         >
                           {material.price
@@ -670,10 +816,21 @@ export default function SettlementReport() {
                         </TableCell>
                         {Array.from({ length: 13 }).map((_, index) => (
                           <TableCell
+                            key={index}
                             align="center"
                             sx={{
-                              border: "1px solid black",
+                              border: "1px solid #ddd",
                               fontWeight: "bold",
+                              fontSize: '0.75rem',
+                              p: 0.5,
+                              bgcolor:
+                                index >= 0 && index <= 6
+                                  ? "#F3D01640"
+                                  : index >= 7 && index <= 10
+                                  ? "#4CAF503D"
+                                  : index >= 11 && index <= 12
+                                  ? "#FF620040"
+                                  : "white",
                             }}
                           >
                             {index === 0
@@ -699,19 +856,25 @@ export default function SettlementReport() {
                         ))}
                       </TableRow>
                       {material.materials.map((m) => (
-                        <TableRow>
+                        <TableRow key={m._id}>
                           <TableCell
                             align="center"
                             sx={{
-                              border: "1px solid black",
+                              border: "1px solid #ddd",
                               fontWeight: "bold",
+                              fontSize: '0.75rem',
+                              p: 0.5
                             }}
-                          ></TableCell>
+                          >
+                            <Checkbox size="small" />
+                          </TableCell>
                           <TableCell
                             align="center"
                             sx={{
-                              border: "1px solid black",
+                              border: "1px solid #ddd",
                               fontWeight: "bold",
+                              fontSize: '0.75rem',
+                              p: 0.5
                             }}
                           >
                             {m.code}
@@ -719,21 +882,27 @@ export default function SettlementReport() {
                           <TableCell
                             align="center"
                             sx={{
-                              border: "1px solid black",
+                              border: "1px solid #ddd",
                               fontWeight: "bold",
+                              fontSize: '0.75rem',
+                              p: 0.5
                             }}
                           ></TableCell>
                           <TableCell
                             align="center"
                             sx={{
-                              border: "1px solid black",
+                              border: "1px solid #ddd",
                               fontWeight: "bold",
+                              fontSize: '0.75rem',
+                              p: 0.5
                             }}
                           ></TableCell>
                           <TableCell
                             sx={{
-                              border: "1px solid black",
+                              border: "1px solid #ddd",
                               fontWeight: "bold",
+                              fontSize: '0.75rem',
+                              p: 0.5
                             }}
                           >
                             {m.name}
@@ -741,8 +910,10 @@ export default function SettlementReport() {
                           <TableCell
                             align="center"
                             sx={{
-                              border: "1px solid black",
+                              border: "1px solid #ddd",
                               fontWeight: "bold",
+                              fontSize: '0.75rem',
+                              p: 0.5
                             }}
                           >
                             {m.uom?.name}
@@ -750,16 +921,29 @@ export default function SettlementReport() {
                           <TableCell
                             align="center"
                             sx={{
-                              border: "1px solid black",
+                              border: "1px solid #ddd",
                               fontWeight: "bold",
+                              fontSize: '0.75rem',
+                              p: 0.5
                             }}
                           ></TableCell>
                           {Array.from({ length: 13 }).map((_, index) => (
                             <TableCell
+                              key={index}
                               align="center"
                               sx={{
-                                border: "1px solid black",
+                                border: "1px solid #ddd",
                                 fontWeight: "bold",
+                                fontSize: '0.75rem',
+                                p: 0.5,
+                                bgcolor:
+                                  index >= 0 && index <= 6
+                                    ? "#F3D01640"
+                                    : index >= 7 && index <= 10
+                                    ? "#4CAF503D"
+                                    : index >= 11 && index <= 12
+                                    ? "#FF620040"
+                                    : "white",
                               }}
                             ></TableCell>
                           ))}

@@ -221,7 +221,7 @@ export default function CuttingNormZRYModal({
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Chọn mã giao khoán"
+                    label="Mã giao khoán"
                     variant="outlined"
                     placeholder="Chọn..."
                   />

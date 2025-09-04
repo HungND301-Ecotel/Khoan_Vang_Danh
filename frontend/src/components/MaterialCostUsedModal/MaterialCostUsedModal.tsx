@@ -111,8 +111,16 @@ export default function MaterialCostUsedModal({
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <TextField
                 fullWidth
+                label="Mã chi phí"
+                value={formik.values.code}
+                onChange={(event) => {
+                  formik.setFieldValue("code", event.target.value);
+                }}
+              />
+              <TextField
+                fullWidth
                 select
-                label="Mã điện sản xuất"
+                label="Mã diện sản xuất"
                 variant="outlined"
                 value={formik.values.productionScope}
                 onChange={(event) => {
@@ -125,14 +133,6 @@ export default function MaterialCostUsedModal({
                   </MenuItem>
                 ))}
               </TextField>
-              <TextField
-                fullWidth
-                label="Mã chi phí"
-                value={formik.values.code}
-                onChange={(event) => {
-                  formik.setFieldValue("code", event.target.value);
-                }}
-              />
               <Autocomplete
                 multiple
                 options={materialassignments.filter(

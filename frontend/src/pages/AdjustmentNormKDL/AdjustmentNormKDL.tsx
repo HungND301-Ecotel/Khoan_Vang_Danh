@@ -310,6 +310,14 @@ export default function AdjustmentNormKDL() {
                   variant="contained"
                   color="warning"
                   endIcon={<Add />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                   onClick={() => handleOpen()}
                 >
                   Tạo mới
@@ -319,6 +327,14 @@ export default function AdjustmentNormKDL() {
                   color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                   disabled={
                     selectedRows.length === 0 || deleteMutation.isPending
                   }
@@ -331,6 +347,14 @@ export default function AdjustmentNormKDL() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Lọc
                 </Button>
@@ -354,6 +378,14 @@ export default function AdjustmentNormKDL() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tải lên
                 </Button>
@@ -361,6 +393,14 @@ export default function AdjustmentNormKDL() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xuất file
                 </Button>
@@ -368,6 +408,14 @@ export default function AdjustmentNormKDL() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   In
                 </Button>
@@ -376,6 +424,14 @@ export default function AdjustmentNormKDL() {
                   color="inherit"
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Gửi
                 </Button>

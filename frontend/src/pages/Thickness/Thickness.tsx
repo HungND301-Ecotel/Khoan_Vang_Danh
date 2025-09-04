@@ -1,4 +1,15 @@
-import { Add, ArrowDropDown, Delete, Edit, FileDownload, FileUpload, FilterList, Mail, Print, Search } from "@mui/icons-material";
+import {
+  Add,
+  ArrowDropDown,
+  Delete,
+  Edit,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Search,
+} from "@mui/icons-material";
 import {
   Box,
   Breadcrumbs,
@@ -18,14 +29,17 @@ import {
   showErrorAlert,
   showSuccessAlert,
 } from "../../components/Alert";
-import { TableRowSelection } from 'antd/es/table/interface';
-import { TableProps, Table } from 'antd';
+import { TableRowSelection } from "antd/es/table/interface";
+import { TableProps, Table } from "antd";
 
 export default function Thickness() {
   const [open, setOpen] = useState(false);
-  const [selectedThickness, setSelectedThickness] = useState<ThicknessType | null>(null);
-  const [selectedThicknesses, setSelectedThicknesses] = useState<React.Key[]>([]);
-  const [searchValue, setSearchValue] = useState('');
+  const [selectedThickness, setSelectedThickness] =
+    useState<ThicknessType | null>(null);
+  const [selectedThicknesses, setSelectedThicknesses] = useState<React.Key[]>(
+    []
+  );
+  const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
   const { data: thickness = [] } = useQuery({
@@ -79,20 +93,24 @@ export default function Thickness() {
       showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
       return;
     }
-    
-    showConfirmAlert(`Bạn có muốn xóa ${selectedThicknesses.length} bản ghi đã chọn?`).then((result) => {
+
+    showConfirmAlert(
+      `Bạn có muốn xóa ${selectedThicknesses.length} bản ghi đã chọn?`
+    ).then((result) => {
       if (result.isConfirmed) {
         // Tạo mảng các promise để xóa từng bản ghi
-        const deletePromises = selectedThicknesses.map(id => 
+        const deletePromises = selectedThicknesses.map((id) =>
           api.delete(`/thickness/${id}`)
         );
-        
+
         // Thực hiện xóa tất cả
         Promise.all(deletePromises)
           .then(() => {
             queryClient.invalidateQueries({ queryKey: ["thickness"] });
             setSelectedThicknesses([]);
-            showSuccessAlert(`Đã xóa ${selectedThicknesses.length} bản ghi thành công`);
+            showSuccessAlert(
+              `Đã xóa ${selectedThicknesses.length} bản ghi thành công`
+            );
           })
           .catch((error) => {
             console.error("Lỗi khi xóa:", error);
@@ -131,35 +149,35 @@ export default function Thickness() {
     setOpen(true);
   };
 
-  const columns: TableProps<ThicknessType>['columns'] = [
+  const columns: TableProps<ThicknessType>["columns"] = [
     {
-      title: '',
-      dataIndex: 'number',
-      key: 'number',
+      title: "",
+      dataIndex: "number",
+      key: "number",
       width: 50,
-      render: (value, record, index) => (
-        <Typography>{index + 1}</Typography>
-      )
+      render: (value, record, index) => <Typography>{index + 1}</Typography>,
     },
     {
-      title: <Typography sx={{ fontWeight: 'bold' }}>Độ dày vỉa</Typography>,
-      dataIndex: 'name',
-      key: 'name',
+      title: <Typography sx={{ fontWeight: "bold" }}>Độ dày vỉa</Typography>,
+      dataIndex: "name",
+      key: "name",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: 'bold' }}>{record.name}</Typography>
+        <Typography sx={{ fontWeight: "bold" }}>{record.name}</Typography>
       ),
       sorter: (a, b) =>
-        (a.name ?? '').localeCompare(b.name ?? '', 'vi', { sensitivity: 'base' }),
+        (a.name ?? "").localeCompare(b.name ?? "", "vi", {
+          sensitivity: "base",
+        }),
     },
     {
-      title: <Typography sx={{ fontWeight: 'bold' }}>Sửa</Typography>,
-      dataIndex: 'edit',
+      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+      dataIndex: "edit",
       width: 50,
       render: (_, record) => (
         <IconButton onClick={() => handleOpen(record)}>
           <Edit />
         </IconButton>
-      )
+      ),
     },
     // {
     //   title: <Typography sx={{ fontWeight: 'bold' }}>Xóa</Typography>,
@@ -181,7 +199,7 @@ export default function Thickness() {
   };
 
   // Lọc dữ liệu dựa trên giá trị tìm kiếm
-  const filteredThickness = thickness.filter((item: ThicknessType) => 
+  const filteredThickness = thickness.filter((item: ThicknessType) =>
     item.name?.toLowerCase().includes(searchValue.toLowerCase())
   );
 
@@ -197,69 +215,153 @@ export default function Thickness() {
             {/* <Typography variant="h4" sx={{ color: 'blue' }}>
               Độ dày vỉa
             </Typography> */}
-            <Box display={'flex'} gap={4} mt={2} justifyContent='space-between'>
-              <Box display={'flex'} gap={2}>
-                <Button variant='contained' color='warning' endIcon={<Add />} onClick={() => handleOpen()}>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  endIcon={<Add />}
+                  onClick={() => handleOpen()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Tạo mới
                 </Button>
-                <Button 
-                  variant='contained' 
-                  color='error' 
-                  endIcon={<Delete />} 
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<Delete />}
                   onClick={handleDeleteMultiple}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                   disabled={selectedThicknesses.length === 0}
                 >
                   Xóa ({selectedThicknesses.length})
                 </Button>
               </Box>
-              <Box display={'flex'} flex={1} gap={2}>
-                <Button variant='outlined' color='inherit' startIcon={<FilterList />}>
+              <Box display={"flex"} flex={1} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Lọc
                 </Button>
-                <TextField 
-                  fullWidth 
-                  size='small'
-                  placeholder='Tìm kiếm'
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm"
                   onChange={(e) => setSearchValue(e.target.value)}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
                         <Search sx={{ fontSize: 24 }} />
                       </InputAdornment>
-                    )
-                  }} 
+                    ),
+                  }}
                 />
               </Box>
-              <Box display={'flex'} gap={2}>
-                <Button variant='outlined' color='inherit' startIcon={<FileUpload />}>
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Tải lên
                 </Button>
-                <Button variant='outlined' color='inherit' startIcon={<FileDownload />}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Xuất file
                 </Button>
-                <Button variant='outlined' color='inherit' startIcon={<Print />}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   In
                 </Button>
-                <Button variant='outlined' color='inherit' startIcon={<Mail />} endIcon={<ArrowDropDown />}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
                   Gửi
                 </Button>
               </Box>
             </Box>
           </Box>
-          <Table<ThicknessType> 
-            rowKey="_id" 
+          <Table<ThicknessType>
+            rowKey="_id"
             rowSelection={rowSelection}
             pagination={{
-              position: ['bottomCenter'],
+              position: ["bottomCenter"],
               showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100'],
+              pageSizeOptions: ["10", "20", "50", "100"],
               defaultPageSize: 10,
-              showTotal: (total, range) => <div style={{ flex: 1, textAlign: 'left' }}>
-                Hiển thị {range[0]}-{range[1]} trên {total} mục
-              </div>,
-            }} 
-            columns={columns} 
-            dataSource={filteredThickness} 
+              showTotal: (total, range) => (
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                </div>
+              ),
+            }}
+            columns={columns}
+            dataSource={filteredThickness}
           />
         </Box>
       </Box>

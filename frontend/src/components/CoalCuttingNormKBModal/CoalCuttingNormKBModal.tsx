@@ -234,7 +234,7 @@ export default function CuttingNormKBModal({
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Chọn mã giao khoán"
+                    label="Mã giao khoán"
                     variant="outlined"
                     placeholder="Chọn..."
                   />

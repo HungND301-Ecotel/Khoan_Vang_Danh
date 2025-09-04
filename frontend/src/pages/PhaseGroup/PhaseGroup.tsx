@@ -82,10 +82,8 @@ export default function PhaseGroup() {
     },
   });
 
-  
   const deleteMultipleMutation = useMutation({
     mutationFn: (ids: string[]) => {
-    
       return Promise.all(
         ids.map((id) =>
           api.delete(`/phasegroups/${id}`).then((res) => res.data)
@@ -103,7 +101,6 @@ export default function PhaseGroup() {
     },
   });
 
-  
   const deleteSingleMutation = useMutation({
     mutationFn: (id: string) =>
       api.delete(`/phasegroups/${id}`).then((res) => res.data),
@@ -239,6 +236,14 @@ export default function PhaseGroup() {
                   color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tạo mới
                 </Button>
@@ -247,6 +252,14 @@ export default function PhaseGroup() {
                   color="error"
                   endIcon={<Delete />}
                   onClick={handleDeleteMultiple}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                   disabled={selectedPhaseGroups.length === 0}
                 >
                   Xóa ({selectedPhaseGroups.length})
@@ -257,6 +270,14 @@ export default function PhaseGroup() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Lọc
                 </Button>
@@ -279,6 +300,14 @@ export default function PhaseGroup() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tải lên
                 </Button>
@@ -286,6 +315,14 @@ export default function PhaseGroup() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xuất file
                 </Button>
@@ -293,6 +330,14 @@ export default function PhaseGroup() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   In
                 </Button>
@@ -301,6 +346,14 @@ export default function PhaseGroup() {
                   color="inherit"
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Gửi
                 </Button>

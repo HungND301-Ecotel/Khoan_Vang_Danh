@@ -287,6 +287,14 @@ export default function CoalCuttingNormKB() {
                 color="warning"
                 endIcon={<Add />}
                 onClick={() => handleOpen()}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
               >
                 Tạo mới
               </Button>
@@ -295,6 +303,14 @@ export default function CoalCuttingNormKB() {
                 color="error"
                 endIcon={<Delete />}
                 onClick={() => handleDelete()}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
               >
                 Xóa
               </Button>
@@ -305,6 +321,14 @@ export default function CoalCuttingNormKB() {
                 variant="outlined"
                 color="inherit"
                 startIcon={<FilterList />}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
               >
                 Lọc
               </Button>
@@ -316,6 +340,14 @@ export default function CoalCuttingNormKB() {
                 variant="outlined"
                 color="inherit"
                 startIcon={<FileUpload />}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
               >
                 Tải lên
               </Button>
@@ -323,10 +355,30 @@ export default function CoalCuttingNormKB() {
                 variant="outlined"
                 color="inherit"
                 startIcon={<FileDownload />}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
               >
                 Xuất file
               </Button>
-              <Button variant="outlined" color="inherit" startIcon={<Print />}>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<Print />}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
+              >
                 In
               </Button>
               <Button
@@ -334,6 +386,14 @@ export default function CoalCuttingNormKB() {
                 color="inherit"
                 startIcon={<Mail />}
                 endIcon={<ArrowDropDown />}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
               >
                 Gửi
               </Button>

@@ -157,7 +157,7 @@ export default function CuttingNormModal({
               <TextField
                 fullWidth
                 select
-                 label="Công đoạn"
+                label="Công đoạn"
                 variant="outlined"
                 value={formik.values.phase}
                 onChange={(event) => {
@@ -253,7 +253,7 @@ export default function CuttingNormModal({
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Chọn mã giao khoán"
+                    label="Mã giao khoán"
                     variant="outlined"
                     placeholder="Chọn..."
                   />

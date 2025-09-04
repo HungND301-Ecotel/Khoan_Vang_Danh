@@ -1,31 +1,56 @@
-import { YouTube } from '@mui/icons-material'
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material'
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from '@mui/material'
 import React, { Dispatch, SetStateAction } from 'react'
 import * as yup from 'yup'
 import { useFormik } from 'formik'
-import { HardnessType } from '../../types'
-
+import { HardnessType, UnitType } from '../../types'
+import { useQuery } from '@tanstack/react-query'
+import api from '../../config/api.config'
 
 const validationSchema = yup.object({
   name: yup.string().required('Vui lòng nhập độ cứng'),
 })
-export default function HardnessModal({ open, setOpen, handleSubmit, selectedHardness }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<HardnessType>) => void; selectedHardness: HardnessType | null }) {
+
+export default function HardnessModal({
+  open,
+  setOpen,
+  handleSubmit,
+  selectedHardness,
+}: {
+  open: boolean
+  setOpen: Dispatch<SetStateAction<boolean>>
+  handleSubmit: (values: Partial<HardnessType>) => void
+  selectedHardness: HardnessType | null
+}) {
+  const { data: units = [] } = useQuery({
+    queryKey: ['units'],
+    queryFn: async (): Promise<UnitType[]> => {
+      const res = await api.get('/units')
+      // console.log(res.data)
+      return res.data.data as UnitType[]
+    },
+  })
 
   const formik = useFormik({
     initialValues: {
       name: selectedHardness ? selectedHardness.name : '',
+      uom: selectedHardness ? selectedHardness.uom?._id || '' : '', // Đảm bảo không bao giờ là undefined
     },
     enableReinitialize: true,
     validationSchema,
     onSubmit: (values) => {
-      handleSubmit(values)
-    }
+      const payload: Partial<HardnessType> = {
+        name: values.name,
+        uom: values.uom ? ({ _id: values.uom } as UnitType) : undefined,
+      }
+      handleSubmit(payload)
+    },
   })
 
   const handleClose = () => {
     formik.resetForm()
     setOpen(false)
   }
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>{selectedHardness ? 'Sửa độ cứng' : 'Tạo mới độ cứng'}</DialogTitle>
@@ -37,7 +62,7 @@ export default function HardnessModal({ open, setOpen, handleSubmit, selectedHar
               id="name"
               name="name"
               label="Độ cứng"
-              placeholder='VD: f=3-4'
+              placeholder="VD: f=3-4"
               value={formik.values.name}
               onChange={formik.handleChange}
               error={formik.touched.name && Boolean(formik.errors.name)}
@@ -58,6 +83,24 @@ export default function HardnessModal({ open, setOpen, handleSubmit, selectedHar
                 </Button>
               ))}
             </Box>
+
+            <TextField
+              fullWidth
+              select
+              id="uom"
+              name="uom"
+              label="Đơn vị tính"
+              value={formik.values.uom || ''} 
+              onChange={formik.handleChange}
+              error={formik.touched.uom && Boolean(formik.errors.uom)}
+              helperText={formik.touched.uom && formik.errors.uom}
+            >
+              {units.map((unit: UnitType) => (
+                <MenuItem key={unit._id} value={unit._id}>
+                  {unit.name}
+                </MenuItem>
+              ))}
+            </TextField>
           </Box>
         </Box>
       </DialogContent>

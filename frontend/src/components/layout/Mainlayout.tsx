@@ -183,7 +183,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Đơn vị tính
+          ĐƠN VỊ TÍNH
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -191,7 +191,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Mã thiết bị
+          MÃ THIẾT BỊ 
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -199,7 +199,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Mã giao khoán
+          MÃ GIAO KHOÁN
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -207,7 +207,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Vật tư, tài sản
+          VẬT TƯ ,TÀI SẢN
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -215,7 +215,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Tỷ lệ đá lẫn trong gương (Ckẹp)
+          TỶ LỆ ĐÁ LẪN TRONG GƯƠNG
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -223,7 +223,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Tỷ lệ gương than mềm (Cm)
+          TỶ LỆ GƯƠNG THAN MỀM
         </MenuItem>
         {/* <MenuItem
                 onClick={() => {
@@ -245,7 +245,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Hệ số điều chỉnh định mức
+          HỆ SỐ ĐIỀU CHỈNH ĐỊNH MỨC
         </MenuItem>
         {/* <MenuItem
                     onClick={() => {
@@ -281,7 +281,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Công đoạn sản xuất
+          CÔNG ĐOẠN SẢN XUẤT
         </MenuItem>
 
         {/* <MenuItem
@@ -314,7 +314,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Thông số
+          THÔNG SỐ
         </MenuItem>
 
         {/* <MenuItem onClick={() => { navigate("/excavationtech"); setMenuDanhMucEl(null); }}>
@@ -350,7 +350,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Điện sản xuất
+         ĐIỆN SẢN XUẤT
         </MenuItem>
       </Menu>
 
@@ -367,7 +367,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-          Đơn giá vật tư giao khoán
+          ĐƠN GIÁ VẬT TƯ GIAO KHOÁN
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -375,7 +375,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-          Định mức đào lò
+          ĐỊNH MỨC ĐÀO LỎ
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -383,7 +383,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-          Định mức xén lò
+          ĐỊNH MỨC XẺN LÒ
         </MenuItem>
 
         <MenuItem
@@ -392,7 +392,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-          Định mức khấu than
+         ĐỊNH MỨC KHẨU THAN
         </MenuItem>
       </Menu>
 
@@ -409,7 +409,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuThongKeEl(null);
           }}
         >
-          Chi phí vật tư kế hoạch (Zkh)
+          CHI PHÍ VẬT TƯ KẾ HOẠCH 
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -417,7 +417,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuThongKeEl(null);
           }}
         >
-          Chi phí vật tư thực hiện (Zkh)
+          CHI PHÍ VẬT TƯ THỰC HIỆN
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -425,9 +425,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuThongKeEl(null);
           }}
         >
-          Quyết toán giao khoán
+         QUYẾT TOÁN GIAO KHÓA
         </MenuItem>
-
       </Menu>
 
       {/* MENU: SETTINGS */}

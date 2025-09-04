@@ -91,11 +91,11 @@ export default function ProductScope() {
 
   const handleDelete = () => {
     if (selectedRows.length === 0) {
-      showErrorAlert('Vui lòng chọn ít nhất một bản ghi để xóa');
+      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
       return;
     }
-    
-    showConfirmAlert('Bạn có muốn xóa các bản ghi đã chọn?').then((result) => {
+
+    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
         deleteMutation.mutate(selectedRows);
       }
@@ -155,7 +155,7 @@ export default function ProductScope() {
         dataIndex: "phase",
         key: "phase",
         render: (phase: any) => (
-          <Typography sx={{ color: "black" }}>{phase?.name}</Typography>
+          <Typography sx={{ color: "blue" }}>{phase?.name}</Typography>
         ),
       },
       {
@@ -190,7 +190,7 @@ export default function ProductScope() {
     },
     {
       title: (
-        <Typography sx={{ fontWeight: "bold" }}>Mã điện sản xuất</Typography>
+        <Typography sx={{ fontWeight: "bold" }}>Mã diện sản xuất</Typography>
       ),
       dataIndex: "code",
       key: "code",
@@ -204,7 +204,7 @@ export default function ProductScope() {
     },
     {
       title: (
-        <Typography sx={{ fontWeight: "bold" }}>Tên điện sản xuất</Typography>
+        <Typography sx={{ fontWeight: "bold" }}>Tên diện sản xuất</Typography>
       ),
       dataIndex: "name",
       key: "name",
@@ -225,12 +225,12 @@ export default function ProductScope() {
       render: (_, record) => (
         <IconButton
           onClick={() => handleView(record)}
-          sx={{ 
+          sx={{
             color: "#666",
             "&:hover": {
               color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)"
-            }
+              backgroundColor: "rgba(25, 118, 210, 0.04)",
+            },
           }}
         >
           <Visibility />
@@ -244,14 +244,14 @@ export default function ProductScope() {
       width: 80,
       align: "center",
       render: (_, record) => (
-        <IconButton 
+        <IconButton
           onClick={() => handleOpen(record)}
-          sx={{ 
+          sx={{
             color: "#666",
             "&:hover": {
               color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)"
-            }
+              backgroundColor: "rgba(25, 118, 210, 0.04)",
+            },
           }}
         >
           <Edit />
@@ -286,6 +286,14 @@ export default function ProductScope() {
                   color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tạo mới
                 </Button>
@@ -294,6 +302,14 @@ export default function ProductScope() {
                   color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xóa
                 </Button>
@@ -303,6 +319,14 @@ export default function ProductScope() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Lọc
                 </Button>
@@ -326,6 +350,14 @@ export default function ProductScope() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tải lên
                 </Button>
@@ -333,6 +365,14 @@ export default function ProductScope() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xuất file
                 </Button>
@@ -340,6 +380,14 @@ export default function ProductScope() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   In
                 </Button>
@@ -348,6 +396,14 @@ export default function ProductScope() {
                   color="inherit"
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Gửi
                 </Button>

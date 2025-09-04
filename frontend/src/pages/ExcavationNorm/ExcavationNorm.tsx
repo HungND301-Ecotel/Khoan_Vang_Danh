@@ -88,20 +88,20 @@ export default function ExcavationNorm() {
     },
   });
 
-const deleteMutation = useMutation({
-  mutationFn: async (ids: React.Key[]) => {
-    return api.delete("/assignmentnorms", { data: { ids } }); 
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
-    setSelectedRows([]);
-    showSuccessAlert("Xóa thành công");
-  },
-  onError: (error: any) => {
-    console.log(error.response?.data?.message || "Lỗi khi xóa");
-    showErrorAlert(error.response?.data?.message || "Lỗi khi xóa dữ liệu");
-  },
-});
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: React.Key[]) => {
+      return api.delete("/assignmentnorms", { data: { ids } });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
+      setSelectedRows([]);
+      showSuccessAlert("Xóa thành công");
+    },
+    onError: (error: any) => {
+      console.log(error.response?.data?.message || "Lỗi khi xóa");
+      showErrorAlert(error.response?.data?.message || "Lỗi khi xóa dữ liệu");
+    },
+  });
 
   const handleDelete = () => {
     if (selectedRows.length === 0) {
@@ -157,7 +157,9 @@ const deleteMutation = useMutation({
         dataIndex: "assignmentCode",
         key: "assignmentCode",
         render: (assignmentCode: any) => (
-          <Typography sx={{ color: "black" }}>{assignmentCode?.code}</Typography>
+          <Typography sx={{ color: "black" }}>
+            {assignmentCode?.code}
+          </Typography>
         ),
       },
       {
@@ -306,6 +308,14 @@ const deleteMutation = useMutation({
                   color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tạo mới
                 </Button>
@@ -315,6 +325,14 @@ const deleteMutation = useMutation({
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                   disabled={deleteMutation.isPending}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   {deleteMutation.isPending ? "Đang xóa..." : "Xóa"}
                 </Button>
@@ -324,6 +342,14 @@ const deleteMutation = useMutation({
                   variant="outlined"
                   color="inherit"
                   startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Lọc
                 </Button>
@@ -347,6 +373,14 @@ const deleteMutation = useMutation({
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tải lên
                 </Button>
@@ -354,6 +388,14 @@ const deleteMutation = useMutation({
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xuất file
                 </Button>
@@ -361,6 +403,14 @@ const deleteMutation = useMutation({
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   In
                 </Button>
@@ -369,6 +419,14 @@ const deleteMutation = useMutation({
                   color="inherit"
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Gửi
                 </Button>

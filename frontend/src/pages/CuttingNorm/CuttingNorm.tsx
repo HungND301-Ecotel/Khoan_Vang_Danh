@@ -109,20 +109,19 @@ export default function CuttingNorm() {
     });
   };
 
-
   const deleteMultipleMutation = useMutation({
     mutationFn: async (ids: React.Key[]) => {
-    return api.delete("/assignmentnorms", { data: { ids } }); 
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
-    setSelectedRows([]);
-    showSuccessAlert("Xóa thành công");
-  },
-  onError: (error: any) => {
-    console.log(error.response?.data?.message || "Lỗi khi xóa");
-    showErrorAlert(error.response?.data?.message || "Lỗi khi xóa dữ liệu");
-  },
+      return api.delete("/assignmentnorms", { data: { ids } });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
+      setSelectedRows([]);
+      showSuccessAlert("Xóa thành công");
+    },
+    onError: (error: any) => {
+      console.log(error.response?.data?.message || "Lỗi khi xóa");
+      showErrorAlert(error.response?.data?.message || "Lỗi khi xóa dữ liệu");
+    },
   });
 
   const handleSubmit = (values: Partial<AssignmentCodeInputType>) => {
@@ -166,7 +165,9 @@ export default function CuttingNorm() {
         dataIndex: "assignmentCode",
         key: "assignmentCode",
         render: (assignmentCode: any) => (
-          <Typography sx={{ color: "black" }}>{assignmentCode?.code}</Typography>
+          <Typography sx={{ color: "black" }}>
+            {assignmentCode?.code}
+          </Typography>
         ),
       },
       {
@@ -198,7 +199,7 @@ export default function CuttingNorm() {
             Xén trong đá:
             {record.phase?.name || ""} {record.hardness?.name || ""}
           </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary"}}>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Tiết diện lò xén: {record.crossSection?.name || ""} (
             {record.crossSection?.uom?.name || ""})
           </Typography>
@@ -318,6 +319,14 @@ export default function CuttingNorm() {
                   color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tạo mới
                 </Button>
@@ -326,6 +335,14 @@ export default function CuttingNorm() {
                   color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xóa
                 </Button>
@@ -335,6 +352,14 @@ export default function CuttingNorm() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Lọc
                 </Button>
@@ -358,6 +383,14 @@ export default function CuttingNorm() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tải lên
                 </Button>
@@ -365,6 +398,14 @@ export default function CuttingNorm() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xuất file
                 </Button>
@@ -372,6 +413,14 @@ export default function CuttingNorm() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   In
                 </Button>
@@ -380,6 +429,14 @@ export default function CuttingNorm() {
                   color="inherit"
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Gửi
                 </Button>

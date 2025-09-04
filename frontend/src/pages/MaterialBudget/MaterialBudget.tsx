@@ -35,7 +35,9 @@ import { TableRowSelection } from "antd/es/table/interface";
 
 export default function MaterialBudget() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
-  const [selected, setSelected] = useState<MaterialBudgetInputType | null>(null);
+  const [selected, setSelected] = useState<MaterialBudgetInputType | null>(
+    null
+  );
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
@@ -46,9 +48,7 @@ export default function MaterialBudget() {
   const { data: materialbudgets = [] } = useQuery({
     queryKey: ["materialbudgets", searchValue],
     queryFn: async () =>
-      api
-        .get(`/materialbudgets?q=${searchValue}`)
-        .then((res) => res.data.data),
+      api.get(`/materialbudgets?q=${searchValue}`).then((res) => res.data.data),
   });
 
   const createMutation = useMutation({
@@ -87,11 +87,11 @@ export default function MaterialBudget() {
 
   const handleDelete = () => {
     if (selectedRows.length === 0) {
-      showErrorAlert('Vui lòng chọn ít nhất một bản ghi để xóa');
+      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
       return;
     }
-    
-    showConfirmAlert('Bạn có muốn xóa các bản ghi đã chọn?').then((result) => {
+
+    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
         deleteMutation.mutate(selectedRows);
       }
@@ -122,7 +122,7 @@ export default function MaterialBudget() {
     mutationFn: (id: string) =>
       api.get(`/materialbudgets/getOne/${id}`).then((res) => res.data.data),
     onSuccess: (data, id) => {
-      setExpandedData(prev => ({ ...prev, [id]: data }));
+      setExpandedData((prev) => ({ ...prev, [id]: data }));
     },
     onError: (error: any) => {
       console.log(error.response.data.message || error.response || "Lỗi");
@@ -147,8 +147,8 @@ export default function MaterialBudget() {
     setOpen(true);
   };
 
-const handleView = (record: MaterialBudgetInputType) => {
-const key = record._id;
+  const handleView = (record: MaterialBudgetInputType) => {
+    const key = record._id;
     if (!key) {
       showErrorAlert("Không tìm thấy ID của bản ghi");
       return;
@@ -161,218 +161,267 @@ const key = record._id;
         getOneMutation.mutate(key);
       }
     }
-};
+  };
 
   const expandedRowRender = (record: MaterialBudgetInputType) => {
     const data = expandedData[record._id || ""];
+
+    // Tạo dữ liệu mới với cấu trúc phẳng để hiển thị từng material riêng biệt
+    const flattenedData: any[] = [];
+
+    data?.assignments?.forEach((assignment: any) => {
+      if (assignment.isHeader) {
+        return;
+      }
+
+      // Nếu có materials, tạo một hàng cho mỗi material
+      if (assignment.materials && assignment.materials.length > 0) {
+        assignment.materials.forEach(
+          (material: Materials, materialIndex: number) => {
+            flattenedData.push({
+              ...assignment,
+              material: material,
+              isAssignmentHeader: materialIndex === 0, // Chỉ hiển thị thông tin assignment ở hàng đầu tiên
+              materialIndex: materialIndex,
+            });
+          }
+        );
+      } else {
+        // Nếu không có materials, vẫn hiển thị assignment
+        flattenedData.push({
+          ...assignment,
+          material: null,
+          isAssignmentHeader: true,
+        });
+      }
+    });
+
     const innerColumns = [
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
-        dataIndex: "code",
+        dataIndex: "material",
         key: "materialCode",
-        render: (text: string, assignment: any, index: number) => {
-          if (assignment.isHeader) {
-            return null;
-          }
-          return assignment.materials?.map((material: Materials, materialIndex: number) => (
-            <div key={materialIndex} style={{ padding: "4px 0" }}>
-              {material.code}
-            </div>
-          ));
+        width: 120,
+        render: (material: Materials) => {
+          return material ? material.code : "";
         },
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>
+        ),
         dataIndex: "code",
         key: "assignmentCode",
-        render: (text: string, assignment: any) => (
-          <Typography sx={{ color: "black", fontWeight: "bold" }}>
-            {assignment.code}
-          </Typography>
-        ),
+        width: 120,
+        render: (text: string, row: any) => {
+          return row.isAssignmentHeader ? (
+            <Typography sx={{ color: "black", fontWeight: "bold" }}>
+              {row.code}
+            </Typography>
+          ) : null;
+        },
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư, tài sản</Typography>,
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>
+            Tên vật tư, tài sản
+          </Typography>
+        ),
         dataIndex: "name",
         key: "name",
-        render: (text: string, assignment: any) => {
-          if (assignment.isHeader) {
-            return null;
-          }
-          return (
-            <div>
-              <Typography sx={{ color: "black", marginBottom: 1 }}>
-                {assignment.name}
+        width: 250,
+        render: (text: string, row: any) => {
+          if (row.isAssignmentHeader) {
+            return (
+              <div>
+                <Typography
+                  sx={{
+                    color: "black",
+                    fontWeight: "bold",
+                    marginBottom: row.material ? 1 : 0,
+                  }}
+                >
+                  {row.name}
+                </Typography>
+                {row.material && (
+                  <Typography sx={{ color: "black" }}>
+                    {row.material.name}
+                  </Typography>
+                )}
+              </div>
+            );
+          } else {
+            return row.material ? (
+              <Typography sx={{ color: "black" }}>
+                {row.material.name}
               </Typography>
-              {assignment.materials?.map((material: Materials, index: number) => (
-                <div key={index} style={{ padding: "4px 0" }}>
-                  {material.name}
-                </div>
-              ))}
-            </div>
-          );
+            ) : null;
+          }
         },
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
         dataIndex: "uom",
         key: "uom",
-        render: (text: string, assignment: any) => {
-          if (assignment.isHeader) {
-            return null;
-          }
-          return (
-            <div>
-              <Typography sx={{ color: "black", marginBottom: 1 }}>
-                {assignment.uom}
+        width: 80,
+        align: "center" as const,
+        render: (text: string, row: any) => {
+          if (row.isAssignmentHeader) {
+            return (
+              <div>
+                <Typography
+                  sx={{
+                    color: "black",
+                    fontWeight: "bold",
+                    marginBottom: row.material ? 1 : 0,
+                  }}
+                >
+                  {row.uom}
+                </Typography>
+                {row.material && (
+                  <Typography sx={{ color: "black" }}>
+                    {row.material.uom?.name}
+                  </Typography>
+                )}
+              </div>
+            );
+          } else {
+            return row.material ? (
+              <Typography sx={{ color: "black" }}>
+                {row.material.uom?.name}
               </Typography>
-              {assignment.materials?.map((material: Materials, index: number) => (
-                <div key={index} style={{ padding: "4px 0" }}>
-                  {material.uom?.name}
-                </div>
-              ))}
-            </div>
-          );
+            ) : null;
+          }
         },
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Định mức gốc</Typography>,
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>Định mức gốc</Typography>
+        ),
         dataIndex: "assignmentNorm",
         key: "assignmentNorm",
+        width: 120,
         align: "center" as const,
-        render: (value: number, assignment: any) => {
-          if (assignment.isHeader) {
-            return null;
-          }
-          return (
-            <div>
-              <Typography sx={{ color: "bue", marginBottom: 1 }}>
-                {value ? value.toLocaleString() : ""}
-              </Typography>
-              {assignment.materials?.map((_: Materials, index: number) => (
-                <div key={index} style={{ padding: "4px 0" }}>
-                </div>
-              ))}
-            </div>
-          );
+        render: (value: number, row: any) => {
+          return row.isAssignmentHeader ? (
+            <Typography
+              sx={{ color: "black", marginBottom: row.material ? 1 : 0 }}
+            >
+              {value ? value.toLocaleString() : ""}
+            </Typography>
+          ) : null;
         },
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Hệ số điều chỉnh định mức</Typography>,
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>
+            Hệ số điều chỉnh định mức
+          </Typography>
+        ),
         dataIndex: "adjustmentNorm",
         key: "adjustmentNorm",
+        width: 150,
         align: "center" as const,
-        render: (value: number, assignment: any) => {
-          if (assignment.isHeader) {
-            return null;
-          }
-          return (
-            <div>
-              <Typography sx={{ marginBottom: 1 }}>
-                {value ? value.toLocaleString() : ""}
-              </Typography>
-              {assignment.materials?.map((_: Materials, index: number) => (
-                <div key={index} style={{ padding: "4px 0" }}>
-                </div>
-              ))}
-            </div>
-          );
+        render: (value: number, row: any) => {
+          return row.isAssignmentHeader ? (
+            <Typography sx={{ marginBottom: row.material ? 1 : 0 }}>
+              {value ? value.toLocaleString() : ""}
+            </Typography>
+          ) : null;
         },
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
         dataIndex: "totalNorm",
         key: "totalNorm",
+        width: 100,
         align: "center" as const,
-        render: (value: number, assignment: any) => {
-          if (assignment.isHeader) {
-            return null;
-          }
-          return (
-            <div>
-              <Typography sx={{ marginBottom: 1 }}>
-                {value ? value.toLocaleString() : ""}
-              </Typography>
-              {assignment.materials?.map((_: Materials, index: number) => (
-                <div key={index} style={{ padding: "4px 0" }}>
-                </div>
-              ))}
-            </div>
-          );
+        render: (value: number, row: any) => {
+          return row.isAssignmentHeader ? (
+            <Typography sx={{ marginBottom: row.material ? 1 : 0 }}>
+              {value ? value.toLocaleString() : ""}
+            </Typography>
+          ) : null;
         },
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
         dataIndex: "quantity",
         key: "quantity",
+        width: 100,
         align: "center" as const,
-        render: (value: number, assignment: any) => {
-          if (assignment.isHeader) {
-            return null;
-          }
-          return (
-            <div>
-              <Typography sx={{ marginBottom: 1 }}>
-                {value ? value.toLocaleString() : ""}
-              </Typography>
-              {assignment.materials?.map((_: Materials, index: number) => (
-                <div key={index} style={{ padding: "4px 0" }}>
-
-                </div>
-              ))}
-            </div>
-          );
+        render: (value: number, row: any) => {
+          return row.isAssignmentHeader ? (
+            <Typography sx={{ marginBottom: row.material ? 1 : 0 }}>
+              {value ? value.toLocaleString() : ""}
+            </Typography>
+          ) : null;
         },
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá bình quân năm</Typography>,
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>
+            Đơn giá bình quân năm
+          </Typography>
+        ),
         dataIndex: "price",
         key: "price",
+        width: 150,
         align: "center" as const,
-        render: (value: number, assignment: any) => {
-          if (assignment.isHeader) {
-            return null;
-          }
-          return (
-            <div>
-              <Typography sx={{ color: "black", marginBottom: 1 }}>
-                {value ? value.toLocaleString() : ""}
+        render: (value: number, row: any) => {
+          if (row.isAssignmentHeader) {
+            return (
+              <div>
+                <Typography
+                  sx={{
+                    color: "black",
+                    fontWeight: "bold",
+                    marginBottom: row.material ? 1 : 0,
+                  }}
+                >
+                  {value ? value.toLocaleString() : ""}
+                </Typography>
+                {row.material && (
+                  <Typography sx={{ color: "black" }}>
+                    {row.material.currentPrice
+                      ? row.material.currentPrice.toLocaleString()
+                      : ""}
+                  </Typography>
+                )}
+              </div>
+            );
+          } else {
+            return row.material ? (
+              <Typography sx={{ color: "black" }}>
+                {row.material.currentPrice
+                  ? row.material.currentPrice.toLocaleString()
+                  : ""}
               </Typography>
-              {assignment.materials?.map((material: Materials, index: number) => (
-                <div key={index} style={{ padding: "4px 0" }}>
-                  {material.currentPrice ? material.currentPrice.toLocaleString() : ""}
-                </div>
-              ))}
-            </div>
-          );
+            ) : null;
+          }
         },
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Chi phí kế hoạch</Typography>,
+        title: (
+          <Typography sx={{ fontWeight: "bold" }}>Chi phí kế hoạch</Typography>
+        ),
         dataIndex: "cost",
         key: "cost",
+        width: 120,
         align: "center" as const,
-        render: (value: number, assignment: any) => {
-          if (assignment.isHeader) {
-            return null;
-          }
-          return (
-            <div>
-              <Typography sx={{ marginBottom: 1 }}>
-                {value ? value.toLocaleString() : ""}
-              </Typography>
-              {assignment.materials?.map((_: Materials, index: number) => (
-                <div key={index} style={{ padding: "4px 0" }}>
-                </div>
-              ))}
-            </div>
-          );
+        render: (value: number, row: any) => {
+          return row.isAssignmentHeader ? (
+            <Typography sx={{ marginBottom: row.material ? 1 : 0 }}>
+              {value ? value.toLocaleString() : ""}
+            </Typography>
+          ) : null;
         },
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Ghi chú</Typography>,
         dataIndex: "note",
         key: "note",
+        width: 100,
         render: () => "",
       },
     ];
@@ -390,16 +439,28 @@ const key = record._id;
             Mã hệ số định mức: {data?.materialbudget?.adjustmentNormCode?.code}
           </Typography>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
-            Sản lượng: {data?.materialbudget?.production ? data?.materialbudget?.production.toLocaleString() : 0} ({data?.phaseGroup?.name?.toLowerCase() === "khấu than".toLowerCase() ? 'tấn' : 'mét'})
+            Sản lượng:{" "}
+            {data?.materialbudget?.production
+              ? data?.materialbudget?.production.toLocaleString()
+              : 0}{" "}
+            (
+            {data?.phaseGroup?.name?.toLowerCase() === "khấu than".toLowerCase()
+              ? "tấn"
+              : "mét"}
+            )
           </Typography>
         </Box>
 
         <Table
           columns={innerColumns}
-          dataSource={data?.assignments || []}
+          dataSource={flattenedData}
           pagination={false}
           size="small"
-          rowKey={(item) => `${record._id}-${item._id || item.code || Math.random()}`}
+          scroll={{ x: "max-content" }}
+          rowKey={(item) =>
+            `${record._id}-${item._id || item.code}-${item.materialIndex || 0}`
+          }
+          bordered
         />
       </Box>
     );
@@ -415,7 +476,9 @@ const key = record._id;
     },
     {
       title: (
-        <Typography sx={{ fontWeight: "bold" }}>Mã định mức giao khoán</Typography>
+        <Typography sx={{ fontWeight: "bold" }}>
+          Mã định mức giao khoán
+        </Typography>
       ),
       dataIndex: "code",
       key: "code",
@@ -436,12 +499,12 @@ const key = record._id;
       render: (_, record) => (
         <IconButton
           onClick={() => handleView(record)}
-          sx={{ 
+          sx={{
             color: "#666",
             "&:hover": {
               color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)"
-            }
+              backgroundColor: "rgba(25, 118, 210, 0.04)",
+            },
           }}
         >
           <Visibility />
@@ -455,14 +518,14 @@ const key = record._id;
       width: 80,
       align: "center",
       render: (_, record) => (
-        <IconButton 
+        <IconButton
           onClick={() => handleOpen(record)}
-          sx={{ 
+          sx={{
             color: "#666",
             "&:hover": {
               color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)"
-            }
+              backgroundColor: "rgba(25, 118, 210, 0.04)",
+            },
           }}
         >
           <Edit />
@@ -482,13 +545,13 @@ const key = record._id;
     <Box>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Thống kê vận hành</Typography>
-        <Typography>Chi phí vật tư kế hoạch (Zth)</Typography>
+        <Typography>Chi phí vật tư kế hoạch </Typography>
       </Breadcrumbs>
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h4" sx={{ color: "black" }}>
-              Chi phí vật tư kế hoạch (Zth)
+              Chi phí vật tư kế hoạch
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
@@ -497,6 +560,14 @@ const key = record._id;
                   color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tạo mới
                 </Button>
@@ -505,6 +576,14 @@ const key = record._id;
                   color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xóa
                 </Button>
@@ -514,6 +593,14 @@ const key = record._id;
                   variant="outlined"
                   color="inherit"
                   startIcon={<FilterList />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Lọc
                 </Button>
@@ -537,6 +624,14 @@ const key = record._id;
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Tải lên
                 </Button>
@@ -544,6 +639,14 @@ const key = record._id;
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Xuất file
                 </Button>
@@ -551,6 +654,14 @@ const key = record._id;
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   In
                 </Button>
@@ -559,6 +670,14 @@ const key = record._id;
                   color="inherit"
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
                 >
                   Gửi
                 </Button>
