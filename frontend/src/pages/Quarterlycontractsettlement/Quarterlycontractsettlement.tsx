@@ -1,6 +1,6 @@
 import {
   Box,
-  Checkbox,
+  Button,
   Grid,
   MenuItem,
   Paper,
@@ -14,15 +14,19 @@ import {
   Typography,
 } from "@mui/material";
 import React, { Fragment, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query"; // Add this import
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MaterialAssignmentOutputType } from "../../types";
+import { ArrowDropDown, FileDownload, Mail, Print } from "@mui/icons-material";
 
 const api = {
   get: (url: string) => Promise.resolve({ data: { data: [] } }),
 };
 
 export default function Quarterlycontractsettlement() {
-  const [selectedMonth, setSelectedMonth] = useState<number>(); // Changed Number to number
+  const [selectedQuarter, setSelectedQuarter] = useState<number>();
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
   const [selectedmaterialBudget, setSelectedmaterialBudget] = useState("");
   const [data, setData] = useState<any | null>(null);
   const [tabValue, setTabValue] = useState(0);
@@ -30,12 +34,18 @@ export default function Quarterlycontractsettlement() {
   const queryClient = useQueryClient();
 
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
   const years = [];
 
   for (let i = 0; i < 20; i++) {
     years.push(currentYear - i);
   }
+
+  const quarters = [
+    { value: 1, label: "Quý 1" },
+    { value: 2, label: "Quý 2" },
+    { value: 3, label: "Quý 3" },
+    { value: 4, label: "Quý 4" },
+  ];
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -47,14 +57,14 @@ export default function Quarterlycontractsettlement() {
   });
 
   const { data: materialassignments = [] } = useQuery({
-    queryKey: ["materialassignments", selectedMonth, selectedYear],
+    queryKey: ["materialassignments", selectedQuarter, selectedYear],
     queryFn: () =>
       api
         .get(
-          `/materialassignments/getFilter?month=${selectedMonth}&year=${selectedYear}`
+          `/materialassignments/getFilter?quarter=${selectedQuarter}&year=${selectedYear}`
         )
         .then((res: any) => res.data.data),
-    enabled: !!selectedMonth && !!selectedYear,
+    enabled: !!selectedQuarter && !!selectedYear,
   });
 
   const { data: materialbudgets = [] } = useQuery({
@@ -72,26 +82,122 @@ export default function Quarterlycontractsettlement() {
     enabled: !!selectedmaterialBudget,
   });
 
+  const handleExport = () => {
+    // Export functionality
+    console.log("Export file");
+  };
+
+  const handlePrint = () => {
+    // Print functionality
+    console.log("Print");
+  };
+
+  const handleSend = () => {
+    // Send functionality
+    console.log("Send");
+  };
+
   return (
     <Paper elevation={3} style={{ padding: 16, width: "100%" }}>
-      {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" >Quyết toán giao khoán</Typography>
-      </Box> */}
-      <Box mb={3} gap={3}>
-        <Grid container spacing={3} mb={3}>
-          <Grid item xs={4}>
+      <Box mb={3}>
+        <Grid container spacing={3} alignItems="end" mb={3}>
+          <Grid item xs={3}>
+            <Typography
+              variant="body2"
+              sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+            >
+              Chọn quý
+            </Typography>
             <TextField
               fullWidth
               select
-              label="Chọn Quý"
-              placeholder="Placeholder"
+              value={selectedQuarter || ""}
+              onChange={(e) => setSelectedQuarter(Number(e.target.value))}
               size="small"
             >
-              <MenuItem value="">Placeholder</MenuItem>
+              {quarters.map((quarter) => (
+                <MenuItem key={quarter.value} value={quarter.value}>
+                  {quarter.label}
+                </MenuItem>
+              ))}
             </TextField>
+          </Grid>
+
+          <Grid item xs={3}>
+            <Typography
+              variant="body2"
+              sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+            >
+              Chọn năm
+            </Typography>
+            <TextField
+              fullWidth
+              select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              size="small"
+            >
+              {years.map((year) => (
+                <MenuItem key={year} value={year}>
+                  {year}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
+          <Grid item xs={6}>
+            <Box display="flex" gap={2} justifyContent="flex-end">
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<FileDownload />}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
+              >
+                Xuất file
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<Print />}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
+              >
+                In
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<Mail />}
+                endIcon={<ArrowDropDown />}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  px: 3,
+                }}
+              >
+                Gửi
+              </Button>
+            </Box>
           </Grid>
         </Grid>
       </Box>
+
       <TableContainer
         component={Paper}
         sx={{
@@ -265,14 +371,13 @@ export default function Quarterlycontractsettlement() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {/* Sample data rows */}
-            {[0, 1, 2].map((index) => (
+            {[1, 2, 3].map((index) => (
               <TableRow key={index}>
                 <TableCell
                   align="center"
                   sx={{ border: "1px solid #ccc", p: 1 }}
                 >
-                  <Checkbox size="small" />
+                  {index}
                 </TableCell>
                 <TableCell
                   align="center"
@@ -344,7 +449,7 @@ export default function Quarterlycontractsettlement() {
                       align="center"
                       sx={{ border: "1px solid #ccc", p: 1 }}
                     >
-                      <Checkbox size="small" />
+                      {index + 4}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -427,7 +532,7 @@ export default function Quarterlycontractsettlement() {
                         align="center"
                         sx={{ border: "1px solid #ccc", p: 1 }}
                       >
-                        <Checkbox size="small" />
+                        {index + 4}.{mIndex + 1}
                       </TableCell>
                       <TableCell
                         align="center"

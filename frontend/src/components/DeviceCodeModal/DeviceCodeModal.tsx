@@ -1,56 +1,163 @@
-import { YouTube } from '@mui/icons-material'
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material'
-import React, { Dispatch, SetStateAction } from 'react'
-import * as yup from 'yup'
-import { useFormik } from 'formik'
-import { DeviceCodeType } from '../../types'
-
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  TextField,
+  Typography,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import React, { Dispatch, SetStateAction } from "react";
+import * as yup from "yup";
+import { useFormik } from "formik";
+import { DeviceCodeType } from "../../types";
+import { Divider } from "antd";
 
 const validationSchema = yup.object({
-  code: yup.string().required('Mã thiết bị không được để trống')
-})
-export default function DeviceCode({ open, setOpen, handleSubmit, selectedDeviceCode }: { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; handleSubmit: (values: Partial<DeviceCodeType>) => void; selectedDeviceCode: DeviceCodeType | null }) {
-
+  code: yup.string().required("Mã thiết bị không được để trống"),
+});
+export default function DeviceCode({
+  open,
+  setOpen,
+  handleSubmit,
+  selectedDeviceCode,
+}: {
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+  handleSubmit: (values: Partial<DeviceCodeType>) => void;
+  selectedDeviceCode: DeviceCodeType | null;
+}) {
   const formik = useFormik({
     initialValues: {
-      code: selectedDeviceCode ? selectedDeviceCode.code : ''
+      code: selectedDeviceCode ? selectedDeviceCode.code : "",
     },
     enableReinitialize: true,
     validationSchema,
     onSubmit: (values) => {
-      handleSubmit(values)
-    }
-  })
+      handleSubmit(values);
+    },
+  });
 
   const handleClose = () => {
-    formik.resetForm()
-    setOpen(false)
-  }
+    formik.resetForm();
+    setOpen(false);
+  };
+
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>{selectedDeviceCode ? 'Chỉnh sửa mã thiết bị' : 'Tạo mới mã thiết bị'}</DialogTitle>
-      <DialogContent>
-        <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              fullWidth
-              id="code"
-              name="code"
-              label="Mã thiết bị"
-              value={formik.values.code}
-              onChange={formik.handleChange}
-              error={formik.touched.code && Boolean(formik.errors.code)}
-              helperText={formik.touched.code && formik.errors.code}
-            />
-          </Box>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      PaperProps={{
+        sx: {
+          width: "800px",
+          height: "740px",
+          p: "40px",
+          position: "relative",
+        },
+      }}
+    >
+      {/* Nút X góc trên phải */}
+      <IconButton
+        onClick={handleClose}
+        sx={{
+          position: "absolute",
+          top: "40px",
+          right: "40px",
+          width: "16px",
+          height: "16px",
+          opacity: 1,
+        }}
+      >
+        <CloseIcon sx={{ fontSize: "16px" }} />
+      </IconButton>
+
+      <DialogTitle sx={{ p: 0, mt: "16px" }}>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "14px" }}>
+          <Typography>Danh mục</Typography>
+          <Typography>Mã thiết bị</Typography>
+        </Breadcrumbs>
+        <Divider
+          style={{
+            margin: "10px 0",
+            borderBlockWidth: 1,
+            opacity: "30%",
+            borderColor: "#6592B7",
+          }}
+        />
+
+        {selectedDeviceCode ? (
+          <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
+            Chỉnh sửa mã thiết bị
+          </Typography>
+        ) : (
+          <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
+            Tạo mới mã thiết bị
+          </Typography>
+        )}
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 0, mt: 3 }}>
+        <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+          Mã thiết bị
+        </Typography>
+
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <TextField
+            id="code"
+            name="code"
+            placeholder="Input Text"
+            value={formik.values.code}
+            onChange={formik.handleChange}
+            error={formik.touched.code && Boolean(formik.errors.code)}
+            helperText={formik.touched.code && formik.errors.code}
+            variant="outlined"
+            sx={{
+              width: "700px",
+              "& .MuiInputBase-root": {
+                height: "32px",
+                borderRadius: "6px",
+                paddingRight: "12px",
+                paddingLeft: "12px",
+                fontSize: "14px",
+              },
+            }}
+          />
         </Box>
+
+        <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
+          <Button
+            onClick={handleClose}
+            sx={{
+              backgroundColor: "#DFE2EA",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={() => formik.submitForm()}
+            variant="contained"
+            sx={{
+              backgroundColor: "#007BFF",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
+          >
+            {selectedDeviceCode ? "Cập nhật" : "Xác nhận"}
+          </Button>
+        </DialogActions>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Hủy</Button>
-        <Button onClick={() => formik.submitForm()} variant="contained">
-          {selectedDeviceCode ? 'Cập nhật' : 'Xác nhận'}
-        </Button>
-      </DialogActions>
     </Dialog>
-  )
+  );
 }

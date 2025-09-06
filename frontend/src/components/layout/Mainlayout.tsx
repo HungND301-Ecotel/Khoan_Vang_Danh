@@ -28,6 +28,7 @@ import {
   BarChart,
   Person2,
   ArrowDropDown,
+  InsertDriveFile
 } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
 import { useAtom } from "jotai";
@@ -101,7 +102,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             }}
           >
             <Button
-              startIcon={<DashboardIcon sx={{ color: "blue" }} />}
+              startIcon={<InsertDriveFile sx={{ color: "blue" }} />}
               sx={{ color: "black" }}
               onClick={() => navigate("/")}
             >

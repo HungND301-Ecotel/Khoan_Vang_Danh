@@ -2,17 +2,22 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Autocomplete,
   Box,
+  Breadcrumbs,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Grid,
+  IconButton,
+  InputAdornment,
   MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import CloseIcon from "@mui/icons-material/Close";
 import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import api from "../../config/api.config";
@@ -97,115 +102,336 @@ export default function MaterialCostUsedModal({
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-      disableEnforceFocus
-      disableRestoreFocus
+      PaperProps={{
+        sx: {
+          width: "800px",
+          height: "740px",
+          p: "40px",
+          backgroundColor: "#F1F2F5",
+        },
+      }}
     >
-      <DialogTitle>
-        {selected ? "Chỉnh sửa định mức đào lò" : "Tạo mới định mức đào lò"}
+      {/* Nút X góc trên phải */}
+      <IconButton
+        onClick={handleClose}
+        sx={{
+          position: "absolute",
+          top: "40px",
+          right: "40px",
+          width: "16px",
+          height: "16px",
+          opacity: 1,
+        }}
+      >
+        <CloseIcon sx={{ fontSize: "16px" }} />
+      </IconButton>
+
+      <DialogTitle sx={{ p: 0 }}>
+        <Breadcrumbs
+          aria-label="breadcrumb"
+          sx={{ fontSize: "14px", mb: "12px" }}
+        >
+          <Typography>Thống kê vận hành</Typography>
+          <Typography>Chi phí vật tư thực hiện</Typography>
+        </Breadcrumbs>
+
+        <Divider
+          sx={{
+            mb: "12px",
+            borderColor: "#6592B7",
+            opacity: 0.3,
+            borderWidth: "1px",
+          }}
+        />
+
+        {selected ? (
+          <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
+            Chỉnh sửa Chi phí thực hiện
+          </Typography>
+        ) : (
+          <Typography
+            sx={{ fontSize: "24px", color: "#2B4A82", fontWeight: 400 }}
+          >
+            Tạo mới Chi phí thực hiện
+          </Typography>
+        )}
       </DialogTitle>
-      <DialogContent>
+
+      <DialogContent
+        sx={{
+          p: 0,
+          "&::-webkit-scrollbar": {
+            width: "8px",
+          },
+          "&::-webkit-scrollbar-track": {
+            backgroundColor: "#F1F2F5",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#F1F2F5",
+            borderRadius: "4px",
+          },
+          "&::-webkit-scrollbar-thumb:hover": {
+            backgroundColor: "#E1E2E5",
+          },
+          scrollbarWidth: "thin",
+          scrollbarColor: "#F1F2F5 #F1F2F5",
+        }}
+      >
         <FormikProvider value={formik}>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <TextField
-                fullWidth
-                label="Mã chi phí"
-                value={formik.values.code}
-                onChange={(event) => {
-                  formik.setFieldValue("code", event.target.value);
-                }}
-              />
-              <TextField
-                fullWidth
-                select
-                label="Mã diện sản xuất"
-                variant="outlined"
-                value={formik.values.productionScope}
-                onChange={(event) => {
-                  formik.setFieldValue("productionScope", event.target.value);
+          {/* Mã chi phí */}
+          <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
+            Mã chi phí
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <TextField
+              value={formik.values.code || ""}
+              placeholder="Input Text"
+              onChange={(event) =>
+                formik.setFieldValue("code", event.target.value)
+              }
+              variant="outlined"
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor: formik.values.code ? "#F2F2F2" : "#FFFFFF",
+                },
+                "& input::placeholder": {
+                  color: "#000000",
+                  opacity: 1,
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+              }}
+            />
+          </Box>
+
+          {/* Mã diện sản xuất */}
+          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+            Mã diện sản xuất
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <TextField
+              select
+              value={formik.values.productionScope || ""}
+              onChange={(event) =>
+                formik.setFieldValue("productionScope", event.target.value)
+              }
+              variant="outlined"
+              InputProps={{
+                startAdornment: formik.values.productionScope ? null : (
+                  <InputAdornment
+                    position="start"
+                    sx={{ color: "#D9D9D9", ml: "12px" }}
+                  >
+                    Placeholder
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor: formik.values.productionScope
+                    ? "#F2F2F2"
+                    : "#FFFFFF",
+                },
+                "& .MuiInputBase-input": {
+                  color: formik.values.productionScope
+                    ? "inherit"
+                    : "transparent",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+              }}
+            >
+              {productionscopes?.map((item: ProductionScopeOutputType) => (
+                <MenuItem key={item._id} value={item._id}>
+                  {item.code}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+
+          <Divider
+            sx={{
+              mt: "12px",
+              mb: "12px",
+              borderColor: "#6592B7",
+              opacity: 0.3,
+              borderWidth: "1px",
+            }}
+          />
+
+          {/* Chọn vật tư */}
+          <Typography
+            sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
+          >
+            Chọn vật tư
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Autocomplete
+              multiple
+              options={materialassignments.filter(
+                (opt: Materials) =>
+                  !selectedMaterials.some(
+                    (selected) => selected._id === opt._id
+                  )
+              )}
+              getOptionLabel={(option: Materials) => option.code || ""}
+              value={selectedMaterials}
+              isOptionEqualToValue={(option, value) => option._id === value._id}
+              onChange={(event, newValue) => {
+                setSelectedMaterials(newValue);
+                const updatedNorms = newValue.map((item) => {
+                  const existing = formik.values.materials.find(
+                    (n: any) => n.material === item._id
+                  );
+                  return {
+                    material: item._id,
+                    quantity: existing?.norm || undefined,
+                  };
+                });
+                formik.setFieldValue("materials", updatedNorms);
+              }}
+              renderInput={(params) => (
+                <TextField {...params} variant="outlined" />
+              )}
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  minHeight: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor:
+                    selectedMaterials.length > 0 ? "#F2F2F2" : "#FFFFFF",
+                  display: "flex",
+                  alignItems: "center", // <-- căn giữa theo chiều dọc
+                  flexWrap: "wrap",
+                },
+                "& .MuiChip-root": {
+                  height: "20px",
+                  fontSize: "12px",
+                  margin: "2px",
+                  lineHeight: "20px", // <-- để bằng với height
+                  verticalAlign: "middle",
+                },
+                "& .MuiAutocomplete-input": {
+                  padding: "0 !important",
+                  lineHeight: "20px", // <-- khớp với chip
+                },
+                "& input::placeholder": {
+                  color: "#D9D9D9",
+                  opacity: 1,
+                  fontSize: "14px",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+              }}
+            />
+          </Box>
+
+          {/* Danh sách materials */}
+          <FieldArray name="materials">
+            {() => (
+              <Box
+                sx={{
+                  mt: "12px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
                 }}
               >
-                {productionscopes?.map((item: ProductionScopeOutputType) => (
-                  <MenuItem key={item._id} value={item._id}>
-                    {item.code}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <Autocomplete
-                multiple
-                options={materialassignments.filter(
-                  (opt: Materials) =>
-                    !selectedMaterials.some(
-                      (selected) => selected._id === opt._id
-                    )
-                )}
-                getOptionLabel={(option: Materials) => option.code || ""}
-                value={selectedMaterials}
-                isOptionEqualToValue={(option, value) =>
-                  option._id === value._id
-                }
-                onChange={(event, newValue) => {
-                  setSelectedMaterials(newValue);
-
-                  const updatedNorms = newValue.map((item) => {
-                    const existing = formik.values.materials.find(
-                      (n: any) => n.material === item._id
-                    );
-                    return {
-                      material: item._id,
-                      quantity: existing?.norm || undefined,
-                    };
-                  });
-                  formik.setFieldValue("materials", updatedNorms);
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Chọn vật tư"
-                    variant="outlined"
-                    placeholder="Chọn..."
-                  />
-                )}
-              />
-              <FieldArray name="norms">
-                {({ push, remove }) => (
+                {formik.values.materials.map((item: any, index: number) => (
                   <Box
-                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                    key={index}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "flex-end",
+                    }}
                   >
-                    {formik.values.materials.map((item: any, index: number) => (
-                      <Box
-                        key={index}
-                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
-                      >
+                    <Grid container spacing={2} sx={{ width: "700px" }}>
+                      <Grid item xs={12} sm={4}>
+                        <Typography
+                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                        >
+                          Mã vật tư
+                        </Typography>
                         <TextField
                           fullWidth
-                          label="Mã vật tư"
                           value={
                             materialassignments.find(
-                              (item: Materials) =>
-                                item._id ===
+                              (ac: Materials) =>
+                                ac._id ===
                                 formik.values.materials[index].material
                             )?.code || ""
                           }
                           InputLabelProps={{ shrink: true }}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              px: "12px",
+                              fontSize: "14px",
+                              backgroundColor: "#F2F2F2",
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
+                            },
+                          }}
                         />
+                      </Grid>
+                      <Grid item xs={12} sm={5}>
+                        <Typography
+                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                        >
+                          Tên vật tư, tài sản
+                        </Typography>
                         <TextField
                           fullWidth
-                          label="Tên vật tư, tài sản"
                           value={
                             materialassignments.find(
-                              (item: Materials) =>
-                                item._id ===
+                              (ac: Materials) =>
+                                ac._id ===
                                 formik.values.materials[index].material
                             )?.name || ""
                           }
                           InputLabelProps={{ shrink: true }}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              px: "12px",
+                              fontSize: "14px",
+                              backgroundColor: "#F2F2F2",
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
+                            },
+                          }}
                         />
+                      </Grid>
+                      <Grid item xs={12} sm={3}>
+                        <Typography
+                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                        >
+                          Số lượng
+                        </Typography>
                         <TextField
                           fullWidth
-                          label="Số lượng"
                           type="number"
                           name={`materials[${index}].quantity`}
                           value={formik.values.materials[index]?.quantity || ""}
@@ -215,19 +441,114 @@ export default function MaterialCostUsedModal({
                               e.target.value
                             )
                           }
+                          placeholder="Placeholder"
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              px: "12px",
+                              fontSize: "14px",
+                              backgroundColor: formik.values.materials[index]
+                                ?.quantity
+                                ? "#F2F2F2"
+                                : "#FFFFFF",
+                            },
+                            "& input::placeholder": {
+                              color: "#9D9D9D",
+                              opacity: 1,
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
+                            },
+                          }}
                         />
-                      </Box>
-                    ))}
+                      </Grid>
+                    </Grid>
+
+                    {/* Nút X tròn bên cạnh */}
+                    <IconButton
+                      onClick={() => {
+                        // Remove material from selectedMaterials
+                        const materialToRemove = materialassignments.find(
+                          (ac: Materials) =>
+                            ac._id === formik.values.materials[index].material
+                        );
+                        if (materialToRemove) {
+                          setSelectedMaterials((prev) =>
+                            prev.filter(
+                              (material) =>
+                                material._id !== materialToRemove._id
+                            )
+                          );
+                        }
+
+                        // Remove from formik values
+                        const updatedMaterials = formik.values.materials.filter(
+                          (_: any, i: number) => i !== index
+                        );
+                        formik.setFieldValue("materials", updatedMaterials);
+                      }}
+                      sx={{
+                        width: "20px",
+                        height: "20px",
+                        backgroundColor: "#E5E5E5",
+                        ml: 2,
+                        "&:hover": {
+                          backgroundColor: "#D0D0D0",
+                        },
+                        "& .MuiSvgIcon-root": {
+                          fontSize: "14px",
+                          color: "#666666",
+                        },
+                      }}
+                    >
+                      <CloseIcon />
+                    </IconButton>
                   </Box>
-                )}
-              </FieldArray>
-            </Box>
-          </Box>
+                ))}
+              </Box>
+            )}
+          </FieldArray>
+
+          <Divider
+            sx={{
+              mt: "12px",
+              mb: "12px",
+              borderColor: "#6592B7",
+              opacity: 0.3,
+              borderWidth: "1px",
+            }}
+          />
         </FormikProvider>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Hủy</Button>
-        <Button onClick={() => formik.submitForm()} variant="contained">
+
+      <DialogActions sx={{ px: 0, gap: "10px" }}>
+        <Button
+          onClick={handleClose}
+          sx={{
+            backgroundColor: "#DFE2EA",
+            borderRadius: "8px",
+            height: "32px",
+            minWidth: "91px",
+            fontSize: "14px",
+            textTransform: "none",
+          }}
+        >
+          Hủy
+        </Button>
+        <Button
+          onClick={() => formik.submitForm()}
+          variant="contained"
+          sx={{
+            backgroundColor: "#007BFF",
+            borderRadius: "8px",
+            height: "32px",
+            minWidth: "91px",
+            fontSize: "14px",
+            textTransform: "none",
+          }}
+        >
           {selected ? "Cập nhật" : "Thêm mới"}
         </Button>
       </DialogActions>

@@ -139,7 +139,9 @@ export default function MaterialCostUsed() {
     mutationFn: (id: string) =>
       api.get(`/materialcostuseds/${id}`).then((res) => res.data.data),
     onSuccess: (data, id) => {
-      setExpandedData((prev) => ({ ...prev, [id]: data }));
+      setExpandedData((prev) => ({ ...prev,
+         [id]: { ...data, plannedCostCode: data.plannedCostCode  },
+        }));
     },
     onError: (error: any, variables) => {
       const errorMessage =
@@ -282,12 +284,12 @@ export default function MaterialCostUsed() {
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         <Box sx={{ mb: 2 }}>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Mã chi phí thực hiện : {data.code}
+            Mã chi phí thực hiện: {data.code}
+          </Typography>
+          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
+            Mã chi phí vật tư kế hoạch: {data.plannedCostCode}
           </Typography>
         </Box>
-        <Typography sx={{ fontWeight: "bold", fontSize: 14, mb: 1 }}>
-          Vật tư khai thác:
-        </Typography>
         <Table
           columns={innerColumns}
           dataSource={data.materials || []}
@@ -436,7 +438,7 @@ export default function MaterialCostUsed() {
                   }}
                 >
                   Lọc
-                </Button>
+                </Button> 
                 <TextField
                   fullWidth
                   size="small"

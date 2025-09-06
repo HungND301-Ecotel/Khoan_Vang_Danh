@@ -336,7 +336,7 @@ export default function AdjustmentNormKKT() {
                     : `Xóa (${selectedItems.length})`}
                 </Button>
               </Box>
-              <Box display={"flex"} flex={1} gap={2} maxWidth={400}>
+              <Box display={"flex"} flex={1} gap={2}>
                 <Button
                   variant="outlined"
                   color="inherit"

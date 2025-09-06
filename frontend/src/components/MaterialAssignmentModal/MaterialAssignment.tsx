@@ -1,6 +1,6 @@
-import { Add, Delete, PriceChange, YouTube } from "@mui/icons-material";
 import {
   Box,
+  Breadcrumbs,
   Button,
   Dialog,
   DialogActions,
@@ -9,7 +9,11 @@ import {
   IconButton,
   MenuItem,
   TextField,
+  Typography,
+  Grid,
 } from "@mui/material";
+import { Add, Delete } from "@mui/icons-material";
+import CloseIcon from "@mui/icons-material/Close";
 import React, { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
@@ -21,6 +25,7 @@ import {
 } from "../../types";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../config/api.config";
+import { Divider } from "antd";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
 dayjs.extend(utc);
@@ -28,6 +33,7 @@ dayjs.extend(utc);
 const validationSchema = yup.object({
   name: yup.string().required("Tên vật tư giao khoán không được để trống"),
 });
+
 export default function MaterialAssignmentModal({
   open,
   setOpen,
@@ -48,6 +54,7 @@ export default function MaterialAssignmentModal({
     queryKey: ["units"],
     queryFn: () => api.get("/units").then((res) => res.data.data),
   });
+
   const formik = useFormik({
     initialValues: {
       code: selectedMaterialAssignment ? selectedMaterialAssignment.code : "",
@@ -84,7 +91,6 @@ export default function MaterialAssignmentModal({
           endDate: item.endDate,
         })),
       };
-
       handleSubmit(transformedValues);
     },
   });
@@ -93,180 +99,349 @@ export default function MaterialAssignmentModal({
     formik.resetForm();
     setOpen(false);
   };
+
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {selectedMaterialAssignment ? "Sửa vật tư" : "Tạo mới vật tư"}
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      PaperProps={{
+        sx: {
+          width: "800px",
+          height: "740px",
+          p: "32px",
+          position: "relative",
+          borderRadius: "8px",
+        },
+      }}
+    >
+      {/* Nút X góc trên phải */}
+      <IconButton
+        onClick={handleClose}
+        sx={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          width: "24px",
+          height: "24px",
+          opacity: 1,
+        }}
+      >
+        <CloseIcon sx={{ fontSize: "20px" }} />
+      </IconButton>
+
+      <DialogTitle sx={{ p: 0, mb: 2 }}>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "14px" }}>
+          <Typography sx={{ color: "#666" }}>Danh mục</Typography>
+          <Typography sx={{ color: "#666" }}>Vật tư, tài sản</Typography>
+        </Breadcrumbs>
+        <Divider
+          style={{
+            margin: "8px 0 16px 0",
+            borderBlockWidth: 1,
+            opacity: "20%",
+            borderColor: "#ccc",
+          }}
+        />
+        <Typography sx={{ fontSize: "20px", color: "#1976d2", fontWeight: 500 }}>
+          {selectedMaterialAssignment ? "Chỉnh sửa Vật tư, tài sản trong khoán" : "Tạo mới Vật tư, tài sản trong khoán"}
+        </Typography>
       </DialogTitle>
-      <DialogContent>
+
+      <DialogContent sx={{ p: 0, overflow: "visible" }}>
         <FormikProvider value={formik}>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <TextField
-                fullWidth
-                select
-                id="assignmentCode"
-                name="assignmentCode"
-                label="Mã giao khoán"
-                value={formik.values.assignmentCode}
-                onChange={(event) => {
-                  formik.setFieldValue("assignmentCode", event.target.value);
-                }}
-                error={
-                  formik.touched.assignmentCode &&
-                  Boolean(formik.errors.assignmentCode)
-                }
-                helperText={
-                  formik.touched.assignmentCode && formik.errors.assignmentCode
-                }
-              >
-                {assignmentCodes.map(
-                  (assignmentCode: AssignmentCodeOutputType) => (
-                    <MenuItem
-                      key={assignmentCode._id}
-                      value={assignmentCode._id}
-                    >
+          <Box component="form" onSubmit={formik.handleSubmit}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              
+              {/* Mã giao khoán */}
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã giao khoán</Typography>
+                <TextField
+                  fullWidth
+                  select
+                  id="assignmentCode"
+                  name="assignmentCode"
+                  placeholder="Placeholder"
+                  value={formik.values.assignmentCode}
+                  onChange={(event) => {
+                    formik.setFieldValue("assignmentCode", event.target.value);
+                  }}
+                  error={formik.touched.assignmentCode && Boolean(formik.errors.assignmentCode)}
+                  helperText={formik.touched.assignmentCode && formik.errors.assignmentCode}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      height: "40px",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                    },
+                  }}
+                >
+                  {assignmentCodes.map((assignmentCode: AssignmentCodeOutputType) => (
+                    <MenuItem key={assignmentCode._id} value={assignmentCode._id}>
                       {assignmentCode.code}
                     </MenuItem>
-                  )
-                )}
-              </TextField>
-              <TextField
-                fullWidth
-                id="code"
-                name="code"
-                label="Mã vật tư, tài sản"
-                value={formik.values.code}
-                onChange={formik.handleChange}
-                error={formik.touched.code && Boolean(formik.errors.code)}
-                helperText={formik.touched.code && formik.errors.code}
-              />
-              <TextField
-                fullWidth
-                id="name"
-                name="name"
-                label="Tên vật tư, tài sản"
-                value={formik.values.name}
-                onChange={formik.handleChange}
-                error={formik.touched.name && Boolean(formik.errors.name)}
-                helperText={formik.touched.name && formik.errors.name}
-              />
-              <TextField
-                fullWidth
-                id="quantity"
-                name="quantity"
-                label="Số lượng"
-                value={formik.values.quantity}
-                onChange={formik.handleChange}
-                error={
-                  formik.touched.quantity && Boolean(formik.errors.quantity)
-                }
-                helperText={formik.touched.quantity && formik.errors.quantity}
-              />
-              <TextField
-                fullWidth
-                select
-                id="uom"
-                name="uom"
-                label="Đơn vị tính"
-                value={formik.values.uom}
-                onChange={formik.handleChange}
-                error={formik.touched.uom && Boolean(formik.errors.uom)}
-                helperText={formik.touched.uom && formik.errors.uom}
-              >
-                {units.map((unit: UnitType) => (
-                  <MenuItem value={unit._id}>{unit.name}</MenuItem>
-                ))}
-              </TextField>
-              <FieldArray name="priceHistory">
-                {({ push, remove }) => (
-                  <Box
-                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-                  >
-                    {formik.values.priceHistory.map((item, index) => (
-                      <Box
-                        key={index}
-                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
-                      >
-                        <TextField
-                          fullWidth
-                          label="Ngày bắt đầu"
-                          type="date"
-                          name={`priceHistory[${index}].startDate`}
-                          value={formik.values.priceHistory[index].startDate
-                            .toString()
-                            .substring(0, 10)}
-                          onChange={(e) =>
-                            formik.setFieldValue(
-                              `priceHistory[${index}].startDate`,
-                              e.target.value
-                            )
+                  ))}
+                </TextField>
+              </Box>
+
+              {/* Mã vật tư, tài sản */}
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã vật tư, tài sản</Typography>
+                <TextField
+                  fullWidth
+                  id="code"
+                  name="code"
+                  placeholder="Input Text"
+                  value={formik.values.code}
+                  onChange={formik.handleChange}
+                  error={formik.touched.code && Boolean(formik.errors.code)}
+                  helperText={formik.touched.code && formik.errors.code}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      height: "40px",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* Tên vật tư, tài sản */}
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Tên vật tư, tài sản</Typography>
+                <TextField
+                  fullWidth
+                  id="name"
+                  name="name"
+                  placeholder="Input Text"
+                  value={formik.values.name}
+                  onChange={formik.handleChange}
+                  error={formik.touched.name && Boolean(formik.errors.name)}
+                  helperText={formik.touched.name && formik.errors.name}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      height: "40px",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* Số lượng */}
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Số lượng</Typography>
+                <TextField
+                  fullWidth
+                  id="quantity"
+                  name="quantity"
+                  placeholder="Input Text"
+                  value={formik.values.quantity}
+                  onChange={formik.handleChange}
+                  error={formik.touched.quantity && Boolean(formik.errors.quantity)}
+                  helperText={formik.touched.quantity && formik.errors.quantity}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      height: "40px",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* Đơn vị tính */}
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Đơn vị tính</Typography>
+                <TextField
+                  fullWidth
+                  select
+                  id="uom"
+                  name="uom"
+                  placeholder="Placeholder"
+                  value={formik.values.uom}
+                  onChange={formik.handleChange}
+                  error={formik.touched.uom && Boolean(formik.errors.uom)}
+                  helperText={formik.touched.uom && formik.errors.uom}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      height: "40px",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                    },
+                  }}
+                >
+                  {units.map((unit: UnitType) => (
+                    <MenuItem key={unit._id} value={unit._id}>
+                      {unit.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+
+              {/* Đơn giá section */}
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>Đơn giá</Typography>
+                <FieldArray name="priceHistory">
+                  {({ push, remove }) => (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      {formik.values.priceHistory.map((item, index) => (
+                        <Grid container spacing={2} key={index} alignItems="center">
+                          {/* Ngày bắt đầu */}
+                          <Grid item xs={4}>
+                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                              Ngày bắt đầu
+                            </Typography>
+                            <TextField
+                              fullWidth
+                              type="date"
+                              name={`priceHistory[${index}].startDate`}
+                              value={formik.values.priceHistory[index].startDate.toString().substring(0, 10)}
+                              onChange={(e) =>
+                                formik.setFieldValue(`priceHistory[${index}].startDate`, e.target.value)
+                              }
+                              InputLabelProps={{ shrink: true }}
+                              variant="outlined"
+                              sx={{
+                                "& .MuiInputBase-root": {
+                                  height: "40px",
+                                  borderRadius: "6px",
+                                  fontSize: "14px",
+                                },
+                              }}
+                            />
+                          </Grid>
+
+                          {/* Ngày kết thúc */}
+                          <Grid item xs={4}>
+                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                              Ngày kết thúc
+                            </Typography>
+                            <TextField
+                              fullWidth
+                              type="date"
+                              name={`priceHistory[${index}].endDate`}
+                              value={formik.values.priceHistory[index].endDate.toString().substring(0, 10)}
+                              onChange={(e) =>
+                                formik.setFieldValue(`priceHistory[${index}].endDate`, e.target.value)
+                              }
+                              InputLabelProps={{ shrink: true }}
+                              variant="outlined"
+                              sx={{
+                                "& .MuiInputBase-root": {
+                                  height: "40px",
+                                  borderRadius: "6px",
+                                  fontSize: "14px",
+                                },
+                              }}
+                            />
+                          </Grid>
+
+                          {/* Đơn giá */}
+                          <Grid item xs={3}>
+                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                              Đơn giá
+                            </Typography>
+                            <TextField
+                              fullWidth
+                              type="number"
+                              name={`priceHistory[${index}].price`}
+                              placeholder="Placeholder"
+                              value={formik.values.priceHistory[index].price}
+                              onChange={(e) =>
+                                formik.setFieldValue(`priceHistory[${index}].price`, e.target.value)
+                              }
+                              variant="outlined"
+                              sx={{
+                                "& .MuiInputBase-root": {
+                                  height: "40px",
+                                  borderRadius: "6px",
+                                  fontSize: "14px",
+                                },
+                              }}
+                            />
+                          </Grid>
+
+                          {/* Delete button */}
+                          <Grid item xs={1}>
+                            {formik.values.priceHistory.length > 1 && (
+                              <IconButton 
+                                color="error" 
+                                onClick={() => remove(index)}
+                                sx={{ mt: 2 }}
+                              >
+                                <Delete />
+                              </IconButton>
+                            )}
+                          </Grid>
+                        </Grid>
+                      ))}
+                      
+                      {/* Add button */}
+                      <Box textAlign="right" sx={{ mt: 1 }}>
+                        <IconButton
+                          color="primary"
+                          onClick={() =>
+                            push({
+                              price: 0,
+                              startDate: new Date().toISOString().substring(0, 10),
+                              endDate: new Date().toISOString().substring(0, 10),
+                            })
                           }
-                          InputLabelProps={{ shrink: true }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Ngày kết thúc"
-                          type="date"
-                          name={`priceHistory[${index}].endDate`}
-                          value={formik.values.priceHistory[index].endDate
-                            .toString()
-                            .substring(0, 10)}
-                          onChange={(e) =>
-                            formik.setFieldValue(
-                              `priceHistory[${index}].endDate`,
-                              e.target.value
-                            )
-                          }
-                          InputLabelProps={{ shrink: true }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Đơn giá"
-                          type="number"
-                          name={`priceHistory[${index}].price`}
-                          value={formik.values.priceHistory[index].price}
-                          onChange={(e) =>
-                            formik.setFieldValue(
-                              `priceHistory[${index}].price`,
-                              e.target.value
-                            )
-                          }
-                        />
-                        <IconButton color="error" onClick={() => remove(index)}>
-                          <Delete />
+                        >
+                          <Add />
                         </IconButton>
                       </Box>
-                    ))}
-                    <Box textAlign="right">
-                      <IconButton
-                        color="primary"
-                        onClick={() =>
-                          push({
-                            price: 0,
-                            startDate: new Date()
-                              .toISOString()
-                              .substring(0, 10),
-                            endDate: new Date().toISOString().substring(0, 10),
-                          })
-                        }
-                      >
-                        <Add />
-                      </IconButton>
                     </Box>
-                  </Box>
-                )}
-              </FieldArray>
+                  )}
+                </FieldArray>
+              </Box>
+
+              {/* Action buttons */}
+              <DialogActions sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}>
+                <Button
+                  onClick={handleClose}
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    color: "#666",
+                    borderRadius: "8px",
+                    height: "40px",
+                    minWidth: "80px",
+                    fontSize: "14px",
+                    textTransform: "none",
+                    "&:hover": {
+                      backgroundColor: "#e0e0e0",
+                    },
+                  }}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  onClick={() => formik.submitForm()}
+                  variant="contained"
+                  sx={{
+                    backgroundColor: "#1976d2",
+                    borderRadius: "8px",
+                    height: "40px",
+                    minWidth: "100px",
+                    fontSize: "14px",
+                    textTransform: "none",
+                    "&:hover": {
+                      backgroundColor: "#1565c0",
+                    },
+                  }}
+                >
+                  Xác nhận
+                </Button>
+              </DialogActions>
             </Box>
           </Box>
         </FormikProvider>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Hủy</Button>
-        <Button onClick={() => formik.submitForm()} variant="contained">
-          {selectedMaterialAssignment ? "Cập nhật" : "Thêm mới"}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

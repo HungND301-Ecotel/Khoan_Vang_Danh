@@ -550,7 +550,7 @@ export default function MaterialBudget() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "black" }}>
+            <Typography variant="h4" sx={{ color: "blue" }}>
               Chi phí vật tư kế hoạch
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">

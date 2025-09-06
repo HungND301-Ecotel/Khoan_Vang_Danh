@@ -1,17 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
 import {
-  Autocomplete,
   Box,
+  Breadcrumbs,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
-  Grid,
-  MenuItem,
+  IconButton,
   TextField,
   Typography,
+  MenuItem,
+  Autocomplete,
+  Chip,
+  DialogTitle,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
@@ -20,12 +22,11 @@ import {
   AssignmentCodeOutputType,
   AdjustmentNormInputType,
   AdjustmentNormOutputType,
-  ExcavationTechType,
   HardnessType,
-  PhaseGroupType,
-  PhaseOutputType,
   StepType,
 } from "../../types";
+import { Divider } from "antd";
+import { useQuery } from "@tanstack/react-query";
 
 export default function AdjustmentNormCMModal({
   open,
@@ -50,10 +51,6 @@ export default function AdjustmentNormCMModal({
   const { data: mirrorratios = [] } = useQuery({
     queryKey: ["mirrorratios"],
     queryFn: async () => api.get(`/mirrorratios`).then((res) => res.data.data),
-  });
-  const { data: hardness = [] } = useQuery({
-    queryKey: ["hardness"],
-    queryFn: async () => api.get(`/hardness`).then((res) => res.data.data),
   });
 
   const formik = useFormik({
@@ -80,7 +77,6 @@ export default function AdjustmentNormCMModal({
     if (assignmentcodes.length === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      // Trường hợp sửa
       const selectedCodes = assignmentcodes.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
@@ -94,40 +90,113 @@ export default function AdjustmentNormCMModal({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {selected
-          ? "Chỉnh sửa hệ số điều chỉnh định mức"
-          : "Tạo mới hệ số điều chỉnh định mức"}
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth={false}
+      PaperProps={{
+        sx: {
+          width: "800px",
+          maxWidth: "667px",
+          height: "740px",
+          p: "40px",
+          position: "relative",
+        },
+      }}
+    >
+      <IconButton
+        onClick={handleClose}
+        sx={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          width: "24px",
+          height: "24px",
+        }}
+      >
+        <CloseIcon sx={{ fontSize: "16px" }} />
+      </IconButton>
+
+      <DialogTitle sx={{ p: 0, mt: "8px" }}>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "12px", color: "#666" }}>
+          <Typography sx={{ fontSize: "12px", color: "#666" }}>Danh mục</Typography>
+          <Typography sx={{ fontSize: "12px", color: "#666" }}>
+            Hệ số điều chỉnh định mức
+          </Typography>
+          <Typography sx={{ fontSize: "12px", color: "#666" }}>
+            Hệ số điều chỉnh định mức (Cm)
+          </Typography>
+        </Breadcrumbs>
+        <Divider
+          style={{
+            margin: "10px 0",
+            borderBlockWidth: 1,
+            opacity: "30%",
+            borderColor: "#6592B7",
+          }}
+        />
+        <Typography sx={{ fontSize: "18px", color: "#1976d2", fontWeight: 500, mt: 1 }}>
+          {selected
+            ? "Chỉnh sửa Hệ số điều chỉnh định mức (Cm)"
+            : "Tạo mới Hệ số điều chỉnh định mức (Cm)"}
+        </Typography>
       </DialogTitle>
-      <DialogContent>
+
+      <DialogContent sx={{ p: 0, mt: 2 }}>
         <FormikProvider value={formik}>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box
+            component="form"
+            onSubmit={formik.handleSubmit}
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            {/* Mã định mức */}
+            <Box>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Mã định mức <span style={{ color: "red" }}>*</span>
+              </Typography>
               <TextField
                 fullWidth
-                label="Mã định mức"
+                id="code"
+                name="code"
+                placeholder="Input Text"
                 value={formik.values.code}
                 onChange={(event) => {
                   formik.setFieldValue("code", event.target.value);
                 }}
+                variant="outlined"
+                size="small"
+                sx={{
+                  "& .MuiInputBase-root": {
+                    height: "36px",
+                    fontSize: "14px",
+                  },
+                }}
               />
+            </Box>
+
+            {/* Tỷ lệ đá lẫn gương than mềm (Cm) */}
+            <Box>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Tỷ lệ đá lẫn gương than mềm (Cm) <span style={{ color: "red" }}>*</span>
+              </Typography>
               <TextField
                 fullWidth
                 select
-                label="Chọn tỷ lệ gương than mềm (Cm)"
-                variant="outlined"
+                id="mirrorRatio"
+                name="mirrorRatio"
+                placeholder="Placeholder"
                 value={formik.values.mirrorRatio}
                 onChange={(event) => {
                   formik.setFieldValue("mirrorRatio", event.target.value);
                 }}
-                error={
-                  formik.touched.mirrorRatio &&
-                  Boolean(formik.errors.mirrorRatio)
-                }
-                helperText={
-                  formik.touched.mirrorRatio && formik.errors.mirrorRatio
-                }
+                variant="outlined"
+                size="small"
+                sx={{
+                  "& .MuiInputBase-root": {
+                    height: "36px",
+                    fontSize: "14px",
+                  },
+                }}
               >
                 {mirrorratios?.map((step: StepType) => (
                   <MenuItem key={step._id} value={step._id}>
@@ -135,6 +204,13 @@ export default function AdjustmentNormCMModal({
                   </MenuItem>
                 ))}
               </TextField>
+            </Box>
+
+            {/* Mã giao khoán */}
+            <Box>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Mã giao khoán
+              </Typography>
               <Autocomplete
                 multiple
                 options={assignmentcodes.filter(
@@ -149,89 +225,212 @@ export default function AdjustmentNormCMModal({
                 value={selectedAssignmentCodes}
                 onChange={(event, newValue) => {
                   setSelectedAssignmentCodes(newValue);
-
-                  // Cập nhật lại norms trong Formik khi thay đổi mã giao khoán
                   const updatedNorms = newValue.map((item) => {
                     const existing = formik.values.norms.find(
                       (n: any) => n.assignmentCode === item._id
                     );
                     return {
                       assignmentCode: item._id,
-                      norm: existing?.norm || undefined,
+                      norm: existing?.norm || "",
                     };
                   });
                   formik.setFieldValue("norms", updatedNorms);
                 }}
+                renderTags={(tagValue, getTagProps) =>
+                  tagValue.map((option, index) => {
+                    const { key, ...chipProps } = getTagProps({ index });
+                    return (
+                      <Chip
+                        key={option._id}
+                        label={option.code}
+                        size="small"
+                        {...chipProps}
+                      />
+                    );
+                  })
+                }
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Mã giao khoán"
-                    variant="outlined"
                     placeholder="Chọn..."
+                    variant="outlined"
+                    size="small"
+                    sx={{
+                      "& .MuiInputBase-root": {
+                        minHeight: "36px",
+                        fontSize: "14px",
+                      },
+                    }}
                   />
                 )}
               />
-              <FieldArray name="norms">
-                {({ push, remove }) => (
-                  <Box
-                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-                  >
-                    {formik.values.norms.map((item: any, index: number) => (
-                      <Box
-                        key={index}
-                        sx={{ display: "flex", gap: 2, alignItems: "center" }}
-                      >
-                        <TextField
-                          fullWidth
-                          label="Mã giao khoán"
-                          value={
-                            assignmentcodes.find(
-                              (item: AssignmentCodeOutputType) =>
-                                item._id ===
-                                formik.values.norms[index].assignmentCode
-                            )?.code
-                          }
-                          InputLabelProps={{ shrink: true }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Tên vật tư, tài sản"
-                          name={`norms[${index}].assignmentCode`}
-                          value={
-                            assignmentcodes.find(
-                              (item: AssignmentCodeOutputType) =>
-                                item._id ===
-                                formik.values.norms[index].assignmentCode
-                            )?.name
-                          }
-                          InputLabelProps={{ shrink: true }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Định mức"
-                          type="number"
-                          name={`norms[${index}].norm`}
-                          value={formik.values.norms[index]?.norm || ""}
-                          onChange={(e) =>
-                            formik.setFieldValue(
-                              `norms[${index}].norm`,
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Box>
-                    ))}
-                  </Box>
-                )}
-              </FieldArray>
             </Box>
+
+            {/* Danh sách định mức */}
+            {formik.values.norms.length > 0 && (
+              <Box>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr 40px",
+                    gap: 2,
+                    alignItems: "end",
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px" }}>
+                    Mã giao khoán
+                  </Typography>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px" }}>
+                    Tên vật tư, tài sản
+                  </Typography>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px" }}>
+                    Định mức
+                  </Typography>
+                  <Box></Box>
+                </Box>
+
+                {formik.values.norms.map((item: any, index: number) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr 40px",
+                      gap: 2,
+                      alignItems: "center",
+                      mt: 1,
+                    }}
+                  >
+                    <TextField
+                      fullWidth
+                      value={
+                        assignmentcodes.find(
+                          (ac: AssignmentCodeOutputType) =>
+                            ac._id === formik.values.norms[index].assignmentCode
+                        )?.code || ""
+                      }
+                      variant="outlined"
+                      size="small"
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "36px",
+                          fontSize: "14px",
+                          backgroundColor: "#f5f5f5",
+                        },
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      value={
+                        assignmentcodes.find(
+                          (ac: AssignmentCodeOutputType) =>
+                            ac._id === formik.values.norms[index].assignmentCode
+                        )?.name || ""
+                      }
+                      placeholder="Placeholder"
+                      variant="outlined"
+                      size="small"
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "36px",
+                          fontSize: "14px",
+                          backgroundColor: "#f5f5f5",
+                        },
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      type="number"
+                      value={formik.values.norms[index]?.norm || ""}
+                      onChange={(e) =>
+                        formik.setFieldValue(
+                          `norms[${index}].norm`,
+                          e.target.value
+                        )
+                      }
+                      placeholder="Placeholder"
+                      variant="outlined"
+                      size="small"
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "36px",
+                          fontSize: "14px",
+                        },
+                      }}
+                    />
+                    <IconButton
+                      onClick={() => {
+                        const updatedCodes = selectedAssignmentCodes.filter(
+                          (code) => code._id !== formik.values.norms[index].assignmentCode
+                        );
+                        setSelectedAssignmentCodes(updatedCodes);
+                        
+                        const updatedNorms = formik.values.norms.filter(
+                          (_, i) => i !== index
+                        );
+                        formik.setFieldValue("norms", updatedNorms);
+                      }}
+                      size="small"
+                      sx={{
+                        width: "32px",
+                        height: "32px",
+                        border: "1px solid #ddd",
+                        borderRadius: "50%",
+                        backgroundColor: "#f5f5f5",
+                        "&:hover": {
+                          backgroundColor: "#e0e0e0",
+                        },
+                      }}
+                    >
+                      <CloseIcon sx={{ fontSize: "16px", color: "#666" }} />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            )}
           </Box>
         </FormikProvider>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Hủy</Button>
-        <Button onClick={() => formik.submitForm()} variant="contained">
-          {selected ? "Cập nhật" : "Thêm mới"}
+
+      <DialogActions sx={{ mt: 3, px: 0, gap: 1, justifyContent: "flex-end" }}>
+        <Button
+          onClick={handleClose}
+          sx={{
+            backgroundColor: "#f5f5f5",
+            color: "#666",
+            borderRadius: "4px",
+            height: "36px",
+            minWidth: "80px",
+            fontSize: "14px",
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: "#e0e0e0",
+            },
+          }}
+        >
+          Hủy
+        </Button>
+        <Button
+          onClick={() => formik.submitForm()}
+          variant="contained"
+          sx={{
+            backgroundColor: "#1976d2",
+            borderRadius: "4px",
+            height: "36px",
+            minWidth: "80px",
+            fontSize: "14px",
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: "#1565c0",
+            },
+          }}
+        >
+          {selected ? "Cập nhật" : "Xác nhận"}
         </Button>
       </DialogActions>
     </Dialog>

@@ -213,23 +213,6 @@ export default function Materialunitprice() {
       render: (_v, record) =>
         record.price ? record.price.toLocaleString() : "",
     },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Ghi chú</Typography>,
-      key: "note",
-      width: 70,
-      align: "center",
-      render: (_v, record) => (
-        <Box display="flex" gap={1} justifyContent="center">
-          <IconButton
-            size="small"
-            onClick={() => console.log("Ghi chú của:", record)}
-            aria-label="ghi-chu"
-          >
-            <Edit />
-          </IconButton>
-        </Box>
-      ),
-    },
   ];
 
   const rowSelection: TableRowSelection<FlatMaterial> = {
@@ -269,41 +252,6 @@ export default function Materialunitprice() {
             justifyContent="space-between"
             alignItems="center"
           >
-            <Box display={"flex"} gap={2}>
-              <Button
-                variant="contained"
-                color="warning"
-                endIcon={<Add />}
-                onClick={() => handleOpen()}
-                sx={{
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Tạo mới
-              </Button>
-              <Button
-                variant="contained"
-                color="error"
-                endIcon={<Delete />}
-                onClick={() => handleDelete()}
-                sx={{
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Xóa
-              </Button>
-            </Box>
-
             <Box display={"flex"} flex={1} gap={2}>
               <Button
                 variant="outlined"

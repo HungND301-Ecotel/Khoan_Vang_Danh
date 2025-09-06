@@ -374,7 +374,7 @@ export default function MiningTech() {
         open={open}
         setOpen={setOpen}
         handleSubmit={handleSubmit}
-        selectedMiningTech={selectedMiningTech}
+         selectedPhaseGroup={selectedMiningTech}
       />
     </Box>
   );
