@@ -61,7 +61,6 @@ export default function MirrorRatioModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{
@@ -176,7 +175,7 @@ export default function MirrorRatioModal({
                   textTransform: "none",
                 }}
               >
-                {selectedMirrorRatio ? "Cập nhật" : "Thêm mới"}
+                {selectedMirrorRatio ? "Cập nhật" : "Xác nhận"}
               </Button>
             </DialogActions>
           </Box>

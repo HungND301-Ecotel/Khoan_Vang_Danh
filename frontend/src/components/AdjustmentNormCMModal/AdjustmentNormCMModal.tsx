@@ -149,7 +149,6 @@ export default function AdjustmentNormCMModal({
             onSubmit={formik.handleSubmit}
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            {/* Mã định mức */}
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Mã định mức <span style={{ color: "red" }}>*</span>
@@ -173,8 +172,6 @@ export default function AdjustmentNormCMModal({
                 }}
               />
             </Box>
-
-            {/* Tỷ lệ đá lẫn gương than mềm (Cm) */}
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Tỷ lệ đá lẫn gương than mềm (Cm) <span style={{ color: "red" }}>*</span>
@@ -206,7 +203,6 @@ export default function AdjustmentNormCMModal({
               </TextField>
             </Box>
 
-            {/* Mã giao khoán */}
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Mã giao khoán

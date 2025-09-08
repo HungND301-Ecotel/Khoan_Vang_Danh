@@ -83,17 +83,14 @@ export default function Quarterlycontractsettlement() {
   });
 
   const handleExport = () => {
-    // Export functionality
     console.log("Export file");
   };
 
   const handlePrint = () => {
-    // Print functionality
     console.log("Print");
   };
 
   const handleSend = () => {
-    // Send functionality
     console.log("Send");
   };
 

@@ -174,8 +174,6 @@ export default function AdjustmentNormKKTModal({
                 }}
               />
             </Box>
-
-            {/* Độ cứng của đá */}
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Độ cứng của đá lẫn trong gương (f) <span style={{ color: "red" }}>*</span>
@@ -238,8 +236,6 @@ export default function AdjustmentNormKKTModal({
                 ))}
               </TextField>
             </Box>
-
-            {/* Mã giao khoán */}
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Mã giao khoán
@@ -298,8 +294,6 @@ export default function AdjustmentNormKKTModal({
                 )}
               />
             </Box>
-
-            {/* Form norms - hiển thị trong một row */}
             {formik.values.norms.length > 0 && (
               <Box>
                 <Box

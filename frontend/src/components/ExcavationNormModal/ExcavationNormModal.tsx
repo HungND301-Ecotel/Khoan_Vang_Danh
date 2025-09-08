@@ -691,7 +691,7 @@ export default function ExcavationNormModal({
             textTransform: "none",
           }}
         >
-          {selected ? "Cập nhật" : "Thêm mới"}
+          {selected ? "Cập nhật" : "Xác nhận"}
         </Button>
       </DialogActions>
     </Dialog>

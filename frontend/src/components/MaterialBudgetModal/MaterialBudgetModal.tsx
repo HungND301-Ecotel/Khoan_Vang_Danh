@@ -12,10 +12,12 @@ import {
   MenuItem,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import * as yup from "yup";
-import { FormikProvider, useFormik } from "formik";
-import { useQuery } from "@tanstack/react-query";
+import { FormikProvider, useFormik, FormikErrors } from "formik";
+import { useQuery ,useQueries } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import {
   AdjustmentNormOutputType,
@@ -23,17 +25,35 @@ import {
   MaterialBudgetInputType,
   PhaseGroupType,
   PhaseOutputType,
+  PhaseType,
+  FormValues
 } from "../../types";
 import { Divider } from "antd";
 
-const validationSchema = yup.object({
-  code: yup.string().required("Mã chi phí không được để trống"),
-  production: yup.number().required("Sản lượng không được để trống"),
+
+const phaseValidationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
   phase: yup.string().required("Công đoạn không được để trống"),
   assignmentNormCode: yup.string().required("Mã định mức giao khoán không được để trống"),
-  adjustmentNormCode: yup.string().required("Mã định hệ số điều chỉnh định mức không được để trống"),
+  production: yup.number().required("Sản lượng không được để trống"),
+  adjustmentNormCode: yup.string().required("Mã hệ số điều chỉnh định mức không được để trống"),
 });
+
+
+const validationSchema = yup.object({
+  code: yup.string().required("Mã chi phí không được để trống"),
+  phases: yup.array().of(phaseValidationSchema).min(1, "Cần ít nhất một công đoạn"),
+});
+
+
+const usePhases = (phaseGroupId: string) => {
+  return useQuery({
+    queryKey: ["phases", phaseGroupId],
+    queryFn: async () =>
+      api.get(`/phases?phaseGroup=${phaseGroupId || ''}`).then((res) => res.data.data),
+    enabled: !!phaseGroupId,
+  });
+};
 
 export default function MaterialBudgetModal({
   open,
@@ -46,55 +66,139 @@ export default function MaterialBudgetModal({
   handleSubmit: (values: Partial<MaterialBudgetInputType>) => void;
   selected: MaterialBudgetInputType | null;
 }) {
-  const [phaseGroup, setPhaseGroup] = useState<string | null>(null);
+  const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{[key: number]: string}>({});
 
   const { data: phasegroups = [] } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: async () => api.get("/phasegroups").then((res) => res.data.data),
   });
-  const { data: phases = [] } = useQuery({
-    queryKey: ["phases", phaseGroup],
-    queryFn: async () =>
-      api.get(`/phases?phaseGroup=${phaseGroup}`).then((res) => res.data.data),
-    enabled: !!phaseGroup,
-  });
+  
   const { data: assignmentnorms = [] } = useQuery({
     queryKey: ["assignmentnorms"],
     queryFn: async () =>
       api.get("/assignmentnorms").then((res) => res.data.data),
   });
+  
   const { data: adjustmentnorms = [] } = useQuery({
     queryKey: ["adjustmentnorms"],
     queryFn: async () =>
       api.get("/adjustmentnorms").then((res) => res.data.data),
   });
 
-  useEffect(() => {
-    if (selected && phasegroups.length > 0) {
-      setPhaseGroup(selected.phaseGroup || "");
-    }
-  }, [selected, phasegroups]);
-
-  const formik = useFormik({
+  const formik = useFormik<FormValues>({
     initialValues: {
-      code: selected?.code || "",
-      phaseGroup: phaseGroup || "",
-      phase: selected?.phase || "",
-      assignmentNormCode: selected?.assignmentNormCode || "",
-      adjustmentNormCode: selected?.adjustmentNormCode || "",
-      production: selected?.production || undefined,
+      code: "",
+      phases: [{ phaseGroup: "", phase: "", assignmentNormCode: "", production: undefined, adjustmentNormCode: "" }],
     },
     enableReinitialize: true,
     validationSchema,
     onSubmit: async (values) => {
-      handleSubmit(values);
+      const submitData: Partial<MaterialBudgetInputType> = {
+        code: values.code,
+        phaseGroup: values.phases[0]?.phaseGroup || "",
+        phase: values.phases[0]?.phase || "",
+        assignmentNormCode: values.phases[0]?.assignmentNormCode || "",
+        production: values.phases[0]?.production,
+        adjustmentNormCode: values.phases[0]?.adjustmentNormCode || "",
+      };
+      handleSubmit(submitData);
     },
   });
 
+  useEffect(() => {
+    if (selected) {
+      formik.setValues({
+        code: selected.code || "",
+        phases: [{
+          phaseGroup: selected.phaseGroup || "",
+          phase: selected.phase || "",
+          assignmentNormCode: selected.assignmentNormCode || "",
+          production: selected.production,
+          adjustmentNormCode: selected.adjustmentNormCode || "",
+        }],
+      });
+      
+      if (selected.phaseGroup) {
+        setPhaseGroupsForQuery({0: selected.phaseGroup});
+      }
+    }
+  }, [selected]);
+
   const handleClose = () => {
     formik.resetForm();
+    setPhaseGroupsForQuery({});
     setOpen(false);
   };
+
+  const addPhase = () => {
+    const newPhases = [...formik.values.phases, { 
+      phaseGroup: "", 
+      phase: "", 
+      assignmentNormCode: "", 
+      production: undefined, 
+      adjustmentNormCode: "" 
+    }];
+    formik.setFieldValue("phases", newPhases);
+  };
+
+  const removePhase = (index: number) => {
+    if (formik.values.phases.length <= 1) return;
+    
+    const newPhases = formik.values.phases.filter((_, i) => i !== index);
+    formik.setFieldValue("phases", newPhases);
+    
+    const newPhaseGroups = {...phaseGroupsForQuery};
+    delete newPhaseGroups[index];
+    
+    const updatedPhaseGroups: {[key: number]: string} = {};
+    Object.entries(newPhaseGroups).forEach(([oldIndex, value]) => {
+      const numIndex = parseInt(oldIndex);
+      if (numIndex > index) {
+        updatedPhaseGroups[numIndex - 1] = value;
+      } else {
+        updatedPhaseGroups[numIndex] = value;
+      }
+    });
+    
+    setPhaseGroupsForQuery(updatedPhaseGroups);
+  };
+
+  const handlePhaseChange = (index: number, field: keyof PhaseType, value: any) => {
+    const newPhases = [...formik.values.phases];
+    newPhases[index] = { ...newPhases[index], [field]: value };
+    
+    if (field === "phaseGroup") {
+      newPhases[index].phase = "";
+      
+      setPhaseGroupsForQuery({
+        ...phaseGroupsForQuery,
+        [index]: value
+      });
+    }
+    
+    formik.setFieldValue("phases", newPhases);
+  };
+
+
+  const getError = (index: number, field: keyof PhaseType): string => {
+    const error = formik.errors.phases?.[index] as FormikErrors<PhaseType> | undefined;
+    const touched = formik.touched.phases?.[index] as Record<keyof PhaseType, boolean> | undefined;
+    
+    if (touched?.[field] && error?.[field]) {
+      return error[field] as string;
+    }
+    return "";
+  };
+
+  
+const phaseQueries = useQueries({
+  queries: Object.entries(phaseGroupsForQuery).map(([index, phaseGroupId]) => ({
+    queryKey: ["phases", phaseGroupId],
+    queryFn: async () =>
+      api.get(`/phases?phaseGroup=${phaseGroupId}`).then((res) => res.data.data),
+    enabled: !!phaseGroupId,
+  })),
+});
 
   return (
     <Dialog
@@ -102,10 +206,13 @@ export default function MaterialBudgetModal({
       onClose={handleClose}
       PaperProps={{
         sx: {
-          width: "800px",
-          height: "740px",
-          p: "40px",
+          width: "700px",
+          maxHeight: "80vh",
+          p: "32px",
           position: "relative",
+          borderRadius: "8px",
+          boxShadow: "0px 4px 15px rgba(0, 0, 0, 0.15)",
+          overflowY: "auto",
         },
       }}
     >
@@ -113,20 +220,23 @@ export default function MaterialBudgetModal({
         onClick={handleClose}
         sx={{
           position: "absolute",
-          top: "40px",
-          right: "40px",
-          width: "16px",
-          height: "16px",
-          opacity: 1,
+          top: "20px",
+          right: "20px",
+          width: "24px",
+          height: "24px",
+          opacity: 0.7,
+          "&:hover": {
+            opacity: 1,
+          }
         }}
       >
-        <CloseIcon sx={{ fontSize: "16px" }} />
+        <CloseIcon sx={{ fontSize: "18px" }} />
       </IconButton>
 
-      <DialogTitle sx={{ p: 0, mt: "16px" }}>
-        <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "14px" }}>
-          <Typography>Thống kê vận hành</Typography>
-          <Typography>Chi phí vật tư kế hoạch</Typography>
+      <DialogTitle sx={{ p: 0, mb: 3 }}>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+          <Typography sx={{ fontSize: "12px", color: "#666" }}>Thống kê vận hành</Typography>
+          <Typography sx={{ fontSize: "12px", color: "#666" }}>Chi phí vật tư kế hoạch</Typography>
         </Breadcrumbs>
         <Divider
           style={{
@@ -136,17 +246,19 @@ export default function MaterialBudgetModal({
             borderColor: "#6592B7",
           }}
         />
-        <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-          {selected ? "Chỉnh sửa Chi phí vật tư kế hoạch" : "Tạo mới chi phí vật tư kế hoạch"}
+        <Typography sx={{ fontSize: "20px", color: "#2B4A82", fontWeight: 700, mt: 1 }}>
+          {selected ? "Chỉnh sửa Chi phí vật tư kế hoạch" : "Tạo mới Chi phí vật tư kế hoạch"}
         </Typography>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0, mt: 3 }}>
+      <DialogContent sx={{ p: 0 }}>
         <FormikProvider value={formik}>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ display: "flex", justifyContent: "center" }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "700px" }}>
+          <Box component="form" onSubmit={formik.handleSubmit}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã chi phí</Typography>
+                <Typography sx={{ fontWeight: 600, fontSize: "14px", mb: 1, color: "#333" }}>
+                  Mã chi phí vật tư kế hoạch
+                </Typography>
                 <TextField
                   fullWidth
                   id="code"
@@ -159,195 +271,301 @@ export default function MaterialBudgetModal({
                   variant="outlined"
                   sx={{
                     "& .MuiInputBase-root": {
-                      height: "32px",
-                      borderRadius: "6px",
-                      paddingRight: "12px",
-                      paddingLeft: "12px",
+                      height: "40px",
+                      borderRadius: "4px",
                       fontSize: "14px",
+                      backgroundColor: "#fff",
+                    },
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: "#d0d7de",
+                        borderWidth: "1px",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#0969da",
+                      },
                     },
                   }}
                 />
               </Box>
-              <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Sản lượng</Typography>
-                <TextField
-                  fullWidth
-                  id="production"
-                  name="production"
-                  type="number"
-                  placeholder="Input Text"
-                  value={formik.values.production}
-                  onChange={formik.handleChange}
-                  error={formik.touched.production && Boolean(formik.errors.production)}
-                  helperText={formik.touched.production && formik.errors.production}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "32px",
-                      borderRadius: "6px",
-                      paddingRight: "12px",
-                      paddingLeft: "12px",
-                      fontSize: "14px",
-                    },
-                  }}
-                />
-              </Box>
-              <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Nhóm công đoạn</Typography>
-                <TextField
-                  fullWidth
-                  select
-                  id="phaseGroup"
-                  name="phaseGroup"
-                  placeholder="Chọn nhóm công đoạn"
-                  value={formik.values.phaseGroup}
-                  onChange={(event) => {
-                    setPhaseGroup(event.target.value);
-                    formik.setFieldValue("phaseGroup", event.target.value);
-                  }}
-                  error={formik.touched.phaseGroup && Boolean(formik.errors.phaseGroup)}
-                  helperText={formik.touched.phaseGroup && formik.errors.phaseGroup}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "32px",
-                      borderRadius: "6px",
-                      paddingRight: "12px",
-                      paddingLeft: "12px",
-                      fontSize: "14px",
-                    },
-                  }}
-                >
-                  {phasegroups?.map((group: PhaseGroupType) => (
-                    <MenuItem key={group._id} value={group._id}>
-                      {group.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
-              <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Công đoạn</Typography>
-                <TextField
-                  fullWidth
-                  select
-                  id="phase"
-                  name="phase"
-                  placeholder="Chọn công đoạn"
-                  value={formik.values.phase}
-                  onChange={formik.handleChange}
-                  error={formik.touched.phase && Boolean(formik.errors.phase)}
-                  helperText={formik.touched.phase && formik.errors.phase}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "32px",
-                      borderRadius: "6px",
-                      paddingRight: "12px",
-                      paddingLeft: "12px",
-                      fontSize: "14px",
-                    },
-                  }}
-                >
-                  {phases?.map((phase: PhaseOutputType) => (
-                    <MenuItem key={phase._id} value={phase._id}>
-                      {phase.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
-              <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã định mức giao khoán</Typography>
-                <TextField
-                  fullWidth
-                  select
-                  id="assignmentNormCode"
-                  name="assignmentNormCode"
-                  placeholder="Chọn mã định mức giao khoán"
-                  value={formik.values.assignmentNormCode}
-                  onChange={formik.handleChange}
-                  error={formik.touched.assignmentNormCode && Boolean(formik.errors.assignmentNormCode)}
-                  helperText={formik.touched.assignmentNormCode && formik.errors.assignmentNormCode}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "32px",
-                      borderRadius: "6px",
-                      paddingRight: "12px",
-                      paddingLeft: "12px",
-                      fontSize: "14px",
-                    },
-                  }}
-                >
-                  {assignmentnorms?.map((item: AssignmentNormOutputType) => (
-                    <MenuItem key={item._id} value={item._id}>
-                      {item.code}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
-              <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã định hệ số điều chỉnh định mức</Typography>
-                <TextField
-                  fullWidth
-                  select
-                  id="adjustmentNormCode"
-                  name="adjustmentNormCode"
-                  placeholder="Chọn mã định hệ số điều chỉnh"
-                  value={formik.values.adjustmentNormCode}
-                  onChange={formik.handleChange}
-                  error={formik.touched.adjustmentNormCode && Boolean(formik.errors.adjustmentNormCode)}
-                  helperText={formik.touched.adjustmentNormCode && formik.errors.adjustmentNormCode}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "32px",
-                      borderRadius: "6px",
-                      paddingRight: "12px",
-                      paddingLeft: "12px",
-                      fontSize: "14px",
-                    },
-                  }}
-                >
-                  {adjustmentnorms?.map((item: AdjustmentNormOutputType) => (
-                    <MenuItem key={item._id} value={item._id}>
-                      {item.code}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
-              <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
+              
+              {formik.values.phases.map((phase, index) => {
+                const phaseData = phaseQueries[index]?.data || [];
+                return (
+                  <Box key={index}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: "14px", color: "#333" }}>
+                        Công đoạn {index + 1}
+                      </Typography>
+                      {formik.values.phases.length > 1 && (
+                        <IconButton 
+                          onClick={() => removePhase(index)} 
+                          size="small"
+                          sx={{ color: '#ff4d4f' }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                    
+                    <Box sx={{ 
+                      border: "1px solid #D0D7DE", 
+                      borderRadius: "6px", 
+                      padding: "16px",
+                      backgroundColor: "#fff",
+                      mb: 2
+                    }}>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                          Nhóm công đoạn
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={phase.phaseGroup}
+                          onChange={(e) => handlePhaseChange(index, "phaseGroup", e.target.value)}
+                          error={Boolean(getError(index, "phaseGroup"))}
+                          helperText={getError(index, "phaseGroup")}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "40px",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              backgroundColor: "#fff",
+                            },
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: "#d0d7de",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "#0969da",
+                              },
+                            },
+                          }}
+                        >
+                          {phasegroups?.map((group: PhaseGroupType) => (
+                            <MenuItem key={group._id} value={group._id}>
+                              {group.name}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Box>
+
+                      <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                          Công đoạn
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={phase.phase}
+                          onChange={(e) => handlePhaseChange(index, "phase", e.target.value)}
+                          error={Boolean(getError(index, "phase"))}
+                          helperText={getError(index, "phase")}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "40px",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              backgroundColor: "#fff",
+                            },
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: "#d0d7de",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "#0969da",
+                              },
+                            },
+                          }}
+                        >
+                          {phaseData.map((phaseItem: PhaseOutputType) => (
+                            <MenuItem key={phaseItem._id} value={phaseItem._id}>
+                              {phaseItem.name}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Box>
+
+                      <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                          Mã định mức giao khoán
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={phase.assignmentNormCode}
+                          onChange={(e) => handlePhaseChange(index, "assignmentNormCode", e.target.value)}
+                          error={Boolean(getError(index, "assignmentNormCode"))}
+                          helperText={getError(index, "assignmentNormCode")}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "40px",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              backgroundColor: "#fff",
+                            },
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: "#d0d7de",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "#0969da",
+                              },
+                            },
+                          }}
+                        >
+                          {assignmentnorms?.map((item: AssignmentNormOutputType) => (
+                            <MenuItem key={item._id} value={item._id}>
+                              {item.code}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Box>
+
+                      <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                          Sản lượng
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          placeholder="Input Text"
+                          value={phase.production || ''}
+                          onChange={(e) => handlePhaseChange(index, "production", e.target.value ? Number(e.target.value) : undefined)}
+                          error={Boolean(getError(index, "production"))}
+                          helperText={getError(index, "production")}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "40px",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              backgroundColor: "#fff",
+                            },
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: "#d0d7de",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "#0969da",
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+
+                      <Box>
+                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                          Mã hệ số điều chỉnh định mức
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={phase.adjustmentNormCode}
+                          onChange={(e) => handlePhaseChange(index, "adjustmentNormCode", e.target.value)}
+                          error={Boolean(getError(index, "adjustmentNormCode"))}
+                          helperText={getError(index, "adjustmentNormCode")}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "40px",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              backgroundColor: "#fff",
+                            },
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: "#d0d7de",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "#0969da",
+                              },
+                            },
+                          }}
+                        >
+                          {adjustmentnorms?.map((item: AdjustmentNormOutputType) => (
+                            <MenuItem key={item._id} value={item._id}>
+                              {item.code}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Box>
+                    </Box>
+                  </Box>
+                );
+              })}
+              
+              <Box sx={{ mt: -1 }}>
                 <Button
-                  onClick={handleClose}
+                  variant="text"
+                  startIcon={<AddIcon />}
+                  onClick={addPhase}
                   sx={{
-                    backgroundColor: "#DFE2EA",
-                    borderRadius: "8px",
-                    height: "32px",
-                    minWidth: "91px",
+                    color: "#2B4A82",
                     fontSize: "14px",
+                    fontWeight: 500,
                     textTransform: "none",
+                    padding: "4px 0",
+                    "&:hover": {
+                      backgroundColor: "transparent",
+                      textDecoration: "underline",
+                    },
                   }}
                 >
-                  Hủy
+                  Thêm công đoạn
                 </Button>
-                <Button
-                  onClick={() => formik.submitForm()}
-                  variant="contained"
-                  sx={{
-                    backgroundColor: "#007BFF",
-                    borderRadius: "8px",
-                    height: "32px",
-                    minWidth: "91px",
-                    fontSize: "14px",
-                    textTransform: "none",
-                  }}
-                >
-                  {selected ? "Cập nhật" : "Thêm mới"}
-                </Button>
-              </DialogActions>
+              </Box>
             </Box>
           </Box>
         </FormikProvider>
       </DialogContent>
+
+      <DialogActions sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}>
+        <Button
+          onClick={handleClose}
+          sx={{
+            backgroundColor: "#f6f8fa",
+            color: "#24292f",
+            border: "1px solid #d0d7de",
+            borderRadius: "6px",
+            height: "36px",
+            minWidth: "80px",
+            fontSize: "14px",
+            textTransform: "none",
+            fontWeight: 500,
+            "&:hover": {
+              backgroundColor: "#f3f4f6",
+            },
+          }}
+        >
+          Hủy
+        </Button>
+        <Button
+          onClick={() => formik.submitForm()}
+          variant="contained"
+          sx={{
+            backgroundColor: "#2B4A82",
+            borderRadius: "6px",
+            height: "36px",
+            minWidth: "100px",
+            fontSize: "14px",
+            fontWeight: 500,
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: "#1E3A8A",
+            },
+          }}
+        >
+          {selected ? "Cập nhật" : "Xác nhận"}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }
+
+
+

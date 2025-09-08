@@ -176,7 +176,7 @@ export default function RockRatioModal({
                   textTransform: "none",
                 }}
               >
-                {selectedRockRatio ? "Cập nhật" : "Thêm mới"}
+                {selectedRockRatio ? "Cập nhật" : "Xác nhận "}
               </Button>
             </DialogActions>
           </Box>

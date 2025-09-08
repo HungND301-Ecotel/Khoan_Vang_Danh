@@ -147,7 +147,7 @@ export default function StepModal({
                   textTransform: "none",
                 }}
               >
-                {selectedStep ? "Cập nhật" : "Thêm mới"}
+                {selectedStep ? "Cập nhật" : "Xác nhận"}
               </Button>
             </DialogActions>
           </Box>

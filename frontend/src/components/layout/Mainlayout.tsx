@@ -17,7 +17,16 @@ import {
   ListItemIcon,
 } from "@mui/material";
 import {
-  Dashboard as DashboardIcon,
+  BadgeRussianRuble,
+  Bell,
+  Boxes,
+  ChevronDown,
+  CircleUserRound,
+  ClipboardList,
+  FileChartColumn,
+  Settings,
+} from "lucide-react";
+import {
   ListAlt,
   Calculate,
   Equalizer,
@@ -25,10 +34,8 @@ import {
   Logout as LogoutIcon,
   Notifications,
   VpnKeyOutlined,
-  BarChart,
   Person2,
   ArrowDropDown,
-  InsertDriveFile
 } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
 import { useAtom } from "jotai";
@@ -68,7 +75,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     <Box
       sx={{
         display: "flex",
-        minHeight: "100vh",
+        maxHeight: "100",
         bgcolor: "background.default",
       }}
     >
@@ -81,6 +88,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         elevation={5}
         sx={{
           bgcolor: "background.paper",
+          height: 100,
           borderBottom: (t) => `1px solid ${t.palette.divider}`,
         }}
       >
@@ -88,7 +96,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           sx={{ gap: 4, height: 100, display: "flex", alignItems: "center" }}
         >
           {/* Logo + Company */}
-          <img src="/logo.png" style={{ width: 150, height: 100 }} />
+          <img src="/logo.png" style={{ width: 120.5 }} />
 
           {/* NAV BUTTONS */}
           <Box
@@ -102,28 +110,37 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             }}
           >
             <Button
-              startIcon={<InsertDriveFile sx={{ color: "blue" }} />}
+              startIcon={
+                <FileChartColumn strokeWidth="1" style={{ color: "#9114CC" }} />
+              }
               sx={{ color: "black" }}
               onClick={() => navigate("/")}
             >
-              TỔNG QUAN
+              DASH BOARD
             </Button>
             <Button
-              startIcon={<ListAlt sx={{ color: "blue" }} />}
+              startIcon={
+                <ClipboardList strokeWidth="1" style={{ color: "#4CAF50" }} />
+              }
               sx={{ color: "black" }}
               onClick={(e) => setMenuDanhMucEl(e.currentTarget)}
             >
               DANH MỤC
             </Button>
             <Button
-              startIcon={<Calculate sx={{ color: "blue" }} />}
+              startIcon={
+                <BadgeRussianRuble
+                  strokeWidth="1"
+                  style={{ color: "#CC146C" }}
+                />
+              }
               sx={{ color: "black" }}
               onClick={(e) => setMenuDonGiaEl(e.currentTarget)}
             >
               ĐƠN GIÁ VÀ ĐỊNH MỨC
             </Button>
             <Button
-              startIcon={<Equalizer sx={{ color: "blue" }} />}
+              startIcon={<Boxes strokeWidth="1" style={{ color: "#F3D016" }} />}
               sx={{ color: "black" }}
               onClick={(e) => setMenuThongKeEl(e.currentTarget)}
             >
@@ -132,34 +149,34 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </Box>
 
           {/* RIGHT ACTIONS */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <IconButton>
-              <SettingsIcon sx={{ fontSize: 30 }} />
-            </IconButton>
-            <IconButton>
-              <Badge badgeContent={4} color="error">
-                <Notifications sx={{ fontSize: 30 }} />
-              </Badge>
-            </IconButton>
+          <Box
+            display="flex"
+            alignItems="center"
+            gap={2}
+            sx={{ "&:hover": { cursor: "pointer" } }}
+            borderLeft={"1px solid #DFE2EA"}
+            onClick={(e) => setMenuSettingsEl(e.currentTarget)}
+          >
+            <ChevronDown size={16} style={{ marginLeft: 16 }} />
+
             <Box
               display="flex"
-              alignItems={"center"}
-              gap={2}
-              sx={{ "&:hover": { cursor: "pointer" } }}
-              borderLeft={"1px solid grey"}
-              onClick={(e) => setMenuSettingsEl(e.currentTarget)}
+              flexDirection="column"
+              alignItems="flex-end"
+              justifyContent="center"
+              sx={{ minHeight: 24, lineHeight: 1.1 }} // cao bằng icon
             >
-              <ArrowDropDown sx={{ fontSize: 30 }} />
-              <Box
-                display="flex"
-                flexDirection={"column"}
-                alignItems={"flex-end"}
+              <Typography sx={{ fontSize: 12, lineHeight: 1.1 }}>
+                Nguyễn Hà
+              </Typography>
+              <Typography
+                sx={{ fontSize: 10, color: "text.secondary", lineHeight: 1.1 }}
               >
-                <Typography>Nguyễn Hà</Typography>
-                <Typography>admin@gmail.com</Typography>
-              </Box>
-              <Avatar />
+                admin@gmail.com
+              </Typography>
             </Box>
+
+            <CircleUserRound strokeWidth={1} size={24} />
           </Box>
         </Toolbar>
       </AppBar>
@@ -184,7 +201,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          ĐƠN VỊ TÍNH
+          Đơn vị tính
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -192,7 +209,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          MÃ THIẾT BỊ 
+          Mã thiết bị
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -200,7 +217,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          MÃ GIAO KHOÁN
+          Mã giao khoán
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -208,7 +225,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          VẬT TƯ ,TÀI SẢN
+          Vật tư, tài sản
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -216,7 +233,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          TỶ LỆ ĐÁ LẪN TRONG GƯƠNG
+          Tỷ lệ đá lẫn trong gương (Ckẹp)
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -224,7 +241,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          TỶ LỆ GƯƠNG THAN MỀM
+          Tỷ lệ gương than mềm (Cm)
         </MenuItem>
         {/* <MenuItem
                 onClick={() => {
@@ -246,7 +263,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          HỆ SỐ ĐIỀU CHỈNH ĐỊNH MỨC
+          Hệ số điều chỉnh định mức
         </MenuItem>
         {/* <MenuItem
                     onClick={() => {
@@ -282,7 +299,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          CÔNG ĐOẠN SẢN XUẤT
+          Công đoạn sản xuất
         </MenuItem>
 
         {/* <MenuItem
@@ -315,7 +332,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          THÔNG SỐ
+          Thông số
         </MenuItem>
 
         {/* <MenuItem onClick={() => { navigate("/excavationtech"); setMenuDanhMucEl(null); }}>
@@ -351,7 +368,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-         ĐIỆN SẢN XUẤT
+          Diện sản xuất
         </MenuItem>
       </Menu>
 
@@ -368,7 +385,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-          ĐƠN GIÁ VẬT TƯ GIAO KHOÁN
+          Đơn giá vật tư giao khoán
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -376,7 +393,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-          ĐỊNH MỨC ĐÀO LỎ
+          Định mức đào lò
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -384,7 +401,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-          ĐỊNH MỨC XẺN LÒ
+          Định mức xén lò
         </MenuItem>
 
         <MenuItem
@@ -393,7 +410,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-         ĐỊNH MỨC KHẨU THAN
+          Định mức khấu than
         </MenuItem>
       </Menu>
 
@@ -410,7 +427,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuThongKeEl(null);
           }}
         >
-          CHI PHÍ VẬT TƯ KẾ HOẠCH 
+          Chi phí vật tư kế hoạch (Zkh)
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -418,7 +435,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuThongKeEl(null);
           }}
         >
-          CHI PHÍ VẬT TƯ THỰC HIỆN
+          Chi phí vật tư thực hiện (Zkh)
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -426,7 +443,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuThongKeEl(null);
           }}
         >
-         QUYẾT TOÁN GIAO KHÓA
+          Quyết toán giao khoán
         </MenuItem>
       </Menu>
 

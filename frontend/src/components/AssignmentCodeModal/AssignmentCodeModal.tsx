@@ -77,7 +77,6 @@ export default function AssignmentCodeModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{

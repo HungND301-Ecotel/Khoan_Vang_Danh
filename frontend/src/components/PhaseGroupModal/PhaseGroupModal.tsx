@@ -177,7 +177,7 @@ export default function PhaseGroupModal({
                   textTransform: "none",
                 }}
               >
-                {selectedPhaseGroup ? "Cập nhật" : "Thêm mới"}
+                {selectedPhaseGroup ? "Cập nhật" : "Xác nhận"}
               </Button>
             </DialogActions>
           </Box>

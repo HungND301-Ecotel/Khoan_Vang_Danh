@@ -241,7 +241,7 @@ export default function CrossSection({
                   textTransform: "none",
                 }}
               >
-                {selectedCrossSection ? "Cập nhật" : "Thêm mới"}
+                {selectedCrossSection ? "Cập nhật" : "Xác nhận "}
               </Button>
             </DialogActions>
           </Box>

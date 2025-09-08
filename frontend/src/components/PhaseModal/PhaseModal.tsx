@@ -238,7 +238,7 @@ export default function PhaseModal({
                   textTransform: "none",
                 }}
               >
-                {selectedPhase ? "Cập nhật" : "Thêm mới"}
+                {selectedPhase ? "Cập nhật" : "Xác nhận "}
               </Button>
             </DialogActions>
           </Box>

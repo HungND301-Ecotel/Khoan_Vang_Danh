@@ -16,6 +16,7 @@ import {
   Tabs,
   Tab,
   Checkbox,
+  Button,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -24,7 +25,7 @@ import {
   MaterialBudgetInputType,
   PhaseOutputType,
 } from "../../types";
-import { CalendarToday } from "@mui/icons-material";
+import { ArrowDropDown, CalendarToday, FileDownload, Mail, Print } from "@mui/icons-material";
 
 export default function SettlementReport() {
   const [selectedMonth, setSelectedMonth] = useState<Number>();
@@ -77,153 +78,199 @@ export default function SettlementReport() {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box mt={3}>
-        <Box>
-          <Box sx={{ mb: 2 }}>
-            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-              <Box display={"flex"} gap={2}>
-                <Grid container spacing={2} mb={3}>
-                  <Grid item xs={4}>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#333' }}>
-                      Ngày bắt đầu
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Placeholder"
-                      sx={{ 
-                        minWidth: 10,
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f8f9fa',
-                          '& fieldset': {
-                            borderColor: '#e0e0e0',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#bdbdbd',
-                          },
-                        }
-                      }}
-                      select
-                      value={selectedYear}
-                      InputProps={{
-                        endAdornment: <CalendarToday />, 
-                      }}
-                      SelectProps={{
-                        MenuProps: {
-                          PaperProps: {
-                            style: {
-                              maxHeight: 300,
-                            },
-                          },
-                        },
-                        IconComponent: () => null,
-                      }}
-                      onChange={(e) =>
-                        setSelectedYear(parseInt(e.target.value))
-                      }
-                    >
-                      {years.map((item, index) => (
-                        <MenuItem key={index} value={item}>
-                          {item}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#333' }}>
-                      Ngày kết thúc
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Placeholder"
-                      sx={{ 
-                        minWidth: 10,
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f8f9fa',
-                          '& fieldset': {
-                            borderColor: '#e0e0e0',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#bdbdbd',
-                          },
-                        }
-                      }}
-                      select
-                      InputProps={{
-                        endAdornment: <CalendarToday />, 
-                      }}
-                      SelectProps={{
-                        MenuProps: {
-                          PaperProps: {
-                            style: {
-                              maxHeight: 300,
-                            },
-                          },
-                        },
-                        IconComponent: () => null,
-                      }}
-                      onChange={(e) =>
-                        setSelectedMonth(parseInt(e.target.value))
-                      }
-                    >
-                      {Array.from({ length: 12 }).map((_, index) => (
-                        <MenuItem key={index} value={index + 1}>
-                          {index + 1}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: '#333' }}>
-                      Chọn công đoạn
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Placeholder"
-                      sx={{ 
-                        minWidth: 492,
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#f8f9fa',
-                          '& fieldset': {
-                            borderColor: '#e0e0e0',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#bdbdbd',
-                          },
-                        }
-                      }}
-                      select
-                      variant="outlined"
-                    >
-                      {phases?.map((item: PhaseOutputType) => (
-                        <MenuItem key={item._id} value={item._id}>
-                          {item.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
+    <Box mt={3}>
+      <Box>
+        <Box sx={{ mb: 2 }}>
+          <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+            <Box display={"flex"} gap={2}>
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={4}>
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                  >
+                    Ngày bắt đầu
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Placeholder"
+                    sx={{
+                      width: 168,
+                      height: 32,
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: "#f8f9fa",
+                        "& fieldset": { borderColor: "#e0e0e0" },
+                        "&:hover fieldset": { borderColor: "#bdbdbd" },
+                      },
+                    }}
+                    select
+                    value={selectedYear}
+                    InputProps={{ endAdornment: <CalendarToday /> }}
+                    SelectProps={{ IconComponent: () => null }}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  >
+                    {years.map((item, index) => (
+                      <MenuItem key={index} value={item}>
+                        {item}
+                      </MenuItem>
+                    ))}
+                  </TextField>
                 </Grid>
-              </Box>
+                <Grid item xs={4}>
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                  >
+                    Ngày kết thúc
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Placeholder"
+                    sx={{
+                      width: 168,
+                      height: 32,
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: "#f8f9fa",
+                        "& fieldset": { borderColor: "#e0e0e0" },
+                        "&:hover fieldset": { borderColor: "#bdbdbd" },
+                      },
+                    }}
+                    select
+                    InputProps={{ endAdornment: <CalendarToday /> }}
+                    SelectProps={{ IconComponent: () => null }}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  >
+                    {Array.from({ length: 12 }).map((_, index) => (
+                      <MenuItem key={index} value={index + 1}>
+                        {index + 1}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                  >
+                    Chọn công đoạn
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Placeholder"
+                    sx={{
+                      width: 168,
+                      height: 32,
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: "#f8f9fa",
+                        "& fieldset": { borderColor: "#e0e0e0" },
+                        "&:hover fieldset": { borderColor: "#bdbdbd" },
+                      },
+                    }}
+                    select
+                    variant="outlined"
+                  >
+                    {phases?.map((item: PhaseOutputType) => (
+                      <MenuItem key={item._id} value={item._id}>
+                        {item.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+              </Grid>
+            </Box>
+            <Box display="flex" gap={2} alignItems="center">
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<FileDownload />}
+                // onClick={handleExport}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "4px",
+                  px: 2,
+                  py: 0.5,
+                  minWidth: 90,
+                  height: 32,
+                }}
+              >
+                Xuất file
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<Print />}
+                // onClick={handlePrint}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "4px",
+                  px: 2,
+                  py: 0.5,
+                  minWidth: 90,
+                  height: 32,
+                }}
+              >
+                In
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<Mail />}
+                endIcon={<ArrowDropDown />}
+                // onClick={handleSend}
+                sx={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  borderRadius: "4px",
+                  px: 2,
+                  py: 0.5,
+                  minWidth: 90,
+                  height: 32,
+                }}
+              >
+                Gửi
+              </Button>
             </Box>
           </Box>
-          <TableContainer component={Paper} sx={{ boxShadow: 'none', border: '1px solid #e0e0e0' }}>
+        </Box>
+          <TableContainer
+            component={Paper}
+            sx={{ boxShadow: "none", border: "1px solid #e0e0e0" }}
+          >
             <Table sx={{ width: "100%" }} size="small">
               <TableHead>
                 <TableRow>
                   <TableCell
                     align="center"
-                    sx={{ border: "1px solid #ddd", fontWeight: "bold", p: 0.5, minWidth: 40 }}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      p: 0.5,
+                      minWidth: 40,
+                    }}
                   >
                     <Checkbox size="small" />
                   </TableCell>
                   <TableCell
                     align="center"
                     colSpan={6}
-                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}
-                  >
-                  </TableCell>
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  ></TableCell>
 
                   <TableCell
                     align="center"
@@ -232,8 +279,8 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: '0.75rem',
-                      p: 0.5
+                      fontSize: "0.75rem",
+                      p: 0.5,
                     }}
                   >
                     Kế hoạch
@@ -245,8 +292,8 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: '0.75rem',
-                      p: 0.5
+                      fontSize: "0.75rem",
+                      p: 0.5,
                     }}
                   >
                     Thực hiện
@@ -258,8 +305,8 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#FF620040",
-                      fontSize: '0.75rem',
-                      p: 0.5
+                      fontSize: "0.75rem",
+                      p: 0.5,
                     }}
                   >
                     So sánh lãi(+); lỗ(-)
@@ -269,49 +316,91 @@ export default function SettlementReport() {
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 40 }}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      p: 0.5,
+                      minWidth: 40,
+                    }}
                   >
                     STT
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 80 }}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      p: 0.5,
+                      minWidth: 80,
+                    }}
                   >
                     Mã vật tư
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 80 }}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      p: 0.5,
+                      minWidth: 80,
+                    }}
                   >
                     Mã thiết bị
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 100 }}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      p: 0.5,
+                      minWidth: 100,
+                    }}
                   >
                     Mã giao khoán
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 150 }}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      p: 0.5,
+                      minWidth: 150,
+                    }}
                   >
                     Tên vật tư, tài sản
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 60 }}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      p: 0.5,
+                      minWidth: 60,
+                    }}
                   >
                     ĐVT
                   </TableCell>
                   <TableCell
                     align="center"
                     rowSpan={2}
-                    sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.7rem', p: 0.5, minWidth: 80 }}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.7rem",
+                      p: 0.5,
+                      minWidth: 80,
+                    }}
                   >
                     Đơn giá khoán
                   </TableCell>
@@ -322,9 +411,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Định mức gốc
@@ -336,9 +425,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 80
+                      minWidth: 80,
                     }}
                   >
                     Hệ số điều chỉnh định mức
@@ -350,9 +439,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Định mức
@@ -364,8 +453,8 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: '0.7rem',
-                      p: 0.5
+                      fontSize: "0.7rem",
+                      p: 0.5,
                     }}
                   >
                     Số lượng
@@ -377,9 +466,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Giá trị
@@ -391,8 +480,8 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: '0.7rem',
-                      p: 0.5
+                      fontSize: "0.7rem",
+                      p: 0.5,
                     }}
                   >
                     Số lượng
@@ -404,9 +493,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Giá trị
@@ -418,9 +507,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#FF620040",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Số lượng
@@ -432,9 +521,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#FF620040",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Giá trị
@@ -447,9 +536,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 60
+                      minWidth: 60,
                     }}
                   >
                     Tổng
@@ -460,9 +549,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Trong khoán
@@ -473,9 +562,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Ngoài khoán
@@ -486,9 +575,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 60
+                      minWidth: 60,
                     }}
                   >
                     Tổng
@@ -499,9 +588,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Trong khoán
@@ -512,9 +601,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                       p: 0.5,
-                      minWidth: 70
+                      minWidth: 70,
                     }}
                   >
                     Ngoài khoán
@@ -524,7 +613,14 @@ export default function SettlementReport() {
 
               <TableBody>
                 <TableRow>
-                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
                     <Checkbox size="small" />
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
@@ -533,7 +629,7 @@ export default function SettlementReport() {
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
-                        fontSize: '0.75rem',
+                        fontSize: "0.75rem",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
@@ -550,7 +646,14 @@ export default function SettlementReport() {
                   ))}
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
                     <Checkbox size="small" />
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
@@ -559,7 +662,7 @@ export default function SettlementReport() {
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
-                        fontSize: '0.75rem',
+                        fontSize: "0.75rem",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
@@ -576,7 +679,14 @@ export default function SettlementReport() {
                   ))}
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
                     <Checkbox size="small" />
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
@@ -585,7 +695,7 @@ export default function SettlementReport() {
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
-                        fontSize: '0.75rem',
+                        fontSize: "0.75rem",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
@@ -602,7 +712,14 @@ export default function SettlementReport() {
                   ))}
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
                     <Checkbox size="small" />
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
@@ -611,7 +728,7 @@ export default function SettlementReport() {
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
-                        fontSize: '0.75rem',
+                        fontSize: "0.75rem",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
@@ -628,7 +745,14 @@ export default function SettlementReport() {
                   ))}
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
                     <Checkbox size="small" />
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
@@ -637,7 +761,7 @@ export default function SettlementReport() {
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
-                        fontSize: '0.75rem',
+                        fontSize: "0.75rem",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
@@ -654,7 +778,14 @@ export default function SettlementReport() {
                   ))}
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
                     <Checkbox size="small" />
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
@@ -663,7 +794,7 @@ export default function SettlementReport() {
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
-                        fontSize: '0.75rem',
+                        fontSize: "0.75rem",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
@@ -680,7 +811,14 @@ export default function SettlementReport() {
                   ))}
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
                     <Checkbox size="small" />
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
@@ -689,7 +827,7 @@ export default function SettlementReport() {
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
-                        fontSize: '0.75rem',
+                        fontSize: "0.75rem",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
@@ -706,7 +844,14 @@ export default function SettlementReport() {
                   ))}
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '0.75rem', p: 0.5 }}>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
                     <Checkbox size="small" />
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
@@ -715,7 +860,7 @@ export default function SettlementReport() {
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
-                        fontSize: '0.75rem',
+                        fontSize: "0.75rem",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
@@ -740,8 +885,8 @@ export default function SettlementReport() {
                           sx={{
                             border: "1px solid #ddd",
                             fontWeight: "bold",
-                            fontSize: '0.75rem',
-                            p: 0.5
+                            fontSize: "0.75rem",
+                            p: 0.5,
                           }}
                         >
                           <Checkbox size="small" />
@@ -751,8 +896,8 @@ export default function SettlementReport() {
                           sx={{
                             border: "1px solid #ddd",
                             fontWeight: "bold",
-                            fontSize: '0.75rem',
-                            p: 0.5
+                            fontSize: "0.75rem",
+                            p: 0.5,
                           }}
                         ></TableCell>
                         <TableCell
@@ -761,8 +906,8 @@ export default function SettlementReport() {
                             border: "1px solid #ddd",
                             fontWeight: "bold",
                             color: "black",
-                            fontSize: '0.75rem',
-                            p: 0.5
+                            fontSize: "0.75rem",
+                            p: 0.5,
                           }}
                         >
                           {material.device}
@@ -773,8 +918,8 @@ export default function SettlementReport() {
                             border: "1px solid #ddd",
                             fontWeight: "bold",
                             color: "black",
-                            fontSize: '0.75rem',
-                            p: 0.5
+                            fontSize: "0.75rem",
+                            p: 0.5,
                           }}
                         >
                           {material.code}
@@ -783,8 +928,8 @@ export default function SettlementReport() {
                           sx={{
                             border: "1px solid #ddd",
                             fontWeight: "bold",
-                            fontSize: '0.75rem',
-                            p: 0.5
+                            fontSize: "0.75rem",
+                            p: 0.5,
                           }}
                         >
                           {material.name}
@@ -794,8 +939,8 @@ export default function SettlementReport() {
                           sx={{
                             border: "1px solid #ddd",
                             fontWeight: "bold",
-                            fontSize: '0.75rem',
-                            p: 0.5
+                            fontSize: "0.75rem",
+                            p: 0.5,
                           }}
                         >
                           {material.uom}
@@ -806,8 +951,8 @@ export default function SettlementReport() {
                             border: "1px solid #ddd",
                             fontWeight: "bold",
                             color: "black",
-                            fontSize: '0.75rem',
-                            p: 0.5
+                            fontSize: "0.75rem",
+                            p: 0.5,
                           }}
                         >
                           {material.price
@@ -821,7 +966,7 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: '0.75rem',
+                              fontSize: "0.75rem",
                               p: 0.5,
                               bgcolor:
                                 index >= 0 && index <= 6
@@ -862,8 +1007,8 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: '0.75rem',
-                              p: 0.5
+                              fontSize: "0.75rem",
+                              p: 0.5,
                             }}
                           >
                             <Checkbox size="small" />
@@ -873,8 +1018,8 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: '0.75rem',
-                              p: 0.5
+                              fontSize: "0.75rem",
+                              p: 0.5,
                             }}
                           >
                             {m.code}
@@ -884,8 +1029,8 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: '0.75rem',
-                              p: 0.5
+                              fontSize: "0.75rem",
+                              p: 0.5,
                             }}
                           ></TableCell>
                           <TableCell
@@ -893,16 +1038,16 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: '0.75rem',
-                              p: 0.5
+                              fontSize: "0.75rem",
+                              p: 0.5,
                             }}
                           ></TableCell>
                           <TableCell
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: '0.75rem',
-                              p: 0.5
+                              fontSize: "0.75rem",
+                              p: 0.5,
                             }}
                           >
                             {m.name}
@@ -912,8 +1057,8 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: '0.75rem',
-                              p: 0.5
+                              fontSize: "0.75rem",
+                              p: 0.5,
                             }}
                           >
                             {m.uom?.name}
@@ -923,8 +1068,8 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: '0.75rem',
-                              p: 0.5
+                              fontSize: "0.75rem",
+                              p: 0.5,
                             }}
                           ></TableCell>
                           {Array.from({ length: 13 }).map((_, index) => (
@@ -934,7 +1079,7 @@ export default function SettlementReport() {
                               sx={{
                                 border: "1px solid #ddd",
                                 fontWeight: "bold",
-                                fontSize: '0.75rem',
+                                fontSize: "0.75rem",
                                 p: 0.5,
                                 bgcolor:
                                   index >= 0 && index <= 6

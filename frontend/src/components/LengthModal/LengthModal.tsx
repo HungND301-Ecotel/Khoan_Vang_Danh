@@ -177,7 +177,7 @@ export default function LengthModal({
                   textTransform: "none",
                 }}
               >
-                {selectedLength ? "Cập nhật" : "Thêm mới"}
+                {selectedLength ? "Cập nhật" : "Xác nhận"}
               </Button>
             </DialogActions>
           </Box>

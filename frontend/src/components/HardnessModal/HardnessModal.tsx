@@ -269,7 +269,7 @@ export default function HardnessModal({
                   textTransform: "none",
                 }}
               >
-                {selectedHardness ? "Cập nhật" : "Thêm mới"}
+                {selectedHardness ? "Cập nhật" : "Xác nhận"}
               </Button>
             </DialogActions>
           </Box>

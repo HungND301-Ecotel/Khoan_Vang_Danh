@@ -455,8 +455,6 @@ export default function CuttingNormKBModal({
               }}
             />
           </Box>
-
-          {/* Danh sách norms */}
           <FieldArray name="norms">
             {() => (
               <Box

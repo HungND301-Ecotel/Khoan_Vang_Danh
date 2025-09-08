@@ -18,23 +18,16 @@ import {
 } from "@mui/material";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
-import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import api from "../../config/api.config";
 import {
-  AssignmentCodeOutputType,
-  AssignmentNormInputType,
   MaterialCostUsedInputType,
   MaterialCostUsedOutputType,
-  ExcavationTechType,
-  HardnessType,
-  MaterialAssignmentOutputType,
-  PhaseGroupType,
-  PhaseOutputType,
-  StepType,
   ProductionScopeOutputType,
   Materials,
+  MaterialBudgetOutputType,
 } from "../../types";
+import { CircleX } from "lucide-react";
 
 export default function MaterialCostUsedModal({
   open,
@@ -59,18 +52,29 @@ export default function MaterialCostUsedModal({
     queryFn: async () =>
       api.get("/materialassignments/getAll").then((res) => res.data.data),
   });
+  const { data: materialbudgets = [] } = useQuery({
+    queryKey: ["materialbudgets"],
+    queryFn: async () =>
+      api.get("/materialbudgets").then((res) => res.data.data),
+  });
 
+  // Initial values
   const formik = useFormik({
     initialValues: {
       code: selected?.code || "",
-      productionScope: selected?.productionScope?._id || "",
+      materialBudgetCode: selected?.materialBudget?._id
+        ? String(selected.materialBudget._id)
+        : "",
+      productionScope: selected?.productionScope?._id
+        ? String(selected.productionScope._id)
+        : "",
       materials:
         selected?.materials?.map((item) => ({
-          material: item.material?._id,
+          material: item.material?._id ? String(item.material._id) : "",
           quantity: item.quantity,
         })) ||
         materialassignments.map((item: Materials) => ({
-          material: item._id,
+          material: item._id ? String(item._id) : "",
           quantity: undefined,
         })),
     },
@@ -160,6 +164,9 @@ export default function MaterialCostUsedModal({
       <DialogContent
         sx={{
           p: 0,
+          "& input": {
+            caretColor: "transparent",
+          },
           "&::-webkit-scrollbar": {
             width: "8px",
           },
@@ -178,17 +185,15 @@ export default function MaterialCostUsedModal({
         }}
       >
         <FormikProvider value={formik}>
-          {/* Mã chi phí */}
+          {/* Mã chi phí vật tư thực hiện */}
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
-            Mã chi phí
+            Mã chi phí vật tư thực hiện
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <TextField
-              value={formik.values.code || ""}
+              value={formik.values.code}
               placeholder="Input Text"
-              onChange={(event) =>
-                formik.setFieldValue("code", event.target.value)
-              }
+              onChange={(e) => formik.setFieldValue("code", e.target.value)}
               variant="outlined"
               sx={{
                 width: "700px",
@@ -208,6 +213,55 @@ export default function MaterialCostUsedModal({
                 },
               }}
             />
+          </Box>
+
+          {/* Mã chi phí vật tư kế hoạch */}
+          <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
+            Mã chi phí vật tư kế hoạch
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <TextField
+              select
+              value={formik.values.materialBudgetCode || ""}
+              onChange={(e) =>
+                formik.setFieldValue(
+                  "materialBudgetCode",
+                  String(e.target.value)
+                )
+              }
+              variant="outlined"
+              InputProps={{
+                startAdornment: formik.values.materialBudgetCode ? null : (
+                  <InputAdornment
+                    position="start"
+                    sx={{ color: "#D9D9D9", ml: "12px" }}
+                  >
+                    Placeholder
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor: formik.values.materialBudgetCode
+                    ? "#F2F2F2"
+                    : "#FFFFFF",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+              }}
+            >
+              {materialbudgets.map((mb: MaterialBudgetOutputType) => (
+                <MenuItem key={String(mb._id)} value={String(mb._id)}>
+                  {mb.code}
+                </MenuItem>
+              ))}
+            </TextField>
           </Box>
 
           {/* Mã diện sản xuất */}
@@ -275,7 +329,7 @@ export default function MaterialCostUsedModal({
           <Typography
             sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
           >
-            Chọn vật tư
+            Vật tư, tài sản
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Autocomplete
@@ -469,7 +523,6 @@ export default function MaterialCostUsedModal({
                     {/* Nút X tròn bên cạnh */}
                     <IconButton
                       onClick={() => {
-                        // Remove material from selectedMaterials
                         const materialToRemove = materialassignments.find(
                           (ac: Materials) =>
                             ac._id === formik.values.materials[index].material
@@ -483,27 +536,27 @@ export default function MaterialCostUsedModal({
                           );
                         }
 
-                        // Remove from formik values
                         const updatedMaterials = formik.values.materials.filter(
                           (_: any, i: number) => i !== index
                         );
                         formik.setFieldValue("materials", updatedMaterials);
                       }}
                       sx={{
-                        width: "20px",
-                        height: "20px",
-                        backgroundColor: "#E5E5E5",
-                        ml: 2,
+                        width: "24px",
+                        height: "24px",
+                        ml: 1,
+                        p: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "transparent",
                         "&:hover": {
-                          backgroundColor: "#D0D0D0",
-                        },
-                        "& .MuiSvgIcon-root": {
-                          fontSize: "14px",
-                          color: "#666666",
+                          backgroundColor: "transparent",
+                          opacity: 0.7,
                         },
                       }}
                     >
-                      <CloseIcon />
+                      <CircleX size={24} strokeWidth={1} color="#757575" />
                     </IconButton>
                   </Box>
                 ))}
@@ -549,7 +602,7 @@ export default function MaterialCostUsedModal({
             textTransform: "none",
           }}
         >
-          {selected ? "Cập nhật" : "Thêm mới"}
+          {selected ? "Cập nhật" : "Xác nhận"}
         </Button>
       </DialogActions>
     </Dialog>

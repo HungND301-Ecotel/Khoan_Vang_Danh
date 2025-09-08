@@ -289,7 +289,6 @@ export default function CuttingNormModal({
             </TextField>
           </Box>
 
-          {/* Tiết diện lò xén */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Tiết diện lò xén
           </Typography>
@@ -338,7 +337,6 @@ export default function CuttingNormModal({
             </TextField>
           </Box>
 
-          {/* Độ cứng */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Độ cứng
           </Typography>
@@ -660,7 +658,7 @@ export default function CuttingNormModal({
             textTransform: "none",
           }}
         >
-          {selected ? "Cập nhật" : "Thêm mới"}
+          {selected ? "Cập nhật" : "Xác nhận"}
         </Button>
       </DialogActions>
     </Dialog>
