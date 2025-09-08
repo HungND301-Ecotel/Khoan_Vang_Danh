@@ -368,7 +368,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Diện sản xuất
+          Điện sản xuất
         </MenuItem>
       </Menu>
 

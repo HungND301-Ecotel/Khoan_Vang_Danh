@@ -191,8 +191,6 @@ export default function MaterialCostUsed() {
   const expandedRowRender = (record: MaterialCostUsedOutputType) => {
     const key = record._id || "";
     const data = expandedData[key] || record;
-
-    // Hiển thị thông báo lỗi nếu không tìm thấy dữ liệu chi tiết
     if (data === null) {
       return (
         <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
@@ -202,8 +200,6 @@ export default function MaterialCostUsed() {
         </Box>
       );
     }
-
-    // Hiển thị loading khi đang tải dữ liệu
     if (!data.materials) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
