@@ -3,6 +3,14 @@ export interface LoginType {
   password: string;
 }
 
+export interface MaterialFormValues {
+  _id?: string;
+  code?: string;
+  name?: string;
+  uom?: UnitType;   
+  quantity?: number;
+  currentPrice?: number;
+}
 export interface FlatMaterial {
   _id: string;
   code: string;

@@ -30,7 +30,7 @@ const AssignmentNormRouter = require('./routes/AssignmentNorm')
 const AdjustmentNormRouter = require('./routes/AdjustmentNorm')
 const MaterialBudgetRouter = require('./routes/MaterialBudget')
 const MaterialCostUsedRouter = require('./routes/MaterialCostUsed')
-
+const materialsOutsideContractRoutes = require('./routes/MaterialsOutsideContract');
 
 
 
@@ -63,6 +63,7 @@ app.use(morgan('dev'))
 app.use(cors())
 app.use(express.json())
 
+app.use('/api/materials-outside-contract', materialsOutsideContractRoutes);
 app.use('/api/assignmentcodes', AssignmentCodeRouter)
 app.use('/api/units', UnitRouter)
 app.use('/api/materialassignments', MaterialAssignmentRouter)

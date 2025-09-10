@@ -13,8 +13,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import * as yup from "yup";
 import { FormikProvider, useFormik, FormikErrors } from "formik";
 import { useQuery, useQueries } from "@tanstack/react-query";
@@ -204,34 +203,6 @@ export default function MaterialBudgetModal({
     formik.setFieldValue("phases", newPhases);
   };
 
-  const toRomanNumeral = (num: number): string => {
-    if (num < 1) return "";
-    const romanValues = [
-      { value: 1000, numeral: "M" },
-      { value: 900, numeral: "CM" },
-      { value: 500, numeral: "D" },
-      { value: 400, numeral: "CD" },
-      { value: 100, numeral: "C" },
-      { value: 90, numeral: "XC" },
-      { value: 50, numeral: "L" },
-      { value: 40, numeral: "XL" },
-      { value: 10, numeral: "X" },
-      { value: 9, numeral: "IX" },
-      { value: 5, numeral: "V" },
-      { value: 4, numeral: "IV" },
-      { value: 1, numeral: "I" },
-    ];
-
-    let result = "";
-    for (const { value, numeral } of romanValues) {
-      while (num >= value) {
-        result += numeral;
-        num -= value;
-      }
-    }
-    return result;
-  };
-
   const getError = (index: number, field: keyof PhaseType): string => {
     const error = formik.errors.phases?.[index] as
       | FormikErrors<PhaseType>
@@ -313,7 +284,14 @@ export default function MaterialBudgetModal({
           }}
         />
         <Typography
-          sx={{ fontSize: "20px", color: "#2B4A82", fontWeight: 700, mt: 1 }}
+          sx={{
+            fontSize: "24px",
+            color: "#2B4A82",
+            fontWeight: 400,
+            fontFamily: "Roboto",
+            lineHeight: "100%",
+            mt: 1,
+          }}
         >
           {selected
             ? "Chỉnh sửa Chi phí vật tư kế hoạch"
@@ -328,10 +306,13 @@ export default function MaterialBudgetModal({
               <Box>
                 <Typography
                   sx={{
-                    fontWeight: 600,
+                    fontWeight: 400,
                     fontSize: "14px",
                     mb: 1,
-                    color: "#333",
+                    color: "#000000",
+                    fontFamily: "Roboto",
+                    lineHeight: "100%",
+                    bgcolor: "#FFFFFF",
                   }}
                 >
                   Mã chi phí vật tư kế hoạch
@@ -347,16 +328,27 @@ export default function MaterialBudgetModal({
                   helperText={formik.touched.code && formik.errors.code}
                   variant="outlined"
                   sx={{
+                    bgcolor: "#FFFFFF",
                     "& .MuiInputBase-root": {
-                      height: "40px",
+                      height: "32px",
                       borderRadius: "4px",
                       fontSize: "14px",
-                      backgroundColor: "#fff",
+                      backgroundColor: "#FFFFFF",
+                    },
+                    "& .MuiInputBase-input": {
+                      color: "#000000",
+                      fontFamily: "Roboto",
+                      fontWeight: 400,
+                      fontSize: "14px",
+                      lineHeight: "100%",
+                      "&::placeholder": {
+                        color: "#000000",
+                        opacity: 1,
+                      },
                     },
                     "& .MuiOutlinedInput-root": {
                       "& fieldset": {
                         borderColor: "#d0d7de",
-                        borderWidth: "1px",
                       },
                       "&:hover fieldset": {
                         borderColor: "#0969da",
@@ -369,52 +361,61 @@ export default function MaterialBudgetModal({
               {formik.values.phases.map((phase, index) => {
                 const phaseData = phaseQueries[index]?.data || [];
                 return (
-                  <Box key={index}>
+                  <Box
+                    key={index}
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      position: "relative",
+                      gap: 1, // khoảng cách giữa box và nút xoá
+                    }}
+                  >
+                    {/* Box công đoạn */}
                     <Box
                       sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        mb: 1.5,
-                      }}
-                    >
-                      <Typography
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: "14px",
-                          color: "#333",
-                        }}
-                      >
-                        
-                        Công đoạn {toRomanNumeral(index + 1)}
-                      </Typography>
-                      {formik.values.phases.length > 1 && (
-                        <IconButton
-                          onClick={() => removePhase(index)}
-                          size="small"
-                          sx={{ color: "#ff4d4f" }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </Box>
-
-                    <Box
-                      sx={{
+                        flex: "1 1 auto",
                         border: "1px solid #D0D7DE",
                         borderRadius: "6px",
                         padding: "16px",
                         backgroundColor: "#fff",
                         mb: 2,
+                        position: "relative",
                       }}
                     >
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: "-8px",
+                          left: "16px",
+                          px: 1,
+                          backgroundColor: "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "14px",
+                            color: "#000000",
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
+                          }}
+                        >
+                          Công đoạn {index + 1}
+                        </Typography>
+                      </Box>
+
+                      {/* Nhóm công đoạn */}
                       <Box sx={{ mb: 2 }}>
                         <Typography
                           sx={{
-                            fontSize: "13px",
+                            fontSize: "14px",
                             mb: 1,
-                            color: "#666",
-                            fontWeight: 500,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
                           }}
                         >
                           Nhóm công đoạn
@@ -434,11 +435,23 @@ export default function MaterialBudgetModal({
                           helperText={getError(index, "phaseGroup")}
                           variant="outlined"
                           sx={{
+                            bgcolor: "#FFFFFF",
                             "& .MuiInputBase-root": {
-                              height: "40px",
+                              height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
-                              backgroundColor: "#fff",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#000000",
+                              fontFamily: "Roboto",
+                              fontWeight: 400,
+                              fontSize: "14px",
+                              lineHeight: "100%",
+                              "&::placeholder": {
+                                color: "#000000",
+                                opacity: 1,
+                              },
                             },
                             "& .MuiOutlinedInput-root": {
                               "& fieldset": {
@@ -458,13 +471,16 @@ export default function MaterialBudgetModal({
                         </TextField>
                       </Box>
 
+                      {/* Công đoạn */}
                       <Box sx={{ mb: 2 }}>
                         <Typography
                           sx={{
-                            fontSize: "13px",
+                            fontSize: "14px",
                             mb: 1,
-                            color: "#666",
-                            fontWeight: 500,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
                           }}
                         >
                           Công đoạn
@@ -481,10 +497,21 @@ export default function MaterialBudgetModal({
                           variant="outlined"
                           sx={{
                             "& .MuiInputBase-root": {
-                              height: "40px",
+                              height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
                               backgroundColor: "#fff",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#000000",
+                              fontFamily: "Roboto",
+                              fontWeight: 400,
+                              fontSize: "14px",
+                              lineHeight: "100%",
+                              "&::placeholder": {
+                                color: "#000000",
+                                opacity: 1,
+                              },
                             },
                             "& .MuiOutlinedInput-root": {
                               "& fieldset": {
@@ -504,13 +531,16 @@ export default function MaterialBudgetModal({
                         </TextField>
                       </Box>
 
+                      {/* Mã định mức giao khoán */}
                       <Box sx={{ mb: 2 }}>
                         <Typography
                           sx={{
-                            fontSize: "13px",
+                            fontSize: "14px",
                             mb: 1,
-                            color: "#666",
-                            fontWeight: 500,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
                           }}
                         >
                           Mã định mức giao khoán
@@ -530,11 +560,23 @@ export default function MaterialBudgetModal({
                           helperText={getError(index, "assignmentNormCode")}
                           variant="outlined"
                           sx={{
+                            bgcolor: "#FFFFFF",
                             "& .MuiInputBase-root": {
-                              height: "40px",
+                              height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
-                              backgroundColor: "#fff",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#000000",
+                              fontFamily: "Roboto",
+                              fontWeight: 400,
+                              fontSize: "14px",
+                              lineHeight: "100%",
+                              "&::placeholder": {
+                                color: "#000000",
+                                opacity: 1,
+                              },
                             },
                             "& .MuiOutlinedInput-root": {
                               "& fieldset": {
@@ -556,13 +598,16 @@ export default function MaterialBudgetModal({
                         </TextField>
                       </Box>
 
+                      {/* Sản lượng */}
                       <Box sx={{ mb: 2 }}>
                         <Typography
                           sx={{
-                            fontSize: "13px",
+                            fontSize: "14px",
                             mb: 1,
-                            color: "#666",
-                            fontWeight: 500,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
                           }}
                         >
                           Sản lượng
@@ -576,20 +621,32 @@ export default function MaterialBudgetModal({
                             handlePhaseChange(
                               index,
                               "production",
-                              e.target.value
-                                ? Number(e.target.value)
-                                : undefined
+                              e.target.value === ""
+                                ? undefined
+                                : Number(e.target.value)
                             )
                           }
                           error={Boolean(getError(index, "production"))}
                           helperText={getError(index, "production")}
                           variant="outlined"
                           sx={{
+                            bgcolor: "#FFFFFF",
                             "& .MuiInputBase-root": {
-                              height: "40px",
+                              height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
-                              backgroundColor: "#fff",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#000000",
+                              fontFamily: "Roboto",
+                              fontWeight: 400,
+                              fontSize: "14px",
+                              lineHeight: "100%",
+                              "&::placeholder": {
+                                color: "#000000",
+                                opacity: 1,
+                              },
                             },
                             "& .MuiOutlinedInput-root": {
                               "& fieldset": {
@@ -603,13 +660,16 @@ export default function MaterialBudgetModal({
                         />
                       </Box>
 
+                      {/* Mã hệ số điều chỉnh định mức */}
                       <Box>
                         <Typography
                           sx={{
-                            fontSize: "13px",
+                            fontSize: "14px",
                             mb: 1,
-                            color: "#666",
-                            fontWeight: 500,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
                           }}
                         >
                           Mã hệ số điều chỉnh định mức
@@ -629,11 +689,23 @@ export default function MaterialBudgetModal({
                           helperText={getError(index, "adjustmentNormCode")}
                           variant="outlined"
                           sx={{
+                            bgcolor: "#FFFFFF",
                             "& .MuiInputBase-root": {
-                              height: "40px",
+                              height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
-                              backgroundColor: "#fff",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#000000",
+                              fontFamily: "Roboto",
+                              fontWeight: 400,
+                              fontSize: "14px",
+                              lineHeight: "100%",
+                              "&::placeholder": {
+                                color: "#000000",
+                                opacity: 1,
+                              },
                             },
                             "& .MuiOutlinedInput-root": {
                               "& fieldset": {
@@ -655,19 +727,46 @@ export default function MaterialBudgetModal({
                         </TextField>
                       </Box>
                     </Box>
+
+                    {/* Nút xóa nằm ngoài box */}
+                    {formik.values.phases.length > 1 && (
+                      <IconButton
+                        onClick={() => removePhase(index)}
+                        sx={{
+                          width: "20px",
+                          height: "20px",
+                          border: "1px solid #d0d7de",
+                          borderRadius: "50%",
+                          color: "#666",
+                          backgroundColor: "#fff",
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+                          flexShrink: 0,
+                          alignSelf: "top",
+                          "&:hover": {
+                            backgroundColor: "#f5f5f5",
+                            color: "#000",
+                          },
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: "18px" }} />
+                      </IconButton>
+                    )}
                   </Box>
                 );
               })}
 
+              {/* Thêm công đoạn */}
               <Box sx={{ mt: -1 }}>
                 <Button
                   variant="text"
-                  startIcon={<AddIcon />}
+                  startIcon={<AddIcon sx={{ fontSize: "16px" }} />}
                   onClick={addPhase}
                   sx={{
-                    color: "#2B4A82",
+                    color: "#000000",
                     fontSize: "14px",
-                    fontWeight: 500,
+                    fontWeight: 400,
+                    fontFamily: "Roboto",
+                    lineHeight: "100%",
                     textTransform: "none",
                     padding: "4px 0",
                     "&:hover": {
@@ -690,17 +789,21 @@ export default function MaterialBudgetModal({
         <Button
           onClick={handleClose}
           sx={{
-            backgroundColor: "#f6f8fa",
-            color: "#24292f",
-            border: "1px solid #d0d7de",
-            borderRadius: "6px",
-            height: "36px",
-            minWidth: "80px",
+            backgroundColor: "#DFE2EA",
+            color: "#757575",
+            borderRadius: "8px",
+            height: "32px",
+            minWidth: "91px",
             fontSize: "14px",
-            textTransform: "none",
             fontWeight: 500,
+            fontFamily: "Roboto",
+            lineHeight: "100%",
+            textTransform: "none",
+            textAlign: "center",
+            border: "none",
             "&:hover": {
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#D0D3DB",
+              border: "none",
             },
           }}
         >
@@ -710,15 +813,19 @@ export default function MaterialBudgetModal({
           onClick={() => formik.submitForm()}
           variant="contained"
           sx={{
-            backgroundColor: "#2B4A82",
-            borderRadius: "6px",
-            height: "36px",
-            minWidth: "100px",
+            backgroundColor: "#007BFF",
+            color: "#FFFFFF",
+            borderRadius: "8px",
+            height: "32px",
+            minWidth: "91px",
             fontSize: "14px",
             fontWeight: 500,
+            fontFamily: "Roboto",
+            lineHeight: "100%",
             textTransform: "none",
+            textAlign: "center",
             "&:hover": {
-              backgroundColor: "#1E3A8A",
+              backgroundColor: "#0056B3",
             },
           }}
         >
