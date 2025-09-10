@@ -72,7 +72,6 @@ export default function PhaseModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{
@@ -111,7 +110,6 @@ export default function PhaseModal({
       <DialogContent sx={{ p: 0, mt: 3 }}>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ display: "flex", justifyContent: "center" }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "700px" }}>
-            {/* Nhóm công đoạn */}
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Nhóm công đoạn
@@ -157,8 +155,6 @@ export default function PhaseModal({
                 ))}
               </TextField>
             </Box>
-
-            {/* Mã công đoạn */}
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Mã công đoạn
@@ -184,8 +180,6 @@ export default function PhaseModal({
                 }}
               />
             </Box>
-
-            {/* Tên công đoạn */}
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Tên công đoạn

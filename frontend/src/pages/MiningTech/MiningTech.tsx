@@ -19,7 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import MiningTechModal from "../../components/MiningTechModal/MiningTechModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MiningtechType } from "../../types";
@@ -40,12 +40,26 @@ export default function MiningTech() {
     []
   );
   const [searchValue, setSearchValue] = useState("");
+const [filteredMiningTechs, setFilteredMiningTechs] = useState<MiningtechType[]>([]);
 
   const queryClient = useQueryClient();
-  const { data: miningtechs = [] } = useQuery({
+  const { data: miningtechs = [] } = useQuery<MiningtechType[]>({
     queryKey: ["miningtechs"],
     queryFn: () => api.get("/miningtechs").then((res) => res.data.data),
   });
+
+   useEffect(() => {
+    if (searchValue.trim() === "") {
+      setFilteredMiningTechs(miningtechs);
+    } else {
+      const filtered = miningtechs.filter(
+        (item:MiningtechType) =>
+          item.code?.toLowerCase().includes(searchValue.toLowerCase()) ||
+          item.name?.toLowerCase().includes(searchValue.toLowerCase())
+      );
+      setFilteredMiningTechs(filtered);
+    }
+  }, [searchValue, miningtechs]);
 
   const createMutation = useMutation({
     mutationFn: (newMiningTech: Partial<MiningtechType>) =>
@@ -366,7 +380,7 @@ export default function MiningTech() {
               ),
             }}
             columns={columns}
-            dataSource={miningtechs}
+             dataSource={filteredMiningTechs.length > 0 || searchValue ? filteredMiningTechs : miningtechs}
           />
         </Box>
       </Box>

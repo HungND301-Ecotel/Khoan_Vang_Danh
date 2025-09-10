@@ -3,6 +3,7 @@ import {
   Breadcrumbs,
   Button,
   IconButton,
+  InputAdornment,
   Paper,
   TableContainer,
   TextField,
@@ -34,19 +35,11 @@ import {
   FilterList,
   Mail,
   Print,
+  Search,
   Visibility,
 } from "@mui/icons-material";
+import { FlatMaterial } from "../../types";
 
-interface FlatMaterial {
-  _id: string;
-  code: string;
-  materialCode?: string;
-  name: string;
-  uom?: string;
-  quantity?: number;
-  price?: number;
-  note: string;
-}
 
 export default function Materialunitprice() {
   const queryClient = useQueryClient();
@@ -58,6 +51,7 @@ export default function Materialunitprice() {
     null
   );
   const [open, setOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const { data: materialAssignments = [] } = useQuery({
     queryKey: ["materialAssignments"],
@@ -67,6 +61,30 @@ export default function Materialunitprice() {
         return res.data.data;
       }),
   });
+
+const flatData: FlatMaterial[] = React.useMemo(() => {
+  return data.flatMap((assignment: MaterialAssignmentOutputType) =>
+    (assignment.materials || []).map((material: any): FlatMaterial => ({
+      _id: `${assignment._id}-${material.code ?? ""}`,
+      code: assignment.code ?? "",
+      materialCode: material.code,
+      name: material.name ?? material.materialName ?? "",   
+      uom: material.uom?.name ?? material.uom ?? "",
+      quantity: material.quantity ?? material.qty ?? 0,
+      price: material.currentPrice ?? material.price ?? 0,
+      note: "",
+    }))
+  );
+}, [data]);
+
+const filteredData = React.useMemo(() => {
+  const keyword = searchValue.toLowerCase();
+  return flatData.filter((item: FlatMaterial) =>
+    item.code.toLowerCase().includes(keyword) ||
+    (item.materialCode ?? "").toLowerCase().includes(keyword) ||
+    item.name.toLowerCase().includes(keyword)
+  );
+}, [flatData, searchValue]);
 
   const handleDelete = () => {
     if (selectedRowKeys.length === 0) {
@@ -220,19 +238,7 @@ export default function Materialunitprice() {
     onChange: (keys) => setSelectedRowKeys(keys),
   };
 
-  const flatData: FlatMaterial[] = data.flatMap(
-    (assignment: MaterialAssignmentOutputType) =>
-      (assignment.materials || []).map((material: Materials) => ({
-        _id: `${assignment._id}-${material.code ?? ""}`,
-        code: assignment.code ?? "",
-        materialCode: material.code,
-        name: material.name ?? "",
-        uom: material.uom?.name,
-        quantity: material.quantity,
-        price: material.currentPrice,
-        note: "",
-      }))
-  );
+
 
   return (
     <Box>
@@ -268,7 +274,20 @@ export default function Materialunitprice() {
               >
                 Lọc
               </Button>
-              <TextField fullWidth size="small" placeholder="Tìm kiếm" />
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Tìm kiếm"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Search sx={{ fontSize: 24 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
 
             <Box display={"flex"} gap={2}>
@@ -352,7 +371,7 @@ export default function Materialunitprice() {
             ),
           }}
           columns={columns}
-          dataSource={flatData}
+          dataSource={filteredData}
         />
       </Box>
     </Box>

@@ -103,12 +103,11 @@ export default function ExcavationTech() {
       `Bạn có muốn xóa ${selectedExcavationTechs.length} bản ghi đã chọn?`
     ).then((result) => {
       if (result.isConfirmed) {
-        // Tạo mảng các promise để xóa từng bản ghi
+
         const deletePromises = selectedExcavationTechs.map((id) =>
           api.delete(`/excavationtechs/${id}`)
         );
 
-        // Thực hiện xóa tất cả
         Promise.all(deletePromises)
           .then(() => {
             queryClient.invalidateQueries({ queryKey: ["excavationtechs"] });

@@ -114,7 +114,6 @@ export default function MaterialAssignmentModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{
@@ -133,6 +132,7 @@ export default function MaterialAssignmentModal({
         <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "14px" }}>
           <Typography sx={{ color: "#666" }}>Danh mục</Typography>
           <Typography sx={{ color: "#666" }}>Vật tư, tài sản</Typography>
+           <Typography sx={{ color: "#666" }}>Vật tư, tài sản trong khoán</Typography>
         </Breadcrumbs>
         <Divider
           style={{
@@ -151,8 +151,6 @@ export default function MaterialAssignmentModal({
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              
-              {/* Mã giao khoán */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã giao khoán</Typography>
                 <TextField
@@ -184,7 +182,6 @@ export default function MaterialAssignmentModal({
                 </TextField>
               </Box>
 
-              {/* Mã vật tư, tài sản */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã vật tư, tài sản</Typography>
                 <TextField
@@ -206,8 +203,6 @@ export default function MaterialAssignmentModal({
                   }}
                 />
               </Box>
-
-              {/* Tên vật tư, tài sản */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Tên vật tư, tài sản</Typography>
                 <TextField
@@ -229,8 +224,6 @@ export default function MaterialAssignmentModal({
                   }}
                 />
               </Box>
-
-              {/* Số lượng */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Số lượng</Typography>
                 <TextField
@@ -252,8 +245,6 @@ export default function MaterialAssignmentModal({
                   }}
                 />
               </Box>
-
-              {/* Đơn vị tính */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Đơn vị tính</Typography>
                 <TextField
@@ -283,7 +274,6 @@ export default function MaterialAssignmentModal({
                 </TextField>
               </Box>
 
-              {/* Đơn giá section */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>Đơn giá</Typography>
                 <FieldArray name="priceHistory">
@@ -291,7 +281,6 @@ export default function MaterialAssignmentModal({
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                       {formik.values.priceHistory.map((item, index) => (
                         <Grid container spacing={2} key={index} alignItems="center">
-                          {/* Ngày bắt đầu */}
                           <Grid item xs={4}>
                             <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
                               Ngày bắt đầu
@@ -316,7 +305,6 @@ export default function MaterialAssignmentModal({
                             />
                           </Grid>
 
-                          {/* Ngày kết thúc */}
                           <Grid item xs={4}>
                             <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
                               Ngày kết thúc
@@ -341,7 +329,6 @@ export default function MaterialAssignmentModal({
                             />
                           </Grid>
 
-                          {/* Đơn giá */}
                           <Grid item xs={3}>
                             <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
                               Đơn giá
@@ -366,7 +353,7 @@ export default function MaterialAssignmentModal({
                             />
                           </Grid>
 
-                          {/* Delete button */}
+                      
                           <Grid item xs={1}>
                             {formik.values.priceHistory.length > 1 && (
                               <IconButton 
@@ -381,7 +368,6 @@ export default function MaterialAssignmentModal({
                         </Grid>
                       ))}
                       
-                      {/* Add button */}
                       <Box textAlign="right" sx={{ mt: 1 }}>
                         <IconButton
                           color="primary"
@@ -400,8 +386,6 @@ export default function MaterialAssignmentModal({
                   )}
                 </FieldArray>
               </Box>
-
-              {/* Action buttons */}
               <DialogActions sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}>
                 <Button
                   onClick={handleClose}

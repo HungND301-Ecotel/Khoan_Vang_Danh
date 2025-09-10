@@ -60,7 +60,6 @@ export default function DeviceCode({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{

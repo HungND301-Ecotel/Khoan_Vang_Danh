@@ -57,7 +57,7 @@ exports.get = async (req, res) => {
 
                 let currentPrice = null;
 
-                if (Array.isArray(material.priceHistory)) {
+                    if (material && Array.isArray(material.priceHistory)) {
                     const matched = material.priceHistory.find(priceItem =>
                         todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
                     );

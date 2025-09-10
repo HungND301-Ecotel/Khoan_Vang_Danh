@@ -94,7 +94,6 @@ export default function ProductionScopeModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{
@@ -131,7 +130,6 @@ export default function ProductionScopeModal({
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ display: "flex", justifyContent: "center" }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "700px" }}>
-              {/* Mã diện sản xuất */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Mã diện sản xuất <span style={{ color: "red" }}>*</span>
@@ -184,8 +182,6 @@ export default function ProductionScopeModal({
                   }}
                 />
               </Box>
-
-              {/* Công đoạn */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Công đoạn
@@ -229,8 +225,6 @@ export default function ProductionScopeModal({
                   )}
                 />
               </Box>
-
-              {/* Danh sách công đoạn chi tiết */}
               <FieldArray name="phases">
                 {({ push, remove }) => (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -271,8 +265,6 @@ export default function ProductionScopeModal({
                               }}
                             />
                           </Box>
-
-                          {/* Tên công đoạn */}
                           <Box>
                             <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
                               Tên công đoạn
@@ -294,8 +286,6 @@ export default function ProductionScopeModal({
                               }}
                             />
                           </Box>
-
-                          {/* Sản lượng */}
                           <Box>
                             <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
                               Sản lượng
@@ -323,8 +313,6 @@ export default function ProductionScopeModal({
                               }}
                             />
                           </Box>
-
-                          {/* Đơn vị tính */}
                           <Box>
                             <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
                               Đơn vị tính

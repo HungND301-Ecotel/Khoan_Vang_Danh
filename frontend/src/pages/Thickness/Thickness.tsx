@@ -98,12 +98,10 @@ export default function Thickness() {
       `Bạn có muốn xóa ${selectedThicknesses.length} bản ghi đã chọn?`
     ).then((result) => {
       if (result.isConfirmed) {
-        // Tạo mảng các promise để xóa từng bản ghi
         const deletePromises = selectedThicknesses.map((id) =>
           api.delete(`/thickness/${id}`)
         );
 
-        // Thực hiện xóa tất cả
         Promise.all(deletePromises)
           .then(() => {
             queryClient.invalidateQueries({ queryKey: ["thickness"] });

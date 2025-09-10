@@ -142,7 +142,6 @@ export default function CuttingNormModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{
@@ -241,8 +240,6 @@ export default function CuttingNormModal({
                 ))}
             </TextField>
           </Box>
-
-          {/* Công đoạn */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Công đoạn
           </Typography>
@@ -427,7 +424,6 @@ export default function CuttingNormModal({
             }}
           />
 
-          {/* Mã giao khoán */}
           <Typography
             sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
           >
@@ -500,7 +496,6 @@ export default function CuttingNormModal({
             />
           </Box>
 
-          {/* Danh sách norms */}
           <FieldArray name="norms">
             {() => (
               <Box

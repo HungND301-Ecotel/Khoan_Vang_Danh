@@ -130,6 +130,12 @@ export default function ProductScope() {
     }
   };
 
+  const filteredData = productionscopes.filter(
+  (item: ProductionScopeOutputType) =>
+    item.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    item.code?.toLowerCase().includes(searchValue.toLowerCase())
+);
+
   const handleOpen = (excavationNorm?: ProductionScopeOutputType) => {
     if (excavationNorm) {
       setSelected(excavationNorm);
@@ -432,7 +438,7 @@ export default function ProductScope() {
               ),
             }}
             columns={columns}
-            dataSource={productionscopes}
+            dataSource={filteredData}
           />
         </Box>
       </Box>

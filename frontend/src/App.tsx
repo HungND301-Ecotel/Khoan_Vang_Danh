@@ -43,10 +43,8 @@ import Parameter from './pages/Parameter/Parameter';
 import CoalCuttingNorm from './pages/CoalCuttingNorm/CoalCuttingNorm';
 // import Quarterlycontractsettlement from './pages/Quarterlycontractsettlement/Quarterlycontractsettlement';
 import SettlementReport123 from './pages/SettlementReport123/SettlementReport123';
-
-interface PrivateRouteProps {
-  children: React.ReactNode;
-}
+import MaterialsOutsideContract from './pages/MaterialsOutsideContract/MaterialsOutsideContract';
+import { PrivateRouteProps } from './types';
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const token = localStorage.getItem("token");
@@ -93,6 +91,14 @@ const App = () => {
             </PrivateRoute>
           }
         /> 
+        <Route
+        path="/materialsoutsidecontract"
+          element={
+            <PrivateRoute>
+              <MaterialsOutsideContract />
+            </PrivateRoute>
+          }
+        />
          <Route
           path="/ratedadjustmentfactor"
           element={

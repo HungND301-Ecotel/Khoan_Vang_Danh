@@ -62,7 +62,6 @@ export default function PhaseGroupModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{

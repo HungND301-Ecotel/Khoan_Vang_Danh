@@ -67,8 +67,10 @@ export default function AdjustmentNormKKT() {
     },
   });
 
-  const filteredData = adjustmentnorms.filter(
-    (i: AdjustmentNormOutputType) => i.type === "CKKT"
+const filteredData = adjustmentnorms
+  .filter((i: AdjustmentNormOutputType) => i.type === "CKKT")
+  .filter((i: AdjustmentNormOutputType) =>
+    i.code?.toLowerCase().includes(searchValue.toLowerCase())
   );
 
   const handleToggleExpand = (adjustmentnorm: AdjustmentNormOutputType) => {
@@ -250,8 +252,6 @@ export default function AdjustmentNormKKT() {
               </TableCell>
             </TableRow>
           </TableBody>
-
-          {/* Phần bảng dữ liệu norms nền trắng */}
           <TableBody sx={{ backgroundColor: "#fff" }}>
             {record.norms?.map((item: any, index: number) => (
               <TableRow key={index}>

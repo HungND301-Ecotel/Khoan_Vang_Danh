@@ -61,7 +61,6 @@ export default function ExcavationTechModal({
         },
       }}
     >
-      {/* Close button at top-right */}
       <IconButton
         onClick={handleClose}
         sx={{

@@ -201,7 +201,7 @@ export default function Hardness() {
     },
   };
 
-  // Lọc dữ liệu dựa trên giá trị tìm kiếm
+
   const filteredHardness = hardness.filter((item: HardnessType) =>
     item.name?.toLowerCase().includes(searchValue.toLowerCase())
   );

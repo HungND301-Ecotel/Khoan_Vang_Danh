@@ -3,6 +3,36 @@ export interface LoginType {
   password: string;
 }
 
+export interface FlatMaterial {
+  _id: string;
+  code: string;
+  materialCode?: string;
+  name: string;
+  uom?: string;
+  quantity?: number;
+  price?: number;
+  note: string;
+}
+
+export interface PrivateRouteProps {
+  children: React.ReactNode;
+}
+
+export interface MainLayoutProps {
+  children?: React.ReactNode;
+}
+
+export interface FlatMaterial {
+  _id: string;
+  code: string;
+  materialCode?: string;
+  name: string;
+  uom?: string;
+  quantity?: number;
+  price?: number;
+  note: string;
+}
+
 export interface PhaseType {
   phaseGroup: string;
   phase: string;
@@ -290,6 +320,7 @@ export interface AssignmentNormInputType {
 }
 export interface AssignmentNormOutputType {
   _id?: string;
+   name?: string;
   code: string;
   phase?: PhaseInputType;
   phaseGroup?: PhaseGroupType;

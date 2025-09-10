@@ -61,7 +61,6 @@ export default function RockRatioModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{

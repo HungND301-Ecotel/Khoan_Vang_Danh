@@ -54,15 +54,23 @@ export default function MaterialAssignment() {
       api.get("/materialassignments/getAll").then((res) => res.data.data),
   });
 
-  const filteredData = materialAssignments.filter(
-    (item: Materials) =>
-      item.assignmentCode?.code
-        ?.toLowerCase()
-        .includes(searchValue.toLowerCase()) ||
-      item.code?.toLowerCase().includes(searchValue.toLowerCase()) ||
-      item.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
-      item.uom?.name?.toLowerCase().includes(searchValue.toLowerCase())
+const filteredData = materialAssignments.filter((item: Materials) => {
+  const search = searchValue.toLowerCase();
+
+  return (
+    item.assignmentCode?.code?.toLowerCase().includes(search) ||
+    item.code?.toLowerCase().includes(search) ||
+    item.name?.toLowerCase().includes(search) ||
+    item.uom?.name?.toLowerCase().includes(search) ||
+    (item.quantity !== undefined &&
+      item.quantity !== null &&
+      (
+        String(item.quantity).includes(search) || 
+        item.quantity === Number(searchValue) 
+      )
+    )
   );
+});
 
   const createMutation = useMutation({
     mutationFn: (newMaterialAssignment: Partial<MaterialAssignmentInputType>) =>
@@ -282,12 +290,13 @@ export default function MaterialAssignment() {
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Vật tư tài sản</Typography>
+        <Typography>Vật tư, tài sản trong khoán</Typography>
       </Breadcrumbs>
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h4" sx={{ color: "blue" }}>
-              Vật tư tài sản
+              Vật tư, tài sản trong khoán
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
@@ -345,6 +354,7 @@ export default function MaterialAssignment() {
                   fullWidth
                   size="small"
                   placeholder="Tìm kiếm"
+                  value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   InputProps={{
                     endAdornment: (

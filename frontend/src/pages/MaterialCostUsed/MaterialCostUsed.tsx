@@ -81,6 +81,11 @@ export default function MaterialCostUsed() {
     },
   });
 
+
+  const filteredData = materialcostuseds.filter((item: MaterialCostUsedOutputType) =>
+  item.code?.toLowerCase().includes(searchValue.toLowerCase())
+);
+
   const updateMutation = useMutation({
     mutationFn: (updateMaterialCostUsed: Partial<MaterialCostUsedInputType>) =>
       api
@@ -139,9 +144,10 @@ export default function MaterialCostUsed() {
     mutationFn: (id: string) =>
       api.get(`/materialcostuseds/${id}`).then((res) => res.data.data),
     onSuccess: (data, id) => {
-      setExpandedData((prev) => ({ ...prev,
-         [id]: { ...data, plannedCostCode: data.plannedCostCode  },
-        }));
+      setExpandedData((prev) => ({
+        ...prev,
+        [id]: { ...data, plannedCostCode: data.plannedCostCode },
+      }));
     },
     onError: (error: any, variables) => {
       const errorMessage =
@@ -257,10 +263,10 @@ export default function MaterialCostUsed() {
         dataIndex: "price",
         key: "price",
         align: "center" as const,
-        render: (text: string, item: any) => (
+        render: (_: any, item: any) => (
           <Typography>
-            {item.material?.currentPrice
-              ? item.material?.currentPrice.toLocaleString()
+            {item.material && item.material.currentPrice
+              ? item.material.currentPrice.toLocaleString()
               : ""}
           </Typography>
         ),
@@ -434,7 +440,7 @@ export default function MaterialCostUsed() {
                   }}
                 >
                   Lọc
-                </Button> 
+                </Button>
                 <TextField
                   fullWidth
                   size="small"
@@ -537,7 +543,7 @@ export default function MaterialCostUsed() {
               ),
             }}
             columns={columns}
-            dataSource={materialcostuseds}
+            dataSource={filteredData}
           />
         </Box>
       </Box>

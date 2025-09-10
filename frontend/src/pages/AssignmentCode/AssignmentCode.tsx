@@ -49,11 +49,23 @@ export default function AssignmentCode() {
   const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
+  
   const { data: assignmentcodes = [] } = useQuery({
     queryKey: ["assignmentcodes", searchValue],
     queryFn: () =>
       api.get(`/assignmentcodes?q=${searchValue}`).then((res) => res.data.data),
   });
+
+const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => {
+  const keyword = searchValue.toLowerCase();
+  return (
+    item.code?.toLowerCase().includes(keyword) ||       
+    item.name?.toLowerCase().includes(keyword) ||        
+    item.deviceCode?.code?.toLowerCase().includes(keyword) || 
+    item.uom?.name?.toLowerCase().includes(keyword) ||   
+    item.price?.toString().includes(keyword)            
+  );
+});
 
   const createMutation = useMutation({
     mutationFn: (newAssignmentCode: Partial<AssignmentCodeInputType>) =>
@@ -370,7 +382,7 @@ export default function AssignmentCode() {
               ),
             }}
             columns={columns}
-            dataSource={assignmentcodes}
+            dataSource={filteredData}
           />
         </Box>
       </Box>

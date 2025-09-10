@@ -150,7 +150,6 @@ export default function ExcavationNormModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{
@@ -198,7 +197,6 @@ export default function ExcavationNormModal({
 
       <DialogContent sx={{ p: 0 }}>
         <FormikProvider value={formik}>
-          {/* Nhóm công đoạn */}
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
             Nhóm công đoạn
           </Typography>
@@ -247,7 +245,6 @@ export default function ExcavationNormModal({
             </TextField>
           </Box>
 
-          {/* Công đoạn */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Công đoạn
           </Typography>
@@ -293,7 +290,6 @@ export default function ExcavationNormModal({
             </TextField>
           </Box>
 
-          {/* Công nghệ xúc */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Công nghệ xúc
           </Typography>
@@ -471,8 +467,6 @@ export default function ExcavationNormModal({
               borderWidth: "1px",
             }}
           />
-
-          {/* Mã giao khoán */}
           <Typography
             sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
           >
@@ -546,8 +540,6 @@ export default function ExcavationNormModal({
               }}
             />
           </Box>
-
-          {/* Danh sách norms */}
           <FieldArray name="norms">
             {() => (
               <Box

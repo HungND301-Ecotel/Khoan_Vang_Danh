@@ -19,7 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import StepModal from "../../components/StepModal/StepModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StepType } from "../../types";
@@ -37,12 +37,17 @@ export default function Step() {
   const [selectedStep, setSelectedStep] = useState<StepType | null>(null);
   const [selectedSteps, setSelectedSteps] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [filteredSteps, setFilteredSteps] = useState<StepType[]>([]);
 
   const queryClient = useQueryClient();
   const { data: steps = [] } = useQuery({
     queryKey: ["steps"],
     queryFn: () => api.get("/steps").then((res) => res.data.data),
   });
+
+  useEffect(() => {
+    setFilteredSteps(steps);
+  }, [steps]);
 
   const createMutation = useMutation({
     mutationFn: (newStep: Partial<StepType>) =>
@@ -126,6 +131,20 @@ export default function Step() {
     setOpen(true);
   };
 
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+
+    if (!value.trim()) {
+      setFilteredSteps(steps);
+      return;
+    }
+
+    const filtered = steps.filter((step: StepType) =>
+      step.name?.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredSteps(filtered);
+  };
+
   const columns: TableProps<StepType>["columns"] = [
     {
       title: "",
@@ -167,16 +186,9 @@ export default function Step() {
 
   return (
     <Box>
-      {/* <Breadcrumbs aria-label="breadcrumb">
-        <Typography>Danh mục</Typography>
-        <Typography>Bước chống</Typography>
-      </Breadcrumbs> */}
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            {/* <Typography variant="h4" sx={{ color: 'blue' }}>
-              Bước chống
-            </Typography> */}
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
@@ -232,7 +244,8 @@ export default function Step() {
                   fullWidth
                   size="small"
                   placeholder="Tìm kiếm"
-                  onChange={(e) => setSearchValue(e.target.value)}
+                  value={searchValue}
+                  onChange={(e) => handleSearch(e.target.value)}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -322,7 +335,7 @@ export default function Step() {
               ),
             }}
             columns={columns}
-            dataSource={steps}
+            dataSource={searchValue ? filteredSteps : steps}
           />
         </Box>
       </Box>

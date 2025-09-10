@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -55,9 +55,28 @@ export default function AdjustmentNormCM() {
       api.get(`/adjustmentnorms?q=${searchValue}`).then((res) => res.data.data),
   });
 
-  const filteredData = adjustmentnorms.filter(
-    (i: AdjustmentNormOutputType) => i.type === "CM"
-  );
+    const filteredData = useMemo(() => {
+    return adjustmentnorms
+      .filter((item: AdjustmentNormOutputType) => item.type === "CM")
+      .filter((item: AdjustmentNormOutputType) => {
+        if (!searchValue.trim()) return true;
+        
+        const searchLower = searchValue.toLowerCase().trim();
+        return (
+          (item.code && item.code.toLowerCase().includes(searchLower)) ||
+          (item.mirrorRatio?.name && 
+           item.mirrorRatio.name.toLowerCase().includes(searchLower)) ||
+          (item.norms?.some(norm => 
+            norm.assignmentCode?.code && 
+            norm.assignmentCode.code.toLowerCase().includes(searchLower)
+          )) ||
+          (item.norms?.some(norm => 
+            norm.assignmentCode?.name && 
+            norm.assignmentCode.name.toLowerCase().includes(searchLower)
+          ))
+        );
+      });
+  }, [adjustmentnorms, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
@@ -164,7 +183,6 @@ export default function AdjustmentNormCM() {
             </TableRow>
           </TableBody>
 
-          {/* Phần bảng dữ liệu norms nền trắng */}
           <TableBody sx={{ backgroundColor: "#fff" }}>
             {record.norms?.map((item: any, index: number) => (
               <TableRow key={index}>

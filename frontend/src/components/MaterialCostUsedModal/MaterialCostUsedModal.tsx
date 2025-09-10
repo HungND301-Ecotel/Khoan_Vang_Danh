@@ -57,8 +57,6 @@ export default function MaterialCostUsedModal({
     queryFn: async () =>
       api.get("/materialbudgets").then((res) => res.data.data),
   });
-
-  // Initial values
   const formik = useFormik({
     initialValues: {
       code: selected?.code || "",
@@ -115,7 +113,6 @@ export default function MaterialCostUsedModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{
@@ -185,7 +182,6 @@ export default function MaterialCostUsedModal({
         }}
       >
         <FormikProvider value={formik}>
-          {/* Mã chi phí vật tư thực hiện */}
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
             Mã chi phí vật tư thực hiện
           </Typography>
@@ -214,8 +210,6 @@ export default function MaterialCostUsedModal({
               }}
             />
           </Box>
-
-          {/* Mã chi phí vật tư kế hoạch */}
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
             Mã chi phí vật tư kế hoạch
           </Typography>
@@ -263,8 +257,6 @@ export default function MaterialCostUsedModal({
               ))}
             </TextField>
           </Box>
-
-          {/* Mã diện sản xuất */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Mã diện sản xuất
           </Typography>
@@ -319,13 +311,11 @@ export default function MaterialCostUsedModal({
             sx={{
               mt: "12px",
               mb: "12px",
-              borderColor: "#6592B7",
+              borderColor: "#303030",
               opacity: 0.3,
               borderWidth: "1px",
             }}
           />
-
-          {/* Chọn vật tư */}
           <Typography
             sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
           >
@@ -369,19 +359,19 @@ export default function MaterialCostUsedModal({
                   backgroundColor:
                     selectedMaterials.length > 0 ? "#F2F2F2" : "#FFFFFF",
                   display: "flex",
-                  alignItems: "center", // <-- căn giữa theo chiều dọc
+                  alignItems: "center", 
                   flexWrap: "wrap",
                 },
                 "& .MuiChip-root": {
                   height: "20px",
                   fontSize: "12px",
                   margin: "2px",
-                  lineHeight: "20px", // <-- để bằng với height
+                  lineHeight: "20px", 
                   verticalAlign: "middle",
                 },
                 "& .MuiAutocomplete-input": {
                   padding: "0 !important",
-                  lineHeight: "20px", // <-- khớp với chip
+                  lineHeight: "20px", 
                 },
                 "& input::placeholder": {
                   color: "#D9D9D9",
@@ -394,8 +384,6 @@ export default function MaterialCostUsedModal({
               }}
             />
           </Box>
-
-          {/* Danh sách materials */}
           <FieldArray name="materials">
             {() => (
               <Box
@@ -519,8 +507,6 @@ export default function MaterialCostUsedModal({
                         />
                       </Grid>
                     </Grid>
-
-                    {/* Nút X tròn bên cạnh */}
                     <IconButton
                       onClick={() => {
                         const materialToRemove = materialassignments.find(

@@ -7,6 +7,7 @@ import {
   Button,
   Typography,
   IconButton,
+  InputAdornment,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -21,6 +22,7 @@ import {
   FilterList,
   Mail,
   Print,
+  Search,
   Visibility,
 } from "@mui/icons-material";
 import CoalCuttingNormZHModal from "../../components/CoalCuttingNormZHModal/CoalCuttingNormZHModal";
@@ -39,6 +41,7 @@ export default function CoalCuttingNormZH() {
   );
   const [open, setOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
 
@@ -47,6 +50,29 @@ export default function CoalCuttingNormZH() {
     queryFn: async () =>
       api.get("/assignmentnorms").then((res) => res.data.data),
   });
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+  };
+
+const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => {
+  if ((item.type ?? "").toLowerCase() !== "coal_zh") return false;
+  if (!searchValue.trim()) return true;
+
+  const searchLower = searchValue.toLowerCase();
+
+  return (
+    (item.code ?? "").toLowerCase().includes(searchLower) ||
+    (item.thickness?.name ?? "").toLowerCase().includes(searchLower) ||
+    (item.curbSlope?.name ?? "").toLowerCase().includes(searchLower) ||
+    item.norms?.some(
+      (norm) =>
+        (norm.assignmentCode?.code ?? "").toLowerCase().includes(searchLower) ||
+        (norm.assignmentCode?.name ?? "").toLowerCase().includes(searchLower)
+    )
+  );
+});
+
 
   const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
     const id = cuttingnorm?._id;
@@ -244,7 +270,6 @@ export default function CoalCuttingNormZH() {
 
     return (
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-        {/* Header */}
         <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
           <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
             Độ dốc vỉa {slopeLabel}
@@ -256,8 +281,6 @@ export default function CoalCuttingNormZH() {
             </Box>
           </Typography>
         </Box>
-
-        {/* Bảng con */}
         <Table
           columns={innerColumns}
           dataSource={norms}
@@ -333,7 +356,20 @@ export default function CoalCuttingNormZH() {
               >
                 Lọc
               </Button>
-              <TextField fullWidth size="small" placeholder="Tìm kiếm" />
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Tìm kiếm"
+                value={searchValue}
+                onChange={(e) => handleSearch(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Search sx={{ fontSize: 24 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
 
             <Box display={"flex"} gap={2}>
@@ -417,7 +453,7 @@ export default function CoalCuttingNormZH() {
             ),
           }}
           columns={columns}
-          dataSource={assignmentnorms.filter((i: any) => i.type === "coal_zh")}
+          dataSource={filteredData}
           expandable={{
             expandedRowKeys: expandedRow ? [expandedRow] : [],
             onExpand: (expanded, record) => {

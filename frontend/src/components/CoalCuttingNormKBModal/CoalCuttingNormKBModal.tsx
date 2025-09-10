@@ -117,7 +117,6 @@ export default function CuttingNormKBModal({
     if (assignmentcodes.length === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      // Trường hợp sửa
       const selectedCodes = assignmentcodes.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
@@ -194,7 +193,6 @@ export default function CuttingNormKBModal({
 
       <DialogContent sx={{ p: 0 }}>
         <FormikProvider value={formik}>
-          {/* Độ dày vỉa */}
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
             Độ dày vỉa
           </Typography>
@@ -242,8 +240,6 @@ export default function CuttingNormKBModal({
               ))}
             </TextField>
           </Box>
-
-          {/* Độ dốc vỉa */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Độ dốc vỉa
           </Typography>
@@ -291,8 +287,6 @@ export default function CuttingNormKBModal({
               ))}
             </TextField>
           </Box>
-
-          {/* Độ cứng */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Độ cứng
           </Typography>
@@ -382,8 +376,6 @@ export default function CuttingNormKBModal({
               borderWidth: "1px",
             }}
           />
-
-          {/* Mã giao khoán */}
           <Typography
             sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
           >

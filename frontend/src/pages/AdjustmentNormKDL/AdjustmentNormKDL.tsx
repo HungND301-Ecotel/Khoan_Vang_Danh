@@ -55,9 +55,17 @@ export default function AdjustmentNormKDL() {
       api.get(`/adjustmentnorms?q=${searchValue}`).then((res) => res.data.data),
   });
 
-  const filteredData = adjustmentnorms.filter(
-    (i: AdjustmentNormOutputType) => i.type === "CKĐL"
-  );
+const filteredData = adjustmentnorms
+  .filter((i: AdjustmentNormOutputType) => i.type === "CKĐL")
+  .filter((i: AdjustmentNormOutputType) => {
+    const keyword = searchValue.toLowerCase();
+    return (
+      i.code?.toLowerCase().includes(keyword) ||
+      i.norms?.some((n) =>
+        n.assignmentCode?.name?.toLowerCase().includes(keyword)
+      )
+    );
+  });
 
   const createMutation = useMutation({
     mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
@@ -156,10 +164,8 @@ export default function AdjustmentNormKDL() {
           }}
         >
           <TableBody>
-            {/* Hàng thông tin chung */}
             <TableRow sx={{ height: 28 }}>
               {" "}
-              {/* ép chiều cao */}
               <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
                 Độ cứng của đá lẫn trong gương
               </TableCell>
@@ -177,8 +183,6 @@ export default function AdjustmentNormKDL() {
               </TableCell>
             </TableRow>
           </TableBody>
-
-          {/* Phần bảng dữ liệu norms nền trắng */}
           <TableBody sx={{ backgroundColor: "#fff" }}>
             {record.norms?.map((item: any, index: number) => (
               <TableRow key={index}>

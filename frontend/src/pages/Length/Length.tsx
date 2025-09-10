@@ -19,7 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import LengthModal from "../../components/LengthModal/LengthModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LengthType } from "../../types";
@@ -37,12 +37,24 @@ export default function Length() {
   const [selectedLength, setSelectedLength] = useState<LengthType | null>(null);
   const [selectedLengths, setSelectedLengths] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [filteredData, setFilteredData] = useState<LengthType[]>([]);
 
-  const queryClient = useQueryClient();
-  const { data: length = [] } = useQuery({
-    queryKey: ["length"],
-    queryFn: () => api.get("/length").then((res) => res.data.data),
-  });
+ const queryClient = useQueryClient();
+const { data: length = [] } = useQuery<LengthType[]>({
+  queryKey: ["length"],
+  queryFn: () => api.get("/length").then((res) => res.data.data),
+});
+
+useEffect(() => {
+  if (searchValue.trim() === "") {
+    setFilteredData(length);
+  } else {
+    const filtered = length.filter((item: LengthType) =>
+      item.name?.toLowerCase().includes(searchValue.toLowerCase())
+    );
+    setFilteredData(filtered);
+  }
+}, [searchValue, length]);
 
   const createMutation = useMutation({
     mutationFn: (newLength: Partial<LengthType>) =>
@@ -76,13 +88,11 @@ export default function Length() {
   });
 
   const handleDelete = (id?: string) => {
-    // Xóa nhiều bản ghi
     if (!id && selectedLengths.length > 0) {
       showConfirmAlert(
         `Bạn có muốn xóa ${selectedLengths.length} bản ghi đã chọn?`
       ).then((result) => {
         if (result.isConfirmed) {
-          // Gọi API xóa nhiều
           const deletePromises = selectedLengths.map((lengthId) =>
             api.delete(`/length/${lengthId}`)
           );
@@ -110,7 +120,7 @@ export default function Length() {
       return;
     }
 
-    // Xóa một bản ghi
+  
     if (!id) {
       showErrorAlert("Không tìm thấy bản ghi");
       return;
@@ -361,7 +371,7 @@ export default function Length() {
               ),
             }}
             columns={columns}
-            dataSource={length}
+            dataSource={filteredData.length > 0 || searchValue ? filteredData : length}
           />
         </Box>
       </Box>

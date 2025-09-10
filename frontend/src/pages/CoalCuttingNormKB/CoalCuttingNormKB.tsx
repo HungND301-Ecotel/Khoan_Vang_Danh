@@ -8,6 +8,7 @@ import {
   Typography,
   IconButton,
   Divider,
+  InputAdornment,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -22,6 +23,7 @@ import {
   FilterList,
   Mail,
   Print,
+  Search,
   Visibility,
 } from "@mui/icons-material";
 import CoalCuttingNormKBModal from "../../components/CoalCuttingNormKBModal/CoalCuttingNormKBModal";
@@ -40,6 +42,7 @@ export default function CoalCuttingNormKB() {
   );
   const [open, setOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [searchText, setSearchText] = useState("");
 
   const queryClient = useQueryClient();
 
@@ -48,6 +51,12 @@ export default function CoalCuttingNormKB() {
     queryFn: async () =>
       api.get("/assignmentnorms").then((res) => res.data.data),
   });
+
+  const filteredData = assignmentnorms
+    .filter((i: any) => i.type === "coal_kb")
+    .filter((item: AssignmentNormOutputType) =>
+      item.code?.toLowerCase().includes(searchText.toLowerCase().trim())
+    );
 
   const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
     const id = cuttingnorm?._id;
@@ -245,7 +254,6 @@ export default function CoalCuttingNormKB() {
 
     return (
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-        {/* Header */}
         <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
           <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
             Độ dốc vỉa {slopeLabel}
@@ -257,7 +265,6 @@ export default function CoalCuttingNormKB() {
             </Box>
           </Typography>
         </Box>
-        {/* Bảng con */}
         <Table
           columns={innerColumns}
           dataSource={norms}
@@ -332,7 +339,20 @@ export default function CoalCuttingNormKB() {
               >
                 Lọc
               </Button>
-              <TextField fullWidth size="small" placeholder="Tìm kiếm" />
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Tìm kiếm"
+                value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Search sx={{ fontSize: 24 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
 
             <Box display={"flex"} gap={2}>
@@ -416,7 +436,7 @@ export default function CoalCuttingNormKB() {
             ),
           }}
           columns={columns}
-          dataSource={assignmentnorms.filter((i: any) => i.type === "coal_kb")}
+           dataSource={filteredData}
           expandable={{
             expandedRowKeys: expandedRow ? [expandedRow] : [],
             onExpand: (expanded, record) => {
