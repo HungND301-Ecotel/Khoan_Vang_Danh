@@ -99,8 +99,9 @@ export interface MaterialAssignmentOutputType {
 export interface MaterialAssignmentInputType {
   _id?: string;
   code?: string;
-  name: string;
-  uom?: string;
+  name: string;      
+    quantity?: number;  
+  currentPrice?: number; 
   assignmentCode?: string;
   priceHistory: {
     price?: number;

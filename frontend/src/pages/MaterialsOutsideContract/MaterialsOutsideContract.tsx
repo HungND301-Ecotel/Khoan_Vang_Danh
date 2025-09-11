@@ -161,30 +161,30 @@ export default function MaterialsOutsideContract() {
   });
 
   const handleSubmit = (values: Partial<MaterialAssignmentInputType>) => {
-    const submitValues: Partial<Materials> = {
-      ...values,
-      uom: values.uom ? ({ name: values.uom } as UnitType) : undefined,
-      assignmentCode: values.assignmentCode
-        ? ({ code: values.assignmentCode } as AssignmentCodeOutputType)
-        : undefined,
-      priceHistory: values.priceHistory
-        ? values.priceHistory.map((item) => ({
-            price: item.price ?? 0,
-            startDate: item.startDate ? new Date(item.startDate) : new Date(),
-            endDate: item.endDate ? new Date(item.endDate) : new Date(),
-          }))
-        : undefined,
-    };
-
-    if (selectedMaterialAssignment) {
-      updateMutation.mutate({
-        ...submitValues,
-        _id: selectedMaterialAssignment._id,
-      });
-    } else {
-      createMutation.mutate(submitValues);
-    }
+  const submitValues: Partial<Materials> = {
+    code: values.code,
+    name: values.name,
+    quantity: values.quantity,
+    currentPrice: values.currentPrice, 
   };
+
+  if (values.priceHistory) {
+    submitValues.priceHistory = values.priceHistory.map((item) => ({
+      price: item.price ?? 0,
+      startDate: item.startDate ? new Date(item.startDate) : new Date(),
+      endDate: item.endDate ? new Date(item.endDate) : new Date(),
+    }));
+  }
+
+  if (selectedMaterialAssignment) {
+    updateMutation.mutate({
+      ...submitValues,
+      _id: selectedMaterialAssignment._id,
+    });
+  } else {
+    createMutation.mutate(submitValues);
+  }
+};
 
   const handleOpen = (record?: Materials) => {
     if (record) {

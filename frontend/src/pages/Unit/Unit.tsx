@@ -69,6 +69,7 @@ export default function Unit() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const updateMutation = useMutation({
     mutationFn: (updateUnit: Partial<UnitType>) =>
       api.put(`/units/${updateUnit._id}`, updateUnit).then((res) => res.data),
@@ -83,6 +84,7 @@ export default function Unit() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const handleDelete = () => {
     if (selectedUnits.length === 0) {
       showErrorAlert("Không tìm thấy bản ghi");
@@ -96,6 +98,7 @@ export default function Unit() {
       }
     });
   };
+
   const deleteMutation = useMutation({
     mutationFn: (ids: React.Key[]) =>
       api.delete(`/units`, { data: { ids } }).then((res) => res.data.message),
@@ -109,6 +112,7 @@ export default function Unit() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const handleSubmit = (values: Partial<UnitType>) => {
     if (selectedUnit) {
       updateMutation.mutate({ ...values, _id: selectedUnit._id });
@@ -116,6 +120,7 @@ export default function Unit() {
       createMutation.mutate(values);
     }
   };
+
   const handleOpen = (Unit?: UnitType) => {
     if (Unit) {
       setSelectedUnit(Unit);
@@ -126,56 +131,169 @@ export default function Unit() {
   };
 
   const handleImport = () => {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = ".xlsx, .xls";
-  input.onchange = (e) => {
-    const target = e.target as HTMLInputElement;
-    const file = target.files?.[0];
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xlsx, .xls";
+    input.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
 
-      showConfirmAlert(
-        "Bạn có chắc chắn muốn import dữ liệu từ file này?"
-      ).then((result) => {
+        showConfirmAlert(
+          "Bạn có chắc chắn muốn import dữ liệu từ file này?"
+        ).then((result) => {
+          if (result.isConfirmed) {
+            api
+              .post("/units/importFile", formData, {
+                headers: {
+                  "Content-Type": "multipart/form-data",
+                },
+              })
+              .then((response) => {
+                const { summary, invalidRows } = response.data;
+                let message = `Import thành công!<br/>
+              Tổng: ${summary.totalProcessed}<br/>
+              Thêm mới: ${summary.insertedCount}<br/>
+              Cập nhật: ${summary.updatedCount}<br/>
+              Lỗi: ${summary.invalidCount}`;
+
+                if (invalidRows.length > 0) {
+                  message += `<br/><br/>Các dòng lỗi: ${invalidRows
+                    .map((row: any) => JSON.stringify(row))
+                    .join("<br/>")}`;
+                }
+
+                showSuccessAlert(message);
+                queryClient.invalidateQueries({ queryKey: ["units"] });
+              })
+              .catch((error) => {
+                showErrorAlert(
+                  error.response?.data?.message || "Import thất bại"
+                );
+              });
+          }
+        });
+      }
+    };
+    input.click();
+  };
+
+  const handleExport = () => {
+    showConfirmAlert("Bạn có muốn xuất dữ liệu ra file Excel?").then(
+      (result) => {
         if (result.isConfirmed) {
           api
-            .post("/units/importFile", formData, {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            })
+            .post(
+              "/units/exportFile",
+              { data: units },
+              { responseType: "blob" }
+            )
             .then((response) => {
-              const { summary, invalidRows } = response.data;
-              let message = `Import thành công!<br/>
-            Tổng: ${summary.totalProcessed}<br/>
-            Thêm mới: ${summary.insertedCount}<br/>
-            Cập nhật: ${summary.updatedCount}<br/>
-            Lỗi: ${summary.invalidCount}`;
+              const url = window.URL.createObjectURL(new Blob([response.data]));
+              const link = document.createElement("a");
+              link.href = url;
+              link.setAttribute("download", "danh_sach_don_vi_tinh.xlsx");
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              window.URL.revokeObjectURL(url);
 
-              if (invalidRows.length > 0) {
-                message += `<br/><br/>Các dòng lỗi: ${invalidRows
-                  .map((row: any) => JSON.stringify(row))
-                  .join("<br/>")}`;
-              }
-
-              showSuccessAlert(message); // Bỏ argument thứ hai nếu không cần
-              queryClient.invalidateQueries({ queryKey: ["units"] });
+              showSuccessAlert("Xuất file thành công!");
             })
             .catch((error) => {
               showErrorAlert(
-                error.response?.data?.message || "Import thất bại"
+                error.response?.data?.message || "Xuất file thất bại"
               );
             });
         }
-      });
-    }
+      }
+    );
   };
-  input.click();
-};
 
-  
+  const handlePrint = () => {
+    showConfirmAlert("Bạn có muốn in dữ liệu đơn vị tính?").then((result) => {
+      if (result.isConfirmed) {
+        const printContent = `
+          <html>
+            <head>
+              <title>Danh sách đơn vị tính</title>
+              <style>
+                body { font-family: Arial, sans-serif; }
+                h1 { text-align: center; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+              </style>
+            </head>
+            <body>
+              <h1>Danh sách đơn vị tính</h1>
+              <table>
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Đơn vị tính</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${units
+                    .map(
+                      (unit: UnitType, index: number) => `
+                    <tr>
+                      <td>${index + 1}</td>
+                      <td>${unit.name || ""}</td>
+                    </tr>
+                  `
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </body>
+          </html>
+        `;
+
+        // Mở cửa sổ in
+        const printWindow = window.open("", "_blank");
+        if (printWindow) {
+          printWindow.document.write(printContent);
+          printWindow.document.close();
+          printWindow.focus();
+          printWindow.print();
+          // printWindow.close();
+        }
+      }
+    });
+  };
+
+  const handleSendEmail = () => {
+    if (selectedUnits.length === 0) {
+      showErrorAlert("Vui lòng chọn ít nhất một đơn vị tính để gửi");
+      return;
+    }
+
+    showConfirmAlert(
+      "Bạn có muốn gửi danh sách đơn vị tính đã chọn qua email?"
+    ).then((result) => {
+      if (result.isConfirmed) {
+        const selectedUnitData = units.filter((unit: UnitType) =>
+          selectedUnits.includes(unit._id as React.Key)
+        );
+
+        api
+          .post("/units/sendEmail", { data: selectedUnitData })
+          .then((response) => {
+            showSuccessAlert("Gửi email thành công!");
+          })
+          .catch((error) => {
+            showErrorAlert(
+              error.response?.data?.message || "Gửi email thất bại"
+            );
+          });
+      }
+    });
+  };
+
   const columns: TableProps<UnitType>["columns"] = [
     {
       title: "",
@@ -305,6 +423,7 @@ export default function Unit() {
                     borderRadius: "8px",
                     px: 3,
                   }}
+                  onClick={handleImport}
                 >
                   Tải lên
                 </Button>
@@ -320,6 +439,7 @@ export default function Unit() {
                     borderRadius: "8px",
                     px: 3,
                   }}
+                  onClick={handleExport}
                 >
                   Xuất file
                 </Button>
@@ -335,6 +455,7 @@ export default function Unit() {
                     borderRadius: "8px",
                     px: 3,
                   }}
+                  onClick={handlePrint}
                 >
                   In
                 </Button>
@@ -351,6 +472,7 @@ export default function Unit() {
                     borderRadius: "8px",
                     px: 3,
                   }}
+                  onClick={handleSendEmail}
                 >
                   Gửi
                 </Button>

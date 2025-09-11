@@ -48,10 +48,14 @@ export default function MaterialsOutsideContractModal({
   selectedMaterialOutsideContract: Materials | null;
 }) {
 
-  const { data: units = [] } = useQuery({
-    queryKey: ["units"], 
-    queryFn: () => api.get("/units").then((res) => res.data.data),
-  });
+const { data: units = [] } = useQuery({
+  queryKey: ["units"],
+  queryFn: async () => {
+    const res = await api.get("/units");
+    console.log("Units API:", res.data);
+    return res.data.data || res.data.units || res.data; 
+  },
+});
 
   const formik = useFormik({
     initialValues: {
@@ -86,6 +90,7 @@ export default function MaterialsOutsideContractModal({
     onSubmit: (values) => {
       const transformedValues: MaterialAssignmentInputType = {
         ...values,
+        quantity: typeof values.quantity === "string" ? Number(values.quantity) : values.quantity,
         priceHistory: values.priceHistory.map((item) => ({
           ...item,
           startDate: item.startDate,

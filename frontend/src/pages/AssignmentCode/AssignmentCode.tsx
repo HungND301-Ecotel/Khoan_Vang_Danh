@@ -26,7 +26,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import AssignmentCodeModal from "../../components/AssignmentCodeModal/AssignmentCodeModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AssignmentCodeInputType, AssignmentCodeOutputType } from "../../types";
@@ -47,25 +47,28 @@ export default function AssignmentCode() {
     React.Key[]
   >([]);
   const [searchValue, setSearchValue] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const queryClient = useQueryClient();
-  
+
   const { data: assignmentcodes = [] } = useQuery({
     queryKey: ["assignmentcodes", searchValue],
     queryFn: () =>
       api.get(`/assignmentcodes?q=${searchValue}`).then((res) => res.data.data),
   });
 
-const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => {
-  const keyword = searchValue.toLowerCase();
-  return (
-    item.code?.toLowerCase().includes(keyword) ||       
-    item.name?.toLowerCase().includes(keyword) ||        
-    item.deviceCode?.code?.toLowerCase().includes(keyword) || 
-    item.uom?.name?.toLowerCase().includes(keyword) ||   
-    item.price?.toString().includes(keyword)            
+  const filteredData = assignmentcodes.filter(
+    (item: AssignmentCodeOutputType) => {
+      const keyword = searchValue.toLowerCase();
+      return (
+        item.code?.toLowerCase().includes(keyword) ||
+        item.name?.toLowerCase().includes(keyword) ||
+        item.deviceCode?.code?.toLowerCase().includes(keyword) ||
+        item.uom?.name?.toLowerCase().includes(keyword) ||
+        item.price?.toString().includes(keyword)
+      );
+    }
   );
-});
 
   const createMutation = useMutation({
     mutationFn: (newAssignmentCode: Partial<AssignmentCodeInputType>) =>
@@ -79,6 +82,7 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const updateMutation = useMutation({
     mutationFn: (updateAssignmentCode: Partial<AssignmentCodeInputType>) =>
       api
@@ -97,6 +101,7 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const handleDelete = () => {
     if (selectedAssignmentCodes.length === 0) {
       showErrorAlert("Không tìm thấy bản ghi");
@@ -110,6 +115,7 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
       }
     });
   };
+
   const deleteMutation = useMutation({
     mutationFn: (ids: React.Key[]) =>
       api
@@ -125,6 +131,7 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const handleSubmit = (values: Partial<AssignmentCodeInputType>) => {
     if (selectedAssignmentCode) {
       updateMutation.mutate({ ...values, _id: selectedAssignmentCode._id });
@@ -132,6 +139,7 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
       createMutation.mutate(values);
     }
   };
+
   const handleOpen = (AssignmentCode?: AssignmentCodeOutputType) => {
     if (AssignmentCode) {
       setSelectedAssignmentCode(AssignmentCode);
@@ -139,6 +147,103 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
       setSelectedAssignmentCode(null);
     }
     setOpen(true);
+  };
+
+  const handleUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    api
+      .post("/assignmentcodes/importFile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+      .then((response) => {
+        showSuccessAlert("Tải lên thành công");
+        queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
+      })
+      .catch((error) => {
+        showErrorAlert(error.response?.data?.message || "Tải lên thất bại");
+      });
+
+    if (event.target) {
+      event.target.value = "";
+    }
+  };
+
+  const handleExport = () => {
+    api
+      .post(
+        "/assignmentcodes/exportFile",
+        { data: filteredData },
+        {
+          responseType: "blob",
+        }
+      )
+      .then((response) => {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", "danh_sach_ma_giao_khoan.xlsx");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        showSuccessAlert("Xuất file thành công");
+      })
+      .catch((error) => {
+        showErrorAlert(error.response?.data?.message || "Xuất file thất bại");
+      });
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById("assignment-code-table");
+    if (!printContent) {
+      showErrorAlert("Không tìm thấy dữ liệu để in");
+      return;
+    }
+
+    const originalContents = document.body.innerHTML;
+    const printWindow = window.open("", "_blank");
+
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>In danh sách mã giao khoán</title>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              @media print {
+                body { margin: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            <h2>Danh sách mã giao khoán</h2>
+            ${printContent.innerHTML}
+          </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    } else {
+      showErrorAlert("Không thể mở cửa sổ in. Vui lòng cho phép popup.");
+    }
   };
 
   const columns: TableProps<AssignmentCodeOutputType>["columns"] = [
@@ -307,6 +412,7 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleUpload}
                   sx={{
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -318,10 +424,18 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
                 >
                   Tải lên
                 </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".xlsx, .xls"
+                  style={{ display: "none" }}
+                />
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={handleExport}
                   sx={{
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -337,6 +451,7 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
+                  onClick={handlePrint}
                   sx={{
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -367,23 +482,25 @@ const filteredData = assignmentcodes.filter((item: AssignmentCodeOutputType) => 
               </Box>
             </Box>
           </Box>
-          <Table<AssignmentCodeOutputType>
-            rowKey="_id"
-            rowSelection={rowSelection}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
-                </div>
-              ),
-            }}
-            columns={columns}
-            dataSource={filteredData}
-          />
+          <div id="assignment-code-table">
+            <Table<AssignmentCodeOutputType>
+              rowKey="_id"
+              rowSelection={rowSelection}
+              pagination={{
+                position: ["bottomCenter"],
+                showSizeChanger: true,
+                pageSizeOptions: ["10", "20", "50", "100"],
+                defaultPageSize: 10,
+                showTotal: (total, range) => (
+                  <div style={{ flex: 1, textAlign: "left" }}>
+                    Hiển thị {range[0]}-{range[1]} trên {total} mục
+                  </div>
+                ),
+              }}
+              columns={columns}
+              dataSource={filteredData}
+            />
+          </div>
         </Box>
       </Box>
       <AssignmentCodeModal

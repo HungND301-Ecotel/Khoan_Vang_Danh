@@ -85,8 +85,12 @@ export default function MaterialAssignmentModal({
     onSubmit: (values) => {
       const transformedValues: MaterialAssignmentInputType = {
         ...values,
+        quantity: values.quantity === undefined || typeof values.quantity === "number"
+          ? values.quantity
+          : Number(values.quantity),
         priceHistory: values.priceHistory.map((item) => ({
           ...item,
+          price: Number(item.price),
           startDate: item.startDate,
           endDate: item.endDate,
         })),
