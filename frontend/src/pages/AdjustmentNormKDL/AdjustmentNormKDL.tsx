@@ -3,26 +3,18 @@ import {
   Add,
   ArrowDropDown,
   Delete,
-  Edit,
   FileDownload,
   FileUpload,
   FilterList,
   Mail,
   Print,
   Search,
-  Visibility,
 } from "@mui/icons-material";
 import {
   Box,
-  Breadcrumbs,
   Button,
   IconButton,
   InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -37,6 +29,7 @@ import {
 } from "../../components/Alert";
 import { Table as AntTable, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
+import { Eye, Pen } from "lucide-react";
 
 export default function AdjustmentNormKDL() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -55,17 +48,17 @@ export default function AdjustmentNormKDL() {
       api.get(`/adjustmentnorms?q=${searchValue}`).then((res) => res.data.data),
   });
 
-const filteredData = adjustmentnorms
-  .filter((i: AdjustmentNormOutputType) => i.type === "CKĐL")
-  .filter((i: AdjustmentNormOutputType) => {
-    const keyword = searchValue.toLowerCase();
-    return (
-      i.code?.toLowerCase().includes(keyword) ||
-      i.norms?.some((n) =>
-        n.assignmentCode?.name?.toLowerCase().includes(keyword)
-      )
-    );
-  });
+  const filteredData = adjustmentnorms
+    .filter((i: AdjustmentNormOutputType) => i.type === "CKĐL")
+    .filter((i: AdjustmentNormOutputType) => {
+      const keyword = searchValue.toLowerCase();
+      return (
+        i.code?.toLowerCase().includes(keyword) ||
+        i.norms?.some((n) =>
+          n.assignmentCode?.name?.toLowerCase().includes(keyword)
+        )
+      );
+    });
 
   const createMutation = useMutation({
     mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
@@ -155,67 +148,171 @@ const filteredData = adjustmentnorms
     setOpen(true);
   };
 
-  const expandedRowRender = (record: AdjustmentNormOutputType) => (
-    <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-      <TableContainer>
-        <Table
+  const expandedRowRender = (record: AdjustmentNormOutputType) => {
+    const renderRow = (
+      label: string,
+      value: string | number | undefined,
+      isHeader = true
+    ) => (
+      <Box
+        sx={{
+          height: "40px",
+          display: "flex",
+          borderBottom: "1px solid #e0e0e0",
+        }}
+      >
+        <Box
           sx={{
-            "& td, & th": { border: 0 },
+            flex: 1,
+            height: "40px",
+            px: 1,
+            display: "flex",
+            alignItems: "center",
           }}
         >
-          <TableBody>
-            <TableRow sx={{ height: 28 }}>
-              {" "}
-              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
-                Độ cứng của đá lẫn trong gương
-              </TableCell>
-              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
-                {record.hardness?.name || "-"}
-              </TableCell>
-            </TableRow>
+          {isHeader && (
+            <Typography
+              sx={{
+                fontFamily: "Roboto",
+                fontWeight: 400,
+                fontSize: "14px",
+                color: "#303030",
+              }}
+            >
+              {label}
+            </Typography>
+          )}
+        </Box>
+        <Box
+          sx={{
+            width: "200px",
+            height: "40px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: "Roboto",
+              fontWeight: 400,
+              fontSize: "14px",
+              color: "#303030",
+            }}
+          >
+            {value || "-"}
+          </Typography>
+        </Box>
+      </Box>
+    );
 
-            <TableRow sx={{ height: 28 }}>
-              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
-                Tỉ lệ đá lẫn trong gương (Ckẹp)
-              </TableCell>
-              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
-                {record.rockRatio?.name || "-"}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-          <TableBody sx={{ backgroundColor: "#fff" }}>
-            {record.norms?.map((item: any, index: number) => (
-              <TableRow key={index}>
-                <TableCell align="center" sx={{ width: "5%" }}>
+    return (
+      <Box
+        sx={{
+          ml: 6,
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #FFFFFF",
+          borderRadius: "6px",
+          width: "90%",
+        }}
+      >
+        {/* Header rows */}
+        {renderRow("Độ cứng của đá lẫn trong gương", record.hardness?.name)}
+        {renderRow("Tỉ lệ đá lẫn trong gương (Ckẹp)", record.rockRatio?.name)}
+
+        {/* Norms rows */}
+        {record.norms?.length ? (
+          record.norms.map((item: any, index: number) => (
+            <Box
+              key={index}
+              sx={{
+                height: "40px",
+                display: "flex",
+                borderBottom:
+                  index === record.norms.length - 1
+                    ? "none"
+                    : "1px solid #e0e0e0",
+              }}
+            >
+              <Box
+                sx={{
+                  width: "10%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
                   {index + 1}
-                </TableCell>
-                <TableCell align="center" sx={{ width: "20%" }}>
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: "20%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
                   {item.assignmentCode?.code}
-                </TableCell>
-                <TableCell sx={{ width: "55%" }}>
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  pl: 1,
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
                   {item.assignmentCode?.name}
-                </TableCell>
-                <TableCell align="center" sx={{ width: "10%" }}>
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: "10%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
                   {item.assignmentCode?.uom?.name || ""}
-                </TableCell>
-                <TableCell align="center" sx={{ width: "10%" }}>
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: "10%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
                   {item.norm ? item.norm.toLocaleString() : ""}
-                </TableCell>
-              </TableRow>
-            ))}
-
-            {(!record.norms || record.norms.length === 0) && (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  Không có dữ liệu
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
+                </Typography>
+              </Box>
+            </Box>
+          ))
+        ) : (
+          <Box
+            sx={{
+              height: "40px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Typography sx={{ fontSize: "14px", color: "#303030" }}>
+              Không có dữ liệu
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    );
+  };
 
   const columns: TableProps<AdjustmentNormOutputType>["columns"] = [
     {
@@ -265,7 +362,7 @@ const filteredData = adjustmentnorms
             }}
             size="small"
           >
-            <Visibility color="secondary" />
+            <Eye style={{ color: "#1E1E1E" }} />
           </IconButton>
         </Box>
       ),
@@ -284,7 +381,7 @@ const filteredData = adjustmentnorms
       render: (_, record) => (
         <Box display="flex" justifyContent="center">
           <IconButton onClick={() => handleOpen(record)} size="small">
-            <Edit color="primary" />
+            <Pen style={{ color: "#1E1E1E" }} />
           </IconButton>
         </Box>
       ),

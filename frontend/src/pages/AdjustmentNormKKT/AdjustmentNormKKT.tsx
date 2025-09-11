@@ -1,40 +1,27 @@
 import React, { useState } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Paper,
-  Container,
+  Add,
+  ArrowDropDown,
+  Delete,
+  FileDownload,
+  FileUpload,
+  FilterList,
+  Mail,
+  Print,
+  Search,
+} from "@mui/icons-material";
+import {
   Box,
-  MenuItem,
-  Grid,
   Button,
-  Typography,
   IconButton,
-  Breadcrumbs,
   InputAdornment,
+  TextField,
+  Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import { AdjustmentNormInputType, AdjustmentNormOutputType } from "../../types";
-import {
-  Add,
-  Delete,
-  Edit,
-  Visibility,
-  ArrowDropDown,
-  FileDownload,
-  FileUpload,
-  FilterList,
-  Print,
-  Mail,
-  Search,
-} from "@mui/icons-material";
-import AdjustmentNormKCTModal from "../../components/AdjustmentNormKKTModal/AdjustmentNormKKTModal";
+import AdjustmentNormKDLModal from "../../components/AdjustmentNormKDLModal/AdjustmentNormKDLModal";
 import {
   showConfirmAlert,
   showErrorAlert,
@@ -42,47 +29,40 @@ import {
 } from "../../components/Alert";
 import { Table as AntTable, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
+import { Eye, Pen } from "lucide-react";
 
-export default function AdjustmentNormKKT() {
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+export default function AdjustmentNormKDL() {
+  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
   const [selected, setSelected] = useState<AdjustmentNormOutputType | null>(
     null
   );
   const [open, setOpen] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
 
-  const { data: adjustmentnorms = [], isLoading } = useQuery({
+  const { data: adjustmentnorms = [] } = useQuery({
     queryKey: ["adjustmentnorms", searchValue],
-    queryFn: async () => {
-      try {
-        const response = await api.get(`/adjustmentnorms?q=${searchValue}`);
-        return response.data.data || [];
-      } catch (error) {
-        showErrorAlert("Không thể tải dữ liệu");
-        return [];
-      }
-    },
+    queryFn: async () =>
+      api.get(`/adjustmentnorms?q=${searchValue}`).then((res) => res.data.data),
   });
 
-const filteredData = adjustmentnorms
-  .filter((i: AdjustmentNormOutputType) => i.type === "CKKT")
-  .filter((i: AdjustmentNormOutputType) =>
-    i.code?.toLowerCase().includes(searchValue.toLowerCase())
-  );
-
-  const handleToggleExpand = (adjustmentnorm: AdjustmentNormOutputType) => {
-    const id = adjustmentnorm?._id;
-    if (!id) return;
-
-    setExpandedRow((prev) => (prev === id ? null : id));
-  };
+  const filteredData = adjustmentnorms
+    .filter((i: AdjustmentNormOutputType) => i.type === "CKĐL")
+    .filter((i: AdjustmentNormOutputType) => {
+      const keyword = searchValue.toLowerCase();
+      return (
+        i.code?.toLowerCase().includes(keyword) ||
+        i.norms?.some((n) =>
+          n.assignmentCode?.name?.toLowerCase().includes(keyword)
+        )
+      );
+    });
 
   const createMutation = useMutation({
-    mutationFn: (newAdjustmentNorm: Partial<AdjustmentNormInputType>) =>
-      api.post("/adjustmentnorms", newAdjustmentNorm).then((res) => res.data),
+    mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
+      api.post("/adjustmentnorms", newExcavationNorm).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       setOpen(false);
@@ -90,20 +70,18 @@ const filteredData = adjustmentnorms
     },
     onError: (error: any) => {
       const errorMessage =
-        error.response?.data?.message ||
-        error.response?.statusText ||
-        "Lỗi không xác định";
-      console.error("Create error:", errorMessage);
+        error.response?.data?.message || error.message || "Lỗi không xác định";
+      console.error(errorMessage);
       showErrorAlert(errorMessage);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (updateAdjustmentNorm: Partial<AdjustmentNormInputType>) =>
+    mutationFn: (updateExcavationNorm: Partial<AdjustmentNormInputType>) =>
       api
         .put(
-          `/adjustmentnorms/${updateAdjustmentNorm._id}`,
-          updateAdjustmentNorm
+          `/adjustmentnorms/${updateExcavationNorm._id}`,
+          updateExcavationNorm
         )
         .then((res) => res.data),
     onSuccess: () => {
@@ -114,43 +92,44 @@ const filteredData = adjustmentnorms
     },
     onError: (error: any) => {
       const errorMessage =
-        error.response?.data?.message ||
-        error.response?.statusText ||
-        "Lỗi không xác định";
-      console.error("Update error:", errorMessage);
+        error.response?.data?.message || error.message || "Lỗi không xác định";
+      console.error(errorMessage);
       showErrorAlert(errorMessage);
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/adjustmentnorms/${id}`).then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
-      showSuccessAlert("Xóa thành công");
-    },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || "Lỗi");
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
-    },
-  });
-
   const handleDelete = () => {
-    if (selectedItems.length === 0) {
+    if (selectedRows.length === 0) {
       showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
       return;
     }
 
     showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
-        selectedItems.forEach((id) => {
-          if (typeof id === "string") {
-            deleteMutation.mutate(id);
-          }
-        });
+        deleteMutation.mutate(selectedRows);
       }
     });
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: React.Key[]) => {
+      const deletePromises = ids.map((id) =>
+        api.delete(`/adjustmentnorms/${id}`).then((res) => res.data)
+      );
+      return Promise.all(deletePromises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
+      setSelectedRows([]);
+      showSuccessAlert("Xóa thành công");
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi không xác định";
+      console.error(errorMessage);
+      showErrorAlert(errorMessage);
+    },
+  });
 
   const handleSubmit = (values: Partial<AdjustmentNormInputType>) => {
     if (selected) {
@@ -160,18 +139,184 @@ const filteredData = adjustmentnorms
     }
   };
 
-  const handleOpen = (adjustmentNorm?: AdjustmentNormOutputType) => {
-    if (adjustmentNorm) {
-      setSelected(adjustmentNorm);
+  const handleOpen = (excavationNorm?: AdjustmentNormOutputType) => {
+    if (excavationNorm) {
+      setSelected(excavationNorm);
     } else {
       setSelected(null);
     }
     setOpen(true);
   };
 
+  const expandedRowRender = (record: AdjustmentNormOutputType) => {
+    const renderRow = (
+      label: string,
+      value: string | number | undefined,
+      isHeader = true
+    ) => (
+      <Box
+        sx={{
+          height: "40px",
+          display: "flex",
+          borderBottom: "1px solid #e0e0e0",
+        }}
+      >
+        <Box
+          sx={{
+            flex: 1,
+            height: "40px",
+            px: 1,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          {isHeader && (
+            <Typography
+              sx={{
+                fontFamily: "Roboto",
+                fontWeight: 400,
+                fontSize: "14px",
+                color: "#303030",
+              }}
+            >
+              {label}
+            </Typography>
+          )}
+        </Box>
+        <Box
+          sx={{
+            width: "200px",
+            height: "40px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: "Roboto",
+              fontWeight: 400,
+              fontSize: "14px",
+              color: "#303030",
+            }}
+          >
+            {value || "-"}
+          </Typography>
+        </Box>
+      </Box>
+    );
+
+    return (
+      <Box
+        sx={{
+          ml: 6,
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #FFFFFF",
+          borderRadius: "6px",
+          width: "90%",
+        }}
+      >
+        {/* Header rows */}
+        {renderRow("Độ cứng của đá lẫn trong gương", record.hardness?.name)}
+        {renderRow("Tỉ lệ đá lẫn trong gương (Ckẹp)", record.rockRatio?.name)}
+
+        {/* Norms rows */}
+        {record.norms?.length ? (
+          record.norms.map((item: any, index: number) => (
+            <Box
+              key={index}
+              sx={{
+                height: "40px",
+                display: "flex",
+                borderBottom:
+                  index === record.norms.length - 1
+                    ? "none"
+                    : "1px solid #e0e0e0",
+              }}
+            >
+              <Box
+                sx={{
+                  width: "10%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
+                  {index + 1}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: "20%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
+                  {item.assignmentCode?.code}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  pl: 1,
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
+                  {item.assignmentCode?.name}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: "10%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
+                  {item.assignmentCode?.uom?.name || ""}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: "10%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
+                  {item.norm ? item.norm.toLocaleString() : ""}
+                </Typography>
+              </Box>
+            </Box>
+          ))
+        ) : (
+          <Box
+            sx={{
+              height: "40px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Typography sx={{ fontSize: "14px", color: "#303030" }}>
+              Không có dữ liệu
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
   const columns: TableProps<AdjustmentNormOutputType>["columns"] = [
     {
-      title: "STT",
+      title: "",
       dataIndex: "number",
       key: "number",
       width: 50,
@@ -193,116 +338,79 @@ const filteredData = adjustmentnorms
           sensitivity: "base",
         }),
     },
+
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
+      title: (
+        <Box display="flex" alignItems="center" justifyContent="center">
+          <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>
+        </Box>
+      ),
       dataIndex: "view",
+      key: "view",
       width: 80,
+      align: "center",
       render: (_, record) => (
-        <IconButton onClick={() => handleToggleExpand(record)}>
-          <Visibility color="secondary" />
-        </IconButton>
+        <Box display="flex" justifyContent="center">
+          <IconButton
+            onClick={() => {
+              const key = record._id as React.Key;
+              if (expandedRowKeys.includes(key)) {
+                setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
+              } else {
+                setExpandedRowKeys([...expandedRowKeys, key]);
+              }
+            }}
+            size="small"
+          >
+            <Eye style={{ color: "#1E1E1E" }} />
+          </IconButton>
+        </Box>
       ),
     },
+
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+      title: (
+        <Box display="flex" alignItems="center" justifyContent="center">
+          <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>
+        </Box>
+      ),
       dataIndex: "edit",
-      width: 50,
+      key: "edit",
+      width: 80,
+      align: "center",
       render: (_, record) => (
-        <IconButton onClick={() => handleOpen(record)}>
-          <Edit />
-        </IconButton>
+        <Box display="flex" justifyContent="center">
+          <IconButton onClick={() => handleOpen(record)} size="small">
+            <Pen style={{ color: "#1E1E1E" }} />
+          </IconButton>
+        </Box>
       ),
     },
   ];
 
   const rowSelection: TableRowSelection<AdjustmentNormOutputType> = {
-    selectedRowKeys: selectedItems,
-    onChange: (newSelectedItems: React.Key[]) => {
-      setSelectedItems(newSelectedItems);
+    selectedRowKeys: selectedRows,
+    onChange: (newSelectedRows: React.Key[]) => {
+      setSelectedRows(newSelectedRows);
     },
   };
-
-  const expandedRowRender = (record: AdjustmentNormOutputType) => (
-    <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-      <TableContainer>
-        <Table
-          sx={{
-            "& td, & th": { border: 0 },
-          }}
-        >
-          <TableBody>
-            {/* Hàng thông tin chung */}
-            <TableRow sx={{ height: 28 }}>
-              {" "}
-              {/* ép chiều cao */}
-              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
-                Độ cứng của đá lẫn trong gương
-              </TableCell>
-              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
-                {record.hardness?.name || "-"}
-              </TableCell>
-            </TableRow>
-
-            <TableRow sx={{ height: 28 }}>
-              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
-                Tỉ lệ đá lẫn trong gương (Ckẹp)
-              </TableCell>
-              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
-                {record.rockRatio?.name || "-"}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-          <TableBody sx={{ backgroundColor: "#fff" }}>
-            {record.norms?.map((item: any, index: number) => (
-              <TableRow key={index}>
-                <TableCell align="center" sx={{ width: "5%" }}>
-                  {index + 1}
-                </TableCell>
-                <TableCell align="center" sx={{ width: "20%" }}>
-                  {item.assignmentCode?.code}
-                </TableCell>
-                <TableCell sx={{ width: "55%" }}>
-                  {item.assignmentCode?.name}
-                </TableCell>
-                <TableCell align="center" sx={{ width: "10%" }}>
-                  {item.assignmentCode?.uom?.name || ""}
-                </TableCell>
-                <TableCell align="center" sx={{ width: "10%" }}>
-                  {item.norm ? item.norm.toLocaleString() : ""}
-                </TableCell>
-              </TableRow>
-            ))}
-
-            {(!record.norms || record.norms.length === 0) && (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  Không có dữ liệu
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
 
   return (
     <Box>
       {/* <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
-        <Typography>Hệ số điều chỉnh định mức CK.KT</Typography>
+        <Typography>Hệ số điều chỉnh định mức CK.ĐL</Typography>
       </Breadcrumbs> */}
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            {/* <Typography variant="h4" sx={{ color: 'blue' }}>Hệ số điều chỉnh định mức CK.KT</Typography> */}
+            {/* <Typography variant="h4" sx={{ color: 'blue' }}>Hệ số điều chỉnh định mức CK.ĐL</Typography> */}
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
                   color="warning"
                   endIcon={<Add />}
-                  onClick={() => handleOpen()}
                   sx={{
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -311,6 +419,7 @@ const filteredData = adjustmentnorms
                     borderRadius: "8px",
                     px: 3,
                   }}
+                  onClick={() => handleOpen()}
                 >
                   Tạo mới
                 </Button>
@@ -318,7 +427,7 @@ const filteredData = adjustmentnorms
                   variant="contained"
                   color="error"
                   endIcon={<Delete />}
-                  onClick={handleDelete}
+                  onClick={() => handleDelete()}
                   sx={{
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -328,12 +437,10 @@ const filteredData = adjustmentnorms
                     px: 3,
                   }}
                   disabled={
-                    selectedItems.length === 0 || deleteMutation.isPending
+                    selectedRows.length === 0 || deleteMutation.isPending
                   }
                 >
-                  {deleteMutation.isPending
-                    ? "Đang xóa..."
-                    : `Xóa (${selectedItems.length})`}
+                  {deleteMutation.isPending ? "Đang xóa..." : "Xóa"}
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -435,13 +542,12 @@ const filteredData = adjustmentnorms
           <AntTable<AdjustmentNormOutputType>
             rowKey="_id"
             rowSelection={rowSelection}
-            loading={isLoading}
             expandable={{
-              expandedRowKeys: expandedRow ? [expandedRow] : [],
-              onExpand: (expanded, record) => {
-                setExpandedRow(expanded ? record._id || null : null);
-              },
+              expandedRowKeys,
+              onExpandedRowsChange: (keys) =>
+                setExpandedRowKeys(keys as React.Key[]),
               expandedRowRender,
+              showExpandColumn: false,
             }}
             pagination={{
               position: ["bottomCenter"],
@@ -459,7 +565,7 @@ const filteredData = adjustmentnorms
           />
         </Box>
       </Box>
-      <AdjustmentNormKCTModal
+      <AdjustmentNormKDLModal
         open={open}
         setOpen={setOpen}
         handleSubmit={handleSubmit}
