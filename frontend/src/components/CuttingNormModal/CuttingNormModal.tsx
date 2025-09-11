@@ -20,6 +20,7 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import api from "../../config/api.config";
+import { PhaseInputType } from '../../types/index';
 import {
   AssignmentCodeOutputType,
   CrossSectionInputType,
@@ -90,7 +91,7 @@ export default function CuttingNormModal({
       norms:
         selected?.norms && selected.norms.length > 0
           ? selected.norms.map((item) => ({
-              assignmentCode: item.assignmentCode?._id, // dùng optional chaining để tránh null
+              assignmentCode: item.assignmentCode?._id, 
               norm: item.norm,
             }))
           : assignmentcodes.map((item: any) => ({

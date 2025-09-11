@@ -111,7 +111,7 @@ export default function MaterialBudgetModal({
       const submitData: Partial<MaterialBudgetInputType> = {
         code: values.code,
         phaseGroup: values.phases[0]?.phaseGroup || "",
-        phase: values.phases[0]?.phase || "",
+        phases: values.phases,
         assignmentNormCode: values.phases[0]?.assignmentNormCode || "",
         production: values.phases[0]?.production,
         adjustmentNormCode: values.phases[0]?.adjustmentNormCode || "",
@@ -122,12 +122,14 @@ export default function MaterialBudgetModal({
 
   useEffect(() => {
     if (selected) {
+      const firstPhase = selected.phases?.[0] || {};
+
       formik.setValues({
         code: selected.code || "",
         phases: [
           {
             phaseGroup: selected.phaseGroup || "",
-            phase: selected.phase || "",
+            phase: firstPhase.phase || "",
             assignmentNormCode: selected.assignmentNormCode || "",
             production: selected.production,
             adjustmentNormCode: selected.adjustmentNormCode || "",
@@ -140,6 +142,33 @@ export default function MaterialBudgetModal({
       }
     }
   }, [selected]);
+
+  const toRoman = (num: number) => {
+    const romans: { value: number; numeral: string }[] = [
+      { value: 1000, numeral: "M" },
+      { value: 900, numeral: "CM" },
+      { value: 500, numeral: "D" },
+      { value: 400, numeral: "CD" },
+      { value: 100, numeral: "C" },
+      { value: 90, numeral: "XC" },
+      { value: 50, numeral: "L" },
+      { value: 40, numeral: "XL" },
+      { value: 10, numeral: "X" },
+      { value: 9, numeral: "IX" },
+      { value: 5, numeral: "V" },
+      { value: 4, numeral: "IV" },
+      { value: 1, numeral: "I" },
+    ];
+
+    let result = "";
+    for (const r of romans) {
+      while (num >= r.value) {
+        result += r.numeral;
+        num -= r.value;
+      }
+    }
+    return result;
+  };
 
   const handleClose = () => {
     formik.resetForm();
@@ -367,10 +396,9 @@ export default function MaterialBudgetModal({
                       display: "flex",
                       alignItems: "flex-start",
                       position: "relative",
-                      gap: 1, // khoảng cách giữa box và nút xoá
+                      gap: 1,
                     }}
                   >
-                    {/* Box công đoạn */}
                     <Box
                       sx={{
                         flex: "1 1 auto",
@@ -382,15 +410,17 @@ export default function MaterialBudgetModal({
                         position: "relative",
                       }}
                     >
+                      {/* Tiêu đề công đoạn + nút xóa */}
                       <Box
                         sx={{
                           position: "absolute",
-                          top: "-8px",
+                          top: "-10px",
                           left: "16px",
                           px: 1,
                           backgroundColor: "#fff",
                           display: "flex",
                           alignItems: "center",
+                          gap: 1,
                         }}
                       >
                         <Typography
@@ -402,11 +432,29 @@ export default function MaterialBudgetModal({
                             lineHeight: "100%",
                           }}
                         >
-                          Công đoạn {index + 1}
+                          Công đoạn {toRoman(index + 1)}
                         </Typography>
+
+                        {formik.values.phases.length > 1 && (
+                          <IconButton
+                            onClick={() => removePhase(index)}
+                            sx={{
+                              width: "20px",
+                              height: "20px",
+                              p: 0,
+                              color: "#303030",
+                              flexShrink: 0,
+                              "&:hover": {
+                                bgcolor: "transparent",
+                                color: "#000",
+                              },
+                            }}
+                          >
+                            <CloseIcon sx={{ fontSize: "18px" }} />
+                          </IconButton>
+                        )}
                       </Box>
 
-                      {/* Nhóm công đoạn */}
                       <Box sx={{ mb: 2 }}>
                         <Typography
                           sx={{
@@ -471,7 +519,6 @@ export default function MaterialBudgetModal({
                         </TextField>
                       </Box>
 
-                      {/* Công đoạn */}
                       <Box sx={{ mb: 2 }}>
                         <Typography
                           sx={{
@@ -531,7 +578,6 @@ export default function MaterialBudgetModal({
                         </TextField>
                       </Box>
 
-                      {/* Mã định mức giao khoán */}
                       <Box sx={{ mb: 2 }}>
                         <Typography
                           sx={{
@@ -598,7 +644,6 @@ export default function MaterialBudgetModal({
                         </TextField>
                       </Box>
 
-                      {/* Sản lượng */}
                       <Box sx={{ mb: 2 }}>
                         <Typography
                           sx={{
@@ -660,7 +705,6 @@ export default function MaterialBudgetModal({
                         />
                       </Box>
 
-                      {/* Mã hệ số điều chỉnh định mức */}
                       <Box>
                         <Typography
                           sx={{
@@ -727,35 +771,10 @@ export default function MaterialBudgetModal({
                         </TextField>
                       </Box>
                     </Box>
-
-                    {/* Nút xóa nằm ngoài box */}
-                    {formik.values.phases.length > 1 && (
-                      <IconButton
-                        onClick={() => removePhase(index)}
-                        sx={{
-                          width: "20px",
-                          height: "20px",
-                          border: "1px solid #d0d7de",
-                          borderRadius: "50%",
-                          color: "#666",
-                          backgroundColor: "#fff",
-                          boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-                          flexShrink: 0,
-                          alignSelf: "top",
-                          "&:hover": {
-                            backgroundColor: "#f5f5f5",
-                            color: "#000",
-                          },
-                        }}
-                      >
-                        <CloseIcon sx={{ fontSize: "18px" }} />
-                      </IconButton>
-                    )}
                   </Box>
                 );
               })}
 
-              {/* Thêm công đoạn */}
               <Box sx={{ mt: -1 }}>
                 <Button
                   variant="text"

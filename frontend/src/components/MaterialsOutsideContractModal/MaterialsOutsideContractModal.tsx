@@ -66,7 +66,7 @@ const { data: units = [] } = useQuery({
         ? selectedMaterialOutsideContract.name
         : "",
       uom: selectedMaterialOutsideContract
-        ? selectedMaterialOutsideContract.uom?._id // Giữ _id cho value
+        ? selectedMaterialOutsideContract.uom?._id || selectedMaterialOutsideContract.uom
         : "",
       quantity: selectedMaterialOutsideContract
         ? selectedMaterialOutsideContract.quantity

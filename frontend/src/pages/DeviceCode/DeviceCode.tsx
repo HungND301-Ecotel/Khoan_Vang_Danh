@@ -42,11 +42,15 @@ export default function DeviceCode() {
   const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
-  const { data: devicecodes = [] } = useQuery({
-    queryKey: ["devicecodes", searchValue],
-    queryFn: () =>
-      api.get(`/devicecodes?q=${searchValue}`).then((res) => res.data.data),
-  });
+ const { data: devicecodes = [] } = useQuery({
+  queryKey: ["devicecodes", searchValue],
+  queryFn: () =>
+    api.get(`/devicecodes?q=${searchValue}`).then((res) =>
+      res.data.data.filter((item: DeviceCodeType) =>
+        (item.code ?? "").toLowerCase().includes(searchValue.toLowerCase())
+      )
+    ),
+});
 
   const createMutation = useMutation({
     mutationFn: (newDeviceCode: Partial<DeviceCodeType>) =>

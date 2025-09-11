@@ -53,11 +53,11 @@ export default function ExcavationNorm() {
 const filteredData = assignmentnorms
   .filter((i: AssignmentNormOutputType) => i.type === "excavation")
   .filter((i: AssignmentNormOutputType) =>
-    i.code.toLowerCase().includes(searchValue.toLowerCase()) ||
+    (i.code?.toLowerCase() || "").includes(searchValue.toLowerCase()) ||
     (i.norms || []).some((n) =>
-      n.assignmentCode?.name
-        ?.toLowerCase()
-        .includes(searchValue.toLowerCase())
+      (n.assignmentCode?.name?.toLowerCase() || "").includes(
+        searchValue.toLowerCase()
+      )
     )
   );
 
