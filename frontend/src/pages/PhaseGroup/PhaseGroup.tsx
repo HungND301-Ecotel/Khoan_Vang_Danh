@@ -32,7 +32,8 @@ import {
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
 
-export default function PhaseGroup() {
+export default function 
+PhaseGroup() {
   const [open, setOpen] = useState(false);
   const [selectedPhaseGroup, setSelectedPhaseGroup] =
     useState<PhaseGroupType | null>(null);
@@ -199,9 +200,9 @@ export default function PhaseGroup() {
       width: 120,
       render: (_, record) => (
         <Box display="flex" gap={1}>
-          <IconButton onClick={() => handleOpen(record)}>
-            <Edit color="primary" />
-          </IconButton>
+         <IconButton onClick={() => handleOpen(record)}>
+                  <Edit />
+                </IconButton>
           {/* <IconButton onClick={() => {
             if (record._id) {
               handleDeleteSingle(record._id);

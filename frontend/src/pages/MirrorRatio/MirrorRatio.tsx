@@ -177,8 +177,8 @@ export default function MirrorRatio() {
       render: (_, record) => (
         <Box display="flex" gap={1}>
           <IconButton onClick={() => handleOpen(record)}>
-            <Edit color="primary" />
-          </IconButton>
+                   <Edit />
+                 </IconButton>
           {/* <IconButton onClick={() => handleDeleteSingle(record._id!)}>
             <Delete color="error" />
           </IconButton> */}

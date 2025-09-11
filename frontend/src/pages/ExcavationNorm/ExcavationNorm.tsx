@@ -264,7 +264,7 @@ const filteredData = assignmentnorms
             }}
             size="small"
           >
-            <Visibility color="secondary" />
+            <Visibility />
           </IconButton>
         </Box>
       ),
@@ -282,7 +282,7 @@ const filteredData = assignmentnorms
       render: (_, record) => (
         <Box display="flex" justifyContent="center">
           <IconButton onClick={() => handleOpen(record)} size="small">
-            <Edit color="primary" />
+            <Edit />
           </IconButton>
         </Box>
       ),
