@@ -10,6 +10,7 @@ import {
   Mail,
   Print,
   Search,
+  Visibility,
 } from "@mui/icons-material";
 import {
   Box,
@@ -367,7 +368,7 @@ export default function AdjustmentNormCM() {
             }}
             size="small"
           >
-            <Eye style={{ color: "#1E1E1E" }} />
+            <Visibility />
           </IconButton>
         </Box>
       ),
@@ -386,7 +387,7 @@ export default function AdjustmentNormCM() {
       render: (_, record) => (
         <Box display="flex" justifyContent="center">
           <IconButton onClick={() => handleOpen(record)} size="small">
-            <Pen style={{ color: "#1E1E1E" }} />
+            <Edit />
           </IconButton>
         </Box>
       ),

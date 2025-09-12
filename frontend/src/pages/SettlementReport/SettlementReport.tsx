@@ -25,7 +25,13 @@ import {
   MaterialBudgetInputType,
   PhaseOutputType,
 } from "../../types";
-import { ArrowDropDown, CalendarToday, FileDownload, Mail, Print } from "@mui/icons-material";
+import {
+  ArrowDropDown,
+  CalendarToday,
+  FileDownload,
+  Mail,
+  Print,
+} from "@mui/icons-material";
 
 export default function SettlementReport() {
   const [selectedMonth, setSelectedMonth] = useState<Number>();
@@ -78,176 +84,187 @@ export default function SettlementReport() {
 
   return (
     <Box sx={{ p: 2 }}>
-    <Box mt={3}>
-      <Box>
-        <Box sx={{ mb: 2 }}>
-          <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-            <Box display={"flex"} gap={2}>
-              <Grid container spacing={2} mb={3}>
-                <Grid item xs={4}>
-                  <Typography
-                    variant="body2"
-                    sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                  >
-                    Ngày bắt đầu
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Placeholder"
-                    sx={{
-                      width: 168,
-                      height: 32,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "#f8f9fa",
-                        "& fieldset": { borderColor: "#e0e0e0" },
-                        "&:hover fieldset": { borderColor: "#bdbdbd" },
-                      },
-                    }}
-                    select
-                    value={selectedYear}
-                    InputProps={{ endAdornment: <CalendarToday /> }}
-                    SelectProps={{ IconComponent: () => null }}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  >
-                    {years.map((item, index) => (
-                      <MenuItem key={index} value={item}>
-                        {item}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+      <Box mt={3}>
+        <Box>
+          <Box sx={{ mb: 2 }}>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Grid container spacing={2} mb={3}>
+                  <Grid item xs={4}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                    >
+                      Ngày bắt đầu
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Placeholder"
+                      sx={{
+                        width: 168,
+                        height: 32,
+                        "& .MuiOutlinedInput-root": {
+                          backgroundColor: "#f8f9fa",
+                          "& fieldset": { borderColor: "#e0e0e0" },
+                          "&:hover fieldset": { borderColor: "#bdbdbd" },
+                        },
+                      }}
+                      select
+                      value={selectedYear}
+                      InputProps={{ endAdornment: <CalendarToday /> }}
+                      SelectProps={{ IconComponent: () => null }}
+                      onChange={(e) =>
+                        setSelectedYear(parseInt(e.target.value))
+                      }
+                    >
+                      {years.map((item, index) => (
+                        <MenuItem key={index} value={item}>
+                          {item}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={4}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                    >
+                      Ngày kết thúc
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Placeholder"
+                      sx={{
+                        width: 168,
+                        height: 32,
+                        "& .MuiOutlinedInput-root": {
+                          backgroundColor: "#f8f9fa",
+                          "& fieldset": { borderColor: "#e0e0e0" },
+                          "&:hover fieldset": { borderColor: "#bdbdbd" },
+                        },
+                      }}
+                      select
+                      InputProps={{ endAdornment: <CalendarToday /> }}
+                      SelectProps={{ IconComponent: () => null }}
+                      onChange={(e) =>
+                        setSelectedMonth(parseInt(e.target.value))
+                      }
+                    >
+                      {Array.from({ length: 12 }).map((_, index) => (
+                        <MenuItem key={index} value={index + 1}>
+                          {index + 1}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={4}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                    >
+                      Chọn công đoạn
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Placeholder"
+                      sx={{
+                        width: 168,
+                        height: 32,
+                        "& .MuiOutlinedInput-root": {
+                          backgroundColor: "#f8f9fa",
+                          "& fieldset": { borderColor: "#e0e0e0" },
+                          "&:hover fieldset": { borderColor: "#bdbdbd" },
+                        },
+                      }}
+                      select
+                      variant="outlined"
+                    >
+                      {phases?.map((item: PhaseOutputType) => (
+                        <MenuItem key={item._id} value={item._id}>
+                          {item.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
                 </Grid>
-                <Grid item xs={4}>
-                  <Typography
-                    variant="body2"
-                    sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                  >
-                    Ngày kết thúc
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Placeholder"
-                    sx={{
-                      width: 168,
-                      height: 32,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "#f8f9fa",
-                        "& fieldset": { borderColor: "#e0e0e0" },
-                        "&:hover fieldset": { borderColor: "#bdbdbd" },
-                      },
-                    }}
-                    select
-                    InputProps={{ endAdornment: <CalendarToday /> }}
-                    SelectProps={{ IconComponent: () => null }}
-                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  >
-                    {Array.from({ length: 12 }).map((_, index) => (
-                      <MenuItem key={index} value={index + 1}>
-                        {index + 1}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={4}>
-                  <Typography
-                    variant="body2"
-                    sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                  >
-                    Chọn công đoạn
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Placeholder"
-                    sx={{
-                      width: 168,
-                      height: 32,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "#f8f9fa",
-                        "& fieldset": { borderColor: "#e0e0e0" },
-                        "&:hover fieldset": { borderColor: "#bdbdbd" },
-                      },
-                    }}
-                    select
-                    variant="outlined"
-                  >
-                    {phases?.map((item: PhaseOutputType) => (
-                      <MenuItem key={item._id} value={item._id}>
-                        {item.name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-              </Grid>
-            </Box>
-            <Box display="flex" gap={2} alignItems="center">
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<FileDownload />}
-                // onClick={handleExport}
-                sx={{
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "4px",
-                  px: 2,
-                  py: 0.5,
-                  minWidth: 90,
-                  height: 32,
-                }}
-              >
-                Xuất file
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<Print />}
-                // onClick={handlePrint}
-                sx={{
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "4px",
-                  px: 2,
-                  py: 0.5,
-                  minWidth: 90,
-                  height: 32,
-                }}
-              >
-                In
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<Mail />}
-                endIcon={<ArrowDropDown />}
-                // onClick={handleSend}
-                sx={{
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "4px",
-                  px: 2,
-                  py: 0.5,
-                  minWidth: 90,
-                  height: 32,
-                }}
-              >
-                Gửi
-              </Button>
+              </Box>
+              <Box display="flex" gap={2} alignItems="center">
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                  // onClick={handleExport}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "4px",
+                    px: 2,
+                    py: 0.5,
+                    minWidth: 90,
+                    height: 32,
+                  }}
+                >
+                  Xuất file
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                  // onClick={handlePrint}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "4px",
+                    px: 2,
+                    py: 0.5,
+                    minWidth: 90,
+                    height: 32,
+                  }}
+                >
+                  In
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                  // onClick={handleSend}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "4px",
+                    px: 2,
+                    py: 0.5,
+                    minWidth: 90,
+                    height: 32,
+                  }}
+                >
+                  Gửi
+                </Button>
+              </Box>
             </Box>
           </Box>
-        </Box>
           <TableContainer
             component={Paper}
-            sx={{ boxShadow: "none", border: "1px solid #e0e0e0" }}
+            sx={{
+              boxShadow: "none",
+              border: "1px solid #e0e0e0",
+              width: "100%",
+            }}
           >
-            <Table sx={{ width: "100%" }} size="small">
+            <Table
+              sx={{ width: "100%", tableLayout: "fixed", fontSize: "0.7rem" }}
+              size="small"
+            >
               <TableHead>
                 <TableRow>
                   <TableCell
