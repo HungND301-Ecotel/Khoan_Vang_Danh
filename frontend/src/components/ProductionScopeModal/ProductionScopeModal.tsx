@@ -128,8 +128,19 @@ export default function ProductionScopeModal({
 
       <DialogContent sx={{ p: 0, mt: 3 }}>
         <FormikProvider value={formik}>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ display: "flex", justifyContent: "center" }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "700px" }}>
+          <Box
+            component="form"
+            onSubmit={formik.handleSubmit}
+            sx={{ display: "flex", justifyContent: "center" }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                width: "700px",
+              }}
+            >
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Mã diện sản xuất <span style={{ color: "red" }}>*</span>
@@ -146,11 +157,11 @@ export default function ProductionScopeModal({
                   variant="outlined"
                   sx={{
                     "& .MuiInputBase-root": {
-                     minHeight: "32px",
-                          borderRadius: "6px",
-                          paddingRight: "12px",
-                          paddingLeft: "12px",
-                          fontSize: "14px",
+                      minHeight: "32px",
+                      borderRadius: "6px",
+                      paddingRight: "12px",
+                      paddingLeft: "12px",
+                      fontSize: "14px",
                     },
                   }}
                 />
@@ -174,10 +185,10 @@ export default function ProductionScopeModal({
                   sx={{
                     "& .MuiInputBase-root": {
                       minHeight: "32px",
-                          borderRadius: "6px",
-                          paddingRight: "12px",
-                          paddingLeft: "12px",
-                          fontSize: "14px",
+                      borderRadius: "6px",
+                      paddingRight: "12px",
+                      paddingLeft: "12px",
+                      fontSize: "14px",
                     },
                   }}
                 />
@@ -190,7 +201,9 @@ export default function ProductionScopeModal({
                   multiple
                   options={phasegroups.filter(
                     (opt: PhaseGroupType) =>
-                      !selectedPhases.some((selected) => selected._id === opt._id)
+                      !selectedPhases.some(
+                        (selected) => selected._id === opt._id
+                      )
                   )}
                   getOptionLabel={(option: PhaseGroupType) => option.name || ""}
                   value={selectedPhases}
@@ -227,7 +240,9 @@ export default function ProductionScopeModal({
               </Box>
               <FieldArray name="phases">
                 {({ push, remove }) => (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                  >
                     {formik.values.phases.map((item: any, index: number) => {
                       const phase = phasegroups.find(
                         (pg: PhaseGroupType) => pg._id === item.phase
@@ -241,11 +256,20 @@ export default function ProductionScopeModal({
                             gap: 1.5,
                             alignItems: "center",
                             width: "100%",
+                            paddingLeft: "20px", // Thêm padding bên trái để lùi vào
                           }}
                         >
                           {/* Mã công đoạn */}
-                          <Box>
-                            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
+                          <Box sx={{ marginLeft: "10px" }}>
+                            {" "}
+                            {/* Thêm margin-left để lùi vào thêm */}
+                            <Typography
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: "14px",
+                                mb: 0.5,
+                              }}
+                            >
                               Mã công đoạn
                             </Typography>
                             <TextField
@@ -266,7 +290,13 @@ export default function ProductionScopeModal({
                             />
                           </Box>
                           <Box>
-                            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
+                            <Typography
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: "14px",
+                                mb: 0.5,
+                              }}
+                            >
                               Tên công đoạn
                             </Typography>
                             <TextField
@@ -287,7 +317,13 @@ export default function ProductionScopeModal({
                             />
                           </Box>
                           <Box>
-                            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
+                            <Typography
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: "14px",
+                                mb: 0.5,
+                              }}
+                            >
                               Sản lượng
                             </Typography>
                             <TextField
@@ -295,7 +331,9 @@ export default function ProductionScopeModal({
                               size="small"
                               placeholder="Input Text"
                               type="number"
-                              value={formik.values.phases[index]?.production || ""}
+                              value={
+                                formik.values.phases[index]?.production || ""
+                              }
                               onChange={(e) =>
                                 formik.setFieldValue(
                                   `phases[${index}].production`,
@@ -314,7 +352,13 @@ export default function ProductionScopeModal({
                             />
                           </Box>
                           <Box>
-                            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
+                            <Typography
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: "14px",
+                                mb: 0.5,
+                              }}
+                            >
                               Đơn vị tính
                             </Typography>
                             <TextField
@@ -339,7 +383,9 @@ export default function ProductionScopeModal({
                           <IconButton
                             onClick={() => {
                               const updatedPhases = selectedPhases.filter(
-                                (phase) => phase._id !== formik.values.phases[index].phase
+                                (phase) =>
+                                  phase._id !==
+                                  formik.values.phases[index].phase
                               );
                               setSelectedPhases(updatedPhases);
                               remove(index);

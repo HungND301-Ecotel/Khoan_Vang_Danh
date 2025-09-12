@@ -201,6 +201,7 @@ export default function CuttingNormModal({
               onChange={(event) => {
                 setPhaseGroup(event.target.value);
                 formik.setFieldValue("phaseGroup", event.target.value);
+                formik.setFieldValue("phase", ""); // Reset phase when phase group changes
               }}
               variant="outlined"
               InputProps={{
@@ -209,7 +210,7 @@ export default function CuttingNormModal({
                     position="start"
                     sx={{ color: "#D9D9D9", ml: "12px" }}
                   >
-                    Placeholder
+                    Chọn nhóm công đoạn
                   </InputAdornment>
                 ),
               }}
@@ -230,6 +231,9 @@ export default function CuttingNormModal({
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#D9D9D9",
                 },
+                "& .MuiSelect-select": {
+                  padding: "6px 12px",
+                },
               }}
             >
               {phasegroups
@@ -241,6 +245,8 @@ export default function CuttingNormModal({
                 ))}
             </TextField>
           </Box>
+          
+          {/* Công đoạn */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Công đoạn
           </Typography>
@@ -252,13 +258,14 @@ export default function CuttingNormModal({
                 formik.setFieldValue("phase", event.target.value)
               }
               variant="outlined"
+              disabled={!formik.values.phaseGroup}
               InputProps={{
                 startAdornment: formik.values.phase ? null : (
                   <InputAdornment
                     position="start"
                     sx={{ color: "#D9D9D9", ml: "12px" }}
                   >
-                    Placeholder
+                    {formik.values.phaseGroup ? "Chọn công đoạn" : "Chọn nhóm công đoạn trước"}
                   </InputAdornment>
                 ),
               }}
@@ -270,12 +277,18 @@ export default function CuttingNormModal({
                   px: "12px",
                   fontSize: "14px",
                   backgroundColor: formik.values.phase ? "#F2F2F2" : "#FFFFFF",
+                  "&.Mui-disabled": {
+                    backgroundColor: "#F5F5F5",
+                  },
                 },
                 "& .MuiInputBase-input": {
                   color: formik.values.phase ? "inherit" : "transparent",
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#D9D9D9",
+                },
+                "& .MuiSelect-select": {
+                  padding: "6px 12px",
                 },
               }}
             >
@@ -287,6 +300,7 @@ export default function CuttingNormModal({
             </TextField>
           </Box>
 
+          {/* Tiết diện lò xén */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Tiết diện lò xén
           </Typography>
@@ -304,7 +318,7 @@ export default function CuttingNormModal({
                     position="start"
                     sx={{ color: "#D9D9D9", ml: "12px" }}
                   >
-                    Placeholder
+                    Chọn tiết diện
                   </InputAdornment>
                 ),
               }}
@@ -325,6 +339,9 @@ export default function CuttingNormModal({
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#D9D9D9",
                 },
+                "& .MuiSelect-select": {
+                  padding: "6px 12px",
+                },
               }}
             >
               {crosssections?.map((crosssection: CrossSectionInputType) => (
@@ -335,6 +352,7 @@ export default function CuttingNormModal({
             </TextField>
           </Box>
 
+          {/* Độ cứng */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Độ cứng
           </Typography>
@@ -352,7 +370,7 @@ export default function CuttingNormModal({
                     position="start"
                     sx={{ color: "#D9D9D9", ml: "12px" }}
                   >
-                    Placeholder
+                    Chọn độ cứng
                   </InputAdornment>
                 ),
               }}
@@ -373,6 +391,9 @@ export default function CuttingNormModal({
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#D9D9D9",
                 },
+                "& .MuiSelect-select": {
+                  padding: "6px 12px",
+                },
               }}
             >
               {hardness?.map((item: HardnessType) => (
@@ -390,7 +411,7 @@ export default function CuttingNormModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <TextField
               value={formik.values.code || ""}
-              placeholder="Input Text"
+              placeholder="Nhập mã định mức"
               onChange={(event) =>
                 formik.setFieldValue("code", event.target.value)
               }
@@ -425,6 +446,7 @@ export default function CuttingNormModal({
             }}
           />
 
+          {/* Mã giao khoán */}
           <Typography
             sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
           >
@@ -433,14 +455,9 @@ export default function CuttingNormModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Autocomplete
               multiple
-              options={assignmentcodes.filter(
-                (opt: AssignmentCodeOutputType) =>
-                  !selectedAssignmentCodes.some(
-                    (selected) => selected._id === opt._id
-                  )
-              )}
+              options={assignmentcodes}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
-                option.code || ""
+                `${option.code} - ${option.name}`
               }
               value={selectedAssignmentCodes}
               onChange={(event, newValue) => {
@@ -457,38 +474,35 @@ export default function CuttingNormModal({
                 formik.setFieldValue("norms", updatedNorms);
               }}
               renderInput={(params) => (
-                <TextField {...params} variant="outlined" />
+                <TextField 
+                  {...params} 
+                  variant="outlined"
+                  placeholder={selectedAssignmentCodes.length === 0 ? "Chọn mã giao khoán" : ""}
+                />
               )}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
-                  height: "32px",
+                  minHeight: "32px",
                   borderRadius: "6px",
                   px: "12px",
                   fontSize: "14px",
-                  backgroundColor:
-                    selectedAssignmentCodes.length > 0 ? "#F2F2F2" : "#FFFFFF",
-                  "& .MuiAutocomplete-input": {
-                    padding: "0 !important",
-                    lineHeight: "26px",
-                    textIndent: "12px",
-                  },
+                  backgroundColor: selectedAssignmentCodes.length > 0 ? "#F2F2F2" : "#FFFFFF",
                   display: "flex",
                   alignItems: "center",
+                  flexWrap: "wrap",
+                  padding: "4px 12px",
+                },
+                "& .MuiAutocomplete-input": {
+                  padding: "0 !important",
+                  flexGrow: 1,
+                  minWidth: "60px",
                 },
                 "& .MuiChip-root": {
                   height: "20px",
                   fontSize: "12px",
                   margin: "2px",
-                  lineHeight: "26px",
-                  verticalAlign: "middle",
-                  transform: "translateY(-6px)",
-                },
-                "& input::placeholder": {
-                  color: "#D9D9D9",
-                  opacity: 1,
-                  lineHeight: "32px",
-                  fontSize: "14px",
+                  lineHeight: "20px",
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#D9D9D9",
@@ -497,6 +511,7 @@ export default function CuttingNormModal({
             />
           </Box>
 
+          {/* Danh sách định mức */}
           <FieldArray name="norms">
             {() => (
               <Box
@@ -526,7 +541,7 @@ export default function CuttingNormModal({
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode
-                            )?.code
+                            )?.code || ""
                           }
                           InputLabelProps={{ shrink: true }}
                           variant="outlined"
@@ -557,7 +572,7 @@ export default function CuttingNormModal({
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode
-                            )?.name
+                            )?.name || ""
                           }
                           InputLabelProps={{ shrink: true }}
                           variant="outlined"

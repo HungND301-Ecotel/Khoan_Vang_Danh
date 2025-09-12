@@ -240,7 +240,7 @@ export default function AdjustmentNormCM() {
                     : "1px solid #e0e0e0",
               }}
             >
-              <Box
+              {/* <Box
                 sx={{
                   width: "10%",
                   display: "flex",
@@ -251,7 +251,7 @@ export default function AdjustmentNormCM() {
                 <Typography sx={{ fontSize: "14px", color: "#303030" }}>
                   {index + 1}
                 </Typography>
-              </Box>
+              </Box> */}
               <Box
                 sx={{
                   width: "20%",

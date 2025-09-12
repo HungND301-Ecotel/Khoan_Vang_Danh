@@ -157,19 +157,24 @@ export default function ProductScope() {
   const expandedRowRender = (record: ProductionScopeOutputType) => {
     const innerColumns = [
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Công đoạn</Typography>,
+        title: <Typography sx={{ fontWeight: "bold", textAlign: "center" }}>Công đoạn</Typography>,
         dataIndex: "phase",
         key: "phase",
+        align: "center" as const,
         render: (phase: any) => (
-          <Typography sx={{ color: "blue" }}>{phase?.name}</Typography>
+          <Typography sx={{ color: "black", textAlign: "center" }}>{phase?.name}</Typography>
         ),
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Sản lượng</Typography>,
+        title: <Typography sx={{ fontWeight: "bold", textAlign: "center" }}>Sản lượng</Typography>,
         dataIndex: "production",
         key: "production",
-        render: (production: number) =>
-          production ? production.toLocaleString() : "0",
+        align: "center" as const,
+        render: (production: number) => (
+          <Typography sx={{ textAlign: "center" }}>
+            {production ? production.toLocaleString() : "0"}
+          </Typography>
+        ),
       },
     ];
 

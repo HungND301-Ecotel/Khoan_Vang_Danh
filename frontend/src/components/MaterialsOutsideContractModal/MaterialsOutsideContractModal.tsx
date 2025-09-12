@@ -34,6 +34,10 @@ const validationSchema = yup.object({
   name: yup
     .string()
     .required("Tên vật tư ngoài giao khoán không được để trống"),
+  price: yup
+    .number()
+    .min(0, "Đơn giá phải lớn hơn hoặc bằng 0")
+    .required("Đơn giá không được để trống"),
 });
 
 export default function MaterialsOutsideContractModal({
@@ -47,15 +51,14 @@ export default function MaterialsOutsideContractModal({
   handleSubmit: (values: Partial<MaterialAssignmentInputType>) => void;
   selectedMaterialOutsideContract: Materials | null;
 }) {
-
-const { data: units = [] } = useQuery({
-  queryKey: ["units"],
-  queryFn: async () => {
-    const res = await api.get("/units");
-    console.log("Units API:", res.data);
-    return res.data.data || res.data.units || res.data; 
-  },
-});
+  const { data: units = [] } = useQuery({
+    queryKey: ["units"],
+    queryFn: async () => {
+      const res = await api.get("/units");
+      console.log("Units API:", res.data);
+      return res.data.data || res.data.units || res.data;
+    },
+  });
 
   const formik = useFormik({
     initialValues: {
@@ -66,36 +69,30 @@ const { data: units = [] } = useQuery({
         ? selectedMaterialOutsideContract.name
         : "",
       uom: selectedMaterialOutsideContract
-        ? selectedMaterialOutsideContract.uom?._id || selectedMaterialOutsideContract.uom
+        ? selectedMaterialOutsideContract.uom?._id ||
+          selectedMaterialOutsideContract.uom
         : "",
       quantity: selectedMaterialOutsideContract
         ? selectedMaterialOutsideContract.quantity
         : "",
-      priceHistory: selectedMaterialOutsideContract?.priceHistory?.map(
-        (item) => ({
-          price: item.price,
-          startDate: item.startDate ? new Date(item.startDate).toISOString().substring(0, 10) : "",
-          endDate: item.endDate ? new Date(item.endDate).toISOString().substring(0, 10) : "",
-        })
-      ) || [
-        {
-          price: 0,
-          startDate: new Date().toISOString().substring(0, 10),
-          endDate: new Date().toISOString().substring(0, 10),
-        },
-      ],
+      price: selectedMaterialOutsideContract?.priceHistory?.[0]?.price || 0,
     },
     enableReinitialize: true,
     validationSchema,
     onSubmit: (values) => {
       const transformedValues: MaterialAssignmentInputType = {
         ...values,
-        quantity: typeof values.quantity === "string" ? Number(values.quantity) : values.quantity,
-        priceHistory: values.priceHistory.map((item) => ({
-          ...item,
-          startDate: item.startDate,
-          endDate: item.endDate,
-        })),
+        quantity:
+          typeof values.quantity === "string"
+            ? Number(values.quantity)
+            : values.quantity,
+        priceHistory: [
+          {
+            price: values.price,
+            startDate: new Date().toISOString().substring(0, 10),
+            endDate: new Date().toISOString().substring(0, 10),
+          },
+        ],
       };
       handleSubmit(transformedValues);
     },
@@ -113,7 +110,7 @@ const { data: units = [] } = useQuery({
       PaperProps={{
         sx: {
           width: "800px",
-          height: "700px",
+          height: "600px",
           p: "32px",
           position: "relative",
           borderRadius: "8px",
@@ -266,144 +263,30 @@ const { data: units = [] } = useQuery({
               </Box>
 
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Đơn giá
                 </Typography>
-                <FieldArray name="priceHistory">
-                  {({ push, remove }) => (
-                    <Box
-                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-                    >
-                      {formik.values.priceHistory.map((item, index) => (
-                        <Grid
-                          container
-                          spacing={2}
-                          key={index}
-                          alignItems="center"
-                        >
-                          <Grid item xs={4}>
-                            <Typography
-                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
-                            >
-                              Ngày bắt đầu
-                            </Typography>
-                            <TextField
-                              fullWidth
-                              type="date"
-                              name={`priceHistory[${index}].startDate`}
-                              value={item.startDate}
-                              onChange={(e) =>
-                                formik.setFieldValue(
-                                  `priceHistory[${index}].startDate`,
-                                  e.target.value
-                                )
-                              }
-                              InputLabelProps={{ shrink: true }}
-                              variant="outlined"
-                              sx={{
-                                "& .MuiInputBase-root": {
-                                  height: "40px",
-                                  borderRadius: "6px",
-                                  fontSize: "14px",
-                                },
-                              }}
-                            />
-                          </Grid>
-
-                          <Grid item xs={4}>
-                            <Typography
-                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
-                            >
-                              Ngày kết thúc
-                            </Typography>
-                            <TextField
-                              fullWidth
-                              type="date"
-                              name={`priceHistory[${index}].endDate`}
-                              value={item.endDate}
-                              onChange={(e) =>
-                                formik.setFieldValue(
-                                  `priceHistory[${index}].endDate`,
-                                  e.target.value
-                                )
-                              }
-                              InputLabelProps={{ shrink: true }}
-                              variant="outlined"
-                              sx={{
-                                "& .MuiInputBase-root": {
-                                  height: "40px",
-                                  borderRadius: "6px",
-                                  fontSize: "14px",
-                                },
-                              }}
-                            />
-                          </Grid>
-
-                          <Grid item xs={3}>
-                            <Typography
-                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
-                            >
-                              Đơn giá
-                            </Typography>
-                            <TextField
-                              fullWidth
-                              type="number"
-                              name={`priceHistory[${index}].price`}
-                              placeholder="Placeholder"
-                              value={item.price}
-                              onChange={(e) =>
-                                formik.setFieldValue(
-                                  `priceHistory[${index}].price`,
-                                  Number(e.target.value)
-                                )
-                              }
-                              variant="outlined"
-                              sx={{
-                                "& .MuiInputBase-root": {
-                                  height: "40px",
-                                  borderRadius: "6px",
-                                  fontSize: "14px",
-                                },
-                              }}
-                            />
-                          </Grid>
-
-                          <Grid item xs={1}>
-                            {formik.values.priceHistory.length > 1 && (
-                              <IconButton
-                                color="error"
-                                onClick={() => remove(index)}
-                                sx={{ mt: 2 }}
-                              >
-                                <Delete />
-                              </IconButton>
-                            )}
-                          </Grid>
-                        </Grid>
-                      ))}
-
-                      <Box textAlign="right" sx={{ mt: 1 }}>
-                        <IconButton
-                          color="primary"
-                          onClick={() =>
-                            push({
-                              price: 0,
-                              startDate: new Date()
-                                .toISOString()
-                                .substring(0, 10),
-                              endDate: new Date()
-                                .toISOString()
-                                .substring(0, 10),
-                            })
-                          }
-                        >
-                          <Add />
-                        </IconButton>
-                      </Box>
-                    </Box>
-                  )}
-                </FieldArray>
+                <TextField
+                  fullWidth
+                  type="number"
+                  id="price"
+                  name="price"
+                  placeholder="Nhập đơn giá"
+                  value={formik.values.price}
+                  onChange={formik.handleChange}
+                  error={formik.touched.price && Boolean(formik.errors.price)}
+                  helperText={formik.touched.price && formik.errors.price}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      height: "40px",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                    },
+                  }}
+                />
               </Box>
+
               <DialogActions
                 sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}
               >

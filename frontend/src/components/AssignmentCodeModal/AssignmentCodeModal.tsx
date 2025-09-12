@@ -224,7 +224,7 @@ export default function AssignmentCodeModal({
                 fullWidth
                 id="price"
                 name="price"
-                placeholder="Input Text"
+                placeholder="View only"
                 value={formik.values.price}
                 onChange={formik.handleChange}
                 error={formik.touched.price && Boolean(formik.errors.price)}
