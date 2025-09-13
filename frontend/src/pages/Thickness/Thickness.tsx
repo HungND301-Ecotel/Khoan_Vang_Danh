@@ -31,6 +31,7 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
+import custom_theme from '../../theme';
 
 export default function Thickness() {
   const [open, setOpen] = useState(false);
@@ -219,10 +220,11 @@ export default function Thickness() {
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -235,10 +237,11 @@ export default function Thickness() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={handleDeleteMultiple}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

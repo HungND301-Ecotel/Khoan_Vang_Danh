@@ -37,6 +37,7 @@ import {
 } from "../../components/Alert";
 import { Table as AntTable, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
+import custom_theme from '../../theme';
 
 export default function AdjustmentNormKDL() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -308,9 +309,10 @@ export default function AdjustmentNormKDL() {
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -324,10 +326,11 @@ export default function AdjustmentNormKDL() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

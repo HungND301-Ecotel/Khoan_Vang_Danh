@@ -32,6 +32,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
+import custom_theme from '../../theme';
 
 export default function ExcavationNorm() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -290,7 +291,10 @@ export default function ExcavationNorm() {
   };
 
   return (
-    <Box>
+    <Box sx={{
+      px: 15,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Đơn giá và định mức</Typography>
         <Typography>Định mức đào lò</Typography>
@@ -298,17 +302,18 @@ export default function ExcavationNorm() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "blue" }}>
+            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
               Định mức đào lò
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -321,11 +326,12 @@ export default function ExcavationNorm() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                   disabled={deleteMutation.isPending}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

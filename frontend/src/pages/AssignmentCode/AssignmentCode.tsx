@@ -38,6 +38,7 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { Table, TableProps } from "antd";
+import custom_theme from '../../theme';
 
 export default function AssignmentCode() {
   const [open, setOpen] = useState(false);
@@ -214,7 +215,11 @@ export default function AssignmentCode() {
   };
 
   return (
-    <Box>
+    <Box sx={{
+    px: 5,           // horizontal = 32px
+    py: 1,           // vertical = 8px
+  }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Mã giao khoán</Typography>
@@ -222,17 +227,18 @@ export default function AssignmentCode() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "blue" }}>
+            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
               Mã giao khoán
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -245,10 +251,11 @@ export default function AssignmentCode() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -266,6 +273,12 @@ export default function AssignmentCode() {
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
+                    border: "none",
+                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -296,6 +309,12 @@ export default function AssignmentCode() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
+                    border: "none",
+                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -311,6 +330,12 @@ export default function AssignmentCode() {
                   color="inherit"
                   startIcon={<FileDownload />}
                   sx={{
+                    border: "none",
+                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -326,6 +351,12 @@ export default function AssignmentCode() {
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
+                    border: "none",
+                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -342,6 +373,12 @@ export default function AssignmentCode() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

@@ -32,7 +32,7 @@ import MirrorRatio from './pages/MirrorRatio/MirrorRatio';
 import AdjustmentNormKKT from './pages/AdjustmentNormKKT/AdjustmentNormKKT';
 import AdjustmentNormKDL from './pages/AdjustmentNormKDL/AdjustmentNormKDL';
 import AdjustmentNormCM from './pages/AdjustmentNormCM/AdjustmentNormCM';
-import ProductScope from './pages/ProductionSope/ProductionScope';
+import ProductScope from './pages/ProductionScope/ProductionScope';
 import DeviceCode from './pages/DeviceCode/DeviceCode';
 import MaterialBudget from './pages/MaterialBudget/MaterialBudget';
 import MaterialCostUsed from './pages/MaterialCostUsed/MaterialCostUsed';
@@ -42,7 +42,7 @@ import Adjustmentfactorfornorms from './pages/Adjustmentfactorfornorms/Adjustmen
 import Parameter from './pages/Parameter/Parameter';
 import CoalCuttingNorm from './pages/CoalCuttingNorm/CoalCuttingNorm';
 // import Quarterlycontractsettlement from './pages/Quarterlycontractsettlement/Quarterlycontractsettlement';
-import SettlementReport123 from './pages/SettlementReport123/SettlementReport123';
+import SettlementReportSummary from './pages/SettlementReportSummary/SettlementReportSummary';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -51,27 +51,12 @@ interface PrivateRouteProps {
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const token = localStorage.getItem("token");
   const [user] = useAtom(userAtom);
-  // if (!token) {
-  //   return <Navigate to="/login" />;
-  // }
   return <MainLayout>{children}</MainLayout>;
 };
 
 const App = () => {
   const token = localStorage.getItem("token");
   const [user, setUser] = useAtom(userAtom);
-
-  // const { data, isLoading } = useQuery({
-  //   queryKey: ['user', token],
-  //   queryFn: () => api.get(`/auth/me`).then(res => res.data.data.user),
-  //   enabled: !!token,
-  // })
-
-  // useEffect(() => {
-  //   if (data) {
-  //     setUser(data)
-  //   }
-  // }, [data])
 
   return (
     <BrowserRouter>
@@ -86,10 +71,10 @@ const App = () => {
           }
         />
          <Route
-          path="/settlementReport123"
+          path="/settlementReportSummary"
           element={
             <PrivateRoute>
-              <SettlementReport123 />
+              <SettlementReportSummary />
             </PrivateRoute>
           }
         /> 

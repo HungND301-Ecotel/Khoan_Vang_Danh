@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import PhaseGroup from "../PhaseGroup/PhaseGroup";
 import Phase from "../Phase/Phase";
+import custom_theme from '../../theme';
 
 export default function MainPage() {
   const [currentTab, setCurrentTab] = useState<number>(0);
@@ -17,14 +18,17 @@ export default function MainPage() {
   };
 
   return (
-    <>
+    <Box sx={{
+           px: 15,           // horizontal = 32px
+           py: 1,           // vertical = 8px
+          }}>
       <Breadcrumbs aria-label="breadcrumb">
       <Typography>Danh muc</Typography>
         <Typography>Công đoạn sản xuất</Typography>
         <Typography>Nhóm công đoạn sản xuất</Typography>
       </Breadcrumbs>
 
-      <Typography variant="h4" sx={{ color: "blue", mt: 2 }}>
+      <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main, mt: 2 }}>
         Công đoạn sản xuất
       </Typography>
 
@@ -44,6 +48,7 @@ export default function MainPage() {
             variant="standard"
             TabIndicatorProps={{ style: { display: "none" } }}
             sx={{
+              backgroundColor: '#ffffffff',
               minHeight: "32px",
               "& .MuiTabs-flexContainer": { gap: 1.5 },
             }}
@@ -57,6 +62,7 @@ export default function MainPage() {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -74,6 +80,7 @@ export default function MainPage() {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -90,6 +97,6 @@ export default function MainPage() {
         {currentTab === 0 && <PhaseGroup />}
         {currentTab === 1 && <Phase />}
       </Box>
-    </>
+    </Box>
   );
 }

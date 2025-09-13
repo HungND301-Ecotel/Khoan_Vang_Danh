@@ -31,6 +31,7 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
+import custom_theme from '../../theme';
 
 export default function RockRatio() {
   const [open, setOpen] = useState(false);
@@ -209,7 +210,10 @@ export default function RockRatio() {
   };
 
   return (
-    <Box>
+    <Box sx={{
+    px: 15,           // horizontal = 32px
+    py: 1,           // vertical = 8px
+  }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Tỉ lệ đá lẫn trong gương</Typography>
@@ -217,17 +221,18 @@ export default function RockRatio() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "blue" }}>
+            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
               Tỉ lệ đá lẫn trong gương
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -240,11 +245,12 @@ export default function RockRatio() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={handleDeleteMultiple}
                   disabled={selectedRockRatios.length === 0}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

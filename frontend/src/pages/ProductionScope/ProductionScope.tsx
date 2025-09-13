@@ -35,6 +35,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
+import custom_theme from '../../theme';
 
 export default function ProductScope() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -268,25 +269,29 @@ export default function ProductScope() {
   };
 
   return (
-    <Box>
+    <Box sx={{
+           px: 15,           // horizontal = 32px
+           py: 1,           // vertical = 8px
+          }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
-        <Typography>Điện sản xuất</Typography>
+        <Typography>Diện sản xuất</Typography>
       </Breadcrumbs>
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "blue" }}>
-              Điện sản xuất
+            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+              Diện sản xuất
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -303,6 +308,8 @@ export default function ProductScope() {
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

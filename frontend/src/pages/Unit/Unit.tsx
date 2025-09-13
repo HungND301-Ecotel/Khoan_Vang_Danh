@@ -42,6 +42,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
+import custom_theme from '../../theme';
 
 export default function Unit() {
   const [open, setOpen] = useState(false);
@@ -165,7 +166,10 @@ export default function Unit() {
   };
 
   return (
-    <Box>
+    <Box sx={{
+           px: 15,           // horizontal = 32px
+           py: 1,           // vertical = 8px
+          }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Đơn vị tính</Typography>
@@ -173,7 +177,7 @@ export default function Unit() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "blue" }}>
+            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
               Đơn vị tính
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -181,6 +185,8 @@ export default function Unit() {
                 <Button
                   variant="contained"
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -188,7 +194,6 @@ export default function Unit() {
                     borderRadius: "8px",
                     px: 3,
                   }}
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                 >
@@ -197,6 +202,8 @@ export default function Unit() {
                 <Button
                   variant="contained"
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -204,7 +211,6 @@ export default function Unit() {
                     borderRadius: "8px",
                     px: 3,
                   }}
-                  color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                 >

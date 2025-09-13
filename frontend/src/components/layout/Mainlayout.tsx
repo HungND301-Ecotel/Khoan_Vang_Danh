@@ -182,7 +182,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </AppBar>
 
       {/* NƠI HIỂN THỊ NỘI DUNG PAGE */}
-      <Box component="main" sx={{ flexGrow: 1, mt: 12, p: 3 }}>
+      <Box component="main" sx={{ flexGrow: 1, mt: 12, p: 3, minHeight: "100vh", backgroundColor: '#f1f2f5' }}>
         {children || <Outlet />}
       </Box>
 
@@ -368,7 +368,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Điện sản xuất
+          Diện sản xuất
         </MenuItem>
       </Menu>
 
@@ -439,7 +439,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/settlementReport123");
+            navigate("/settlementReportSummary");
             setMenuThongKeEl(null);
           }}
         >

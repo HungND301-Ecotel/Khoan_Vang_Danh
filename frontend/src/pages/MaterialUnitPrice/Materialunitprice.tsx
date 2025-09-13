@@ -36,6 +36,7 @@ import {
   Print,
   Visibility,
 } from "@mui/icons-material";
+import custom_theme from '../../theme';
 
 interface FlatMaterial {
   _id: string;
@@ -235,12 +236,15 @@ export default function Materialunitprice() {
   );
 
   return (
-    <Box>
+    <Box sx={{
+      px: 15,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Đơn giá và định mức</Typography>
         <Typography>Đơn giá vật tư giao khoán</Typography>
       </Breadcrumbs>
-      <Typography variant="h4" sx={{ color: "blue", mt: 2 }}>
+      <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main, mt: 2 }}>
         Đơn giá vật tư giao khoán
       </Typography>
       <Box mt={3}>
