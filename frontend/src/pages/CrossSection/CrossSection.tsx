@@ -240,6 +240,7 @@ export default function CrossSection() {
                   variant="contained"
                   endIcon={<Delete />}
                   onClick={handleDeleteMultiple}
+                  disabled={selectedCrossSections.length === 0}
                   sx={{
                     backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
                     "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
@@ -251,7 +252,7 @@ export default function CrossSection() {
                     px: 3,
                   }}
                 >
-                  Xóa
+                  Xóa ({selectedCrossSections.length})
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -260,6 +261,12 @@ export default function CrossSection() {
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -275,6 +282,7 @@ export default function CrossSection() {
                   size="small"
                   placeholder="Tìm kiếm"
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -290,6 +298,12 @@ export default function CrossSection() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -305,6 +319,12 @@ export default function CrossSection() {
                   color="inherit"
                   startIcon={<FileDownload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -320,6 +340,12 @@ export default function CrossSection() {
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -336,6 +362,12 @@ export default function CrossSection() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

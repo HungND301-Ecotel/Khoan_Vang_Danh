@@ -253,6 +253,7 @@ export default function AssignmentCode() {
                   variant="contained"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
+                  disabled={selectedAssignmentCodes.length === 0}
                   sx={{
                     backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
                     "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
@@ -264,7 +265,9 @@ export default function AssignmentCode() {
                     px: 3,
                   }}
                 >
-                  Xóa
+                  {deleteMutation.isPending
+                    ? "Đang xóa..."
+                    : `Xóa (${selectedAssignmentCodes.length})`}
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -274,10 +277,10 @@ export default function AssignmentCode() {
                   startIcon={<FilterList />}
                   sx={{
                     border: "none",
-                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
                     "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
                      },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -294,6 +297,7 @@ export default function AssignmentCode() {
                   size="small"
                   placeholder="Tìm kiếm"
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -310,10 +314,10 @@ export default function AssignmentCode() {
                   startIcon={<FileUpload />}
                   sx={{
                     border: "none",
-                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
                     "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
                      },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -331,10 +335,10 @@ export default function AssignmentCode() {
                   startIcon={<FileDownload />}
                   sx={{
                     border: "none",
-                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
                     "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
                      },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -352,10 +356,10 @@ export default function AssignmentCode() {
                   startIcon={<Print />}
                   sx={{
                     border: "none",
-                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
                     "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
                      },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -374,10 +378,10 @@ export default function AssignmentCode() {
                   endIcon={<ArrowDropDown />}
                   sx={{
                     border: "none",
-                    boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
                     "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: "0px 4px 6px rgba(0,0,0,0.25)",
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
                      },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,

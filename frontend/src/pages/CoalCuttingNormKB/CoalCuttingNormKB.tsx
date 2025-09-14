@@ -7,6 +7,7 @@ import {
   Button,
   Typography,
   IconButton,
+  InputAdornment,
   Divider,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +24,7 @@ import {
   Mail,
   Print,
   Visibility,
+  Search,
 } from "@mui/icons-material";
 import CoalCuttingNormKBModal from "../../components/CoalCuttingNormKBModal/CoalCuttingNormKBModal";
 import {
@@ -41,6 +43,7 @@ export default function CoalCuttingNormKB() {
   );
   const [open, setOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
 
@@ -304,6 +307,7 @@ export default function CoalCuttingNormKB() {
                 variant="contained"
                 endIcon={<Delete />}
                 onClick={() => handleDelete()}
+                disabled={selectedRowKeys.length === 0}
                 sx={{
                   backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
                   "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
@@ -315,7 +319,7 @@ export default function CoalCuttingNormKB() {
                   px: 3,
                 }}
               >
-                Xóa
+                Xóa ({selectedRowKeys.length})
               </Button>
             </Box>
 
@@ -325,6 +329,12 @@ export default function CoalCuttingNormKB() {
                 color="inherit"
                 startIcon={<FilterList />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -335,7 +345,20 @@ export default function CoalCuttingNormKB() {
               >
                 Lọc
               </Button>
-              <TextField fullWidth size="small" placeholder="Tìm kiếm" />
+              <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm"
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Search sx={{ fontSize: 24 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
             </Box>
 
             <Box display={"flex"} gap={2}>
@@ -344,6 +367,12 @@ export default function CoalCuttingNormKB() {
                 color="inherit"
                 startIcon={<FileUpload />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -359,6 +388,12 @@ export default function CoalCuttingNormKB() {
                 color="inherit"
                 startIcon={<FileDownload />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -374,6 +409,12 @@ export default function CoalCuttingNormKB() {
                 color="inherit"
                 startIcon={<Print />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -390,6 +431,12 @@ export default function CoalCuttingNormKB() {
                 startIcon={<Mail />}
                 endIcon={<ArrowDropDown />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,

@@ -167,7 +167,7 @@ export default function Unit() {
 
   return (
     <Box sx={{
-           px: 15,           // horizontal = 32px
+           px: 5,           // horizontal = 32px
            py: 1,           // vertical = 8px
           }}>
       <Breadcrumbs aria-label="breadcrumb">
@@ -201,6 +201,7 @@ export default function Unit() {
                 </Button>
                 <Button
                   variant="contained"
+                  disabled={selectedUnits.length === 0}
                   sx={{
                     backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
                     "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
@@ -214,7 +215,9 @@ export default function Unit() {
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                 >
-                  Xóa
+                  {deleteMutation.isPending
+                    ? "Đang xóa..."
+                    : `Xóa (${selectedUnits.length})`}
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -224,6 +227,12 @@ export default function Unit() {
                   startIcon={<FilterList />}
                   sx={{
                     fontFamily: "Roboto, sans-serif",
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontSize: 14,
                     fontWeight: 500,
                     textTransform: "none",
@@ -238,6 +247,7 @@ export default function Unit() {
                   size="small"
                   placeholder="Tìm kiếm"
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -253,6 +263,12 @@ export default function Unit() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -268,6 +284,12 @@ export default function Unit() {
                   color="inherit"
                   startIcon={<FileDownload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -283,6 +305,12 @@ export default function Unit() {
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -299,6 +327,12 @@ export default function Unit() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

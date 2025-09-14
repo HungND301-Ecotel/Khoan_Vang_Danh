@@ -265,6 +265,12 @@ export default function MiningTech() {
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -280,6 +286,7 @@ export default function MiningTech() {
                   size="small"
                   placeholder="Tìm kiếm"
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -295,6 +302,12 @@ export default function MiningTech() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -310,6 +323,12 @@ export default function MiningTech() {
                   color="inherit"
                   startIcon={<FileDownload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -325,6 +344,12 @@ export default function MiningTech() {
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -341,6 +366,12 @@ export default function MiningTech() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

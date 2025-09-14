@@ -26,6 +26,7 @@ import {
   PhaseOutputType,
 } from "../../types";
 import { ArrowDropDown, CalendarToday, FileDownload, Mail, Print } from "@mui/icons-material";
+import custom_theme from '../../theme';
 
 export default function SettlementReport() {
   const [selectedMonth, setSelectedMonth] = useState<Number>();
@@ -188,6 +189,12 @@ export default function SettlementReport() {
                 startIcon={<FileDownload />}
                 // onClick={handleExport}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -207,6 +214,12 @@ export default function SettlementReport() {
                 startIcon={<Print />}
                 // onClick={handlePrint}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -227,6 +240,12 @@ export default function SettlementReport() {
                 endIcon={<ArrowDropDown />}
                 // onClick={handleSend}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,

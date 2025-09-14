@@ -280,7 +280,7 @@ export default function MaterialAssignment() {
 
   return (
     <Box sx={{
-    px: 15,           // horizontal = 32px
+    px: 5,           // horizontal = 32px
     py: 1,           // vertical = 8px
   }}>
       <Breadcrumbs aria-label="breadcrumb">
@@ -328,7 +328,9 @@ export default function MaterialAssignment() {
                     px: 3,
                   }}
                 >
-                  Xóa ({selectedMaterialAssignments.length})
+                  {deleteMutation.isPending
+                    ? "Đang xóa..."
+                    : `Xóa (${selectedMaterialAssignments.length})`}
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -337,6 +339,12 @@ export default function MaterialAssignment() {
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -352,6 +360,7 @@ export default function MaterialAssignment() {
                   size="small"
                   placeholder="Tìm kiếm"
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -367,6 +376,12 @@ export default function MaterialAssignment() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -382,6 +397,12 @@ export default function MaterialAssignment() {
                   color="inherit"
                   startIcon={<FileDownload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -397,6 +418,12 @@ export default function MaterialAssignment() {
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -413,6 +440,12 @@ export default function MaterialAssignment() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

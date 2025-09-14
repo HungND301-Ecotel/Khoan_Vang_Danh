@@ -18,7 +18,7 @@ const Parameter = () => {
   };
   return (
     <Box sx={{
-           px: 15,           // horizontal = 32px
+           px: 5,           // horizontal = 32px
            py: 1,           // vertical = 8px
           }}>
       <Breadcrumbs aria-label="breadcrumb">
