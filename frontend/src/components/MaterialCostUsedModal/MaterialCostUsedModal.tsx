@@ -78,7 +78,11 @@ export default function MaterialCostUsedModal({
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
-      handleSubmit(values);
+       const filtered = {
+    ...values,
+    materials: values.materials.filter((m: { material: string }) => m.material && m.material !== ""),
+  };
+      handleSubmit(filtered);
     },
   });
 

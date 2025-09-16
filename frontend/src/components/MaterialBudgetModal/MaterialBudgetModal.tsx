@@ -49,17 +49,6 @@ const validationSchema = yup.object({
     .min(1, "Cần ít nhất một công đoạn"),
 });
 
-const usePhases = (phaseGroupId: string) => {
-  return useQuery({
-    queryKey: ["phases", phaseGroupId],
-    queryFn: async () =>
-      api
-        .get(`/phases?phaseGroup=${phaseGroupId || ""}`)
-        .then((res) => res.data.data),
-    enabled: !!phaseGroupId,
-  });
-};
-
 export default function MaterialBudgetModal({
   open,
   setOpen,
@@ -71,10 +60,6 @@ export default function MaterialBudgetModal({
   handleSubmit: (values: Partial<MaterialBudgetInputType>) => void;
   selected: MaterialBudgetInputType | null;
 }) {
-  const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{
-    [key: number]: string;
-  }>({});
-
   const { data: phasegroups = [] } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: async () => api.get("/phasegroups").then((res) => res.data.data),
@@ -136,12 +121,20 @@ export default function MaterialBudgetModal({
           },
         ],
       });
-
-      if (selected.phaseGroup) {
-        setPhaseGroupsForQuery({ 0: selected.phaseGroup });
-      }
     }
   }, [selected]);
+
+  // Sử dụng useQueries để fetch phases cho từng phaseGroup
+  const phaseQueries = useQueries({
+    queries: formik.values.phases.map((phase, index) => ({
+      queryKey: ["phases", phase.phaseGroup, index],
+      queryFn: async () =>
+        api
+          .get(`/phases?phaseGroup=${phase.phaseGroup || ""}`)
+          .then((res) => res.data.data),
+      enabled: !!phase.phaseGroup,
+    })),
+  });
 
   const toRoman = (num: number) => {
     const romans: { value: number; numeral: string }[] = [
@@ -172,7 +165,6 @@ export default function MaterialBudgetModal({
 
   const handleClose = () => {
     formik.resetForm();
-    setPhaseGroupsForQuery({});
     setOpen(false);
   };
 
@@ -195,21 +187,6 @@ export default function MaterialBudgetModal({
 
     const newPhases = formik.values.phases.filter((_, i) => i !== index);
     formik.setFieldValue("phases", newPhases);
-
-    const newPhaseGroups = { ...phaseGroupsForQuery };
-    delete newPhaseGroups[index];
-
-    const updatedPhaseGroups: { [key: number]: string } = {};
-    Object.entries(newPhaseGroups).forEach(([oldIndex, value]) => {
-      const numIndex = parseInt(oldIndex);
-      if (numIndex > index) {
-        updatedPhaseGroups[numIndex - 1] = value;
-      } else {
-        updatedPhaseGroups[numIndex] = value;
-      }
-    });
-
-    setPhaseGroupsForQuery(updatedPhaseGroups);
   };
 
   const handlePhaseChange = (
@@ -218,15 +195,16 @@ export default function MaterialBudgetModal({
     value: any
   ) => {
     const newPhases = [...formik.values.phases];
-    newPhases[index] = { ...newPhases[index], [field]: value };
-
+    
     if (field === "phaseGroup") {
-      newPhases[index].phase = "";
-
-      setPhaseGroupsForQuery({
-        ...phaseGroupsForQuery,
-        [index]: value,
-      });
+      // Khi thay đổi nhóm công đoạn, reset công đoạn
+      newPhases[index] = { 
+        ...newPhases[index], 
+        [field]: value,
+        phase: "" 
+      };
+    } else {
+      newPhases[index] = { ...newPhases[index], [field]: value };
     }
 
     formik.setFieldValue("phases", newPhases);
@@ -245,19 +223,6 @@ export default function MaterialBudgetModal({
     }
     return "";
   };
-
-  const phaseQueries = useQueries({
-    queries: Object.entries(phaseGroupsForQuery).map(
-      ([index, phaseGroupId]) => ({
-        queryKey: ["phases", phaseGroupId],
-        queryFn: async () =>
-          api
-            .get(`/phases?phaseGroup=${phaseGroupId}`)
-            .then((res) => res.data.data),
-        enabled: !!phaseGroupId,
-      })
-    ),
-  });
 
   return (
     <Dialog
@@ -511,6 +476,7 @@ export default function MaterialBudgetModal({
                             },
                           }}
                         >
+                          <MenuItem value="">Chọn nhóm công đoạn</MenuItem>
                           {phasegroups?.map((group: PhaseGroupType) => (
                             <MenuItem key={group._id} value={group._id}>
                               {group.name}
@@ -542,12 +508,13 @@ export default function MaterialBudgetModal({
                           error={Boolean(getError(index, "phase"))}
                           helperText={getError(index, "phase")}
                           variant="outlined"
+                          disabled={!phase.phaseGroup} // Disable nếu chưa chọn nhóm công đoạn
                           sx={{
                             "& .MuiInputBase-root": {
                               height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
-                              backgroundColor: "#fff",
+                              backgroundColor: phase.phaseGroup ? "#fff" : "#f5f5f5",
                             },
                             "& .MuiInputBase-input": {
                               color: "#000000",
@@ -570,6 +537,7 @@ export default function MaterialBudgetModal({
                             },
                           }}
                         >
+                          <MenuItem value="">Chọn công đoạn</MenuItem>
                           {phaseData.map((phaseItem: PhaseOutputType) => (
                             <MenuItem key={phaseItem._id} value={phaseItem._id}>
                               {phaseItem.name}
