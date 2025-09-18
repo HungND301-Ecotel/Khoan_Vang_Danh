@@ -76,6 +76,11 @@ export default function MaterialCostUsedModal({
         materialassignments.map((item: Materials) => ({
           material: item._id ? String(item._id) : "",
           quantity: undefined,
+          priceHistory: item.priceHistory || [{
+            price: 0,
+            startDate: new Date().toISOString().substring(0, 10),
+            endDate: new Date().toISOString().substring(0, 10),
+          }]
         })),
     },
     enableReinitialize: true,
