@@ -17,7 +17,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import * as yup from "yup";
 import { FormikProvider, useFormik, FormikErrors } from "formik";
-import { useQuery ,useQueries } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import {
   AdjustmentNormOutputType,
@@ -55,6 +55,8 @@ const usePhases = (phaseGroupId: string) => {
   });
 };
 
+let currentIdForDisplay = "";
+
 export default function MaterialBudgetModal({
   open,
   setOpen,
@@ -66,19 +68,19 @@ export default function MaterialBudgetModal({
   handleSubmit: (values: Partial<MaterialBudgetInputType>) => void;
   selected: MaterialBudgetInputType | null;
 }) {
-  const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{[key: number]: string}>({});
+  const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{ [key: number]: string }>({});
 
   const { data: phasegroups = [] } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: async () => api.get("/phasegroups").then((res) => res.data.data),
   });
-  
+
   const { data: assignmentnorms = [] } = useQuery({
     queryKey: ["assignmentnorms"],
     queryFn: async () =>
       api.get("/assignmentnorms").then((res) => res.data.data),
   });
-  
+
   const { data: adjustmentnorms = [] } = useQuery({
     queryKey: ["adjustmentnorms"],
     queryFn: async () =>
@@ -117,9 +119,9 @@ export default function MaterialBudgetModal({
           adjustmentNormCode: selected.adjustmentNormCode || "",
         }],
       });
-      
+
       if (selected.phaseGroup) {
-        setPhaseGroupsForQuery({0: selected.phaseGroup});
+        setPhaseGroupsForQuery({ 0: selected.phaseGroup });
       }
     }
   }, [selected]);
@@ -131,26 +133,26 @@ export default function MaterialBudgetModal({
   };
 
   const addPhase = () => {
-    const newPhases = [...formik.values.phases, { 
-      phaseGroup: "", 
-      phase: "", 
-      assignmentNormCode: "", 
-      production: undefined, 
-      adjustmentNormCode: "" 
+    const newPhases = [...formik.values.phases, {
+      phaseGroup: "",
+      phase: "",
+      assignmentNormCode: "",
+      production: undefined,
+      adjustmentNormCode: ""
     }];
     formik.setFieldValue("phases", newPhases);
   };
 
   const removePhase = (index: number) => {
     if (formik.values.phases.length <= 1) return;
-    
+
     const newPhases = formik.values.phases.filter((_, i) => i !== index);
     formik.setFieldValue("phases", newPhases);
-    
-    const newPhaseGroups = {...phaseGroupsForQuery};
+
+    const newPhaseGroups = { ...phaseGroupsForQuery };
     delete newPhaseGroups[index];
-    
-    const updatedPhaseGroups: {[key: number]: string} = {};
+
+    const updatedPhaseGroups: { [key: number]: string } = {};
     Object.entries(newPhaseGroups).forEach(([oldIndex, value]) => {
       const numIndex = parseInt(oldIndex);
       if (numIndex > index) {
@@ -159,23 +161,24 @@ export default function MaterialBudgetModal({
         updatedPhaseGroups[numIndex] = value;
       }
     });
-    
+
     setPhaseGroupsForQuery(updatedPhaseGroups);
   };
 
   const handlePhaseChange = (index: number, field: keyof PhaseType, value: any) => {
     const newPhases = [...formik.values.phases];
     newPhases[index] = { ...newPhases[index], [field]: value };
-    
+    currentIdForDisplay = value;
+
     if (field === "phaseGroup") {
       newPhases[index].phase = "";
-      
+
       setPhaseGroupsForQuery({
         ...phaseGroupsForQuery,
         [index]: value
       });
     }
-    
+
     formik.setFieldValue("phases", newPhases);
   };
 
@@ -183,22 +186,22 @@ export default function MaterialBudgetModal({
   const getError = (index: number, field: keyof PhaseType): string => {
     const error = formik.errors.phases?.[index] as FormikErrors<PhaseType> | undefined;
     const touched = formik.touched.phases?.[index] as Record<keyof PhaseType, boolean> | undefined;
-    
+
     if (touched?.[field] && error?.[field]) {
       return error[field] as string;
     }
     return "";
   };
 
-  
-const phaseQueries = useQueries({
-  queries: Object.entries(phaseGroupsForQuery).map(([index, phaseGroupId]) => ({
-    queryKey: ["phases", phaseGroupId],
-    queryFn: async () =>
-      api.get(`/phases?phaseGroup=${phaseGroupId}`).then((res) => res.data.data),
-    enabled: !!phaseGroupId,
-  })),
-});
+
+  const phaseQueries = useQueries({
+    queries: Object.entries(phaseGroupsForQuery).map(([index, phaseGroupId]) => ({
+      queryKey: ["phases", phaseGroupId],
+      queryFn: async () =>
+        api.get(`/phases?phaseGroup=${phaseGroupId}`).then((res) => res.data.data),
+      enabled: !!phaseGroupId,
+    })),
+  });
 
   return (
     <Dialog
@@ -288,7 +291,7 @@ const phaseQueries = useQueries({
                   }}
                 />
               </Box>
-              
+
               {formik.values.phases.map((phase, index) => {
                 const phaseData = phaseQueries[index]?.data || [];
                 return (
@@ -298,8 +301,8 @@ const phaseQueries = useQueries({
                         Công đoạn {index + 1}
                       </Typography>
                       {formik.values.phases.length > 1 && (
-                        <IconButton 
-                          onClick={() => removePhase(index)} 
+                        <IconButton
+                          onClick={() => removePhase(index)}
                           size="small"
                           sx={{ color: '#ff4d4f' }}
                         >
@@ -307,10 +310,10 @@ const phaseQueries = useQueries({
                         </IconButton>
                       )}
                     </Box>
-                    
-                    <Box sx={{ 
-                      border: "1px solid #D0D7DE", 
-                      borderRadius: "6px", 
+
+                    <Box sx={{
+                      border: "1px solid #D0D7DE",
+                      borderRadius: "6px",
                       padding: "16px",
                       backgroundColor: "#fff",
                       mb: 2
@@ -356,37 +359,53 @@ const phaseQueries = useQueries({
                         <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
                           Công đoạn
                         </Typography>
-                        <TextField
-                          fullWidth
-                          select
-                          value={phase.phase}
-                          onChange={(e) => handlePhaseChange(index, "phase", e.target.value)}
-                          error={Boolean(getError(index, "phase"))}
-                          helperText={getError(index, "phase")}
-                          variant="outlined"
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              height: "40px",
-                              borderRadius: "4px",
-                              fontSize: "14px",
-                              backgroundColor: "#fff",
-                            },
-                            "& .MuiOutlinedInput-root": {
-                              "& fieldset": {
-                                borderColor: "#d0d7de",
+                        <Box display="flex" gap={2}>
+                          {/* Select (20%) */}
+                          <TextField
+                            sx={{ flex: "0 0 20%" }}
+                            select
+                            value={phase.phase}
+                            onChange={(e) => handlePhaseChange(index, "phase", e.target.value)}
+                            error={Boolean(getError(index, "phase"))}
+                            helperText={getError(index, "phase")}
+                            variant="outlined"
+                            InputProps={{
+                              sx: {
+                                height: "40px",
+                                borderRadius: "4px",
+                                fontSize: "14px",
+                                backgroundColor: "#fff",
                               },
-                              "&:hover fieldset": {
-                                borderColor: "#0969da",
+                            }}
+                          >
+                            {phaseData.map((phaseItem: PhaseOutputType) => (
+                              <MenuItem key={phaseItem._id} value={phaseItem._id}>
+                                {phaseItem.code}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+
+                          {/* Show group.name (80%, readonly) */}
+                          <TextField
+                            sx={{ flex: "1" }}
+                            value={
+                              phaseData.find(
+                                (g: PhaseOutputType) => g._id === currentIdForDisplay
+                              )?.name || ""
+                            }
+                            InputProps={{
+                              readOnly: true,
+                              sx: {
+                                height: "40px",
+                                borderRadius: "4px",
+                                fontSize: "14px",
+                                backgroundColor: "#fff",
                               },
-                            },
-                          }}
-                        >
-                          {phaseData.map((phaseItem: PhaseOutputType) => (
-                            <MenuItem key={phaseItem._id} value={phaseItem._id}>
-                              {phaseItem.name}
-                            </MenuItem>
-                          ))}
-                        </TextField>
+                            }}
+                            variant="outlined"
+                          />
+                        </Box>
+
                       </Box>
 
                       <Box sx={{ mb: 2 }}>
@@ -498,7 +517,7 @@ const phaseQueries = useQueries({
                   </Box>
                 );
               })}
-              
+
               <Box sx={{ mt: -1 }}>
                 <Button
                   variant="text"
