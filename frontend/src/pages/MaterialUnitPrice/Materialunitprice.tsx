@@ -167,7 +167,7 @@ export default function Materialunitprice() {
         name: assignment.name ?? "", // Store assignment name in the name field for header
         uom: "",
         quantity: undefined,
-        price: undefined,
+        price: assignment.price ?? "",
         note: "",
         isGroupHeader: true,
         originalAssignmentId: assignment._id
@@ -220,7 +220,7 @@ export default function Materialunitprice() {
           name: assignment.name ?? "", // Store assignment name for header display
           uom: "",
           quantity: undefined,
-          price: undefined,
+          price: assignment.price ?? "",
           note: "",
           isGroupHeader: true,
           originalAssignmentId: assignment._id
@@ -390,7 +390,15 @@ export default function Materialunitprice() {
       align: "center",
       width: 180,
       render: (_v, record) => {
-        if (record.isGroupHeader) return null;
+        if (record.isGroupHeader) {
+          return (
+            <Box>
+              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
+                {record.price ? record.price.toLocaleString() : ""}
+              </Typography>
+            </Box>
+          );
+        };
         return (
           <Typography>
             {record.price ? record.price.toLocaleString() : ""}
