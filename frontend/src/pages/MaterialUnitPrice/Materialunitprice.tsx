@@ -155,10 +155,10 @@ export default function Materialunitprice() {
   // Create grouped data structure
   const groupedData = useMemo(() => {
     const grouped: FlatMaterial[] = [];
-    
+
     data.forEach((assignment) => {
       if (!assignment.materials || assignment.materials.length === 0) return;
-      
+
       // Add group header row
       grouped.push({
         _id: `header-${assignment._id}`,
@@ -172,7 +172,7 @@ export default function Materialunitprice() {
         isGroupHeader: true,
         originalAssignmentId: assignment._id
       });
-      
+
       // Add material rows
       assignment.materials.forEach((material, index) => {
         grouped.push({
@@ -189,28 +189,28 @@ export default function Materialunitprice() {
         });
       });
     });
-    
+
     return grouped;
   }, [data]);
 
   const filteredData = useMemo(() => {
     if (!searchValue.trim()) return groupedData;
-    
+
     // Filter by search value and maintain groups
     const filteredGroups: FlatMaterial[] = [];
     const searchLower = searchValue.toLowerCase();
-    
+
     data.forEach((assignment) => {
       if (!assignment.materials || assignment.materials.length === 0) return;
-      
+
       // Check if assignment code or any material matches search
       const assignmentMatches = assignment.code?.toLowerCase().includes(searchLower);
-      const matchingMaterials = assignment.materials.filter(material => 
+      const matchingMaterials = assignment.materials.filter(material =>
         material.code?.toLowerCase().includes(searchLower) ||
         material.name?.toLowerCase().includes(searchLower) ||
         material.uom?.name?.toLowerCase().includes(searchLower)
       );
-      
+
       if (assignmentMatches || matchingMaterials.length > 0) {
         // Add group header
         filteredGroups.push({
@@ -225,7 +225,7 @@ export default function Materialunitprice() {
           isGroupHeader: true,
           originalAssignmentId: assignment._id
         });
-        
+
         // Add materials (all if assignment matches, otherwise only matching ones)
         const materialsToAdd = assignmentMatches ? assignment.materials : matchingMaterials;
         materialsToAdd.forEach((material, index) => {
@@ -244,7 +244,7 @@ export default function Materialunitprice() {
         });
       }
     });
-    
+
     return filteredGroups;
   }, [groupedData, searchValue]);
 
@@ -256,12 +256,12 @@ export default function Materialunitprice() {
       width: 50,
       render: (_v, record, idx) => {
         if (record.isGroupHeader) return null;
-        
+
         // Calculate actual material index (excluding headers)
         const materialIndex = filteredData
           .slice(0, idx + 1)
           .filter(item => !item.isGroupHeader).length;
-          
+
         return (
           <Typography
             style={{
@@ -308,16 +308,8 @@ export default function Materialunitprice() {
       key: "materialCode",
       align: "center",
       render: (_v, record) => {
-        if (record.isGroupHeader) {
-          return (
-            <Box>
-              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
-                {record.name}
-              </Typography>
-            </Box>
-          );
-        }
-        return null; // Don't show code for material rows
+        if (record.isGroupHeader) return null;
+        return <Typography>{record.materialCode ?? ""}</Typography>;
       },
       onCell: (record) => ({
         style: {
@@ -331,7 +323,15 @@ export default function Materialunitprice() {
       dataIndex: "name",
       key: "name",
       render: (_v, record) => {
-        if (record.isGroupHeader) return null;
+        if (record.isGroupHeader) {
+          return (
+            <Box>
+              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
+                {record.name}
+              </Typography>
+            </Box>
+          );
+        }
         return <Typography>{record.name}</Typography>;
       },
       onCell: (record) => ({
@@ -583,7 +583,7 @@ export default function Materialunitprice() {
           }}
           columns={columns}
           dataSource={filteredData}
-          rowClassName={(record) => 
+          rowClassName={(record) =>
             record.isGroupHeader ? 'group-header-row' : 'material-row'
           }
         />
