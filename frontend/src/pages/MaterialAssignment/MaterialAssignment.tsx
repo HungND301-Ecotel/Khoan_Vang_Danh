@@ -286,12 +286,13 @@ export default function MaterialAssignment() {
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Vật tư tài sản</Typography>
+        <Typography>Vật tư tài sản trong khoán</Typography>
       </Breadcrumbs>
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
-              Vật tư tài sản
+              Vật tư tài sản trong khoán
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>

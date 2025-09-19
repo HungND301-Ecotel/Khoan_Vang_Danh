@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
@@ -59,6 +59,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [menuSettingsEl, setMenuSettingsEl] = useState<HTMLElement | null>(
     null
   );
+  const [materialSubMenuEl, setMaterialSubMenuEl] = useState<null | HTMLElement>(null);
 
   const { data: phases = [] } = useQuery({
     queryKey: ["phases"],
@@ -190,7 +191,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <Menu
         anchorEl={menuDanhMucEl}
         open={Boolean(menuDanhMucEl)}
-        onClose={() => setMenuDanhMucEl(null)}
+        onClose={() => {
+          setMenuDanhMucEl(null);
+          setMaterialSubMenuEl(null);
+        }}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
@@ -219,14 +223,37 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         >
           Mã giao khoán
         </MenuItem>
+
+        {/* Material MenuItem - Click to open submenu */}
         <MenuItem
-          onClick={() => {
-            navigate("/materialassignment");
-            setMenuDanhMucEl(null);
+          onClick={(event) => {
+            event.stopPropagation();
+            if (materialSubMenuEl) {
+              setMaterialSubMenuEl(null);
+            } else {
+              setMaterialSubMenuEl(event.currentTarget);
+            }
+          }}
+          sx={{
+            position: 'relative',
+            '&:after': {
+              content: '"▶"',
+              position: 'absolute',
+              right: 8,
+              fontSize: '12px',
+              color: 'rgba(0, 0, 0, 0.54)',
+              transform: materialSubMenuEl ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease'
+            },
+            backgroundColor: materialSubMenuEl ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+            '&:hover': {
+              backgroundColor: materialSubMenuEl ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0, 0, 0, 0.04)',
+            }
           }}
         >
           Vật tư, tài sản
         </MenuItem>
+
         <MenuItem
           onClick={() => {
             navigate("/rockratio");
@@ -243,20 +270,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         >
           Tỷ lệ gương than mềm (Cm)
         </MenuItem>
-        {/* <MenuItem
-                onClick={() => {
-                    navigate("/miningtechs");
-                    setMenuDanhMucEl(null);
-                }}
-                >
-                Thông số
-                </MenuItem> */}
-        {/* <Divider /> */}
-
-        {/* Hệ số điều chỉnh */}
-        {/* <Box sx={{ px: 2, pt: 1, pb: 0.5, color: "text.secondary", fontSize: 12 }}>
-                    Hệ số điều chỉnh định mức
-                </Box> */}
         <MenuItem
           onClick={() => {
             navigate("/adjustmentfactorfornorms");
@@ -265,32 +278,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         >
           Hệ số điều chỉnh định mức
         </MenuItem>
-        {/* <MenuItem
-                    onClick={() => {
-                        navigate("/adjustmentnormk_kt");
-                        setMenuDanhMucEl(null);
-                    }}
-                >
-                    (CK.KT)
-                </MenuItem>
-                <MenuItem
-                    onClick={() => {
-                        navigate("/adjustmentnormk_dl");
-                        setMenuDanhMucEl(null);
-                    }}
-                >
-                    (CK.ĐL)
-                </MenuItem>
-                <MenuItem
-                    onClick={() => {
-                        navigate("/adjustmentnorm_cm");
-                        setMenuDanhMucEl(null);
-                    }}
-                >
-                    (Cm)
-                </MenuItem> */}
-
-        {/* <Divider /> */}
 
         {/* Công đoạn sản xuất */}
         <MenuItem
@@ -302,30 +289,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           Công đoạn sản xuất
         </MenuItem>
 
-        {/* <MenuItem
-                    onClick={() => {
-                        navigate("/phasegroup");
-                        setMenuDanhMucEl(null);
-                    }}
-                >
-                    Nhóm công đoạn sản xuất
-                </MenuItem>
-                <MenuItem
-                    onClick={() => {
-                        navigate("/phase");
-                        setMenuDanhMucEl(null);
-                    }}
-                >
-                    Công đoạn sản xuất
-                </MenuItem> */}
-
-        {/* <Divider /> */}
-
-        {/* Các thông số */}
-        {/* <Box sx={{ px: 2, pt: 1, pb: 0.5, color: "text.secondary", fontSize: 12 }}>
-                    Thông số
-                </Box> */}
-
         <MenuItem
           onClick={() => {
             navigate("/parameter");
@@ -335,33 +298,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           Thông số
         </MenuItem>
 
-        {/* <MenuItem onClick={() => { navigate("/excavationtech"); setMenuDanhMucEl(null); }}>
-                    Công nghệ xúc
-                </MenuItem>
-                <MenuItem onClick={() => { navigate("/crosssections"); setMenuDanhMucEl(null); }}>
-                    Tiết diện lò xén
-                </MenuItem>
-                <MenuItem onClick={() => { navigate("/hardness"); setMenuDanhMucEl(null); }}>
-                    Độ cứng than/đá (f)
-                </MenuItem>
-                <MenuItem onClick={() => { navigate("/curbslopes"); setMenuDanhMucEl(null); }}>
-                    Độ dốc vỉa
-                </MenuItem>
-                <MenuItem onClick={() => { navigate("/thickness"); setMenuDanhMucEl(null); }}>
-                    Chiều dày vỉa (Mv)
-                </MenuItem>
-                <MenuItem onClick={() => { navigate("/length"); setMenuDanhMucEl(null); }}>
-                    Chiều dài
-                </MenuItem>
-                <MenuItem onClick={() => { navigate("/miningtechs"); setMenuDanhMucEl(null); }}>
-                    Công nghệ khai thác
-                </MenuItem>
-                <MenuItem onClick={() => { navigate("/steps"); setMenuDanhMucEl(null); }}>
-                    Chống
-                </MenuItem> */}
-
-        {/* <Divider /> */}
-
         <MenuItem
           onClick={() => {
             navigate("/productionscope");
@@ -369,6 +305,57 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           }}
         >
           Diện sản xuất
+        </MenuItem>
+      </Menu>
+
+      {/* Submenu - Simple and stable */}
+      <Menu
+        anchorEl={materialSubMenuEl}
+        open={Boolean(materialSubMenuEl)}
+        onClose={() => setMaterialSubMenuEl(null)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        sx={{
+          '& .MuiPaper-root': {
+            marginLeft: '8px',
+            boxShadow: '0px 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: '8px',
+          }
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            navigate("/materialassignment");
+            setMenuDanhMucEl(null);
+            setMaterialSubMenuEl(null);
+          }}
+          sx={{
+            minWidth: 260,
+            fontSize: '14px',
+            padding: '10px 16px',
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)'
+            }
+          }}
+        >
+          Vật tư, tài sản trong khoán
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/materialassignment-outside"); // Update with your actual route
+            setMenuDanhMucEl(null);
+            setMaterialSubMenuEl(null);
+          }}
+          sx={{
+            minWidth: 260,
+            fontSize: '14px',
+            padding: '10px 16px',
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)'
+            }
+          }}
+        >
+          Vật tư, tài sản ngoài khoán
         </MenuItem>
       </Menu>
 

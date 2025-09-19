@@ -149,45 +149,128 @@ export default function ProductScope() {
     }
   };
 
-  const expandedRowRender = (record: ProductionScopeOutputType) => {
-    const innerColumns = [
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Công đoạn</Typography>,
-        dataIndex: "phase",
-        key: "phase",
-        render: (phase: any) => (
-          <Typography sx={{ color: "blue" }}>{phase?.name}</Typography>
-        ),
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Sản lượng</Typography>,
-        dataIndex: "production",
-        key: "production",
-        render: (production: number) =>
-          production ? production.toLocaleString() : "0",
-      },
-    ];
 
-    return (
-      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-        <Table
-          columns={innerColumns}
-          dataSource={record.phases}
-          pagination={false}
-          size="small"
-          rowKey={(item, index) => `${record._id}-${index}`}
-        />
-      </Box>
-    );
-  };
 
+  // const expandedRowRender = (record: ProductionScopeOutputType) => {
+  //   const innerColumns = [
+  //     {
+  //       title: <Typography sx={{ fontWeight: "bold" }}>Công đoạn</Typography>,
+  //       dataIndex: "phase",
+  //       key: "phase",
+  //       render: (phase: any) => (
+  //         <Typography sx={{ color: "blue" }}>{phase?.name}</Typography>
+  //       ),
+  //     },
+  //     // {
+  //     //   title: <Typography sx={{ fontWeight: "bold" }}>Sản lượng</Typography>,
+  //     //   dataIndex: "production",
+  //     //   key: "production",
+  //     //   render: (production: number) =>
+  //     //     production ? production.toLocaleString() : "0",
+  //     // },
+  //   ];
+
+  //   return (
+  //     <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+  //       <Table
+  //         columns={innerColumns}
+  //         dataSource={record.phases}
+  //         pagination={false}
+  //         size="small"
+  //         rowKey={(item, index) => `${record._id}-${index}`}
+  //       />
+  //     </Box>
+  //   );
+  // };
+
+  // const columns: TableProps<ProductionScopeOutputType>["columns"] = [
+  //   {
+  //     title: "",
+  //     dataIndex: "number",
+  //     key: "number",
+  //     width: 50,
+  //     render: (value, record, index) => <Typography>{index + 1}</Typography>,
+  //   },
+  //   {
+  //     title: (
+  //       <Typography sx={{ fontWeight: "bold" }}>Mã diện sản xuất</Typography>
+  //     ),
+  //     dataIndex: "code",
+  //     key: "code",
+  //     render: (_, record) => (
+  //       <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+  //     ),
+  //     sorter: (a, b) =>
+  //       (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+  //         sensitivity: "base",
+  //       }),
+  //   },
+  //   {
+  //     title: (
+  //       <Typography sx={{ fontWeight: "bold" }}>Tên diện sản xuất</Typography>
+  //     ),
+  //     dataIndex: "name",
+  //     key: "name",
+  //     render: (_, record) => (
+  //       <Typography sx={{ fontWeight: "bold" }}>{record.name}</Typography>
+  //     ),
+  //     sorter: (a, b) =>
+  //       (a.name ?? "").localeCompare(b.name ?? "", "vi", {
+  //         sensitivity: "base",
+  //       }),
+  //   },
+  //   {
+  //     title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
+  //     dataIndex: "view",
+  //     key: "view",
+  //     width: 80,
+  //     align: "center",
+  //     render: (_, record) => (
+  //       <IconButton
+  //         onClick={() => handleView(record)}
+  //         sx={{
+  //           color: "#666",
+  //           "&:hover": {
+  //             color: "#1976d2",
+  //             backgroundColor: "rgba(25, 118, 210, 0.04)",
+  //           },
+  //         }}
+  //       >
+  //         <Visibility />
+  //       </IconButton>
+  //     ),
+  //   },
+  //   {
+  //     title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+  //     dataIndex: "edit",
+  //     key: "edit",
+  //     width: 80,
+  //     align: "center",
+  //     render: (_, record) => (
+  //       <IconButton
+  //         onClick={() => handleOpen(record)}
+  //         sx={{
+  //           color: "#666",
+  //           "&:hover": {
+  //             color: "#1976d2",
+  //             backgroundColor: "rgba(25, 118, 210, 0.04)",
+  //           },
+  //         }}
+  //       >
+  //         <Edit />
+  //       </IconButton>
+  //     ),
+  //   },
+  // ];
+
+  // Main columns
   const columns: TableProps<ProductionScopeOutputType>["columns"] = [
     {
       title: "",
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (_value, _record, index) => <Typography>{index + 1}</Typography>,
     },
     {
       title: (
@@ -195,6 +278,7 @@ export default function ProductScope() {
       ),
       dataIndex: "code",
       key: "code",
+      width: 200,
       render: (_, record) => (
         <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
       ),
@@ -261,6 +345,66 @@ export default function ProductScope() {
     },
   ];
 
+  // Expanded row render
+  const expandedRowRender = (record: ProductionScopeOutputType) => {
+    const innerColumns = [
+      {
+        title: "",
+        dataIndex: "empty1",
+        key: "empty1",
+        width: 50,
+        render: () => null,
+      },
+      {
+        title: <Typography sx={{ fontWeight: "bold", pl: 2 }}>Công đoạn</Typography>,
+        dataIndex: "phase",
+        key: "phase",
+        render: (phase: any) => (
+          <Typography sx={{ color: "blue", pl: 2 }}>{phase?.name}</Typography>
+        ),
+      },
+      {
+        title: "",
+        dataIndex: "empty2",
+        key: "empty2",
+        width: 200,
+        render: () => null,
+      },
+      {
+        title: "",
+        dataIndex: "empty3",
+        key: "empty3",
+        width: 80,
+        render: () => null,
+      },
+      {
+        title: "",
+        dataIndex: "empty4",
+        key: "empty4",
+        width: 80,
+        render: () => null,
+      },
+    ];
+
+    return (
+      <Box sx={{ backgroundColor: "#f5f5f5", p: 0, borderRadius: 1 }}>
+        <Table
+          columns={innerColumns}
+          dataSource={record.phases}
+          pagination={false}
+          size="small"
+          rowKey={(item, index) => `${record._id}-${index}`}
+          showHeader={true} // ✅ show header now
+          style={{
+            marginLeft: 0,
+            marginRight: 0,
+          }}
+        />
+      </Box>
+    );
+  };
+
+
   const rowSelection: TableRowSelection<ProductionScopeOutputType> = {
     selectedRowKeys: selectedRows,
     onChange: (newSelectedRows: React.Key[]) => {
@@ -270,9 +414,9 @@ export default function ProductScope() {
 
   return (
     <Box sx={{
-           px: 5,           // horizontal = 32px
-           py: 1,           // vertical = 8px
-          }}>
+      px: 5,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Diện sản xuất</Typography>
@@ -331,9 +475,10 @@ export default function ProductScope() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -369,9 +514,10 @@ export default function ProductScope() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -390,9 +536,10 @@ export default function ProductScope() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -411,9 +558,10 @@ export default function ProductScope() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -433,9 +581,10 @@ export default function ProductScope() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
