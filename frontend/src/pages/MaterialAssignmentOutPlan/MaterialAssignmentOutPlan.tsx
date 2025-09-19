@@ -27,7 +27,7 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState } from "react";
-import MaterialAssignmentModal from "../../components/MaterialAssignmentModal/MaterialAssignment";
+import MaterialAssignmentOutPlanModal from "../../components/MaterialAssignmentOutPlanModal/MaterialAssignmentOutPlan";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MaterialAssignmentInputType, Materials } from "../../types";
 import api from "../../config/api.config";
@@ -189,23 +189,6 @@ export default function MaterialAssignment() {
       key: "number",
       width: 50,
       render: (value, record, index) => <Typography>{index + 1}</Typography>,
-    },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
-      dataIndex: "assignmentCode",
-      key: "assignmentCode",
-      width: 200,
-      render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
-          {record.assignmentCode?.code}
-        </Typography>
-      ),
-      sorter: (a, b) =>
-        (a.assignmentCode?.code ?? "").localeCompare(
-          b.assignmentCode?.code ?? "",
-          "vi",
-          { sensitivity: "base" }
-        ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
@@ -494,7 +477,7 @@ export default function MaterialAssignment() {
           />
         </Box>
       </Box>
-      <MaterialAssignmentModal
+      <MaterialAssignmentOutPlanModal
         open={open}
         setOpen={setOpen}
         handleSubmit={handleSubmit}
