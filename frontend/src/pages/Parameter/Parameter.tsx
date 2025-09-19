@@ -152,7 +152,7 @@ const Parameter = () => {
               }}
             />
             <Tab
-              label="Chiều dài"
+              label="Chiều dài (L)"
               disableRipple
               sx={{
                 textTransform: "none",

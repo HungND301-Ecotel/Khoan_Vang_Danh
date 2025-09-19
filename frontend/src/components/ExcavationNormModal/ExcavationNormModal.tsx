@@ -343,7 +343,7 @@ export default function ExcavationNormModal({
             </TextField>
           </Box>
 
-          {/* Độ cứng */}
+          {/* Độ cứng
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Độ cứng
           </Typography>
@@ -387,7 +387,7 @@ export default function ExcavationNormModal({
                 </MenuItem>
               ))}
             </TextField>
-          </Box>
+          </Box> */}
 
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Chống
@@ -517,7 +517,7 @@ export default function ExcavationNormModal({
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
-                  height: "32px",
+                  minHeight: "32px",
                   borderRadius: "6px",
                   px: "12px",
                   fontSize: "14px",

@@ -243,7 +243,7 @@ export default function ProductionScopeModal({
                           key={index}
                           sx={{
                             display: "grid",
-                            gridTemplateColumns: "1fr 1fr 1fr 1fr auto",
+                            gridTemplateColumns: "1fr 1fr auto",
                             gap: 1.5,
                             alignItems: "center",
                             width: "100%",
@@ -295,7 +295,7 @@ export default function ProductionScopeModal({
                             />
                           </Box>
 
-                          {/* Sản lượng */}
+                          {/* Sản lượng
                           <Box>
                             <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
                               Sản lượng
@@ -322,9 +322,9 @@ export default function ProductionScopeModal({
                                 },
                               }}
                             />
-                          </Box>
+                          </Box> */}
 
-                          {/* Đơn vị tính */}
+                          {/* Đơn vị tính
                           <Box>
                             <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
                               Đơn vị tính
@@ -345,7 +345,7 @@ export default function ProductionScopeModal({
                                 },
                               }}
                             />
-                          </Box>
+                          </Box> */}
 
                           {/* Nút xóa */}
                           <IconButton

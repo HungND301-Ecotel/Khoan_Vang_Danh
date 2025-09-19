@@ -104,7 +104,7 @@ export default function ThicknessModal({
                 fullWidth
                 id="name"
                 name="name"
-                placeholder="VD: Vm=3m"
+                placeholder="VD: Mv=3m"
                 value={formik.values.name}
                 onChange={formik.handleChange}
                 error={formik.touched.name && Boolean(formik.errors.name)}
