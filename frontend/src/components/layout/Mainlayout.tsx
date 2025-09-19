@@ -342,7 +342,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/materialassignment-outside"); // Update with your actual route
+            navigate("/materialassignmentoutplan"); // Update with your actual route
             setMenuDanhMucEl(null);
             setMaterialSubMenuEl(null);
           }}

@@ -11,6 +11,7 @@ import AssignmentCode from './pages/AssignmentCode/AssignmentCode';
 
 import Unit from './pages/Unit/Unit';
 import MaterialAssignment from './pages/MaterialAssignment/MaterialAssignment';
+import MaterialAssignmentOutPlan from './pages/MaterialAssignmentOutPlan/MaterialAssignmentOutPlan';
 import PhaseGroup from './pages/PhaseGroup/PhaseGroup';
 import Phase from './pages/Phase/Phase';
 import ExcavationTech from './pages/ExcavationTech/ExcavationTech';
@@ -139,6 +140,14 @@ const App = () => {
           element={
             <PrivateRoute>
               <MaterialAssignment />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/materialassignmentoutplan"
+          element={
+            <PrivateRoute>
+              <MaterialAssignmentOutPlan />
             </PrivateRoute>
           }
         />
