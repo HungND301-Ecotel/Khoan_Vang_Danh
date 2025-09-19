@@ -290,7 +290,7 @@ export default function MaterialAssignment() {
         <Box>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
-              Vật tư tài sản ngoài khoán
+              Vật tư tài sản khác
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
