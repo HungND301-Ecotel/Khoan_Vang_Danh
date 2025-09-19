@@ -197,7 +197,7 @@ export default function CuttingNorm() {
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-            Xén trong đá:
+            Xén trong đá: 
             {record.phase?.name || ""} {record.hardness?.name || ""}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>

@@ -10,7 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import api from "../../config/api.config";
 import {
   AssignmentCodeInputType,
@@ -49,6 +49,8 @@ interface FlatMaterial {
   quantity?: number;
   price?: number;
   note: string;
+  isGroupHeader?: boolean;
+  originalAssignmentId?: string;
 }
 
 export default function Materialunitprice() {
@@ -85,6 +87,7 @@ export default function Materialunitprice() {
       }
     });
   };
+
   const deleteMutation = useMutation({
     mutationFn: (ids: React.Key[]) =>
       api
@@ -149,129 +152,127 @@ export default function Materialunitprice() {
     setOpen(true);
   };
 
-  // const columns: TableProps<FlatMaterial>["columns"] = [
-  //   {
-  //     title: "",
-  //     dataIndex: "number",
-  //     key: "number",
-  //     width: 50,
-  //     render: (_v, _r, idx) => (
-  //       <Typography
-  //         style={{
-  //           textAlign: "center",   // center horizontally
-  //           display: "block",      // make Typography span full width
-  //         }}
-  //       >
-  //         {idx + 1}
-  //       </Typography>
-  //     ),
-  //     align: "center", // <-- also works at column level
-  //   },
-  //   {
-  //     title: (
-  //       <Typography style={{ fontWeight: "bold" }}>Mã giao khoán</Typography>
-  //     ),
-  //     dataIndex: "code",
-  //     key: "code",
-  //     align: "center",
-  //     width: 180,
-  //     render: (_v, record) => (
-  //       <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
-  //     ),
-  //     sorter: (a, b) =>
-  //       (a.code ?? "").localeCompare(b.code ?? "", "vi", {
-  //         sensitivity: "base",
-  //       }),
-  //   },
-  //   {
-  //     title: <Typography style={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
-  //     dataIndex: "materialCode",
-  //     key: "materialCode",
-  //     align: "center",
-  //     render: (_v, record) => (
-  //       <Typography>{record.materialCode ?? ""}</Typography>
-  //     ),
-  //   },
-  //   {
-  //     title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
-  //     dataIndex: "name",
-  //     key: "name",
-  //   },
-  //   {
-  //     title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
-  //     dataIndex: "uom",
-  //     key: "uom",
-  //     align: "center",
-  //     render: (_v, record) => record.uom ?? "",
-  //   },
-  //   {
-  //     title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
-  //     dataIndex: "quantity",
-  //     key: "quantity",
-  //     width: 130,
-  //     align: "center",
-  //     render: (_v, record) =>
-  //       record.quantity ? record.quantity.toLocaleString() : "",
-  //   },
-  //   {
-  //     title: (
-  //       <Box sx={{ textAlign: "center" }}>
-  //         <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>
-  //         <Typography sx={{ fontWeight: "bold" }}>bình quân năm</Typography>
-  //       </Box>
-  //     ),
-  //     dataIndex: "price",
-  //     key: "price",
-  //     align: "center",
-  //     width: 180,
-  //     render: (_v, record) =>
-  //       record.price ? record.price.toLocaleString() : "",
-  //   },
-  // ];
+  // Create grouped data structure
+  const groupedData = useMemo(() => {
+    const grouped: FlatMaterial[] = [];
+    
+    data.forEach((assignment) => {
+      if (!assignment.materials || assignment.materials.length === 0) return;
+      
+      // Add group header row
+      grouped.push({
+        _id: `header-${assignment._id}`,
+        code: assignment.code ?? "",
+        materialCode: "",
+        name: assignment.name ?? "", // Store assignment name in the name field for header
+        uom: "",
+        quantity: undefined,
+        price: undefined,
+        note: "",
+        isGroupHeader: true,
+        originalAssignmentId: assignment._id
+      });
+      
+      // Add material rows
+      assignment.materials.forEach((material, index) => {
+        grouped.push({
+          _id: `${assignment._id}-${material.code ?? ""}-${index}`,
+          code: assignment.code ?? "",
+          materialCode: material.code,
+          name: material.name ?? "",
+          uom: material.uom?.name,
+          quantity: material.quantity,
+          price: material.currentPrice,
+          note: "",
+          isGroupHeader: false,
+          originalAssignmentId: assignment._id
+        });
+      });
+    });
+    
+    return grouped;
+  }, [data]);
 
-  // Add this helper function before your component or inside it
-  const calculateRowSpans = (data: FlatMaterial[]) => {
-    const rowSpans: { [key: string]: number[] } = {};
-
-    // Calculate rowSpans for each column that needs merging
-    data.forEach((item, index) => {
-      // For assignment code column
-      if (!rowSpans.code) rowSpans.code = [];
-
-      if (index === 0 || data[index - 1].code !== item.code) {
-        // First occurrence or different from previous
-        let count = 1;
-        // Count consecutive rows with same code
-        for (let i = index + 1; i < data.length && data[i].code === item.code; i++) {
-          count++;
-        }
-        rowSpans.code[index] = count;
-      } else {
-        // Same as previous row
-        rowSpans.code[index] = 0;
+  const filteredData = useMemo(() => {
+    if (!searchValue.trim()) return groupedData;
+    
+    // Filter by search value and maintain groups
+    const filteredGroups: FlatMaterial[] = [];
+    const searchLower = searchValue.toLowerCase();
+    
+    data.forEach((assignment) => {
+      if (!assignment.materials || assignment.materials.length === 0) return;
+      
+      // Check if assignment code or any material matches search
+      const assignmentMatches = assignment.code?.toLowerCase().includes(searchLower);
+      const matchingMaterials = assignment.materials.filter(material => 
+        material.code?.toLowerCase().includes(searchLower) ||
+        material.name?.toLowerCase().includes(searchLower) ||
+        material.uom?.name?.toLowerCase().includes(searchLower)
+      );
+      
+      if (assignmentMatches || matchingMaterials.length > 0) {
+        // Add group header
+        filteredGroups.push({
+          _id: `header-${assignment._id}`,
+          code: assignment.code ?? "",
+          materialCode: "",
+          name: assignment.name ?? "", // Store assignment name for header display
+          uom: "",
+          quantity: undefined,
+          price: undefined,
+          note: "",
+          isGroupHeader: true,
+          originalAssignmentId: assignment._id
+        });
+        
+        // Add materials (all if assignment matches, otherwise only matching ones)
+        const materialsToAdd = assignmentMatches ? assignment.materials : matchingMaterials;
+        materialsToAdd.forEach((material, index) => {
+          filteredGroups.push({
+            _id: `${assignment._id}-${material.code ?? ""}-${index}`,
+            code: assignment.code ?? "",
+            materialCode: material.code,
+            name: material.name ?? "",
+            uom: material.uom?.name,
+            quantity: material.quantity,
+            price: material.currentPrice,
+            note: "",
+            isGroupHeader: false,
+            originalAssignmentId: assignment._id
+          });
+        });
       }
     });
+    
+    return filteredGroups;
+  }, [groupedData, searchValue]);
 
-    return rowSpans;
-  };
-
-  // Update your columns configuration
   const columns: TableProps<FlatMaterial>["columns"] = [
     {
       title: "",
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (_v, _r, idx) => (
-        <Typography
-          style={{
-            textAlign: "center",
-            display: "block",
-          }}
-        >
-          {idx + 1}
-        </Typography>
-      ),
+      render: (_v, record, idx) => {
+        if (record.isGroupHeader) return null;
+        
+        // Calculate actual material index (excluding headers)
+        const materialIndex = filteredData
+          .slice(0, idx + 1)
+          .filter(item => !item.isGroupHeader).length;
+          
+        return (
+          <Typography
+            style={{
+              textAlign: "center",
+              display: "block",
+            }}
+          >
+            {materialIndex}
+          </Typography>
+        );
+      },
       align: "center",
     },
     {
@@ -282,42 +283,79 @@ export default function Materialunitprice() {
       key: "code",
       align: "center",
       width: 180,
-      render: (_v, record, index) => {
-        const rowSpans = calculateRowSpans(filteredData);
-        const rowSpan = rowSpans.code[index];
-
-        return {
-          children: <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>,
-          props: {
-            rowSpan: rowSpan,
-          },
-        };
+      render: (_v, record) => {
+        if (record.isGroupHeader) {
+          return (
+            <Box>
+              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
+                {record.code}
+              </Typography>
+            </Box>
+          );
+        }
+        return null; // Don't show code for material rows
       },
-      sorter: (a, b) =>
-        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
-          sensitivity: "base",
-        }),
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: <Typography style={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
       dataIndex: "materialCode",
       key: "materialCode",
       align: "center",
-      render: (_v, record) => (
-        <Typography>{record.materialCode ?? ""}</Typography>
-      ),
+      render: (_v, record) => {
+        if (record.isGroupHeader) {
+          return (
+            <Box>
+              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
+                {record.name}
+              </Typography>
+            </Box>
+          );
+        }
+        return null; // Don't show code for material rows
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
       dataIndex: "name",
       key: "name",
+      render: (_v, record) => {
+        if (record.isGroupHeader) return null;
+        return <Typography>{record.name}</Typography>;
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
       dataIndex: "uom",
       key: "uom",
       align: "center",
-      render: (_v, record) => record.uom ?? "",
+      render: (_v, record) => {
+        if (record.isGroupHeader) return null;
+        return <Typography>{record.uom ?? ""}</Typography>;
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
@@ -325,8 +363,20 @@ export default function Materialunitprice() {
       key: "quantity",
       width: 130,
       align: "center",
-      render: (_v, record) =>
-        record.quantity ? record.quantity.toLocaleString() : "",
+      render: (_v, record) => {
+        if (record.isGroupHeader) return null;
+        return (
+          <Typography>
+            {record.quantity ? record.quantity.toLocaleString() : ""}
+          </Typography>
+        );
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: (
@@ -339,40 +389,35 @@ export default function Materialunitprice() {
       key: "price",
       align: "center",
       width: 180,
-      render: (_v, record) =>
-        record.price ? record.price.toLocaleString() : "",
+      render: (_v, record) => {
+        if (record.isGroupHeader) return null;
+        return (
+          <Typography>
+            {record.price ? record.price.toLocaleString() : ""}
+          </Typography>
+        );
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
   ];
 
   const rowSelection: TableRowSelection<FlatMaterial> = {
     selectedRowKeys,
     onChange: (keys) => setSelectedRowKeys(keys),
+    getCheckboxProps: (record) => ({
+      disabled: record.isGroupHeader, // Disable selection for group headers
+    }),
   };
-
-  const flatData: FlatMaterial[] = data.flatMap(
-    (assignment: MaterialAssignmentOutputType) =>
-      (assignment.materials || []).map((material: Materials) => ({
-        _id: `${assignment._id}-${material.code ?? ""}`,
-        code: assignment.code ?? "",
-        materialCode: material.code,
-        name: material.name ?? "",
-        uom: material.uom?.name,
-        quantity: material.quantity,
-        price: material.currentPrice,
-        note: "",
-      }))
-  );
-
-  const filteredData = flatData.filter((item) =>
-    item.code.toLowerCase().includes(searchValue.toLowerCase()) ||
-    item.materialCode?.toLowerCase().includes(searchValue.toLowerCase()) ||
-    item.name.toLowerCase().includes(searchValue.toLowerCase())
-  );
 
   return (
     <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
+      px: 5,
+      py: 1,
     }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Đơn giá và định mức</Typography>
@@ -538,6 +583,9 @@ export default function Materialunitprice() {
           }}
           columns={columns}
           dataSource={filteredData}
+          rowClassName={(record) => 
+            record.isGroupHeader ? 'group-header-row' : 'material-row'
+          }
         />
       </Box>
     </Box>

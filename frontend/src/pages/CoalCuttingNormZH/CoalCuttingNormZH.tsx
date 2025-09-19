@@ -250,10 +250,10 @@ export default function CoalCuttingNormZH() {
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         {/* Header */}
         <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
             Độ dốc vỉa {slopeLabel}
           </Typography>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Chiều dày vỉa (m)
             <Box component="span" sx={{ ml: 30 }}>
               {thicknessLabel}
