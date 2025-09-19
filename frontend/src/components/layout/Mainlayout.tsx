@@ -355,7 +355,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             }
           }}
         >
-          Vật tư, tài sản ngoài khoán
+          Vật tư, tài sản khác
         </MenuItem>
       </Menu>
 

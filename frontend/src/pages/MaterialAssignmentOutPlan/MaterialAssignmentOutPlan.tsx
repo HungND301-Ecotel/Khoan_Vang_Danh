@@ -284,7 +284,7 @@ export default function MaterialAssignment() {
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Vật tư tài sản</Typography>
-        <Typography>Vật tư tài sản ngoài khoán</Typography>
+        <Typography>Vật tư tài sản khác</Typography>
       </Breadcrumbs>
       <Box mt={3}>
         <Box>
