@@ -168,7 +168,6 @@ export default function MaterialBudgetModal({
   const handlePhaseChange = (index: number, field: keyof PhaseType, value: any) => {
     const newPhases = [...formik.values.phases];
     newPhases[index] = { ...newPhases[index], [field]: value };
-    currentIdForDisplay = value;
 
     if (field === "phaseGroup") {
       newPhases[index].phase = "";
@@ -181,6 +180,10 @@ export default function MaterialBudgetModal({
 
     formik.setFieldValue("phases", newPhases);
   };
+
+  const handleNameUpdate = (index: number, value: any) => {
+    currentIdForDisplay = value;
+  }
 
 
   const getError = (index: number, field: keyof PhaseType): string => {
@@ -365,7 +368,7 @@ export default function MaterialBudgetModal({
                             sx={{ flex: "0 0 20%" }}
                             select
                             value={phase.phase}
-                            onChange={(e) => handlePhaseChange(index, "phase", e.target.value)}
+                            onChange={(e) => {handlePhaseChange(index, "phase", e.target.value); handleNameUpdate(index, e.target.value);}}
                             error={Boolean(getError(index, "phase"))}
                             helperText={getError(index, "phase")}
                             variant="outlined"
