@@ -3,8 +3,8 @@ const MaterialAssignment = require('../model/MaterialAssignment')
 
 exports.create = async (req, res) => {
     try {
-        const { code, productionScope, materials } = req.body
-        const newMaterialCostUsed = new MaterialCostUsed({ code, productionScope, materials })
+        const { code, productionScope, phases, materials } = req.body
+        const newMaterialCostUsed = new MaterialCostUsed({ code, productionScope, phases, materials })
         await newMaterialCostUsed.save()
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
     } catch (err) {
@@ -43,6 +43,7 @@ exports.get = async (req, res) => {
                 path: 'productionScope',
                 populate: 'phases.phase'
             })
+            .populate('phases.phase', 'code name')
             .populate({
                 path: 'materials.material',
                 populate: 'uom'
@@ -57,7 +58,7 @@ exports.get = async (req, res) => {
 
                 let currentPrice = null;
 
-                if (Array.isArray(material.priceHistory)) {
+                if (material && Array.isArray(material.priceHistory)) {
                     const matched = material.priceHistory.find(priceItem =>
                         todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
                     );
@@ -81,6 +82,6 @@ exports.get = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: processedData })
     } catch (err) {
-        res.status(500).json({ status: 'error', message: err.message })
+        res.status(500).json({ status: 'error', message: err.stack })
     }
 }
