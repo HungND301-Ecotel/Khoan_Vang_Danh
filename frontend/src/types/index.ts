@@ -84,7 +84,7 @@ export interface ExcavationTechType {
 export interface HardnessType {
   _id?: string;
   name: string;
-   uom?: UnitType;
+  uom?: UnitType;
 }
 //
 export interface CrossSectionInputType {
@@ -442,6 +442,10 @@ export interface MaterialCostUsedInputType {
   _id?: string;
   code: string;
   productionScope?: string;
+  phases: {
+    phase: PhaseOutputType;
+    production: number;
+  }[];
   materialBudgetCode?: string;
   materials: {
     material?: string;
@@ -457,6 +461,10 @@ export interface MaterialCostUsedOutputType {
     material?: Materials;
     quantity: number;
     cost: number;
+  }[];
+  phases: {
+    phase: PhaseOutputType;
+    production: number;
   }[];
   materialBudget?: MaterialBudgetOutputType | null;
 }

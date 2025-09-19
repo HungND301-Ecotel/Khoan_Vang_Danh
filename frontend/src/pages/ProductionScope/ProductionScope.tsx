@@ -35,7 +35,8 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
+import { AlignCenter } from "lucide-react";
 
 export default function ProductScope() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -152,19 +153,23 @@ export default function ProductScope() {
   const expandedRowRender = (record: ProductionScopeOutputType) => {
     const innerColumns = [
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Công đoạn</Typography>,
+        width: "20%",
+        title: (
+          <Typography sx={{ fontWeight: "bold" }} align="center">
+            Mã công đoạn
+          </Typography>
+        ),
         dataIndex: "phase",
-        key: "phase",
+        key: "code",
         render: (phase: any) => (
-          <Typography sx={{ color: "blue" }}>{phase?.name}</Typography>
+          <Typography align="center">{phase?.code}</Typography>
         ),
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Sản lượng</Typography>,
-        dataIndex: "production",
-        key: "production",
-        render: (production: number) =>
-          production ? production.toLocaleString() : "0",
+        title: <Typography sx={{ fontWeight: "bold" }}>Công đoạn</Typography>,
+        dataIndex: "phase",
+        key: "phase",
+        render: (phase: any) => <Typography>{phase?.name}</Typography>,
       },
     ];
 
@@ -269,10 +274,12 @@ export default function ProductScope() {
   };
 
   return (
-    <Box sx={{
-           px: 15,           // horizontal = 32px
-           py: 1,           // vertical = 8px
-          }}>
+    <Box
+      sx={{
+        px: 15, // horizontal = 32px
+        py: 1, // vertical = 8px
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Diện sản xuất</Typography>
@@ -280,7 +287,10 @@ export default function ProductScope() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Diện sản xuất
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -290,8 +300,12 @@ export default function ProductScope() {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -308,8 +322,12 @@ export default function ProductScope() {
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

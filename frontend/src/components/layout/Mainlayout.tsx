@@ -182,7 +182,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </AppBar>
 
       {/* NƠI HIỂN THỊ NỘI DUNG PAGE */}
-      <Box component="main" sx={{ flexGrow: 1, mt: 12, p: 3, minHeight: "100vh", backgroundColor: '#f1f2f5' }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          mt: 12,
+          p: 3,
+          minHeight: "100vh",
+          backgroundColor: "#f1f2f5",
+        }}
+      >
         {children || <Outlet />}
       </Box>
 
@@ -423,19 +432,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
-            navigate("/materialbudget");
-            setMenuThongKeEl(null);
-          }}
-        >
-          Chi phí vật tư kế hoạch (Zkh)
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
             navigate("/materialcostused");
             setMenuThongKeEl(null);
           }}
         >
           Chi phí vật tư thực hiện (Zkh)
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/materialbudget");
+            setMenuThongKeEl(null);
+          }}
+        >
+          Chi phí vật tư kế hoạch (Zkh)
         </MenuItem>
         <MenuItem
           onClick={() => {

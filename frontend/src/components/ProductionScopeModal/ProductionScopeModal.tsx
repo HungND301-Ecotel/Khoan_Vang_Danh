@@ -129,8 +129,19 @@ export default function ProductionScopeModal({
 
       <DialogContent sx={{ p: 0, mt: 3 }}>
         <FormikProvider value={formik}>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ display: "flex", justifyContent: "center" }}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "700px" }}>
+          <Box
+            component="form"
+            onSubmit={formik.handleSubmit}
+            sx={{ display: "flex", justifyContent: "center" }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                width: "700px",
+              }}
+            >
               {/* Mã diện sản xuất */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
@@ -148,11 +159,11 @@ export default function ProductionScopeModal({
                   variant="outlined"
                   sx={{
                     "& .MuiInputBase-root": {
-                     minHeight: "32px",
-                          borderRadius: "6px",
-                          paddingRight: "12px",
-                          paddingLeft: "12px",
-                          fontSize: "14px",
+                      minHeight: "32px",
+                      borderRadius: "6px",
+                      paddingRight: "12px",
+                      paddingLeft: "12px",
+                      fontSize: "14px",
                     },
                   }}
                 />
@@ -176,10 +187,10 @@ export default function ProductionScopeModal({
                   sx={{
                     "& .MuiInputBase-root": {
                       minHeight: "32px",
-                          borderRadius: "6px",
-                          paddingRight: "12px",
-                          paddingLeft: "12px",
-                          fontSize: "14px",
+                      borderRadius: "6px",
+                      paddingRight: "12px",
+                      paddingLeft: "12px",
+                      fontSize: "14px",
                     },
                   }}
                 />
@@ -194,7 +205,9 @@ export default function ProductionScopeModal({
                   multiple
                   options={phasegroups.filter(
                     (opt: PhaseGroupType) =>
-                      !selectedPhases.some((selected) => selected._id === opt._id)
+                      !selectedPhases.some(
+                        (selected) => selected._id === opt._id
+                      )
                   )}
                   getOptionLabel={(option: PhaseGroupType) => option.name || ""}
                   value={selectedPhases}
@@ -233,7 +246,9 @@ export default function ProductionScopeModal({
               {/* Danh sách công đoạn chi tiết */}
               <FieldArray name="phases">
                 {({ push, remove }) => (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                  >
                     {formik.values.phases.map((item: any, index: number) => {
                       const phase = phasegroups.find(
                         (pg: PhaseGroupType) => pg._id === item.phase
@@ -243,7 +258,7 @@ export default function ProductionScopeModal({
                           key={index}
                           sx={{
                             display: "grid",
-                            gridTemplateColumns: "1fr 1fr 1fr 1fr auto",
+                            gridTemplateColumns: "1fr 1fr auto",
                             gap: 1.5,
                             alignItems: "center",
                             width: "100%",
@@ -251,7 +266,13 @@ export default function ProductionScopeModal({
                         >
                           {/* Mã công đoạn */}
                           <Box>
-                            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
+                            <Typography
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: "14px",
+                                mb: 0.5,
+                              }}
+                            >
                               Mã công đoạn
                             </Typography>
                             <TextField
@@ -274,7 +295,13 @@ export default function ProductionScopeModal({
 
                           {/* Tên công đoạn */}
                           <Box>
-                            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
+                            <Typography
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: "14px",
+                                mb: 0.5,
+                              }}
+                            >
                               Tên công đoạn
                             </Typography>
                             <TextField
@@ -295,63 +322,13 @@ export default function ProductionScopeModal({
                             />
                           </Box>
 
-                          {/* Sản lượng */}
-                          <Box>
-                            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
-                              Sản lượng
-                            </Typography>
-                            <TextField
-                              fullWidth
-                              size="small"
-                              placeholder="Input Text"
-                              type="number"
-                              value={formik.values.phases[index]?.production || ""}
-                              onChange={(e) =>
-                                formik.setFieldValue(
-                                  `phases[${index}].production`,
-                                  e.target.value
-                                )
-                              }
-                              sx={{
-                                "& .MuiInputBase-root": {
-                                  minHeight: "32px",
-                                  borderRadius: "6px",
-                                  paddingRight: "12px",
-                                  paddingLeft: "12px",
-                                  fontSize: "14px",
-                                },
-                              }}
-                            />
-                          </Box>
-
-                          {/* Đơn vị tính */}
-                          <Box>
-                            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 0.5 }}>
-                              Đơn vị tính
-                            </Typography>
-                            <TextField
-                              fullWidth
-                              size="small"
-                              value={phase?.unit || "Chưa có đơn vị"}
-                              InputLabelProps={{ shrink: true }}
-                              disabled
-                              sx={{
-                                "& .MuiInputBase-root": {
-                                  height: "32px",
-                                  borderRadius: "6px",
-                                  paddingRight: "12px",
-                                  paddingLeft: "12px",
-                                  fontSize: "14px",
-                                },
-                              }}
-                            />
-                          </Box>
-
                           {/* Nút xóa */}
                           <IconButton
                             onClick={() => {
                               const updatedPhases = selectedPhases.filter(
-                                (phase) => phase._id !== formik.values.phases[index].phase
+                                (phase) =>
+                                  phase._id !==
+                                  formik.values.phases[index].phase
                               );
                               setSelectedPhases(updatedPhases);
                               remove(index);
