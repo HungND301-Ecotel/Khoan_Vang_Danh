@@ -149,13 +149,130 @@ export default function Materialunitprice() {
     setOpen(true);
   };
 
+  // const columns: TableProps<FlatMaterial>["columns"] = [
+  //   {
+  //     title: "",
+  //     dataIndex: "number",
+  //     key: "number",
+  //     width: 50,
+  //     render: (_v, _r, idx) => (
+  //       <Typography
+  //         style={{
+  //           textAlign: "center",   // center horizontally
+  //           display: "block",      // make Typography span full width
+  //         }}
+  //       >
+  //         {idx + 1}
+  //       </Typography>
+  //     ),
+  //     align: "center", // <-- also works at column level
+  //   },
+  //   {
+  //     title: (
+  //       <Typography style={{ fontWeight: "bold" }}>Mã giao khoán</Typography>
+  //     ),
+  //     dataIndex: "code",
+  //     key: "code",
+  //     align: "center",
+  //     width: 180,
+  //     render: (_v, record) => (
+  //       <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+  //     ),
+  //     sorter: (a, b) =>
+  //       (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+  //         sensitivity: "base",
+  //       }),
+  //   },
+  //   {
+  //     title: <Typography style={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
+  //     dataIndex: "materialCode",
+  //     key: "materialCode",
+  //     align: "center",
+  //     render: (_v, record) => (
+  //       <Typography>{record.materialCode ?? ""}</Typography>
+  //     ),
+  //   },
+  //   {
+  //     title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
+  //     dataIndex: "name",
+  //     key: "name",
+  //   },
+  //   {
+  //     title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
+  //     dataIndex: "uom",
+  //     key: "uom",
+  //     align: "center",
+  //     render: (_v, record) => record.uom ?? "",
+  //   },
+  //   {
+  //     title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
+  //     dataIndex: "quantity",
+  //     key: "quantity",
+  //     width: 130,
+  //     align: "center",
+  //     render: (_v, record) =>
+  //       record.quantity ? record.quantity.toLocaleString() : "",
+  //   },
+  //   {
+  //     title: (
+  //       <Box sx={{ textAlign: "center" }}>
+  //         <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>
+  //         <Typography sx={{ fontWeight: "bold" }}>bình quân năm</Typography>
+  //       </Box>
+  //     ),
+  //     dataIndex: "price",
+  //     key: "price",
+  //     align: "center",
+  //     width: 180,
+  //     render: (_v, record) =>
+  //       record.price ? record.price.toLocaleString() : "",
+  //   },
+  // ];
+
+  // Add this helper function before your component or inside it
+  const calculateRowSpans = (data: FlatMaterial[]) => {
+    const rowSpans: { [key: string]: number[] } = {};
+
+    // Calculate rowSpans for each column that needs merging
+    data.forEach((item, index) => {
+      // For assignment code column
+      if (!rowSpans.code) rowSpans.code = [];
+
+      if (index === 0 || data[index - 1].code !== item.code) {
+        // First occurrence or different from previous
+        let count = 1;
+        // Count consecutive rows with same code
+        for (let i = index + 1; i < data.length && data[i].code === item.code; i++) {
+          count++;
+        }
+        rowSpans.code[index] = count;
+      } else {
+        // Same as previous row
+        rowSpans.code[index] = 0;
+      }
+    });
+
+    return rowSpans;
+  };
+
+  // Update your columns configuration
   const columns: TableProps<FlatMaterial>["columns"] = [
     {
       title: "",
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (_v, _r, idx) => <Typography>{idx + 1}</Typography>,
+      render: (_v, _r, idx) => (
+        <Typography
+          style={{
+            textAlign: "center",
+            display: "block",
+          }}
+        >
+          {idx + 1}
+        </Typography>
+      ),
+      align: "center",
     },
     {
       title: (
@@ -165,9 +282,17 @@ export default function Materialunitprice() {
       key: "code",
       align: "center",
       width: 180,
-      render: (_v, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
-      ),
+      render: (_v, record, index) => {
+        const rowSpans = calculateRowSpans(filteredData);
+        const rowSpan = rowSpans.code[index];
+
+        return {
+          children: <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>,
+          props: {
+            rowSpan: rowSpan,
+          },
+        };
+      },
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
@@ -274,8 +399,9 @@ export default function Materialunitprice() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -288,19 +414,19 @@ export default function Materialunitprice() {
                 Lọc
               </Button>
               <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm kiếm"
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+                fullWidth
+                size="small"
+                placeholder="Tìm kiếm"
+                onChange={(e) => setSearchValue(e.target.value)}
+                sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Search sx={{ fontSize: 24 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
 
             <Box display={"flex"} gap={2}>
@@ -312,8 +438,9 @@ export default function Materialunitprice() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -333,8 +460,9 @@ export default function Materialunitprice() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -354,8 +482,9 @@ export default function Materialunitprice() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -376,8 +505,9 @@ export default function Materialunitprice() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -395,7 +525,6 @@ export default function Materialunitprice() {
 
         <Table<FlatMaterial>
           rowKey="_id"
-          rowSelection={rowSelection}
           pagination={{
             position: ["bottomCenter"],
             showSizeChanger: true,
