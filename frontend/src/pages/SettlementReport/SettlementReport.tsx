@@ -77,6 +77,9 @@ export default function SettlementReport() {
     setTab(newValue);
   };
 
+  // Tạo biến để đếm số thứ tự
+  let rowIndex = 0;
+
   return (
     <Box sx={{ p: 2 }}>
       <Box mt={3}>
@@ -633,7 +636,7 @@ export default function SettlementReport() {
                       textAlign: "center",
                     }}
                   >
-                    1
+                    {++rowIndex}
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -670,7 +673,7 @@ export default function SettlementReport() {
                       textAlign: "center",
                     }}
                   >
-                    2
+                    {++rowIndex}
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -707,7 +710,7 @@ export default function SettlementReport() {
                       textAlign: "center",
                     }}
                   >
-                    3
+                    {++rowIndex}
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -744,7 +747,7 @@ export default function SettlementReport() {
                       textAlign: "center",
                     }}
                   >
-                    4
+                    {++rowIndex}
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -781,7 +784,7 @@ export default function SettlementReport() {
                       textAlign: "center",
                     }}
                   >
-                    5
+                    {++rowIndex}
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -818,7 +821,7 @@ export default function SettlementReport() {
                       textAlign: "center",
                     }}
                   >
-                    6
+                    {++rowIndex}
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -855,7 +858,7 @@ export default function SettlementReport() {
                       textAlign: "center",
                     }}
                   >
-                    7
+                    {++rowIndex}
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -892,7 +895,7 @@ export default function SettlementReport() {
                       textAlign: "center",
                     }}
                   >
-                    8
+                    {++rowIndex}
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -932,7 +935,7 @@ export default function SettlementReport() {
                             p: 0.5,
                           }}
                         >
-                          <Checkbox size="small" />
+                          {++rowIndex}
                         </TableCell>
                         <TableCell
                           align="center"
@@ -973,6 +976,7 @@ export default function SettlementReport() {
                             fontWeight: "bold",
                             fontSize: "0.75rem",
                             p: 0.5,
+                            textAlign: "left",
                           }}
                         >
                           {material.name}
@@ -1054,7 +1058,7 @@ export default function SettlementReport() {
                               p: 0.5,
                             }}
                           >
-                            <Checkbox size="small" />
+                            {++rowIndex}
                           </TableCell>
                           <TableCell
                             align="center"
@@ -1091,6 +1095,7 @@ export default function SettlementReport() {
                               fontWeight: "bold",
                               fontSize: "0.75rem",
                               p: 0.5,
+                              textAlign: "left",
                             }}
                           >
                             {m.name}
