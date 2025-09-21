@@ -345,11 +345,13 @@ export default function ProductScope() {
   const expandedRowRender = (record: ProductionScopeOutputType) => {
     const innerColumns = [
       {
-        title: "",
-        dataIndex: "empty1",
-        key: "empty1",
-        width: 50,
-        render: () => null,
+        width: '200px',
+        title: <Typography sx={{ fontWeight: "bold", pl: 2 }} align="center">Mã công đoạn</Typography>,
+        dataIndex: "code",
+        key: "code",
+        render: (_: any, record: any) => (
+          <Typography sx={{ color: "blue", pl: 2 }} align="center">{record?.phase?.code}</Typography>
+        ),
       },
       {
         title: <Typography sx={{ fontWeight: "bold", pl: 2 }}>Công đoạn</Typography>,
@@ -358,27 +360,6 @@ export default function ProductScope() {
         render: (phase: any) => (
           <Typography sx={{ color: "blue", pl: 2 }}>{phase?.name}</Typography>
         ),
-      },
-      {
-        title: "",
-        dataIndex: "empty2",
-        key: "empty2",
-        width: 200,
-        render: () => null,
-      },
-      {
-        title: "",
-        dataIndex: "empty3",
-        key: "empty3",
-        width: 80,
-        render: () => null,
-      },
-      {
-        title: "",
-        dataIndex: "empty4",
-        key: "empty4",
-        width: 80,
-        render: () => null,
       },
     ];
 

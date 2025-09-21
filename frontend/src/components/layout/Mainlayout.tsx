@@ -410,19 +410,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
-            navigate("/materialbudget");
-            setMenuThongKeEl(null);
-          }}
-        >
-          Chi phí vật tư kế hoạch (Zkh)
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
             navigate("/materialcostused");
             setMenuThongKeEl(null);
           }}
         >
           Chi phí vật tư thực hiện (Zkh)
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/materialbudget");
+            setMenuThongKeEl(null);
+          }}
+        >
+          Chi phí vật tư kế hoạch (Zkh)
         </MenuItem>
         <MenuItem
           onClick={() => {

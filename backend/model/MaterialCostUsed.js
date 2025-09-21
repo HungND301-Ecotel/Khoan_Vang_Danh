@@ -8,6 +8,17 @@ const MaterialCostUsed = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ProductionScope'
     },
+    phases: [
+        {
+            phase: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'PhaseGroup'
+            },
+            production: {
+                type: Number
+            }
+        }
+    ],
     materials: [
         {
             material: {
