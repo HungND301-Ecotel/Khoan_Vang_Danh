@@ -98,7 +98,7 @@ const Parameter = () => {
               }}
             />
             <Tab
-              label="Độ cứng than/ đá (f)"
+              label="Độ cứng than/đá (f)"
               disableRipple
               sx={{
                 textTransform: "none",
@@ -170,7 +170,7 @@ const Parameter = () => {
               }}
             />
             <Tab
-              label="Công nghệ khai thác "
+              label="Công nghệ khai thác"
               disableRipple
               sx={{
                 textTransform: "none",
@@ -188,7 +188,7 @@ const Parameter = () => {
               }}
             />
             <Tab
-              label="Chống "
+              label="Chống"
               disableRipple
               sx={{
                 textTransform: "none",

@@ -84,7 +84,7 @@ export interface ExcavationTechType {
 export interface HardnessType {
   _id?: string;
   name: string;
-   uom?: UnitType;
+  uom?: UnitType;
 }
 //
 export interface CrossSectionInputType {

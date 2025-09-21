@@ -18,8 +18,12 @@ import {
   InputAdornment,
   TextField,
   Typography,
+  CircularProgress,
+  Skeleton,
+  Card,
+  CardContent,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import CrossSectionModal from "../../components/CrossSectionModal/CrossSectionModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CrossSectionOutputType, CrossSectionInputType } from "../../types";
@@ -41,12 +45,51 @@ export default function CrossSection() {
     React.Key[]
   >([]);
   const [searchValue, setSearchValue] = useState("");
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const queryClient = useQueryClient();
-  const { data: crosssections = [] } = useQuery({
+  
+  const { data: crosssections = [], isLoading, isFetching } = useQuery({
     queryKey: ["crosssections"],
-    queryFn: () => api.get("/crosssections").then((res) => res.data.data),
+    queryFn: async () => {
+      try {
+        const response = await api.get("/crosssections");
+        return response.data.data || [];
+      } catch (error) {
+        showErrorAlert("Không thể tải dữ liệu");
+        return [];
+      }
+    },
   });
+
+  // Add filtering delay simulation for better UX
+  useEffect(() => {
+    if (searchValue) {
+      setIsFiltering(true);
+      const timer = setTimeout(() => {
+        setIsFiltering(false);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setIsFiltering(false);
+    }
+  }, [searchValue]);
+
+  // Enhanced filtering with useMemo for performance
+  const filteredCrossSections = useMemo(() => {
+    if (!searchValue.trim()) {
+      return crosssections;
+    }
+
+    const searchTerm = searchValue.toLowerCase().trim();
+    return crosssections.filter((item: CrossSectionOutputType) => {
+      const name = item.name?.toLowerCase() || "";
+      const uomName = item.uom?.name?.toLowerCase() || "";
+      
+      return name.includes(searchTerm) || uomName.includes(searchTerm);
+    });
+  }, [crosssections, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newCrossSection: Partial<CrossSectionInputType>) =>
@@ -57,7 +100,7 @@ export default function CrossSection() {
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response?.data?.message || error.response || "Lỗi");
     },
   });
 
@@ -73,7 +116,7 @@ export default function CrossSection() {
       showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response?.data?.message || error.response || "Lỗi");
     },
   });
 
@@ -127,7 +170,7 @@ export default function CrossSection() {
       showSuccessAlert("Xóa thành công");
     },
     onError: (error: any) => {
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response?.data?.message || error.response || "Lỗi");
     },
   });
 
@@ -147,6 +190,77 @@ export default function CrossSection() {
     }
     setOpen(true);
   };
+
+  // Clear search function
+  const handleClearSearch = () => {
+    setSearchValue("");
+  };
+
+  // Loading skeleton for initial page load
+  const LoadingSkeleton = () => (
+    <Box>
+      {/* Toolbar skeleton */}
+      <Box sx={{ mb: 2 }}>
+        <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+          <Box display={"flex"} gap={2}>
+            <Skeleton variant="rectangular" width={100} height={36} />
+            <Skeleton variant="rectangular" width={80} height={36} />
+          </Box>
+          <Box display={"flex"} flex={1} gap={2}>
+            <Skeleton variant="rectangular" width={60} height={36} />
+            <Skeleton variant="rectangular" height={36} sx={{ flex: 1 }} />
+          </Box>
+          <Box display={"flex"} gap={2}>
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} variant="rectangular" width={80} height={36} />
+            ))}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Table skeleton */}
+      <Card>
+        <CardContent sx={{ p: 0 }}>
+          {[...Array(5)].map((_, index) => (
+            <Box key={index} sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Skeleton variant="rectangular" width={20} height={20} />
+                <Skeleton variant="text" width={50} />
+                <Skeleton variant="text" width={250} sx={{ flex: 1 }} />
+                <Skeleton variant="text" width={80} />
+                <Skeleton variant="circular" width={32} height={32} />
+              </Box>
+            </Box>
+          ))}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  // Custom empty state component
+  const EmptyState = () => (
+    <Box sx={{ textAlign: 'center', py: 6 }}>
+      <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+        {searchValue ? "Không tìm thấy kết quả" : "Chưa có dữ liệu"}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {searchValue 
+          ? `Không có tiết diện lò xén nào phù hợp với "${searchValue}"`
+          : "Hiện tại chưa có tiết diện lò xén nào được tạo"
+        }
+      </Typography>
+      {searchValue && (
+        <Button 
+          variant="outlined" 
+          size="small" 
+          onClick={handleClearSearch}
+          sx={{ mt: 1 }}
+        >
+          Xóa bộ lọc
+        </Button>
+      )}
+    </Box>
+  );
 
   const columns: TableProps<CrossSectionOutputType>["columns"] = [
     {
@@ -199,24 +313,22 @@ export default function CrossSection() {
     },
   };
 
-  const filteredCrossSections = crosssections.filter(
-    (item: CrossSectionOutputType) =>
-      item.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
-      item.uom?.name?.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  // Show loading skeleton on initial load
+  if (isLoading) {
+    return (
+      <Box>
+        <Box mt={3}>
+          <LoadingSkeleton />
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box>
-      {/* <Breadcrumbs aria-label="breadcrumb">
-        <Typography>Danh mục</Typography>
-        <Typography>Tiết diện lò xén</Typography>
-      </Breadcrumbs> */}
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            {/* <Typography variant="h4" sx={{ color: 'blue' }}>
-              Tiết diện lò xén
-            </Typography> */}
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
@@ -280,13 +392,32 @@ export default function CrossSection() {
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Tìm kiếm"
+                  placeholder="Tìm kiếm theo tên tiết diện hoặc đơn vị tính..."
+                  value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  sx={{ 
+                    backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
+                    "& .MuiInputBase-root": {
+                      fontSize: "14px",
+                    }
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
+                        {searchValue && (
+                          <IconButton
+                            onClick={handleClearSearch}
+                            size="small"
+                            sx={{ mr: 1 }}
+                          >
+                            ×
+                          </IconButton>
+                        )}
+                        {isFiltering ? (
+                          <CircularProgress size={20} sx={{ mr: 1 }} />
+                        ) : (
+                          <Search sx={{ fontSize: 24 }} />
+                        )}
                       </InputAdornment>
                     ),
                   }}
@@ -381,9 +512,38 @@ export default function CrossSection() {
               </Box>
             </Box>
           </Box>
+
+          {/* Enhanced Search Results Info with Loading State */}
+          {searchValue && (
+            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+              <Typography variant="body2" color="primary">
+                {isFiltering ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CircularProgress size={16} sx={{ mr: 1 }} />
+                    Đang tìm kiếm "{searchValue}"...
+                  </Box>
+                ) : (
+                  <>
+                    Tìm thấy {filteredCrossSections.length} kết quả cho "{searchValue}"
+                    {filteredCrossSections.length > 0 && (
+                      <Button 
+                        size="small" 
+                        onClick={handleClearSearch}
+                        sx={{ ml: 2 }}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                    )}
+                  </>
+                )}
+              </Typography>
+            </Box>
+          )}
+
           <Table<CrossSectionOutputType>
             rowKey="_id"
             rowSelection={rowSelection}
+            loading={isFiltering || isFetching}
             pagination={{
               position: ["bottomCenter"],
               showSizeChanger: true,
@@ -391,12 +551,21 @@ export default function CrossSection() {
               defaultPageSize: 10,
               showTotal: (total, range) => (
                 <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                  {isFiltering ? (
+                    <Typography variant="body2" color="primary">
+                      Đang lọc...
+                    </Typography>
+                  ) : (
+                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
+                  )}
                 </div>
               ),
             }}
             columns={columns}
             dataSource={filteredCrossSections}
+            locale={{
+              emptyText: <EmptyState />
+            }}
           />
         </Box>
       </Box>

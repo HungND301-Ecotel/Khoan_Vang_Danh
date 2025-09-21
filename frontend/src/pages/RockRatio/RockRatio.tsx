@@ -18,8 +18,12 @@ import {
   InputAdornment,
   TextField,
   Typography,
+  CircularProgress,
+  Skeleton,
+  Card,
+  CardContent,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import RockRatioModal from "../../components/RockRatioModal/RockRatioModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RockRatioType } from "../../types";
@@ -39,16 +43,50 @@ export default function RockRatio() {
     useState<RockRatioType | null>(null);
   const [selectedRockRatios, setSelectedRockRatios] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const queryClient = useQueryClient();
-  const { data: rockratios = [] } = useQuery({
+
+  const { data: rockratios = [], isLoading, isFetching } = useQuery({
     queryKey: ["rockratios"],
-    queryFn: () => api.get("/rockratios").then((res) => res.data.data),
+    queryFn: async () => {
+      try {
+        const response = await api.get("/rockratios");
+        return response.data.data || [];
+      } catch (error) {
+        showErrorAlert("Không thể tải dữ liệu");
+        return [];
+      }
+    },
   });
 
-  const filteredData = rockratios.filter((ratio: RockRatioType) =>
-    ratio.name?.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  // Add filtering delay simulation for better UX
+  useEffect(() => {
+    if (searchValue) {
+      setIsFiltering(true);
+      const timer = setTimeout(() => {
+        setIsFiltering(false);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsFiltering(false);
+    }
+  }, [searchValue]);
+
+  // Enhanced filtering with useMemo for performance
+  const filteredRockRatio = useMemo(() => {
+    if (!searchValue.trim()) {
+      return rockratios;
+    }
+
+    const searchTerm = searchValue.toLowerCase().trim();
+    return rockratios.filter((item: RockRatioType) => {
+      const name = item.name?.toLowerCase() || "";
+
+      return name.includes(searchTerm);
+    });
+  }, [rockratios, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newRockRatio: Partial<RockRatioType>) =>
@@ -152,6 +190,77 @@ export default function RockRatio() {
     setOpen(true);
   };
 
+  // Clear search function
+  const handleClearSearch = () => {
+    setSearchValue("");
+  };
+
+  // Loading skeleton for initial page load
+  const LoadingSkeleton = () => (
+    <Box>
+      {/* Toolbar skeleton */}
+      <Box sx={{ mb: 2 }}>
+        <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+          <Box display={"flex"} gap={2}>
+            <Skeleton variant="rectangular" width={100} height={36} />
+            <Skeleton variant="rectangular" width={80} height={36} />
+          </Box>
+          <Box display={"flex"} flex={1} gap={2}>
+            <Skeleton variant="rectangular" width={60} height={36} />
+            <Skeleton variant="rectangular" height={36} sx={{ flex: 1 }} />
+          </Box>
+          <Box display={"flex"} gap={2}>
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} variant="rectangular" width={80} height={36} />
+            ))}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Table skeleton */}
+      <Card>
+        <CardContent sx={{ p: 0 }}>
+          {[...Array(5)].map((_, index) => (
+            <Box key={index} sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Skeleton variant="rectangular" width={20} height={20} />
+                <Skeleton variant="text" width={50} />
+                <Skeleton variant="text" width={250} sx={{ flex: 1 }} />
+                <Skeleton variant="text" width={80} />
+                <Skeleton variant="circular" width={32} height={32} />
+              </Box>
+            </Box>
+          ))}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  // Custom empty state component
+  const EmptyState = () => (
+    <Box sx={{ textAlign: 'center', py: 6 }}>
+      <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+        {searchValue ? "Không tìm thấy kết quả" : "Chưa có dữ liệu"}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {searchValue
+          ? `Không có tiết diện lò xén nào phù hợp với "${searchValue}"`
+          : "Hiện tại chưa có tiết diện lò xén nào được tạo"
+        }
+      </Typography>
+      {searchValue && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleClearSearch}
+          sx={{ mt: 1 }}
+        >
+          Xóa bộ lọc
+        </Button>
+      )}
+    </Box>
+  );
+
   const columns: TableProps<RockRatioType>["columns"] = [
     {
       title: "",
@@ -186,20 +295,6 @@ export default function RockRatio() {
         </IconButton>
       ),
     },
-    // {
-    //   title: <Typography sx={{ fontWeight: 'bold' }}>Xóa</Typography>,
-    //   dataIndex: 'delete',
-    //   width: 50,
-    //   render: (_, record) => (
-    //     <IconButton onClick={() => {
-    //       if (record._id) {
-    //         handleDeleteSingle(record._id);
-    //       }
-    //     }} color="error">
-    //       <Delete />
-    //     </IconButton>
-    //   )
-    // },
   ];
 
   const rowSelection: TableRowSelection<RockRatioType> = {
@@ -209,11 +304,22 @@ export default function RockRatio() {
     },
   };
 
+  // Show loading skeleton on initial load
+  if (isLoading) {
+    return (
+      <Box>
+        <Box mt={3}>
+          <LoadingSkeleton />
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{
-    px: 5,           // horizontal = 32px
-    py: 1,           // vertical = 8px
-  }}>
+      px: 5,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Tỉ lệ đá lẫn trong gương</Typography>
@@ -271,9 +377,10 @@ export default function RockRatio() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -289,11 +396,25 @@ export default function RockRatio() {
                   size="small"
                   placeholder="Tìm kiếm"
                   onChange={(e) => setSearchValue(e.target.value)}
+                  value={searchValue}
                   sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
+                        {searchValue && (
+                          <IconButton
+                            onClick={handleClearSearch}
+                            size="small"
+                            sx={{ mr: 1 }}
+                          >
+                            ×
+                          </IconButton>
+                        )}
+                        {isFiltering ? (
+                          <CircularProgress size={20} sx={{ mr: 1 }} />
+                        ) : (
+                          <Search sx={{ fontSize: 24 }} />
+                        )}
                       </InputAdornment>
                     ),
                   }}
@@ -308,9 +429,10 @@ export default function RockRatio() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -329,9 +451,10 @@ export default function RockRatio() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -350,9 +473,10 @@ export default function RockRatio() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -372,9 +496,10 @@ export default function RockRatio() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -388,9 +513,36 @@ export default function RockRatio() {
               </Box>
             </Box>
           </Box>
+          {/* Enhanced Search Results Info with Loading State */}
+          {searchValue && (
+            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+              <Typography variant="body2" color="primary">
+                {isFiltering ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CircularProgress size={16} sx={{ mr: 1 }} />
+                    Đang tìm kiếm "{searchValue}"...
+                  </Box>
+                ) : (
+                  <>
+                    Tìm thấy {filteredRockRatio.length} kết quả cho "{searchValue}"
+                    {filteredRockRatio.length > 0 && (
+                      <Button
+                        size="small"
+                        onClick={handleClearSearch}
+                        sx={{ ml: 2 }}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                    )}
+                  </>
+                )}
+              </Typography>
+            </Box>
+          )}
           <Table<RockRatioType>
             rowKey="_id"
             rowSelection={rowSelection}
+            loading={isFiltering || isFetching}
             pagination={{
               position: ["bottomCenter"],
               showSizeChanger: true,
@@ -398,12 +550,21 @@ export default function RockRatio() {
               defaultPageSize: 10,
               showTotal: (total, range) => (
                 <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                  {isFiltering ? (
+                    <Typography variant="body2" color="primary">
+                      Đang lọc...
+                    </Typography>
+                  ) : (
+                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
+                  )}
                 </div>
               ),
             }}
             columns={columns}
-            dataSource={filteredData}
+            dataSource={filteredRockRatio}
+            locale={{
+              emptyText: <EmptyState />
+            }}
           />
         </Box>
       </Box>
