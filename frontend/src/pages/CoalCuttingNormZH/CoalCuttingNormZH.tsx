@@ -46,11 +46,13 @@ export default function CoalCuttingNormZH() {
 
   const queryClient = useQueryClient();
 
-  const { data: assignmentnorms = [] } = useQuery({
-    queryKey: ["assignmentnorms"],
-    queryFn: async () =>
-      api.get("/assignmentnorms").then((res) => res.data.data),
-  });
+const { data: assignmentnorms = [] } = useQuery({
+  queryKey: ["assignmentnorms"],
+  queryFn: async () => {
+    const res = await api.get("/assignmentnorms");
+    return res.data.data; 
+  },
+});
 
   const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
     const id = cuttingnorm?._id;
@@ -453,7 +455,7 @@ export default function CoalCuttingNormZH() {
         </Box>
 
         <Table<AssignmentNormOutputType>
-          rowKey="_id"
+          rowKey="id"
           rowSelection={rowSelection}
           pagination={{
             position: ["bottomCenter"],
@@ -467,7 +469,7 @@ export default function CoalCuttingNormZH() {
             ),
           }}
           columns={columns}
-          dataSource={assignmentnorms.filter((i: any) => i.type === "coal_zh")}
+           dataSource={assignmentnorms} 
           expandable={{
             expandedRowKeys: expandedRow ? [expandedRow] : [],
             onExpand: (expanded, record) => {

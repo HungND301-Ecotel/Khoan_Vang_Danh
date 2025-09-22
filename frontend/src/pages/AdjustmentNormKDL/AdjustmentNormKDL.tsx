@@ -262,7 +262,7 @@ export default function AdjustmentNormKDL() {
             }}
             size="small"
           >
-            <Visibility color="secondary" />
+            <Visibility />
           </IconButton>
         </Box>
       ),
@@ -281,7 +281,7 @@ export default function AdjustmentNormKDL() {
       render: (_, record) => (
         <Box display="flex" justifyContent="center">
           <IconButton onClick={() => handleOpen(record)} size="small">
-            <Edit color="primary" />
+            <Edit  />
           </IconButton>
         </Box>
       ),

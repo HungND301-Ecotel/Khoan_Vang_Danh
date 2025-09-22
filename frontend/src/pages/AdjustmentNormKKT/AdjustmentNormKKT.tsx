@@ -198,7 +198,7 @@ export default function AdjustmentNormKKT() {
       width: 80,
       render: (_, record) => (
         <IconButton onClick={() => handleToggleExpand(record)}>
-          <Visibility color="secondary" />
+          <Visibility  />
         </IconButton>
       ),
     },

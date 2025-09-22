@@ -201,7 +201,7 @@ export default function PhaseGroup() {
       render: (_, record) => (
         <Box display="flex" gap={1}>
           <IconButton onClick={() => handleOpen(record)}>
-            <Edit color="primary" />
+            <Edit />
           </IconButton>
           {/* <IconButton onClick={() => {
             if (record._id) {

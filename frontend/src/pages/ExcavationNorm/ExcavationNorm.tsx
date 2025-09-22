@@ -258,7 +258,7 @@ export default function ExcavationNorm() {
             }}
             size="small"
           >
-            <Visibility color="secondary" />
+            <Visibility  />
           </IconButton>
         </Box>
       ),
@@ -276,7 +276,7 @@ export default function ExcavationNorm() {
       render: (_, record) => (
         <Box display="flex" justifyContent="center">
           <IconButton onClick={() => handleOpen(record)} size="small">
-            <Edit color="primary" />
+            <Edit />
           </IconButton>
         </Box>
       ),

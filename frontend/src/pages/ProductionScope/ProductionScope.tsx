@@ -354,7 +354,7 @@ export default function ProductScope() {
         dataIndex: "code",
         key: "code",
         render: (_: any, record: any) => (
-          <Typography sx={{ color: "blue", pl: 2 }} align="center">{record?.phase?.code}</Typography>
+          <Typography sx={{ color: "black", pl: 2 }} align="center">{record?.phase?.code}</Typography>
         ),
       },
       {
@@ -362,7 +362,7 @@ export default function ProductScope() {
         dataIndex: "phase",
         key: "phase",
         render: (phase: any) => (
-          <Typography sx={{ color: "blue", pl: 2 }}>{phase?.name}</Typography>
+          <Typography sx={{ color: "black", pl: 2 }}>{phase?.name}</Typography>
         ),
       },
     ];
@@ -400,13 +400,13 @@ export default function ProductScope() {
     }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
-        <Typography>Diện sản xuất</Typography>
+        <Typography>Điện sản xuất</Typography>
       </Breadcrumbs>
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
-              Diện sản xuất
+              Điện sản xuất
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
