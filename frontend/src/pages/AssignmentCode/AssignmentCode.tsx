@@ -103,8 +103,8 @@ export default function AssignmentCode() {
       api.post("/assignmentcodes", newAssignmentCode).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
+      setOpen(false);
       showSuccessAlert("Thêm thành công");
-      // Modal handles its own closing and firework
     },
     onError: (error: any) => {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
@@ -112,13 +112,17 @@ export default function AssignmentCode() {
   });
   const updateMutation = useMutation({
     mutationFn: (updateAssignmentCode: Partial<AssignmentCodeInputType>) =>
-      api.put(`/assignmentcodes/${updateAssignmentCode._id}`, updateAssignmentCode)
+      api
+        .put(
+          `/assignmentcodes/${updateAssignmentCode._id}`,
+          updateAssignmentCode
+        )
         .then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
+      setOpen(false);
       setSelectedAssignmentCode(null);
       showSuccessAlert("Sửa thành công");
-      // Modal handles its own closing
     },
     onError: (error: any) => {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
@@ -152,21 +156,12 @@ export default function AssignmentCode() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
-  // 1. Change handleSubmit to return Promise
-  const handleSubmit = async (values: Partial<AssignmentCodeInputType>): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (selectedAssignmentCode) {
-        updateMutation.mutate({ ...values, _id: selectedAssignmentCode._id }, {
-          onSuccess: () => resolve(),
-          onError: (error) => reject(error)
-        });
-      } else {
-        createMutation.mutate(values, {
-          onSuccess: () => resolve(),
-          onError: (error) => reject(error)
-        });
-      }
-    });
+  const handleSubmit = (values: Partial<AssignmentCodeInputType>) => {
+    if (selectedAssignmentCode) {
+      updateMutation.mutate({ ...values, _id: selectedAssignmentCode._id });
+    } else {
+      createMutation.mutate(values);
+    }
   };
   const handleOpen = (AssignmentCode?: AssignmentCodeOutputType) => {
     if (AssignmentCode) {
