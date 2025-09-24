@@ -455,7 +455,7 @@ const { data: assignmentnorms = [] } = useQuery({
         </Box>
 
         <Table<AssignmentNormOutputType>
-          rowKey="id"
+            rowKey="_id"
           rowSelection={rowSelection}
           pagination={{
             position: ["bottomCenter"],

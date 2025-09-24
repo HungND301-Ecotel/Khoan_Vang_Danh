@@ -95,7 +95,7 @@ export default function CuttingNormKBModal({
         })) ||
         assignmentcodes.map((item: any) => ({
           assignmentCode: item._id,
-          norm: undefined,
+          norm: 0,
         })),
     },
     enableReinitialize: true,
@@ -411,7 +411,7 @@ export default function CuttingNormKBModal({
                   );
                   return {
                     assignmentCode: item._id,
-                    norm: existing?.norm || undefined,
+                    norm: existing?.norm ?? 0,
                   };
                 });
                 formik.setFieldValue("norms", updatedNorms);

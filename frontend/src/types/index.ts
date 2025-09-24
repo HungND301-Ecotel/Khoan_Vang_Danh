@@ -4,6 +4,11 @@ export interface LoginType {
   password: string;
 }
 
+export interface NormFormItem {
+assignmentCode: string;
+  norm: number | undefined;
+}
+
 export interface PhaseType {
   phaseGroup: string;
   phase: string;
@@ -452,6 +457,11 @@ export interface MaterialCostUsedInputType {
     material?: string;
     quantity: number;
   };
+}
+
+export interface NormItemType {
+  assignmentCode: string;
+  norm?: number;
 }
 
 export interface MaterialCostUsedOutputType {

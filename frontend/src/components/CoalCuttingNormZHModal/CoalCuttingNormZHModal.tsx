@@ -36,12 +36,20 @@ import {
 } from "../../types";
 
 const validationSchema = yup.object().shape({
+  hardness: yup.string().required("Độ cứng là bắt buộc"),
+  code: yup.string().required("Mã định mức là bắt buộc"),
+  curbSlope: yup.string().required("Độ dốc vỉa là bắt buộc"),
+  thickness: yup.string().required("Độ dày vỉa là bắt buộc"),
   norms: yup
     .array()
     .of(
       yup.object().shape({
         assignmentCode: yup.string().required("Bắt buộc"),
-        norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
+        norm: yup
+          .number()
+          .typeError("Phải là số")
+          .required("Bắt buộc")
+          .min(0, "Định mức phải lớn hơn hoặc bằng 0"),
       })
     )
     .min(1, "Phải có ít nhất 1 định mức"),
@@ -91,25 +99,41 @@ export default function CuttingNormKBModal({
         selected?.norms?.map((item) => ({
           assignmentCode: item.assignmentCode?._id,
           norm: item.norm,
-        })) ||
-        assignmentcodes.map((item: any) => ({
-          assignmentCode: item._id,
-          norm: undefined,
-        })),
+        })) || [],
     },
     enableReinitialize: true,
     validationSchema,
-    onSubmit: async (values) => {
-      handleSubmit({
-        ...values,
-        hardness: values.hardness || undefined,
-        type: values.type as
-          | "excavation"
-          | "cutting"
-          | "coal_kb"
-          | "coal_zh"
-          | "coal_zry",
-      });
+    onSubmit: async (values, { setSubmitting }) => {
+
+      try {
+        // Kiểm tra xem form có hợp lệ không
+        if (!formik.isValid) {
+          console.log("Form không hợp lệ, không thể submit");
+          return;
+        }
+
+        await handleSubmit({
+          ...values,
+          hardness: values.hardness || undefined,
+          type: values.type as
+            | "excavation"
+            | "cutting"
+            | "coal_kb"
+            | "coal_zh"
+            | "coal_zry",
+          norms: values.norms.map((item) => ({
+            assignmentCode: item.assignmentCode || "",
+            norm: item.norm,
+          })),
+        });
+
+        // Đóng modal sau khi submit thành công
+        setOpen(false);
+      } catch (error) {
+        console.error("Submit error:", error);
+      } finally {
+        setSubmitting(false);
+      }
     },
   });
 
@@ -123,13 +147,41 @@ export default function CuttingNormKBModal({
       );
       setSelectedAssignmentCodes(selectedCodes);
     } else {
+      // Trường hợp tạo mới: chọn tất cả assignment codes
       setSelectedAssignmentCodes(assignmentcodes);
+      // Khởi tạo norms với tất cả assignment codes
+      const initialNorms = assignmentcodes.map((item: any) => ({
+        assignmentCode: item._id,
+        norm: "",
+      }));
+      formik.setFieldValue("norms", initialNorms);
     }
   }, [selected, assignmentcodes]);
 
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+  };
+
+  // Hàm xử lý khi thay đổi Autocomplete
+  const handleAssignmentCodesChange = (
+    event: any,
+    newValue: AssignmentCodeOutputType[]
+  ) => {
+    setSelectedAssignmentCodes(newValue);
+
+    // Cập nhật norms array dựa trên các assignment code được chọn
+    const updatedNorms = newValue.map((item) => {
+      const existingNorm = formik.values.norms.find(
+        (n: any) => n.assignmentCode === item._id
+      );
+      return {
+        assignmentCode: item._id,
+        norm: existingNorm?.norm || "",
+      };
+    });
+
+    formik.setFieldValue("norms", updatedNorms);
   };
 
   return (
@@ -205,6 +257,11 @@ export default function CuttingNormKBModal({
               onChange={(event) => {
                 formik.setFieldValue("thickness", event.target.value);
               }}
+              onBlur={formik.handleBlur}
+              error={
+                formik.touched.thickness && Boolean(formik.errors.thickness)
+              }
+              helperText={formik.touched.thickness && formik.errors.thickness}
               variant="outlined"
               InputProps={{
                 startAdornment: formik.values.thickness ? null : (
@@ -231,10 +288,14 @@ export default function CuttingNormKBModal({
                   color: formik.values.thickness ? "inherit" : "transparent",
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
+                  borderColor:
+                    formik.touched.thickness && formik.errors.thickness
+                      ? "red"
+                      : "#D9D9D9",
                 },
               }}
             >
+              <MenuItem value="">Chọn độ dày vỉa</MenuItem>
               {thickness?.map((item: ThicknessType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
@@ -254,6 +315,11 @@ export default function CuttingNormKBModal({
               onChange={(event) =>
                 formik.setFieldValue("curbSlope", event.target.value)
               }
+              onBlur={formik.handleBlur}
+              error={
+                formik.touched.curbSlope && Boolean(formik.errors.curbSlope)
+              }
+              helperText={formik.touched.curbSlope && formik.errors.curbSlope}
               variant="outlined"
               InputProps={{
                 startAdornment: formik.values.curbSlope ? null : (
@@ -280,10 +346,14 @@ export default function CuttingNormKBModal({
                   color: formik.values.curbSlope ? "inherit" : "transparent",
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
+                  borderColor:
+                    formik.touched.curbSlope && formik.errors.curbSlope
+                      ? "red"
+                      : "#D9D9D9",
                 },
               }}
             >
+              <MenuItem value="">Chọn độ dốc vỉa</MenuItem>
               {curbslopes?.map((item: LengthType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
@@ -303,6 +373,9 @@ export default function CuttingNormKBModal({
               onChange={(event) =>
                 formik.setFieldValue("hardness", event.target.value)
               }
+              onBlur={formik.handleBlur}
+              error={formik.touched.hardness && Boolean(formik.errors.hardness)}
+              helperText={formik.touched.hardness && formik.errors.hardness}
               variant="outlined"
               InputProps={{
                 startAdornment: formik.values.hardness ? null : (
@@ -329,10 +402,14 @@ export default function CuttingNormKBModal({
                   color: formik.values.hardness ? "inherit" : "transparent",
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
+                  borderColor:
+                    formik.touched.hardness && formik.errors.hardness
+                      ? "red"
+                      : "#D9D9D9",
                 },
               }}
             >
+              <MenuItem value="">Chọn độ cứng</MenuItem>
               {hardness?.map((item: HardnessType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
@@ -348,10 +425,13 @@ export default function CuttingNormKBModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <TextField
               value={formik.values.code || ""}
-              placeholder="Input Text"
+              placeholder="Nhập mã định mức"
               onChange={(event) =>
                 formik.setFieldValue("code", event.target.value)
               }
+              onBlur={formik.handleBlur}
+              error={formik.touched.code && Boolean(formik.errors.code)}
+              helperText={formik.touched.code && formik.errors.code}
               variant="outlined"
               sx={{
                 width: "700px",
@@ -367,7 +447,10 @@ export default function CuttingNormKBModal({
                   opacity: 1,
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
+                  borderColor:
+                    formik.touched.code && formik.errors.code
+                      ? "red"
+                      : "#D9D9D9",
                 },
               }}
             />
@@ -392,31 +475,24 @@ export default function CuttingNormKBModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Autocomplete
               multiple
-              options={assignmentcodes.filter(
-                (opt: AssignmentCodeOutputType) =>
-                  !selectedAssignmentCodes.some(
-                    (selected) => selected._id === opt._id
-                  )
-              )}
+              options={assignmentcodes}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
                 option.code || ""
               }
               value={selectedAssignmentCodes}
-              onChange={(event, newValue) => {
-                setSelectedAssignmentCodes(newValue);
-                const updatedNorms = newValue.map((item) => {
-                  const existing = formik.values.norms.find(
-                    (n: any) => n.assignmentCode === item._id
-                  );
-                  return {
-                    assignmentCode: item._id,
-                    norm: existing?.norm || undefined,
-                  };
-                });
-                formik.setFieldValue("norms", updatedNorms);
-              }}
+              onChange={handleAssignmentCodesChange}
               renderInput={(params) => (
-                <TextField {...params} variant="outlined" />
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  error={formik.touched.norms && Boolean(formik.errors.norms)}
+                  helperText={
+                    formik.touched.norms &&
+                    typeof formik.errors.norms === "string"
+                      ? formik.errors.norms
+                      : ""
+                  }
+                />
               )}
               sx={{
                 width: "700px",
@@ -450,11 +526,25 @@ export default function CuttingNormKBModal({
                   fontSize: "14px",
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
+                  borderColor:
+                    formik.touched.norms && formik.errors.norms
+                      ? "red"
+                      : "#D9D9D9",
                 },
               }}
             />
           </Box>
+
+          {/* Hiển thị lỗi tổng của norms */}
+          {formik.errors.norms && typeof formik.errors.norms === "string" && (
+            <Typography
+              color="error"
+              sx={{ fontSize: "12px", mt: 1, textAlign: "center" }}
+            >
+              {formik.errors.norms}
+            </Typography>
+          )}
+
           <FieldArray name="norms">
             {() => (
               <Box
@@ -482,9 +572,8 @@ export default function CuttingNormKBModal({
                           value={
                             assignmentcodes.find(
                               (ac: AssignmentCodeOutputType) =>
-                                ac._id ===
-                                formik.values.norms[index].assignmentCode
-                            )?.code
+                                ac._id === item.assignmentCode
+                            )?.code || ""
                           }
                           InputLabelProps={{ shrink: true }}
                           variant="outlined"
@@ -513,9 +602,8 @@ export default function CuttingNormKBModal({
                           value={
                             assignmentcodes.find(
                               (ac: AssignmentCodeOutputType) =>
-                                ac._id ===
-                                formik.values.norms[index].assignmentCode
-                            )?.name
+                                ac._id === item.assignmentCode
+                            )?.name || ""
                           }
                           InputLabelProps={{ shrink: true }}
                           variant="outlined"
@@ -543,12 +631,29 @@ export default function CuttingNormKBModal({
                           fullWidth
                           type="number"
                           name={`norms[${index}].norm`}
-                          value={formik.values.norms[index]?.norm || ""}
-                          onChange={(e) =>
+                          value={item.norm || ""}
+                          onChange={(e) => {
                             formik.setFieldValue(
                               `norms[${index}].norm`,
-                              e.target.value
+                              e.target.value === ""
+                                ? ""
+                                : Number(e.target.value)
+                            );
+                          }}
+                          onBlur={formik.handleBlur}
+                          error={
+                            formik.touched.norms?.[index]?.norm &&
+                            typeof formik.errors.norms?.[index] === "object" &&
+                            Boolean(
+                              (formik.errors.norms?.[index] as { norm?: any })
+                                ?.norm
                             )
+                          }
+                          helperText={
+                            formik.touched.norms?.[index]?.norm &&
+                            formik.errors.norms?.[index] &&
+                            typeof formik.errors.norms[index] === "object" &&
+                            (formik.errors.norms[index] as any)?.norm
                           }
                           variant="outlined"
                           sx={{
@@ -557,12 +662,19 @@ export default function CuttingNormKBModal({
                               borderRadius: "6px",
                               px: "12px",
                               fontSize: "14px",
-                              backgroundColor: formik.values.norms[index]?.norm
+                              backgroundColor: item.norm
                                 ? "#F2F2F2"
                                 : "#FFFFFF",
                             },
                             "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#D9D9D9",
+                              borderColor:
+                                formik.touched.norms?.[index]?.norm &&
+                                formik.errors.norms?.[index] &&
+                                typeof formik.errors.norms[index] ===
+                                  "object" &&
+                                (formik.errors.norms[index] as any)?.norm
+                                  ? "red"
+                                  : "#D9D9D9",
                             },
                           }}
                         />
@@ -601,18 +713,28 @@ export default function CuttingNormKBModal({
           Hủy
         </Button>
         <Button
-          onClick={() => formik.submitForm()}
+          onClick={() => formik.handleSubmit()}
           variant="contained"
+          disabled={!formik.isValid || formik.isSubmitting}
           sx={{
-            backgroundColor: "#007BFF",
+            backgroundColor: formik.isValid ? "#007BFF" : "#ccc",
             borderRadius: "8px",
             height: "32px",
             minWidth: "91px",
             fontSize: "14px",
             textTransform: "none",
+            "&:disabled": {
+              backgroundColor: "#ccc",
+              color: "#666",
+              cursor: "not-allowed",
+            },
           }}
         >
-          {selected ? "Cập nhật" : "Xác nhận"}
+          {formik.isSubmitting
+            ? "Đang xử lý..."
+            : selected
+            ? "Cập nhật"
+            : "Xác nhận"}
         </Button>
       </DialogActions>
     </Dialog>
