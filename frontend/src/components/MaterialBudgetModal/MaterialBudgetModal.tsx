@@ -588,6 +588,3 @@ export default function MaterialBudgetModal({
     </Dialog>
   );
 }
-
-
-

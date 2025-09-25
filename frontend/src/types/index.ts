@@ -428,6 +428,7 @@ export interface MaterialBudgetInputType {
   production?: number;
   assignmentNormCode: string;
   adjustmentNormCode: string;
+   phases?: PhaseType[];
 }
 
 //

@@ -81,116 +81,125 @@ export default function SettlementReport() {
   let rowIndex = 0;
 
   return (
-    <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2 }}>
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-              <Box display={"flex"} gap={2}>
-                <Grid container spacing={2} mb={3}>
-                  <Grid item xs={4}>
-                    <Typography
-                      variant="body2"
-                      sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                    >
-                      Ngày bắt đầu
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Placeholder"
-                      sx={{
-                        width: 168,
-                        height: 32,
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "#f8f9fa",
-                          "& fieldset": { borderColor: "#e0e0e0" },
-                          "&:hover fieldset": { borderColor: "#bdbdbd" },
-                        },
-                      }}
-                      select
-                      value={selectedYear}
-                      InputProps={{ endAdornment: <CalendarToday /> }}
-                      SelectProps={{ IconComponent: () => null }}
-                      onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    >
-                      {years.map((item, index) => (
-                        <MenuItem key={index} value={item}>
-                          {item}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography
-                      variant="body2"
-                      sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                    >
-                      Ngày kết thúc
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Placeholder"
-                      sx={{
-                        width: 168,
-                        height: 32,
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "#f8f9fa",
-                          "& fieldset": { borderColor: "#e0e0e0" },
-                          "&:hover fieldset": { borderColor: "#bdbdbd" },
-                        },
-                      }}
-                      select
-                      InputProps={{ endAdornment: <CalendarToday /> }}
-                      SelectProps={{ IconComponent: () => null }}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                    >
-                      {Array.from({ length: 12 }).map((_, index) => (
-                        <MenuItem key={index} value={index + 1}>
-                          {index + 1}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography
-                      variant="body2"
-                      sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                    >
-                      Chọn công đoạn
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Placeholder"
-                      sx={{
-                        width: 168,
-                        height: 32,
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "#f8f9fa",
-                          "& fieldset": { borderColor: "#e0e0e0" },
-                          "&:hover fieldset": { borderColor: "#bdbdbd" },
-                        },
-                      }}
-                      select
-                      variant="outlined"
-                    >
-                      {phases?.map((item: PhaseOutputType) => (
-                        <MenuItem key={item._id} value={item._id}>
-                          {item.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                </Grid>
+            {/* Fixed layout structure */}
+            <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={2}>
+              {/* Left side - Form fields */}
+              <Box display="flex" gap={2} flexWrap="wrap">
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                  >
+                    Ngày bắt đầu
+                  </Typography>
+                  <TextField
+                    size="small"
+                    placeholder="Chọn năm"
+                    sx={{
+                      width: 168,
+                      height: 32,
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: "#f8f9fa",
+                        "& fieldset": { borderColor: "#e0e0e0" },
+                        "&:hover fieldset": { borderColor: "#bdbdbd" },
+                      },
+                    }}
+                    select
+                    value={selectedYear}
+                    InputProps={{ endAdornment: <CalendarToday /> }}
+                    SelectProps={{ IconComponent: () => null }}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  >
+                    {years.map((item, index) => (
+                      <MenuItem key={index} value={item}>
+                        {item}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+                
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                  >
+                    Ngày kết thúc
+                  </Typography>
+                  <TextField
+                    size="small"
+                    placeholder="Chọn tháng"
+                    sx={{
+                      width: 168,
+                      height: 32,
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: "#f8f9fa",
+                        "& fieldset": { borderColor: "#e0e0e0" },
+                        "&:hover fieldset": { borderColor: "#bdbdbd" },
+                      },
+                    }}
+                    select
+                    InputProps={{ endAdornment: <CalendarToday /> }}
+                    SelectProps={{ IconComponent: () => null }}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  >
+                    {Array.from({ length: 12 }).map((_, index) => (
+                      <MenuItem key={index} value={index + 1}>
+                        Tháng {index + 1}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+                
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                  >
+                    Chọn công đoạn
+                  </Typography>
+                  <TextField
+                    size="small"
+                    placeholder="Chọn công đoạn"
+                    sx={{
+                      width: 168,
+                      height: 32,
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: "#f8f9fa",
+                        "& fieldset": { borderColor: "#e0e0e0" },
+                        "&:hover fieldset": { borderColor: "#bdbdbd" },
+                      },
+                    }}
+                    select
+                    variant="outlined"
+                  >
+                    {phases?.map((item: PhaseOutputType) => (
+                      <MenuItem key={item._id} value={item._id}>
+                        {item.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
               </Box>
-              <Box display="flex" gap={2} alignItems="center">
+
+              {/* Right side - Action buttons */}
+              <Box
+  sx={{
+    position: "relative",
+    padding: "13px",
+    display: "flex",
+    gap: "16px",
+    alignItems: "center",
+    bottom: "-20px",
+  }}
+>
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
-                  // onClick={handleExport}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
@@ -216,7 +225,6 @@ export default function SettlementReport() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
-                  // onClick={handlePrint}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
@@ -243,7 +251,6 @@ export default function SettlementReport() {
                   color="inherit"
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
-                  // onClick={handleSend}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
