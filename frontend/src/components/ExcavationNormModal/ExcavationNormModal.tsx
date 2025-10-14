@@ -4,11 +4,13 @@ import {
   Box,
   Breadcrumbs,
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
+  FormControlLabel,
   Grid,
   IconButton,
   InputAdornment,
@@ -43,9 +45,8 @@ export default function ExcavationNormModal({
   selected: AssignmentNormOutputType | null;
 }) {
   const [phaseGroup, setPhaseGroup] = useState<string | null>(null);
-  const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<
-    AssignmentCodeOutputType[]
-  >([]);
+const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([]);
+  const [showAdditionalRows, setShowAdditionalRows] = useState(false);
 
   const { data: phasegroups = [] } = useQuery({
     queryKey: ["phasegroups"],
@@ -93,6 +94,12 @@ export default function ExcavationNormModal({
       code: selected?.code || "",
       excavationTech: selected?.excavationTech?._id || "",
       type: "excavation",
+      interpolationMethod: "",
+      interpolationPoint: "",
+      upperLimitNorm: "",
+      upperLimitPoint: "",
+      lowerLimitNorm: "",
+      lowerLimitPoint: "",
       norms:
         selected?.norms
           ?.filter((item) => item.assignmentCode)
@@ -135,6 +142,7 @@ export default function ExcavationNormModal({
 
   const handleClose = () => {
     formik.resetForm();
+    setShowAdditionalRows(false);
     setOpen(false);
   };
 
@@ -145,7 +153,7 @@ export default function ExcavationNormModal({
       PaperProps={{
         sx: {
           width: "800px",
-          height: "740px",
+          maxHeight: "90vh",
           p: "40px",
         },
       }}
@@ -196,7 +204,7 @@ export default function ExcavationNormModal({
         )}
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0, overflowY: "auto" }}>
         <FormikProvider value={formik}>
           {/* Nhóm công đoạn */}
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
@@ -343,52 +351,7 @@ export default function ExcavationNormModal({
             </TextField>
           </Box>
 
-          {/* Độ cứng
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-            Độ cứng
-          </Typography>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.hardness || ""}
-              onChange={(event) =>
-                formik.setFieldValue("hardness", event.target.value)
-              }
-              variant="outlined"
-              InputProps={{
-                startAdornment: formik.values.hardness ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Placeholder
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                },
-                "& .MuiInputBase-input": {
-                  color: formik.values.hardness ? "inherit" : "transparent",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: formik.values.hardness ? "inherit" : "#D9D9D9",
-                },
-              }}
-            >
-              {hardness?.map((item: HardnessType) => (
-                <MenuItem key={item._id} value={item._id}>
-                  {item.name}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Box> */}
-
+          {/* Chống */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Chống
           </Typography>
@@ -433,6 +396,288 @@ export default function ExcavationNormModal({
               ))}
             </TextField>
           </Box>
+
+          {/* Checkbox for additional rows */}
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showAdditionalRows}
+                  onChange={(e) => setShowAdditionalRows(e.target.checked)}
+                  sx={{
+                    color: "#007BFF",
+                    "&.Mui-checked": {
+                      color: "#007BFF",
+                    },
+                  }}
+                />
+              }
+              label={
+                <Typography sx={{ fontSize: "14px" }}>
+                  Tạo định mức bảng phương pháp nội suy
+                </Typography>
+              }
+              sx={{ width: "700px" }}
+            />
+          </Box>
+
+          {/* Additional rows - shown when checkbox is checked */}
+          {showAdditionalRows && (
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "center" }}>
+                <Grid container spacing={2} sx={{ width: "700px" }}>
+                  {/* Phương pháp nội suy */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Phương pháp nội suy
+                    </Typography>
+                    <TextField
+                      select
+                      fullWidth
+                      value={formik.values.interpolationMethod || ""}
+                      onChange={(event) =>
+                        formik.setFieldValue(
+                          "interpolationMethod",
+                          event.target.value
+                        )
+                      }
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: formik.values.interpolationMethod ? null : (
+                          <InputAdornment
+                            position="start"
+                            sx={{ color: "#D9D9D9", ml: "12px" }}
+                          >
+                            Placeholder
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& .MuiInputBase-input": {
+                          color: formik.values.interpolationMethod
+                            ? "inherit"
+                            : "transparent",
+                        },
+                        "& .MuiOutlinedInput-notchedOutline": {
+                          borderColor: formik.values.interpolationMethod
+                            ? "inherit"
+                            : "#D9D9D9",
+                        },
+                      }}
+                    >
+                      <MenuItem value="method1">Phương pháp 1</MenuItem>
+                      <MenuItem value="method2">Phương pháp 2</MenuItem>
+                    </TextField>
+                  </Grid>
+
+                  {/* Điểm nội suy */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Điểm nội suy
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      value={formik.values.interpolationPoint || ""}
+                      placeholder="Input Text"
+                      onChange={(event) =>
+                        formik.setFieldValue(
+                          "interpolationPoint",
+                          event.target.value
+                        )
+                      }
+                      variant="outlined"
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& input::placeholder": {
+                          color: "#D9D9D9",
+                          opacity: 1,
+                        },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Định mức cận trên */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Định mức cận trên
+                    </Typography>
+                    <TextField
+                      select
+                      fullWidth
+                      value={formik.values.upperLimitNorm || ""}
+                      onChange={(event) =>
+                        formik.setFieldValue("upperLimitNorm", event.target.value)
+                      }
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: formik.values.upperLimitNorm ? null : (
+                          <InputAdornment
+                            position="start"
+                            sx={{ color: "#D9D9D9", ml: "12px" }}
+                          >
+                            Placeholder
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& .MuiInputBase-input": {
+                          color: formik.values.upperLimitNorm
+                            ? "inherit"
+                            : "transparent",
+                        },
+                        "& .MuiOutlinedInput-notchedOutline": {
+                          borderColor: formik.values.upperLimitNorm
+                            ? "inherit"
+                            : "#D9D9D9",
+                        },
+                      }}
+                    >
+                      <MenuItem value="norm1">Định mức 1</MenuItem>
+                      <MenuItem value="norm2">Định mức 2</MenuItem>
+                    </TextField>
+                  </Grid>
+
+                  {/* Xiểm cận trên */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Xiểm cận trên
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      value={formik.values.upperLimitPoint || ""}
+                      placeholder="Input Text"
+                      onChange={(event) =>
+                        formik.setFieldValue(
+                          "upperLimitPoint",
+                          event.target.value
+                        )
+                      }
+                      variant="outlined"
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& input::placeholder": {
+                          color: "#D9D9D9",
+                          opacity: 1,
+                        },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Định mức cận dưới */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Định mức cận dưới
+                    </Typography>
+                    <TextField
+                      select
+                      fullWidth
+                      value={formik.values.lowerLimitNorm || ""}
+                      onChange={(event) =>
+                        formik.setFieldValue("lowerLimitNorm", event.target.value)
+                      }
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: formik.values.lowerLimitNorm ? null : (
+                          <InputAdornment
+                            position="start"
+                            sx={{ color: "#D9D9D9", ml: "12px" }}
+                          >
+                            Placeholder
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& .MuiInputBase-input": {
+                          color: formik.values.lowerLimitNorm
+                            ? "inherit"
+                            : "transparent",
+                        },
+                        "& .MuiOutlinedInput-notchedOutline": {
+                          borderColor: formik.values.lowerLimitNorm
+                            ? "inherit"
+                            : "#D9D9D9",
+                        },
+                      }}
+                    >
+                      <MenuItem value="norm1">Định mức 1</MenuItem>
+                      <MenuItem value="norm2">Định mức 2</MenuItem>
+                    </TextField>
+                  </Grid>
+
+                  {/* Điểm cận dưới */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Điểm cận dưới
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      value={formik.values.lowerLimitPoint || ""}
+                      placeholder="Input Text"
+                      onChange={(event) =>
+                        formik.setFieldValue(
+                          "lowerLimitPoint",
+                          event.target.value
+                        )
+                      }
+                      variant="outlined"
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& input::placeholder": {
+                          color: "#D9D9D9",
+                          opacity: 1,
+                        },
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            </Box>
+          )}
 
           {/* Mã định mức */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
@@ -484,7 +729,7 @@ export default function ExcavationNormModal({
               options={assignmentcodes.filter(
                 (opt: AssignmentCodeOutputType) =>
                   !selectedAssignmentCodes.some(
-                    (selected) => selected._id === opt._id
+                    (selected: AssignmentCodeOutputType) => selected._id === opt._id
                   )
               )}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
@@ -507,9 +752,6 @@ export default function ExcavationNormModal({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  // placeholder={
-                  //   selectedAssignmentCodes.length === 0 ? "Placeholder" : ""
-                  // }
                   sx={{ color: "#D9D9D9" }}
                   variant="outlined"
                 />
