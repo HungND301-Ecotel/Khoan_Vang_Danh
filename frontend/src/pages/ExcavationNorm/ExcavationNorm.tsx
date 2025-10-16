@@ -50,10 +50,10 @@ export default function ExcavationNorm() {
     queryFn: async () =>
       api.get(`/assignmentnorms?q=${searchValue}`).then((res) => res.data.data),
   });
-  
- const filteredData = assignmentnorms.filter(
-   (i: AssignmentNormOutputType) => i.type === "excavation"
- );
+
+  const filteredData = assignmentnorms.filter(
+    (i: AssignmentNormOutputType) => i.type === "excavation"
+  );
 
   const createMutation = useMutation({
     mutationFn: (newExcavationNorm: Partial<AssignmentNormInputType>) =>
@@ -292,8 +292,8 @@ export default function ExcavationNorm() {
 
   return (
     <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
+      px: 5,
+      py: 1,
     }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Đơn giá và định mức</Typography>
@@ -354,9 +354,10 @@ export default function ExcavationNorm() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -392,9 +393,10 @@ export default function ExcavationNorm() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -413,9 +415,10 @@ export default function ExcavationNorm() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -434,9 +437,10 @@ export default function ExcavationNorm() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -456,9 +460,10 @@ export default function ExcavationNorm() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -504,6 +509,8 @@ export default function ExcavationNorm() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+        hasExistingRecords={filteredData.length > 1}
+        existingNorms={filteredData}  // Add this line
       />
     </Box>
   );

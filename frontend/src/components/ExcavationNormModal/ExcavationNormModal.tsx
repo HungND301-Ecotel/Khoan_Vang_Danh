@@ -38,20 +38,25 @@ export default function ExcavationNormModal({
   setOpen,
   handleSubmit,
   selected,
+  hasExistingRecords,
+  existingNorms,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<AssignmentNormInputType>) => void;
   selected: AssignmentNormOutputType | null;
+  hasExistingRecords: boolean;
+  existingNorms: AssignmentNormOutputType[];
 }) {
   const [phaseGroup, setPhaseGroup] = useState<string | null>(null);
-const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([]);
+  const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([]);
   const [showAdditionalRows, setShowAdditionalRows] = useState(false);
 
   const { data: phasegroups = [] } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: async () => api.get("/phasegroups").then((res) => res.data.data),
   });
+
   const { data: phases = [] } = useQuery({
     queryKey: ["phases", phaseGroup],
     queryFn: async () =>
@@ -64,14 +69,17 @@ const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<Assignmen
     queryFn: async () =>
       api.get(`/assignmentcodes`).then((res) => res.data.data),
   });
+
   const { data: steps = [] } = useQuery({
     queryKey: ["steps"],
     queryFn: async () => api.get(`/steps`).then((res) => res.data.data),
   });
+
   const { data: hardness = [] } = useQuery({
     queryKey: ["hardness"],
     queryFn: async () => api.get(`/hardness`).then((res) => res.data.data),
   });
+
   const { data: excavationtechs = [] } = useQuery({
     queryKey: ["excavationtechs"],
     queryFn: () => api.get("/excavationtechs").then((res) => res.data.data),
@@ -351,75 +359,31 @@ const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<Assignmen
             </TextField>
           </Box>
 
-          {/* Chống */}
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-            Chống
-          </Typography>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.step || ""}
-              onChange={(event) =>
-                formik.setFieldValue("step", event.target.value)
-              }
-              variant="outlined"
-              InputProps={{
-                startAdornment: formik.values.step ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Placeholder
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                },
-                "& .MuiInputBase-input": {
-                  color: formik.values.step ? "inherit" : "transparent",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: formik.values.step ? "inherit" : "#D9D9D9",
-                },
-              }}
-            >
-              {steps?.map((step: StepType) => (
-                <MenuItem key={step._id} value={step._id}>
-                  {step.name}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Box>
-
-          {/* Checkbox for additional rows */}
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={showAdditionalRows}
-                  onChange={(e) => setShowAdditionalRows(e.target.checked)}
-                  sx={{
-                    color: "#007BFF",
-                    "&.Mui-checked": {
+          {/* Checkbox for additional rows - only show if there are existing records in the page table */}
+          {hasExistingRecords && selectedAssignmentCodes && selectedAssignmentCodes.length > 0 && (
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showAdditionalRows}
+                    onChange={(e) => setShowAdditionalRows(e.target.checked)}
+                    sx={{
                       color: "#007BFF",
-                    },
-                  }}
-                />
-              }
-              label={
-                <Typography sx={{ fontSize: "14px" }}>
-                  Tạo định mức bảng phương pháp nội suy
-                </Typography>
-              }
-              sx={{ width: "700px" }}
-            />
-          </Box>
+                      "&.Mui-checked": {
+                        color: "#007BFF",
+                      },
+                    }}
+                  />
+                }
+                label={
+                  <Typography sx={{ fontSize: "14px" }}>
+                    Tạo định mức bảng phương pháp nội suy
+                  </Typography>
+                }
+                sx={{ width: "700px" }}
+              />
+            </Box>
+          )}
 
           {/* Additional rows - shown when checkbox is checked */}
           {showAdditionalRows && (
@@ -473,8 +437,7 @@ const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<Assignmen
                         },
                       }}
                     >
-                      <MenuItem value="method1">Phương pháp 1</MenuItem>
-                      <MenuItem value="method2">Phương pháp 2</MenuItem>
+                      <MenuItem value="method1">Phương pháp tuyến tính</MenuItem>
                     </TextField>
                   </Grid>
 
@@ -555,17 +518,20 @@ const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<Assignmen
                         },
                       }}
                     >
-                      <MenuItem value="norm1">Định mức 1</MenuItem>
-                      <MenuItem value="norm2">Định mức 2</MenuItem>
+                      {existingNorms.map((norm) => (
+                        <MenuItem key={norm._id} value={norm._id}>
+                          {norm.code}
+                        </MenuItem>
+                      ))}
                     </TextField>
                   </Grid>
 
-                  {/* Xiểm cận trên */}
+                  {/* Điểm cận trên */}
                   <Grid item xs={6}>
                     <Typography
                       sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
                     >
-                      Xiểm cận trên
+                      Điểm cận trên
                     </Typography>
                     <TextField
                       fullWidth
@@ -637,8 +603,11 @@ const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<Assignmen
                         },
                       }}
                     >
-                      <MenuItem value="norm1">Định mức 1</MenuItem>
-                      <MenuItem value="norm2">Định mức 2</MenuItem>
+                      {existingNorms.map((norm) => (
+                        <MenuItem key={norm._id} value={norm._id}>
+                          {norm.code}
+                        </MenuItem>
+                      ))}
                     </TextField>
                   </Grid>
 
@@ -677,6 +646,56 @@ const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<Assignmen
                 </Grid>
               </Box>
             </Box>
+          )}
+
+          {/* Chống - only show when checkbox is NOT checked */}
+          {!showAdditionalRows && (
+            <>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+                Chống
+              </Typography>
+              <Box sx={{ display: "flex", justifyContent: "center" }}>
+                <TextField
+                  select
+                  value={formik.values.step || ""}
+                  onChange={(event) =>
+                    formik.setFieldValue("step", event.target.value)
+                  }
+                  variant="outlined"
+                  InputProps={{
+                    startAdornment: formik.values.step ? null : (
+                      <InputAdornment
+                        position="start"
+                        sx={{ color: "#D9D9D9", ml: "12px" }}
+                      >
+                        Placeholder
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    width: "700px",
+                    "& .MuiInputBase-root": {
+                      height: "32px",
+                      borderRadius: "6px",
+                      px: "12px",
+                      fontSize: "14px",
+                    },
+                    "& .MuiInputBase-input": {
+                      color: formik.values.step ? "inherit" : "transparent",
+                    },
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: formik.values.step ? "inherit" : "#D9D9D9",
+                    },
+                  }}
+                >
+                  {steps?.map((step: StepType) => (
+                    <MenuItem key={step._id} value={step._id}>
+                      {step.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+            </>
           )}
 
           {/* Mã định mức */}
