@@ -18,16 +18,18 @@ import {
 } from "@mui/material";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
-import { FieldArray, FormikProvider, useFormik } from "formik";
+import { FieldArray, FormikProvider, useFormik, FormikErrors } from "formik";
 import api from "../../config/api.config";
 import {
   MaterialCostUsedInputType,
   MaterialCostUsedOutputType,
   ProductionScopeOutputType,
+  AssignmentNormOutputType,
   Materials,
   MaterialBudgetOutputType,
   PhaseGroupType,
   PhaseOutputType,
+  PhaseType,
 } from "../../types";
 import { CircleX } from "lucide-react";
 
@@ -42,6 +44,7 @@ export default function MaterialCostUsedModal({
   handleSubmit: (values: Partial<MaterialCostUsedInputType>) => void;
   selected: MaterialCostUsedOutputType | null;
 }) {
+  const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{ [key: number]: string }>({});
   const [selectedMaterials, setSelectedMaterials] = useState<Materials[]>([]);
 
   const { data: productionscopes = [] } = useQuery({
@@ -64,6 +67,17 @@ export default function MaterialCostUsedModal({
     queryFn: async () =>
       api.get("/materialbudgets").then((res) => res.data.data),
   });
+  const { data: assignmentnorms = [] } = useQuery({
+      queryKey: ["assignmentnorms"],
+      queryFn: async () =>
+        api.get("/assignmentnorms").then((res) => res.data.data),
+    });
+  
+    const { data: adjustmentnorms = [] } = useQuery({
+      queryKey: ["adjustmentnorms"],
+      queryFn: async () =>
+        api.get("/adjustmentnorms").then((res) => res.data.data),
+    });
 
   // Initial values
   const formik = useFormik({
@@ -72,6 +86,7 @@ export default function MaterialCostUsedModal({
       materialBudgetCode: selected?.materialBudget?._id
         ? String(selected.materialBudget._id)
         : "",
+      assignmentNormCode: "",
       productionScope: selected?.productionScope?._id
         ? String(selected.productionScope._id)
         : "",
@@ -113,6 +128,32 @@ export default function MaterialCostUsedModal({
     formik.resetForm();
     setOpen(false);
   };
+
+  const handlePhaseChange = (index: number, field: keyof PhaseType, value: any) => {
+      const newPhases = [...formik.values.phases];
+      newPhases[index] = { ...newPhases[index], [field]: value };
+  
+      if (field === "phaseGroup") {
+        newPhases[index].phase = "";
+  
+        setPhaseGroupsForQuery({
+          ...phaseGroupsForQuery,
+          [index]: value
+        });
+      }
+  
+      formik.setFieldValue("phases", newPhases);
+    };
+
+    const getError = (index: number, field: keyof PhaseType): string => {
+        const error = formik.errors.phases?.[index] as FormikErrors<PhaseType> | undefined;
+        const touched = formik.touched.phases?.[index] as Record<keyof PhaseType, boolean> | undefined;
+    
+        if (touched?.[field] && error?.[field]) {
+          return error[field] as string;
+        }
+        return "";
+      };
 
   return (
     <Dialog
@@ -415,6 +456,42 @@ export default function MaterialCostUsedModal({
                           }}
                         />
                       </Box>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                          Mã định mức giao khoán
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={phase.assignmentNormCode}
+                          onChange={(e) => handlePhaseChange(index, "assignmentNormCode", e.target.value)}
+                          error={Boolean(getError(index, "assignmentNormCode"))}
+                          helperText={getError(index, "assignmentNormCode")}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "40px",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              backgroundColor: "#fff",
+                            },
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: "#d0d7de",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "#0969da",
+                              },
+                            },
+                          }}
+                        >
+                          {assignmentnorms?.map((item: AssignmentNormOutputType) => (
+                            <MenuItem key={item._id} value={item._id}>
+                              {item.code}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Box>
                     </Box>
                   );
                 })}
@@ -503,6 +580,7 @@ export default function MaterialCostUsedModal({
           </Box>
 
           {/* Danh sách materials */}
+          {/* Danh sách materials */}
           <FieldArray name="materials">
             {() => (
               <Box
@@ -523,6 +601,7 @@ export default function MaterialCostUsedModal({
                     }}
                   >
                     <Grid container spacing={2} sx={{ width: "700px" }}>
+                      {/* Mã vật tư */}
                       <Grid item xs={12} sm={3}>
                         <Typography
                           sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -534,8 +613,7 @@ export default function MaterialCostUsedModal({
                           value={
                             materialassignments.find(
                               (ac: Materials) =>
-                                ac._id ===
-                                formik.values.materials[index].material
+                                ac._id === formik.values.materials[index].material
                             )?.code || ""
                           }
                           InputLabelProps={{ shrink: true }}
@@ -554,6 +632,8 @@ export default function MaterialCostUsedModal({
                           }}
                         />
                       </Grid>
+
+                      {/* Tên vật tư */}
                       <Grid item xs={12} sm={5}>
                         <Typography
                           sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -565,8 +645,7 @@ export default function MaterialCostUsedModal({
                           value={
                             materialassignments.find(
                               (ac: Materials) =>
-                                ac._id ===
-                                formik.values.materials[index].material
+                                ac._id === formik.values.materials[index].material
                             )?.name || ""
                           }
                           InputLabelProps={{ shrink: true }}
@@ -585,6 +664,8 @@ export default function MaterialCostUsedModal({
                           }}
                         />
                       </Grid>
+
+                      {/* Số lượng */}
                       <Grid item xs={12} sm={4}>
                         <Typography
                           sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -625,8 +706,89 @@ export default function MaterialCostUsedModal({
                           }}
                         />
                       </Grid>
+
+                      {/* Mã định mức giao khoán */}
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                        >
+                          Mã định mức giao khoán
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={formik.values.materials[index]?.assignmentNormCode || ""}
+                          onChange={(e) =>
+                            formik.setFieldValue(
+                              `materials[${index}].assignmentNormCode`,
+                              e.target.value
+                            )
+                          }
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              px: "12px",
+                              fontSize: "14px",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
+                            },
+                          }}
+                        >
+                          {assignmentnorms.map((item: any) => (
+                            <MenuItem key={item._id} value={item._id}>
+                              {item.code}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+
+                      {/* Mã hệ số điều chỉnh định mức */}
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                        >
+                          Mã hệ số điều chỉnh định mức
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={
+                            formik.values.materials[index]?.adjustmentNormCode || ""
+                          }
+                          onChange={(e) =>
+                            formik.setFieldValue(
+                              `materials[${index}].adjustmentNormCode`,
+                              e.target.value
+                            )
+                          }
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              px: "12px",
+                              fontSize: "14px",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
+                            },
+                          }}
+                        >
+                          {adjustmentnorms.map((item: any) => (
+                            <MenuItem key={item._id} value={item._id}>
+                              {item.code}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
                     </Grid>
-                    {/* Nút X tròn bên cạnh */}
+
+                    {/* Nút X */}
                     <IconButton
                       onClick={() => {
                         const materialToRemove = materialassignments.find(
@@ -636,8 +798,7 @@ export default function MaterialCostUsedModal({
                         if (materialToRemove) {
                           setSelectedMaterials((prev) =>
                             prev.filter(
-                              (material) =>
-                                material._id !== materialToRemove._id
+                              (material) => material._id !== materialToRemove._id
                             )
                           );
                         }
@@ -669,6 +830,7 @@ export default function MaterialCostUsedModal({
               </Box>
             )}
           </FieldArray>
+
 
           <Divider
             sx={{
