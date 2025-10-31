@@ -33,6 +33,8 @@ import {
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from '../../theme';
+import DeviceCodeService from "../../service/DeviceCodeService";
+import { parseAxiosError } from "../../utils/handleApiError";
 
 export default function DeviceCode() {
   const [open, setOpen] = useState(false);
@@ -63,6 +65,16 @@ export default function DeviceCode() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
+  const exportExcel = useMutation({
+    mutationFn: DeviceCodeService.exportFile,
+    onSuccess: () => { },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error)
+      showErrorAlert(message);
+    }
+  });
+
   const updateMutation = useMutation({
     mutationFn: (updateDeviceCode: Partial<DeviceCodeType>) =>
       api
@@ -164,9 +176,9 @@ export default function DeviceCode() {
 
   return (
     <Box sx={{
-    px: 5,           // horizontal = 32px
-    py: 1,           // vertical = 8px
-  }}>
+      px: 5,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Mã thiết bị</Typography>
@@ -226,9 +238,10 @@ export default function DeviceCode() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -263,9 +276,10 @@ export default function DeviceCode() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -280,13 +294,15 @@ export default function DeviceCode() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -305,9 +321,10 @@ export default function DeviceCode() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -327,9 +344,10 @@ export default function DeviceCode() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

@@ -52,6 +52,9 @@ interface PrivateRouteProps {
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const token = localStorage.getItem("token");
   const [user] = useAtom(userAtom);
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
   return <MainLayout>{children}</MainLayout>;
 };
 
@@ -71,15 +74,15 @@ const App = () => {
             </PrivateRoute>
           }
         />
-         <Route
+        <Route
           path="/settlementReportSummary"
           element={
             <PrivateRoute>
               <SettlementReportSummary />
             </PrivateRoute>
           }
-        /> 
-         <Route
+        />
+        <Route
           path="/ratedadjustmentfactor"
           element={
             <PrivateRoute>
@@ -87,7 +90,7 @@ const App = () => {
             </PrivateRoute>
           }
         />
-          <Route
+        <Route
           path="/parameter"
           element={
             <PrivateRoute>
@@ -96,12 +99,12 @@ const App = () => {
           }
         />
         <Route
-        path="/adjustmentfactorfornorms"
-        element={
-          <PrivateRoute>
-            <Adjustmentfactorfornorms/>
-          </PrivateRoute>
-        }
+          path="/adjustmentfactorfornorms"
+          element={
+            <PrivateRoute>
+              <Adjustmentfactorfornorms />
+            </PrivateRoute>
+          }
         />
         <Route
           path="/unit"

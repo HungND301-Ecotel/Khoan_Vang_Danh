@@ -5,5 +5,6 @@ router.post('/',phaseGroupController.create)
 router.put('/:id',phaseGroupController.update)
 router.delete('/:id',phaseGroupController.delete)
 router.get('/',phaseGroupController.get)
+router.post('/exportFile',phaseGroupController.export)
 
 module.exports=router

@@ -30,6 +30,7 @@ const AssignmentNormRouter = require('./routes/AssignmentNorm')
 const AdjustmentNormRouter = require('./routes/AdjustmentNorm')
 const MaterialBudgetRouter = require('./routes/MaterialBudget')
 const MaterialCostUsedRouter = require('./routes/MaterialCostUsed')
+const AuthRouter = require('./routes/Auth')
 
 
 
@@ -59,10 +60,12 @@ require('dotenv').config()
 const app = express()
 
 connect()
+require('./data-seeder/seed')
 app.use(morgan('dev'))
 app.use(cors())
 app.use(express.json())
 
+app.use('/api/auths', AuthRouter)
 app.use('/api/assignmentcodes', AssignmentCodeRouter)
 app.use('/api/units', UnitRouter)
 app.use('/api/materialassignments', MaterialAssignmentRouter)

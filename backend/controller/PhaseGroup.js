@@ -1,10 +1,11 @@
 const PhaseGroup = require('../model/PhaseGroup')
-
+const { configExport } = require('../utils/config_export')
+const ExcelJS = require('exceljs')
 
 exports.create = async (req, res) => {
     try {
-        const {code, name } = req.body
-        const newPhaseGroup = new PhaseGroup({code, name })
+        const { code, name } = req.body
+        const newPhaseGroup = new PhaseGroup({ code, name })
         await newPhaseGroup.save()
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
     } catch (err) {
@@ -43,5 +44,38 @@ exports.get = async (req, res) => {
         res.status(200).json({ status: 'success', data: data })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+exports.export = async (req, res) => {
+    try {
+        const data = await PhaseGroup.find();
+
+        const columns = [
+            { header: "Mã", key: "_id", width: 20 },
+            { header: "Mã nhóm công đoạn", key: "code", width: 10 },
+            { header: "Tên nhóm công đoạn", key: "name", width: 20 }
+        ]
+
+        const formated = (data || []).map(p => ({
+            _id: p._id,
+            code: p?.code || '',
+            name: p?.name || ''
+        }))
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('cong_doan_san_xuat');
+
+        // 🧩 1️⃣ Thêm dữ liệu chính TRƯỚC
+        worksheet.columns = columns;
+        worksheet.addRows(formated);
+
+        const MAX = Math.max(worksheet.rowCount + 100, 1000);
+
+        const buffer = await configExport(workbook, worksheet, [], MAX);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=' + `cong_doan_san_xuat.xlsx`);
+        res.send(buffer);
+    } catch (err) {
+        res.status(500).send({ status: 'error', message: err.message, stack: err.stack })
     }
 }

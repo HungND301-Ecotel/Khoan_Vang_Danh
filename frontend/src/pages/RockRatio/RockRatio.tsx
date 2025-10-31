@@ -36,6 +36,8 @@ import {
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
 import custom_theme from '../../theme';
+import RockRatioService from "../../service/RockRatioService";
+import { parseAxiosError } from "../../utils/handleApiError";
 
 export default function RockRatio() {
   const [open, setOpen] = useState(false);
@@ -133,7 +135,14 @@ export default function RockRatio() {
       showErrorAlert(error.response?.data?.message || "Có lỗi xảy ra khi xóa");
     },
   });
-
+  const exportExcel = useMutation({
+    mutationFn: RockRatioService.exportFile,
+    onSuccess: () => { },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error)
+      showErrorAlert(message);
+    }
+  });
   const deleteSingleMutation = useMutation({
     mutationFn: (id: string) =>
       api.delete(`/rockratios/${id}`).then((res) => res.data),
@@ -447,6 +456,7 @@ export default function RockRatio() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,

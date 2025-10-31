@@ -26,7 +26,7 @@ import {
 import React, { useState, useMemo, useEffect } from "react";
 import MaterialAssignmentModal from "../../components/MaterialAssignmentModal/MaterialAssignment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MaterialAssignmentInputType, Materials } from "../../types";
+import { MaterialAssignmentInputType, MaterialAssignmentOutputType, Materials } from "../../types";
 import api from "../../config/api.config";
 import {
   showConfirmAlert,
@@ -36,6 +36,8 @@ import {
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
 import custom_theme from '../../theme';
+import LoadingSkeleton from "../../ui/LoadingSkeleton";
+import EmptyState from "../../ui/EmptyState";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -76,12 +78,13 @@ export default function MaterialAssignment() {
 
   // Enhanced filtering with useMemo for performance
   const filteredMaterialAssignment = useMemo(() => {
+    const allMaterials = materialAssignments.flatMap((assignment: MaterialAssignmentOutputType) => assignment.materials || [])
     if (!searchValue.trim()) {
-      return materialAssignments;
+      return allMaterials;
     }
 
     const searchTerm = searchValue.toLowerCase().trim();
-    return materialAssignments.filter((item: Materials) => {
+    return allMaterials.filter((item: Materials) => {
       const name = item.name?.toLowerCase() || "";
       const code = item.code?.toLowerCase() || "";
 
@@ -198,76 +201,7 @@ export default function MaterialAssignment() {
     setOpen(true);
   };
 
-  // Clear search function
-  const handleClearSearch = () => {
-    setSearchValue("");
-  };
 
-  // Loading skeleton for initial page load
-  const LoadingSkeleton = () => (
-    <Box>
-      {/* Toolbar skeleton */}
-      <Box sx={{ mb: 2 }}>
-        <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-          <Box display={"flex"} gap={2}>
-            <Skeleton variant="rectangular" width={100} height={36} />
-            <Skeleton variant="rectangular" width={80} height={36} />
-          </Box>
-          <Box display={"flex"} flex={1} gap={2}>
-            <Skeleton variant="rectangular" width={60} height={36} />
-            <Skeleton variant="rectangular" height={36} sx={{ flex: 1 }} />
-          </Box>
-          <Box display={"flex"} gap={2}>
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} variant="rectangular" width={80} height={36} />
-            ))}
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Table skeleton */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          {[...Array(5)].map((_, index) => (
-            <Box key={index} sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
-              <Box display="flex" alignItems="center" gap={2}>
-                <Skeleton variant="rectangular" width={20} height={20} />
-                <Skeleton variant="text" width={50} />
-                <Skeleton variant="text" width={250} sx={{ flex: 1 }} />
-                <Skeleton variant="text" width={80} />
-                <Skeleton variant="circular" width={32} height={32} />
-              </Box>
-            </Box>
-          ))}
-        </CardContent>
-      </Card>
-    </Box>
-  );
-
-  // Custom empty state component
-  const EmptyState = () => (
-    <Box sx={{ textAlign: 'center', py: 6 }}>
-      <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-        {searchValue ? "Không tìm thấy kết quả" : "Chưa có dữ liệu"}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {searchValue
-          ? `Không có tiết diện lò xén nào phù hợp với "${searchValue}"`
-          : "Hiện tại chưa có tiết diện lò xén nào được tạo"
-        }
-      </Typography>
-      {searchValue && (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleClearSearch}
-          sx={{ mt: 1 }}
-        >
-          Xóa bộ lọc
-        </Button>
-      )}
-    </Box>
-  );
 
   const columns: TableProps<Materials>["columns"] = [
     {
@@ -363,6 +297,10 @@ export default function MaterialAssignment() {
     },
   };
 
+  // Clear search function
+  const handleClearSearch = () => {
+    setSearchValue("");
+  };
   // Show loading skeleton on initial load
   if (isLoading) {
     return (
@@ -625,7 +563,7 @@ export default function MaterialAssignment() {
             columns={columns}
             dataSource={filteredMaterialAssignment}
             locale={{
-              emptyText: <EmptyState />
+              emptyText: <EmptyState searchValue={searchValue} handleClearSearch={handleClearSearch} />
             }}
           />
         </Box>
