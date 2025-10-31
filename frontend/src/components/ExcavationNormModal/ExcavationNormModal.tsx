@@ -912,7 +912,7 @@ export default function ExcavationNormModal({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  sx={{ color: "#D9D9D9" }}
+                  // sx={{ color: "#D9D9D9" }}
                   variant="outlined"
                   sx={{
                     "& .MuiInputBase-root": {
