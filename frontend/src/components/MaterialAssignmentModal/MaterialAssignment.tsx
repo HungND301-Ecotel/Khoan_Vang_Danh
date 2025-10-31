@@ -68,17 +68,20 @@ export default function MaterialAssignmentModal({
       assignmentCode: selectedMaterialAssignment
         ? selectedMaterialAssignment.assignmentCode?._id
         : "",
-      priceHistory: selectedMaterialAssignment?.priceHistory?.map((item) => ({
-        price: item.price,
-        startDate: new Date(item.startDate).toISOString().substring(0, 10),
-        endDate: new Date(item.endDate).toISOString().substring(0, 10),
-      })) || [
-        {
-          price: 0,
-          startDate: new Date().toISOString().substring(0, 10),
-          endDate: new Date().toISOString().substring(0, 10),
-        },
-      ],
+      priceHistory:
+        selectedMaterialAssignment && Array.isArray(selectedMaterialAssignment.priceHistory)
+          ? selectedMaterialAssignment.priceHistory.map((item) => ({
+            price: item.price,
+            startDate: new Date(item.startDate).toISOString().substring(0, 10),
+            endDate: new Date(item.endDate).toISOString().substring(0, 10),
+          }))
+          : [
+            {
+              price: 0,
+              startDate: new Date().toISOString().substring(0, 10),
+              endDate: new Date().toISOString().substring(0, 10),
+            },
+          ],
     },
     enableReinitialize: true,
     validationSchema,
@@ -155,6 +158,8 @@ export default function MaterialAssignmentModal({
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+
+              {/* Mã giao khoán */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã giao khoán</Typography>
                 <TextField
@@ -360,8 +365,8 @@ export default function MaterialAssignmentModal({
                       
                           <Grid item xs={1}>
                             {formik.values.priceHistory.length > 1 && (
-                              <IconButton 
-                                color="error" 
+                              <IconButton
+                                color="error"
                                 onClick={() => remove(index)}
                                 sx={{ mt: 2 }}
                               >
@@ -371,7 +376,8 @@ export default function MaterialAssignmentModal({
                           </Grid>
                         </Grid>
                       ))}
-                      
+
+                      {/* Add button */}
                       <Box textAlign="right" sx={{ mt: 1 }}>
                         <IconButton
                           color="primary"

@@ -18,14 +18,18 @@ import {
 } from "@mui/material";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
-import { FieldArray, FormikProvider, useFormik } from "formik";
+import { FieldArray, FormikProvider, useFormik, FormikErrors } from "formik";
 import api from "../../config/api.config";
 import {
   MaterialCostUsedInputType,
   MaterialCostUsedOutputType,
   ProductionScopeOutputType,
+  AssignmentNormOutputType,
   Materials,
   MaterialBudgetOutputType,
+  PhaseGroupType,
+  PhaseOutputType,
+  PhaseType,
 } from "../../types";
 import { CircleX } from "lucide-react";
 
@@ -40,12 +44,18 @@ export default function MaterialCostUsedModal({
   handleSubmit: (values: Partial<MaterialCostUsedInputType>) => void;
   selected: MaterialCostUsedOutputType | null;
 }) {
+  const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{ [key: number]: string }>({});
   const [selectedMaterials, setSelectedMaterials] = useState<Materials[]>([]);
 
   const { data: productionscopes = [] } = useQuery({
     queryKey: ["productionscopes"],
     queryFn: async () =>
       api.get("/productionscopes").then((res) => res.data.data),
+  });
+  const { data: phaseGroups = [] } = useQuery({
+    queryKey: ["phaseGroups"],
+    queryFn: async () =>
+      api.get("/phaseGroups").then((res) => res.data.data),
   });
   const { data: materialassignments = [] } = useQuery({
     queryKey: ["materialassignments"],
@@ -57,15 +67,33 @@ export default function MaterialCostUsedModal({
     queryFn: async () =>
       api.get("/materialbudgets").then((res) => res.data.data),
   });
+  const { data: assignmentnorms = [] } = useQuery({
+      queryKey: ["assignmentnorms"],
+      queryFn: async () =>
+        api.get("/assignmentnorms").then((res) => res.data.data),
+    });
+  
+    const { data: adjustmentnorms = [] } = useQuery({
+      queryKey: ["adjustmentnorms"],
+      queryFn: async () =>
+        api.get("/adjustmentnorms").then((res) => res.data.data),
+    });
+
+  // Initial values
   const formik = useFormik({
     initialValues: {
       code: selected?.code || "",
       materialBudgetCode: selected?.materialBudget?._id
         ? String(selected.materialBudget._id)
         : "",
+      assignmentNormCode: "",
       productionScope: selected?.productionScope?._id
         ? String(selected.productionScope._id)
         : "",
+      phases: (selected?.phases || []).map((p: any) => ({
+        phase: p.phase?._id ? String(p.phase._id) : "",
+        production: p.production
+      })),
       materials:
         selected?.materials?.map((item) => ({
           material: item.material?._id ? String(item.material._id) : "",
@@ -78,11 +106,8 @@ export default function MaterialCostUsedModal({
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
-       const filtered = {
-    ...values,
-    materials: values.materials.filter((m: { material: string }) => m.material && m.material !== ""),
-  };
-      handleSubmit(filtered);
+      console.log(values)
+      handleSubmit(values);
     },
   });
 
@@ -103,6 +128,32 @@ export default function MaterialCostUsedModal({
     formik.resetForm();
     setOpen(false);
   };
+
+  const handlePhaseChange = (index: number, field: keyof PhaseType, value: any) => {
+      const newPhases = [...formik.values.phases];
+      newPhases[index] = { ...newPhases[index], [field]: value };
+  
+      if (field === "phaseGroup") {
+        newPhases[index].phase = "";
+  
+        setPhaseGroupsForQuery({
+          ...phaseGroupsForQuery,
+          [index]: value
+        });
+      }
+  
+      formik.setFieldValue("phases", newPhases);
+    };
+
+    const getError = (index: number, field: keyof PhaseType): string => {
+        const error = formik.errors.phases?.[index] as FormikErrors<PhaseType> | undefined;
+        const touched = formik.touched.phases?.[index] as Record<keyof PhaseType, boolean> | undefined;
+    
+        if (touched?.[field] && error?.[field]) {
+          return error[field] as string;
+        }
+        return "";
+      };
 
   return (
     <Dialog
@@ -214,53 +265,8 @@ export default function MaterialCostUsedModal({
               }}
             />
           </Box>
-          <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
-            Mã chi phí vật tư kế hoạch
-          </Typography>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.materialBudgetCode || ""}
-              onChange={(e) =>
-                formik.setFieldValue(
-                  "materialBudgetCode",
-                  String(e.target.value)
-                )
-              }
-              variant="outlined"
-              InputProps={{
-                startAdornment: formik.values.materialBudgetCode ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Placeholder
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor: formik.values.materialBudgetCode
-                    ? "#F2F2F2"
-                    : "#FFFFFF",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-              }}
-            >
-              {materialbudgets.map((mb: MaterialBudgetOutputType) => (
-                <MenuItem key={String(mb._id)} value={String(mb._id)}>
-                  {mb.code}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Box>
+
+          {/* Mã diện sản xuất */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Mã diện sản xuất
           </Typography>
@@ -268,9 +274,25 @@ export default function MaterialCostUsedModal({
             <TextField
               select
               value={formik.values.productionScope || ""}
-              onChange={(event) =>
-                formik.setFieldValue("productionScope", event.target.value)
-              }
+              onChange={(event) => {
+                const scopeId = event.target.value;
+                formik.setFieldValue("productionScope", scopeId);
+
+                const scope = productionscopes.find(
+                  (ps: ProductionScopeOutputType) => ps._id === scopeId
+                );
+
+                // nếu scope có mảng phases thì map ra
+                if (scope && Array.isArray(scope.phases)) {
+                  const mappedPhases = scope.phases.map((ph: any) => ({
+                    phase: ph.phase?._id,     // gán _id phase
+                    production: "",    // hoặc gán mặc định rỗng / số lượng sản xuất
+                  }));
+                  formik.setFieldValue("phases", mappedPhases);
+                } else {
+                  formik.setFieldValue("phases", []);
+                }
+              }}
               variant="outlined"
               InputProps={{
                 startAdornment: formik.values.productionScope ? null : (
@@ -310,6 +332,170 @@ export default function MaterialCostUsedModal({
               ))}
             </TextField>
           </Box>
+
+          <FieldArray name="phases">
+            {({ push, remove }) => (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {formik.values.phases.map((item: any, index: number) => {
+                  const phase = phaseGroups.find(
+                    (pg: PhaseOutputType) => pg._id === item.phase
+                  );
+
+                  return (
+                    <Box
+                      key={index}
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr auto",
+                        gap: 1.5,
+                        alignItems: "center",
+                        width: "100%",
+                      }}
+                    >
+                      {/* Mã công đoạn */}
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "14px",
+                            mb: 0.5,
+                          }}
+                        >
+                          Mã công đoạn
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={phase?.code || ""}
+                          InputLabelProps={{ shrink: true }}
+                          disabled
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              paddingRight: "12px",
+                              paddingLeft: "12px",
+                              fontSize: "14px",
+                            },
+                          }}
+                        />
+                      </Box>
+
+                      {/* Tên công đoạn */}
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "14px",
+                            mb: 0.5,
+                          }}
+                        >
+                          Tên công đoạn
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={phase?.name || ""}
+                          InputLabelProps={{ shrink: true }}
+                          disabled
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              paddingRight: "12px",
+                              paddingLeft: "12px",
+                              fontSize: "14px",
+                            },
+                          }}
+                        />
+                      </Box>
+                      {/* Tên công đoạn */}
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "14px",
+                            mb: 0.5,
+                          }}
+                        >
+                          Sản lượng
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          name={`phases[${index}].production`}
+                          value={formik.values.phases[index]?.production || ""}
+                          onChange={(e) =>
+                            formik.setFieldValue(
+                              `phases[${index}].production`,
+                              e.target.value
+                            )
+                          }
+                          placeholder="Placeholder"
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              px: "12px",
+                              fontSize: "14px",
+                              backgroundColor: formik.values.materials[index]
+                                ?.quantity
+                                ? "#F2F2F2"
+                                : "#FFFFFF",
+                            },
+                            "& input::placeholder": {
+                              color: "#9D9D9D",
+                              opacity: 1,
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
+                            },
+                          }}
+                        />
+                      </Box>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                          Mã định mức giao khoán
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={phase.assignmentNormCode}
+                          onChange={(e) => handlePhaseChange(index, "assignmentNormCode", e.target.value)}
+                          error={Boolean(getError(index, "assignmentNormCode"))}
+                          helperText={getError(index, "assignmentNormCode")}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "40px",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              backgroundColor: "#fff",
+                            },
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: "#d0d7de",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "#0969da",
+                              },
+                            },
+                          }}
+                        >
+                          {assignmentnorms?.map((item: AssignmentNormOutputType) => (
+                            <MenuItem key={item._id} value={item._id}>
+                              {item.code}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
+          </FieldArray>
 
           <Divider
             sx={{
@@ -388,6 +574,9 @@ export default function MaterialCostUsedModal({
               }}
             />
           </Box>
+
+          {/* Danh sách materials */}
+          {/* Danh sách materials */}
           <FieldArray name="materials">
             {() => (
               <Box
@@ -408,7 +597,8 @@ export default function MaterialCostUsedModal({
                     }}
                   >
                     <Grid container spacing={2} sx={{ width: "700px" }}>
-                      <Grid item xs={12} sm={4}>
+                      {/* Mã vật tư */}
+                      <Grid item xs={12} sm={3}>
                         <Typography
                           sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
                         >
@@ -419,8 +609,7 @@ export default function MaterialCostUsedModal({
                           value={
                             materialassignments.find(
                               (ac: Materials) =>
-                                ac._id ===
-                                formik.values.materials[index].material
+                                ac._id === formik.values.materials[index].material
                             )?.code || ""
                           }
                           InputLabelProps={{ shrink: true }}
@@ -439,6 +628,8 @@ export default function MaterialCostUsedModal({
                           }}
                         />
                       </Grid>
+
+                      {/* Tên vật tư */}
                       <Grid item xs={12} sm={5}>
                         <Typography
                           sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -450,8 +641,7 @@ export default function MaterialCostUsedModal({
                           value={
                             materialassignments.find(
                               (ac: Materials) =>
-                                ac._id ===
-                                formik.values.materials[index].material
+                                ac._id === formik.values.materials[index].material
                             )?.name || ""
                           }
                           InputLabelProps={{ shrink: true }}
@@ -470,7 +660,9 @@ export default function MaterialCostUsedModal({
                           }}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={3}>
+
+                      {/* Số lượng */}
+                      <Grid item xs={12} sm={4}>
                         <Typography
                           sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
                         >
@@ -510,7 +702,89 @@ export default function MaterialCostUsedModal({
                           }}
                         />
                       </Grid>
+
+                      {/* Mã định mức giao khoán */}
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                        >
+                          Mã định mức giao khoán
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={formik.values.materials[index]?.assignmentNormCode || ""}
+                          onChange={(e) =>
+                            formik.setFieldValue(
+                              `materials[${index}].assignmentNormCode`,
+                              e.target.value
+                            )
+                          }
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              px: "12px",
+                              fontSize: "14px",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
+                            },
+                          }}
+                        >
+                          {assignmentnorms.map((item: any) => (
+                            <MenuItem key={item._id} value={item._id}>
+                              {item.code}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+
+                      {/* Mã hệ số điều chỉnh định mức */}
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                        >
+                          Mã hệ số điều chỉnh định mức
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          select
+                          value={
+                            formik.values.materials[index]?.adjustmentNormCode || ""
+                          }
+                          onChange={(e) =>
+                            formik.setFieldValue(
+                              `materials[${index}].adjustmentNormCode`,
+                              e.target.value
+                            )
+                          }
+                          variant="outlined"
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              px: "12px",
+                              fontSize: "14px",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
+                            },
+                          }}
+                        >
+                          {adjustmentnorms.map((item: any) => (
+                            <MenuItem key={item._id} value={item._id}>
+                              {item.code}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
                     </Grid>
+
+                    {/* Nút X */}
                     <IconButton
                       onClick={() => {
                         const materialToRemove = materialassignments.find(
@@ -520,8 +794,7 @@ export default function MaterialCostUsedModal({
                         if (materialToRemove) {
                           setSelectedMaterials((prev) =>
                             prev.filter(
-                              (material) =>
-                                material._id !== materialToRemove._id
+                              (material) => material._id !== materialToRemove._id
                             )
                           );
                         }
@@ -553,6 +826,7 @@ export default function MaterialCostUsedModal({
               </Box>
             )}
           </FieldArray>
+
 
           <Divider
             sx={{
@@ -595,6 +869,6 @@ export default function MaterialCostUsedModal({
           {selected ? "Cập nhật" : "Xác nhận"}
         </Button>
       </DialogActions>
-    </Dialog>
+    </Dialog >
   );
 }

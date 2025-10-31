@@ -413,7 +413,7 @@ export default function CuttingNormKBModal({
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
-                  height: "32px",
+                  minHeight: "32px",
                   borderRadius: "6px",
                   px: "12px",
                   fontSize: "14px",

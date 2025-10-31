@@ -1,3 +1,4 @@
+
 export interface LoginType {
   username: string;
   password: string;
@@ -123,7 +124,7 @@ export interface ExcavationTechType {
 export interface HardnessType {
   _id?: string;
   name: string;
-   uom?: UnitType;
+  uom?: UnitType;
 }
 //
 export interface CrossSectionInputType {
@@ -444,7 +445,7 @@ export interface ProductionScopeOutputType {
   code: string;
   name: string;
   phases: {
-    phase?: PhaseGroupType;
+    phase?: PhaseOutputType;
     production?: number;
   }[];
 }
@@ -485,6 +486,10 @@ export interface MaterialCostUsedInputType {
   _id?: string;
   code: string;
   productionScope?: string;
+  phases: {
+    phase: string;
+    production: number;
+  }[];
   materialBudgetCode?: string;
   materials: {
     material?: string;
@@ -500,6 +505,10 @@ export interface MaterialCostUsedOutputType {
     material?: Materials;
     quantity: number;
     cost: number;
+  }[];
+  phases: {
+    phase: PhaseGroupType;
+    production: number;
   }[];
   materialBudget?: MaterialBudgetOutputType | null;
 }

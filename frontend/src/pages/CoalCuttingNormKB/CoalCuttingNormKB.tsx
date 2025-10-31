@@ -7,8 +7,8 @@ import {
   Button,
   Typography,
   IconButton,
-  Divider,
   InputAdornment,
+  Divider,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -23,8 +23,8 @@ import {
   FilterList,
   Mail,
   Print,
-  Search,
   Visibility,
+  Search,
 } from "@mui/icons-material";
 import CoalCuttingNormKBModal from "../../components/CoalCuttingNormKBModal/CoalCuttingNormKBModal";
 import {
@@ -34,6 +34,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
+import custom_theme from '../../theme';
 
 export default function CoalCuttingNormKB() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export default function CoalCuttingNormKB() {
   );
   const [open, setOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [searchText, setSearchText] = useState("");
+  const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
 
@@ -51,12 +52,6 @@ export default function CoalCuttingNormKB() {
     queryFn: async () =>
       api.get("/assignmentnorms").then((res) => res.data.data),
   });
-
-  const filteredData = assignmentnorms
-    .filter((i: any) => i.type === "coal_kb")
-    .filter((item: AssignmentNormOutputType) =>
-      item.code?.toLowerCase().includes(searchText.toLowerCase().trim())
-    );
 
   const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
     const id = cuttingnorm?._id;
@@ -254,17 +249,19 @@ export default function CoalCuttingNormKB() {
 
     return (
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+        {/* Header */}
         <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
             Độ dốc vỉa {slopeLabel}
           </Typography>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Chiều dày vỉa (m)
             <Box component="span" sx={{ ml: 30 }}>
               {thicknessLabel}
             </Box>
           </Typography>
         </Box>
+        {/* Bảng con */}
         <Table
           columns={innerColumns}
           dataSource={norms}
@@ -291,10 +288,11 @@ export default function CoalCuttingNormKB() {
             <Box display={"flex"} gap={2}>
               <Button
                 variant="contained"
-                color="warning"
                 endIcon={<Add />}
                 onClick={() => handleOpen()}
                 sx={{
+                  backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -307,10 +305,12 @@ export default function CoalCuttingNormKB() {
               </Button>
               <Button
                 variant="contained"
-                color="error"
                 endIcon={<Delete />}
                 onClick={() => handleDelete()}
+                disabled={selectedRowKeys.length === 0}
                 sx={{
+                  backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -319,7 +319,7 @@ export default function CoalCuttingNormKB() {
                   px: 3,
                 }}
               >
-                Xóa
+                Xóa ({selectedRowKeys.length})
               </Button>
             </Box>
 
@@ -329,6 +329,13 @@ export default function CoalCuttingNormKB() {
                 color="inherit"
                 startIcon={<FilterList />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -343,8 +350,8 @@ export default function CoalCuttingNormKB() {
                 fullWidth
                 size="small"
                 placeholder="Tìm kiếm"
-                value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+                onChange={(e) => setSearchValue(e.target.value)}
+                sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -361,6 +368,13 @@ export default function CoalCuttingNormKB() {
                 color="inherit"
                 startIcon={<FileUpload />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -376,6 +390,13 @@ export default function CoalCuttingNormKB() {
                 color="inherit"
                 startIcon={<FileDownload />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -391,6 +412,13 @@ export default function CoalCuttingNormKB() {
                 color="inherit"
                 startIcon={<Print />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -407,6 +435,13 @@ export default function CoalCuttingNormKB() {
                 startIcon={<Mail />}
                 endIcon={<ArrowDropDown />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -436,7 +471,7 @@ export default function CoalCuttingNormKB() {
             ),
           }}
           columns={columns}
-           dataSource={filteredData}
+          dataSource={assignmentnorms.filter((i: any) => i.type === "coal_kb")}
           expandable={{
             expandedRowKeys: expandedRow ? [expandedRow] : [],
             onExpand: (expanded, record) => {

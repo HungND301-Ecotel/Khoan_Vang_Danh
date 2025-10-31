@@ -8,6 +8,7 @@ import Length from "../Length/Length";
 import MiningTech from "../MiningTech/MiningTech";
 import Step from "../Step/Step";
 import { Box, Breadcrumbs, Tab, Tabs, Typography } from "@mui/material";
+import custom_theme from '../../theme';
 
 const Parameter = () => {
   const [currentTab, setCurrentTab] = useState<number>(0);
@@ -16,7 +17,10 @@ const Parameter = () => {
     setCurrentTab(newValue);
   };
   return (
-    <>
+    <Box sx={{
+           px: 5,           // horizontal = 32px
+           py: 1,           // vertical = 8px
+          }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh muc</Typography>
         <Typography>Thông số</Typography>
@@ -32,7 +36,7 @@ const Parameter = () => {
         </Typography>
       </Breadcrumbs>
 
-      <Typography variant="h4" sx={{ color: "blue", mt: 2 }}>
+      <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main, mt: 2 }}>
         Thông số
       </Typography>
 
@@ -52,6 +56,7 @@ const Parameter = () => {
             variant="standard"
             TabIndicatorProps={{ style: { display: "none" } }}
             sx={{
+              backgroundColor: '#ffffffff',
               minHeight: "32px",
               "& .MuiTabs-flexContainer": { gap: 1.5 },
             }}
@@ -65,6 +70,7 @@ const Parameter = () => {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -82,6 +88,7 @@ const Parameter = () => {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -91,7 +98,7 @@ const Parameter = () => {
               }}
             />
             <Tab
-              label="Độ cứng than/ đá (f)"
+              label="Độ cứng than/đá (f)"
               disableRipple
               sx={{
                 textTransform: "none",
@@ -99,6 +106,7 @@ const Parameter = () => {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -116,6 +124,7 @@ const Parameter = () => {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -133,6 +142,7 @@ const Parameter = () => {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -142,7 +152,7 @@ const Parameter = () => {
               }}
             />
             <Tab
-              label="Chiều dài"
+              label="Chiều dài (L)"
               disableRipple
               sx={{
                 textTransform: "none",
@@ -150,6 +160,7 @@ const Parameter = () => {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -159,7 +170,7 @@ const Parameter = () => {
               }}
             />
             <Tab
-              label="Công nghệ khai thác "
+              label="Công nghệ khai thác"
               disableRipple
               sx={{
                 textTransform: "none",
@@ -167,6 +178,7 @@ const Parameter = () => {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -176,7 +188,7 @@ const Parameter = () => {
               }}
             />
             <Tab
-              label="Chống "
+              label="Chống"
               disableRipple
               sx={{
                 textTransform: "none",
@@ -184,6 +196,7 @@ const Parameter = () => {
                 fontWeight: 500,
                 borderRadius: 1.5,
                 padding: "8px 18px",
+                margin: "4px 4px",
                 color: "text.primary",
                 backgroundColor: "transparent",
                 "&.Mui-selected": {
@@ -206,7 +219,7 @@ const Parameter = () => {
         {currentTab === 6 && <MiningTech />}
         {currentTab === 7 && <Step />}
       </Box>
-    </>
+    </Box>
   );
 };
 

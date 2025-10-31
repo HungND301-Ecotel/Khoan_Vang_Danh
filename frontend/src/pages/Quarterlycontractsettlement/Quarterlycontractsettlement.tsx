@@ -17,6 +17,7 @@ import React, { Fragment, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MaterialAssignmentOutputType } from "../../types";
 import { ArrowDropDown, FileDownload, Mail, Print } from "@mui/icons-material";
+import custom_theme from '../../theme';
 
 const api = {
   get: (url: string) => Promise.resolve({ data: { data: [] } }),
@@ -149,6 +150,12 @@ export default function Quarterlycontractsettlement() {
                 color="inherit"
                 startIcon={<FileDownload />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -164,6 +171,12 @@ export default function Quarterlycontractsettlement() {
                 color="inherit"
                 startIcon={<Print />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -180,6 +193,12 @@ export default function Quarterlycontractsettlement() {
                 startIcon={<Mail />}
                 endIcon={<ArrowDropDown />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,

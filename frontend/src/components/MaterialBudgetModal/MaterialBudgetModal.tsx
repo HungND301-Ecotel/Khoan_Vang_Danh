@@ -28,6 +28,7 @@ import {
   FormValues,
 } from "../../types";
 import { Divider } from "antd";
+import { Delete } from "@mui/icons-material";
 
 const phaseValidationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -49,6 +50,18 @@ const validationSchema = yup.object({
     .min(1, "Cần ít nhất một công đoạn"),
 });
 
+
+const usePhases = (phaseGroupId: string) => {
+  return useQuery({
+    queryKey: ["phases", phaseGroupId],
+    queryFn: async () =>
+      api.get(`/phases?phaseGroup=${phaseGroupId || ''}`).then((res) => res.data.data),
+    enabled: !!phaseGroupId,
+  });
+};
+
+let currentIdForDisplay = "";
+
 export default function MaterialBudgetModal({
   open,
   setOpen,
@@ -60,6 +73,8 @@ export default function MaterialBudgetModal({
   handleSubmit: (values: Partial<MaterialBudgetInputType>) => void;
   selected: MaterialBudgetInputType | null;
 }) {
+  const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{ [key: number]: string }>({});
+
   const { data: phasegroups = [] } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: async () => api.get("/phasegroups").then((res) => res.data.data),
@@ -121,20 +136,24 @@ export default function MaterialBudgetModal({
           },
         ],
       });
+
+      if (selected.phaseGroup) {
+        setPhaseGroupsForQuery({ 0: selected.phaseGroup });
+      }
     }
   }, [selected]);
 
   // Sử dụng useQueries để fetch phases cho từng phaseGroup
-  const phaseQueries = useQueries({
-    queries: formik.values.phases.map((phase, index) => ({
-      queryKey: ["phases", phase.phaseGroup, index],
-      queryFn: async () =>
-        api
-          .get(`/phases?phaseGroup=${phase.phaseGroup || ""}`)
-          .then((res) => res.data.data),
-      enabled: !!phase.phaseGroup,
-    })),
-  });
+  // const phaseQueries = useQueries({
+  //   queries: formik.values.phases.map((phase, index) => ({
+  //     queryKey: ["phases", phase.phaseGroup, index],
+  //     queryFn: async () =>
+  //       api
+  //         .get(`/phases?phaseGroup=${phase.phaseGroup || ""}`)
+  //         .then((res) => res.data.data),
+  //     enabled: !!phase.phaseGroup,
+  //   })),
+  // });
 
   const toRoman = (num: number) => {
     const romans: { value: number; numeral: string }[] = [
@@ -169,16 +188,13 @@ export default function MaterialBudgetModal({
   };
 
   const addPhase = () => {
-    const newPhases = [
-      ...formik.values.phases,
-      {
-        phaseGroup: "",
-        phase: "",
-        assignmentNormCode: "",
-        production: undefined,
-        adjustmentNormCode: "",
-      },
-    ];
+    const newPhases = [...formik.values.phases, {
+      phaseGroup: "",
+      phase: "",
+      assignmentNormCode: "",
+      production: undefined,
+      adjustmentNormCode: ""
+    }];
     formik.setFieldValue("phases", newPhases);
   };
 
@@ -187,6 +203,21 @@ export default function MaterialBudgetModal({
 
     const newPhases = formik.values.phases.filter((_, i) => i !== index);
     formik.setFieldValue("phases", newPhases);
+
+    const newPhaseGroups = { ...phaseGroupsForQuery };
+    delete newPhaseGroups[index];
+
+    const updatedPhaseGroups: { [key: number]: string } = {};
+    Object.entries(newPhaseGroups).forEach(([oldIndex, value]) => {
+      const numIndex = parseInt(oldIndex);
+      if (numIndex > index) {
+        updatedPhaseGroups[numIndex - 1] = value;
+      } else {
+        updatedPhaseGroups[numIndex] = value;
+      }
+    });
+
+    setPhaseGroupsForQuery(updatedPhaseGroups);
   };
 
   const handlePhaseChange = (
@@ -195,34 +226,44 @@ export default function MaterialBudgetModal({
     value: any
   ) => {
     const newPhases = [...formik.values.phases];
-    
+    newPhases[index] = { ...newPhases[index], [field]: value };
+
     if (field === "phaseGroup") {
-      // Khi thay đổi nhóm công đoạn, reset công đoạn
-      newPhases[index] = { 
-        ...newPhases[index], 
-        [field]: value,
-        phase: "" 
-      };
-    } else {
-      newPhases[index] = { ...newPhases[index], [field]: value };
+      newPhases[index].phase = "";
+
+      setPhaseGroupsForQuery({
+        ...phaseGroupsForQuery,
+        [index]: value
+      });
     }
 
     formik.setFieldValue("phases", newPhases);
   };
 
+  const handleNameUpdate = (index: number, value: any) => {
+    currentIdForDisplay = value;
+  }
+
+
   const getError = (index: number, field: keyof PhaseType): string => {
-    const error = formik.errors.phases?.[index] as
-      | FormikErrors<PhaseType>
-      | undefined;
-    const touched = formik.touched.phases?.[index] as
-      | Record<keyof PhaseType, boolean>
-      | undefined;
+    const error = formik.errors.phases?.[index] as FormikErrors<PhaseType> | undefined;
+    const touched = formik.touched.phases?.[index] as Record<keyof PhaseType, boolean> | undefined;
 
     if (touched?.[field] && error?.[field]) {
       return error[field] as string;
     }
     return "";
   };
+
+
+  const phaseQueries = useQueries({
+    queries: Object.entries(phaseGroupsForQuery).map(([index, phaseGroupId]) => ({
+      queryKey: ["phases", phaseGroupId],
+      queryFn: async () =>
+        api.get(`/phases?phaseGroup=${phaseGroupId}`).then((res) => res.data.data),
+      enabled: !!phaseGroupId,
+    })),
+  });
 
   return (
     <Dialog
@@ -355,71 +396,29 @@ export default function MaterialBudgetModal({
               {formik.values.phases.map((phase, index) => {
                 const phaseData = phaseQueries[index]?.data || [];
                 return (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      position: "relative",
-                      gap: 1,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        flex: "1 1 auto",
-                        border: "1px solid #D0D7DE",
-                        borderRadius: "6px",
-                        padding: "16px",
-                        backgroundColor: "#fff",
-                        mb: 2,
-                        position: "relative",
-                      }}
-                    >
-                      {/* Tiêu đề công đoạn + nút xóa */}
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          top: "-10px",
-                          left: "16px",
-                          px: 1,
-                          backgroundColor: "#fff",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1,
-                        }}
-                      >
-                        <Typography
-                          sx={{
-                            fontWeight: 500,
-                            fontSize: "14px",
-                            color: "#000000",
-                            fontFamily: "Roboto",
-                            lineHeight: "100%",
-                          }}
+                  <Box key={index}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: "14px", color: "#333" }}>
+                        Công đoạn {index + 1}
+                      </Typography>
+                      {formik.values.phases.length > 1 && (
+                        <IconButton
+                          onClick={() => removePhase(index)}
+                          size="small"
+                          sx={{ color: '#ff4d4f' }}
                         >
-                          Công đoạn {toRoman(index + 1)}
-                        </Typography>
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
 
-                        {formik.values.phases.length > 1 && (
-                          <IconButton
-                            onClick={() => removePhase(index)}
-                            sx={{
-                              width: "20px",
-                              height: "20px",
-                              p: 0,
-                              color: "#303030",
-                              flexShrink: 0,
-                              "&:hover": {
-                                bgcolor: "transparent",
-                                color: "#000",
-                              },
-                            }}
-                          >
-                            <CloseIcon sx={{ fontSize: "18px" }} />
-                          </IconButton>
-                        )}
-                      </Box>
-
+                    <Box sx={{
+                      border: "1px solid #D0D7DE",
+                      borderRadius: "6px",
+                      padding: "16px",
+                      backgroundColor: "#fff",
+                      mb: 2
+                    }}>
                       <Box sx={{ mb: 2 }}>
                         <Typography
                           sx={{
@@ -498,52 +497,53 @@ export default function MaterialBudgetModal({
                         >
                           Công đoạn
                         </Typography>
-                        <TextField
-                          fullWidth
-                          select
-                          value={phase.phase}
-                          onChange={(e) =>
-                            handlePhaseChange(index, "phase", e.target.value)
-                          }
-                          error={Boolean(getError(index, "phase"))}
-                          helperText={getError(index, "phase")}
-                          variant="outlined"
-                          disabled={!phase.phaseGroup} // Disable nếu chưa chọn nhóm công đoạn
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              height: "32px",
-                              borderRadius: "4px",
-                              fontSize: "14px",
-                              backgroundColor: phase.phaseGroup ? "#fff" : "#f5f5f5",
-                            },
-                            "& .MuiInputBase-input": {
-                              color: "#000000",
-                              fontFamily: "Roboto",
-                              fontWeight: 400,
-                              fontSize: "14px",
-                              lineHeight: "100%",
-                              "&::placeholder": {
-                                color: "#000000",
-                                opacity: 1,
+                        <Box display="flex" gap={2}>
+                          {/* Select (20%) */}
+                          <TextField
+                            sx={{ flex: "0 0 20%" }}
+                            select
+                            value={phase.phase}
+                            onChange={(e) => {handlePhaseChange(index, "phase", e.target.value); handleNameUpdate(index, e.target.value);}}
+                            error={Boolean(getError(index, "phase"))}
+                            helperText={getError(index, "phase")}
+                            variant="outlined"
+                            InputProps={{
+                              sx: {
+                                height: "40px",
+                                borderRadius: "4px",
+                                fontSize: "14px",
+                                backgroundColor: "#fff",
                               },
-                            },
-                            "& .MuiOutlinedInput-root": {
-                              "& fieldset": {
-                                borderColor: "#d0d7de",
+                            }}
+                          >
+                            {phaseData.map((phaseItem: PhaseOutputType) => (
+                              <MenuItem key={phaseItem._id} value={phaseItem._id}>
+                                {phaseItem.code}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+
+                          {/* Show group.name (80%, readonly) */}
+                          <TextField
+                            sx={{ flex: "1" }}
+                            value={
+                              phaseData.find(
+                                (g: PhaseOutputType) => g._id === currentIdForDisplay
+                              )?.name || ""
+                            }
+                            InputProps={{
+                              readOnly: true,
+                              sx: {
+                                height: "40px",
+                                borderRadius: "4px",
+                                fontSize: "14px",
+                                backgroundColor: "#fff",
                               },
-                              "&:hover fieldset": {
-                                borderColor: "#0969da",
-                              },
-                            },
-                          }}
-                        >
-                          <MenuItem value="">Chọn công đoạn</MenuItem>
-                          {phaseData.map((phaseItem: PhaseOutputType) => (
-                            <MenuItem key={phaseItem._id} value={phaseItem._id}>
-                              {phaseItem.name}
-                            </MenuItem>
-                          ))}
-                        </TextField>
+                            }}
+                            variant="outlined"
+                          />
+                        </Box>
+
                       </Box>
 
                       <Box sx={{ mb: 2 }}>

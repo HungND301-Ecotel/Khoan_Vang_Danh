@@ -22,8 +22,8 @@ import {
   FilterList,
   Mail,
   Print,
-  Search,
   Visibility,
+  Search,
 } from "@mui/icons-material";
 import CoalCuttingNormZRYModal from "../../components/CoalCuttingNormZRYModal/CoalCuttingNormZRYModal";
 import {
@@ -33,6 +33,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
+import custom_theme from '../../theme';
 
 export default function CoalCuttingNormZRY() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -41,7 +42,7 @@ export default function CoalCuttingNormZRY() {
   );
   const [open, setOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
 
@@ -50,27 +51,6 @@ export default function CoalCuttingNormZRY() {
     queryFn: async () =>
       api.get("/assignmentnorms").then((res) => res.data.data),
   });
-
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-  setSearchTerm(event.target.value);
-}
-
-const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => {
-  if (item.type !== "coal_zry") return false;
-  
-  if (!searchTerm) return true;
-  
-  const term = searchTerm.toLowerCase();
-  return (
-    (item.code?.toLowerCase().includes(term)) ||
-    (item.thickness?.name?.toLowerCase().includes(term)) ||
-    (item.curbSlope?.name?.toLowerCase().includes(term)) ||
-    (item.norms?.some(norm => 
-      norm.assignmentCode?.code?.toLowerCase().includes(term) ||
-      norm.assignmentCode?.name?.toLowerCase().includes(term)
-    ))
-  );
-});
 
   const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
     const id = cuttingnorm?._id;
@@ -268,17 +248,20 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
 
     return (
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+        {/* Header */}
         <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
             Độ dốc vỉa: {slopeLabel}
           </Typography>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16 }}>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Chiều dày vỉa (m)
             <Box component="span" sx={{ ml: "30%" }}>
               {thicknessLabel}
             </Box>
           </Typography>
         </Box>
+
+        {/* Bảng con */}
         <Table
           columns={innerColumns}
           dataSource={norms}
@@ -306,10 +289,11 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
             <Box display={"flex"} gap={2}>
               <Button
                 variant="contained"
-                color="warning"
                 endIcon={<Add />}
                 onClick={() => handleOpen()}
                 sx={{
+                  backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -322,10 +306,12 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
               </Button>
               <Button
                 variant="contained"
-                color="error"
                 endIcon={<Delete />}
                 onClick={() => handleDelete()}
+                disabled={selectedRowKeys.length === 0}
                 sx={{
+                  backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -334,7 +320,7 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
                   px: 3,
                 }}
               >
-                Xóa
+                Xóa ({selectedRowKeys.length})
               </Button>
             </Box>
 
@@ -344,6 +330,13 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
                 color="inherit"
                 startIcon={<FilterList />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -354,14 +347,20 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
               >
                 Lọc
               </Button>
-              <TextField fullWidth size="small" placeholder="Tìm kiếm" value={searchTerm}
-  onChange={handleSearch} InputProps={{
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Tìm kiếm"
+                onChange={(e) => setSearchValue(e.target.value)}
+                sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
                       <Search sx={{ fontSize: 24 }} />
                     </InputAdornment>
                   ),
-                }} />
+                }}
+              />
             </Box>
 
             <Box display={"flex"} gap={2}>
@@ -370,6 +369,13 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
                 color="inherit"
                 startIcon={<FileUpload />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -385,6 +391,13 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
                 color="inherit"
                 startIcon={<FileDownload />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -400,6 +413,13 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
                 color="inherit"
                 startIcon={<Print />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -416,6 +436,13 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
                 startIcon={<Mail />}
                 endIcon={<ArrowDropDown />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -445,7 +472,7 @@ const filteredData = assignmentnorms.filter((item: AssignmentNormOutputType) => 
             ),
           }}
           columns={columns}
-          dataSource={filteredData}
+          dataSource={assignmentnorms.filter((i: any) => i.type === "coal_zry")}
           expandable={{
             expandedRowKeys: expandedRow ? [expandedRow] : [],
             onExpand: (expanded, record) => {

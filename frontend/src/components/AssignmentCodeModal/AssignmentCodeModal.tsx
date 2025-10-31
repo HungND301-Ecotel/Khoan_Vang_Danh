@@ -230,6 +230,7 @@ export default function AssignmentCodeModal({
                 error={formik.touched.price && Boolean(formik.errors.price)}
                 helperText={formik.touched.price && formik.errors.price}
                 variant="outlined"
+                disabled={Boolean(selectedAssignmentCode)}
                 sx={{
                   "& .MuiInputBase-root": {
                     height: "32px",

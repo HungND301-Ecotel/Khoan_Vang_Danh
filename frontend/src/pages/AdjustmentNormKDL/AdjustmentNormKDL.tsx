@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -14,11 +14,21 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
+  Breadcrumbs,
   Button,
   IconButton,
   InputAdornment,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
   TextField,
   Typography,
+  CircularProgress,
+  Skeleton,
+  Card,
+  CardContent,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -31,7 +41,7 @@ import {
 } from "../../components/Alert";
 import { Table as AntTable, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import { Eye, Pen } from "lucide-react";
+import custom_theme from '../../theme';
 
 export default function AdjustmentNormKDL() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -41,26 +51,75 @@ export default function AdjustmentNormKDL() {
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const queryClient = useQueryClient();
 
-  const { data: adjustmentnorms = [] } = useQuery({
-    queryKey: ["adjustmentnorms", searchValue],
-    queryFn: async () =>
-      api.get(`/adjustmentnorms?q=${searchValue}`).then((res) => res.data.data),
+  // Fetch all data without search parameter to handle filtering locally
+  const { data: adjustmentnorms = [], isLoading, isFetching } = useQuery({
+    queryKey: ["adjustmentnorms"],
+    queryFn: async () => {
+      try {
+        const response = await api.get(`/adjustmentnorms`);
+        return response.data.data || [];
+      } catch (error) {
+        showErrorAlert("Không thể tải dữ liệu");
+        return [];
+      }
+    },
   });
 
-  const filteredData = adjustmentnorms
-    .filter((i: AdjustmentNormOutputType) => i.type === "CKĐL")
-    .filter((i: AdjustmentNormOutputType) => {
-      const keyword = searchValue.toLowerCase();
-      return (
-        i.code?.toLowerCase().includes(keyword) ||
-        i.norms?.some((n) =>
-          n.assignmentCode?.name?.toLowerCase().includes(keyword)
-        )
-      );
+  // Add filtering delay simulation for better UX
+  useEffect(() => {
+    if (searchValue) {
+      setIsFiltering(true);
+      const timer = setTimeout(() => {
+        setIsFiltering(false);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsFiltering(false);
+    }
+  }, [searchValue]);
+
+  // Filter data based on type and search value
+  const filteredData = useMemo(() => {
+    // First filter by type
+    const typeFiltered = adjustmentnorms.filter(
+      (i: AdjustmentNormOutputType) => i.type === "CKĐL"
+    );
+
+    // Then filter by search value
+    if (!searchValue.trim()) {
+      return typeFiltered;
+    }
+
+    const searchTerm = searchValue.toLowerCase().trim();
+
+    return typeFiltered.filter((item: AdjustmentNormOutputType) => {
+      // Search in main fields
+      const code = item.code?.toLowerCase() || "";
+      const hardnessName = item.hardness?.name?.toLowerCase() || "";
+      const rockRatioName = item.rockRatio?.name?.toLowerCase() || "";
+
+      // Search in norms
+      const normsMatch = item.norms?.some((norm: any) => {
+        const assignmentCode = norm.assignmentCode?.code?.toLowerCase() || "";
+        const assignmentName = norm.assignmentCode?.name?.toLowerCase() || "";
+        const normValue = norm.norm?.toString().toLowerCase() || "";
+
+        return assignmentCode.includes(searchTerm) ||
+          assignmentName.includes(searchTerm) ||
+          normValue.includes(searchTerm);
+      });
+
+      return code.includes(searchTerm) ||
+        hardnessName.includes(searchTerm) ||
+        rockRatioName.includes(searchTerm) ||
+        normsMatch;
     });
+  }, [adjustmentnorms, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
@@ -150,171 +209,140 @@ export default function AdjustmentNormKDL() {
     setOpen(true);
   };
 
-  const expandedRowRender = (record: AdjustmentNormOutputType) => {
-    const renderRow = (
-      label: string,
-      value: string | number | undefined,
-      isHeader = true
-    ) => (
-      <Box
-        sx={{
-          height: "40px",
-          display: "flex",
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
-        <Box
-          sx={{
-            flex: 1,
-            height: "40px",
-            px: 1,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          {isHeader && (
-            <Typography
-              sx={{
-                fontFamily: "Roboto",
-                fontWeight: 400,
-                fontSize: "14px",
-                color: "#303030",
-              }}
-            >
-              {label}
-            </Typography>
-          )}
-        </Box>
-        <Box
-          sx={{
-            width: "200px",
-            height: "40px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Typography
-            sx={{
-              fontFamily: "Roboto",
-              fontWeight: 400,
-              fontSize: "14px",
-              color: "#303030",
-            }}
-          >
-            {value || "-"}
-          </Typography>
+  // Clear search function
+  const handleClearSearch = () => {
+    setSearchValue("");
+  };
+
+  // Loading skeleton for initial page load
+  const LoadingSkeleton = () => (
+    <Box>
+      {/* Toolbar skeleton */}
+      <Box sx={{ mb: 2 }}>
+        <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+          <Box display={"flex"} gap={2}>
+            <Skeleton variant="rectangular" width={100} height={36} />
+            <Skeleton variant="rectangular" width={80} height={36} />
+          </Box>
+          <Box display={"flex"} flex={1} gap={2}>
+            <Skeleton variant="rectangular" width={60} height={36} />
+            <Skeleton variant="rectangular" height={36} sx={{ flex: 1 }} />
+          </Box>
+          <Box display={"flex"} gap={2}>
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} variant="rectangular" width={80} height={36} />
+            ))}
+          </Box>
         </Box>
       </Box>
-    );
 
-    return (
-      <Box
-        sx={{
-          ml: 6,
-          backgroundColor: "#FFFFFF",
-          border: "1px solid #FFFFFF",
-          borderRadius: "6px",
-          width: "90%",
-        }}
-      >
-        {/* Header rows */}
-        {renderRow("Độ cứng của đá lẫn trong gương", record.hardness?.name)}
-        {renderRow("Tỉ lệ đá lẫn trong gương (Ckẹp)", record.rockRatio?.name)}
-
-        {/* Norms rows */}
-        {record.norms?.length ? (
-          record.norms.map((item: any, index: number) => (
-            <Box
-              key={index}
-              sx={{
-                height: "40px",
-                display: "flex",
-                borderBottom:
-                  index === record.norms.length - 1
-                    ? "none"
-                    : "1px solid #e0e0e0",
-              }}
-            >
-              <Box
-                sx={{
-                  width: "10%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
-                  {index + 1}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: "20%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
-                  {item.assignmentCode?.code}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  pl: 1,
-                }}
-              >
-                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
-                  {item.assignmentCode?.name}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: "10%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
-                  {item.assignmentCode?.uom?.name || ""}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  width: "10%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography sx={{ fontSize: "14px", color: "#303030" }}>
-                  {item.norm ? item.norm.toLocaleString() : ""}
-                </Typography>
+      {/* Table skeleton */}
+      <Card>
+        <CardContent sx={{ p: 0 }}>
+          {[...Array(5)].map((_, index) => (
+            <Box key={index} sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Skeleton variant="rectangular" width={20} height={20} />
+                <Skeleton variant="text" width={50} />
+                <Skeleton variant="text" width={200} sx={{ flex: 1 }} />
+                <Skeleton variant="circular" width={32} height={32} />
+                <Skeleton variant="circular" width={32} height={32} />
               </Box>
             </Box>
-          ))
-        ) : (
-          <Box
-            sx={{
-              height: "40px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Typography sx={{ fontSize: "14px", color: "#303030" }}>
-              Không có dữ liệu
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    );
-  };
+          ))}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  // Custom empty state component
+  const EmptyState = () => (
+    <Box sx={{ textAlign: 'center', py: 6 }}>
+      <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+        {searchValue ? "Không tìm thấy kết quả" : "Chưa có dữ liệu"}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {searchValue
+          ? `Không có hệ số điều chỉnh CKĐL nào phù hợp với "${searchValue}"`
+          : "Hiện tại chưa có hệ số điều chỉnh CKĐL nào được tạo"
+        }
+      </Typography>
+      {searchValue && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleClearSearch}
+          sx={{ mt: 1 }}
+        >
+          Xóa bộ lọc
+        </Button>
+      )}
+    </Box>
+  );
+
+  const expandedRowRender = (record: AdjustmentNormOutputType) => (
+    <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+      <TableContainer>
+        <Table
+          sx={{
+            "& td, & th": { border: 0 },
+          }}
+        >
+          <TableBody>
+            {/* Hàng thông tin chung */}
+            <TableRow sx={{ height: 28 }}>
+              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
+                Độ cứng của đá lẫn trong gương
+              </TableCell>
+              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
+                {record.hardness?.name || "-"}
+              </TableCell>
+            </TableRow>
+
+            <TableRow sx={{ height: 28 }}>
+              <TableCell colSpan={3} sx={{ fontWeight: "bold", py: 0.5 }}>
+                Tỉ lệ đá lẫn trong gương (Ckẹp)
+              </TableCell>
+              <TableCell colSpan={2} align="center" sx={{ py: 0.5 }}>
+                {record.rockRatio?.name || "-"}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+
+          {/* Phần bảng dữ liệu norms nền trắng */}
+          <TableBody sx={{ backgroundColor: "#fff" }}>
+            {record.norms?.map((item: any, index: number) => (
+              <TableRow key={index}>
+                <TableCell align="center" sx={{ width: "5%" }}>
+                  {index + 1}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "20%" }}>
+                  {item.assignmentCode?.code}
+                </TableCell>
+                <TableCell sx={{ width: "55%" }}>
+                  {item.assignmentCode?.name}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "10%" }}>
+                  {item.assignmentCode?.uom?.name || ""}
+                </TableCell>
+                <TableCell align="center" sx={{ width: "10%" }}>
+                  {item.norm ? item.norm.toLocaleString() : ""}
+                </TableCell>
+              </TableRow>
+            ))}
+
+            {(!record.norms || record.norms.length === 0) && (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  Không có dữ liệu
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
 
   const columns: TableProps<AdjustmentNormOutputType>["columns"] = [
     {
@@ -364,7 +392,7 @@ export default function AdjustmentNormKDL() {
             }}
             size="small"
           >
-            <Visibility />
+            <Visibility color="secondary" />
           </IconButton>
         </Box>
       ),
@@ -383,7 +411,7 @@ export default function AdjustmentNormKDL() {
       render: (_, record) => (
         <Box display="flex" justifyContent="center">
           <IconButton onClick={() => handleOpen(record)} size="small">
-             <Edit />
+            <Edit color="primary" />
           </IconButton>
         </Box>
       ),
@@ -397,23 +425,30 @@ export default function AdjustmentNormKDL() {
     },
   };
 
+  // Show loading skeleton on initial load
+  if (isLoading) {
+    return (
+      <Box>
+        <Box mt={3}>
+          <LoadingSkeleton />
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box>
-      {/* <Breadcrumbs aria-label="breadcrumb">
-        <Typography>Danh mục</Typography>
-        <Typography>Hệ số điều chỉnh định mức CK.ĐL</Typography>
-      </Breadcrumbs> */}
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            {/* <Typography variant="h4" sx={{ color: 'blue' }}>Hệ số điều chỉnh định mức CK.ĐL</Typography> */}
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -427,10 +462,11 @@ export default function AdjustmentNormKDL() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -442,7 +478,7 @@ export default function AdjustmentNormKDL() {
                     selectedRows.length === 0 || deleteMutation.isPending
                   }
                 >
-                  {deleteMutation.isPending ? "Đang xóa..." : "Xóa"}
+                  {deleteMutation.isPending ? "Đang xóa..." : `Xóa (${selectedRows.length})`}
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -451,6 +487,13 @@ export default function AdjustmentNormKDL() {
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -464,13 +507,32 @@ export default function AdjustmentNormKDL() {
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Tìm kiếm"
+                  placeholder="Tìm kiếm theo mã định mức, độ cứng, tỷ lệ đá, mã giao khoán..."
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
+                    "& .MuiInputBase-root": {
+                      fontSize: "14px",
+                    }
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
+                        {searchValue && (
+                          <IconButton
+                            onClick={handleClearSearch}
+                            size="small"
+                            sx={{ mr: 1 }}
+                          >
+                            ×
+                          </IconButton>
+                        )}
+                        {isFiltering ? (
+                          <CircularProgress size={20} sx={{ mr: 1 }} />
+                        ) : (
+                          <Search sx={{ fontSize: 24 }} />
+                        )}
                       </InputAdornment>
                     ),
                   }}
@@ -482,6 +544,13 @@ export default function AdjustmentNormKDL() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -497,6 +566,13 @@ export default function AdjustmentNormKDL() {
                   color="inherit"
                   startIcon={<FileDownload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -512,6 +588,13 @@ export default function AdjustmentNormKDL() {
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -528,6 +611,13 @@ export default function AdjustmentNormKDL() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -541,9 +631,38 @@ export default function AdjustmentNormKDL() {
               </Box>
             </Box>
           </Box>
+
+          {/* Enhanced Search Results Info with Loading State */}
+          {searchValue && (
+            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+              <Typography variant="body2" color="primary">
+                {isFiltering ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CircularProgress size={16} sx={{ mr: 1 }} />
+                    Đang tìm kiếm "{searchValue}"...
+                  </Box>
+                ) : (
+                  <>
+                    Tìm thấy {filteredData.length} kết quả cho "{searchValue}"
+                    {filteredData.length > 0 && (
+                      <Button
+                        size="small"
+                        onClick={handleClearSearch}
+                        sx={{ ml: 2 }}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                    )}
+                  </>
+                )}
+              </Typography>
+            </Box>
+          )}
+
           <AntTable<AdjustmentNormOutputType>
             rowKey="_id"
             rowSelection={rowSelection}
+            loading={isFiltering || isFetching}
             expandable={{
               expandedRowKeys,
               onExpandedRowsChange: (keys) =>
@@ -558,12 +677,21 @@ export default function AdjustmentNormKDL() {
               defaultPageSize: 10,
               showTotal: (total, range) => (
                 <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                  {isFiltering ? (
+                    <Typography variant="body2" color="primary">
+                      Đang lọc...
+                    </Typography>
+                  ) : (
+                    `Hiển thị ${range[0]}-{range[1]} trên ${total} mục`
+                  )}
                 </div>
               ),
             }}
             columns={columns}
             dataSource={filteredData}
+            locale={{
+              emptyText: <EmptyState />
+            }}
           />
         </Box>
       </Box>

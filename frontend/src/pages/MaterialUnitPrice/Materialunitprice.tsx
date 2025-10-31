@@ -3,14 +3,14 @@ import {
   Breadcrumbs,
   Button,
   IconButton,
-  InputAdornment,
   Paper,
   TableContainer,
+  InputAdornment,
   TextField,
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import api from "../../config/api.config";
 import {
   AssignmentCodeInputType,
@@ -35,11 +35,23 @@ import {
   FilterList,
   Mail,
   Print,
-  Search,
   Visibility,
+  Search,
 } from "@mui/icons-material";
-import { FlatMaterial } from "../../types";
+import custom_theme from '../../theme';
 
+interface FlatMaterial {
+  _id: string;
+  code: string;
+  materialCode?: string;
+  name: string;
+  uom?: string;
+  quantity?: number;
+  price?: number;
+  note: string;
+  isGroupHeader?: boolean;
+  originalAssignmentId?: string;
+}
 
 export default function Materialunitprice() {
   const queryClient = useQueryClient();
@@ -62,30 +74,6 @@ export default function Materialunitprice() {
       }),
   });
 
-const flatData: FlatMaterial[] = React.useMemo(() => {
-  return data.flatMap((assignment: MaterialAssignmentOutputType) =>
-    (assignment.materials || []).map((material: any): FlatMaterial => ({
-      _id: `${assignment._id}-${material.code ?? ""}`,
-      code: assignment.code ?? "",
-      materialCode: material.code,
-      name: material.name ?? material.materialName ?? "",   
-      uom: material.uom?.name ?? material.uom ?? "",
-      quantity: material.quantity ?? material.qty ?? 0,
-      price: material.currentPrice ?? material.price ?? 0,
-      note: "",
-    }))
-  );
-}, [data]);
-
-const filteredData = React.useMemo(() => {
-  const keyword = searchValue.toLowerCase();
-  return flatData.filter((item: FlatMaterial) =>
-    item.code.toLowerCase().includes(keyword) ||
-    (item.materialCode ?? "").toLowerCase().includes(keyword) ||
-    item.name.toLowerCase().includes(keyword)
-  );
-}, [flatData, searchValue]);
-
   const handleDelete = () => {
     if (selectedRowKeys.length === 0) {
       showErrorAlert("Không tìm thấy bản ghi");
@@ -99,6 +87,7 @@ const filteredData = React.useMemo(() => {
       }
     });
   };
+
   const deleteMutation = useMutation({
     mutationFn: (ids: React.Key[]) =>
       api
@@ -163,13 +152,128 @@ const filteredData = React.useMemo(() => {
     setOpen(true);
   };
 
+  // Create grouped data structure
+  const groupedData = useMemo(() => {
+    const grouped: FlatMaterial[] = [];
+
+    data.forEach((assignment) => {
+      if (!assignment.materials || assignment.materials.length === 0) return;
+
+      // Add group header row
+      grouped.push({
+        _id: `header-${assignment._id}`,
+        code: assignment.code ?? "",
+        materialCode: "",
+        name: assignment.name ?? "", // Store assignment name in the name field for header
+        uom: "",
+        quantity: undefined,
+        price: assignment.price ?? "",
+        note: "",
+        isGroupHeader: true,
+        originalAssignmentId: assignment._id
+      });
+
+      // Add material rows
+      assignment.materials.forEach((material, index) => {
+        grouped.push({
+          _id: `${assignment._id}-${material.code ?? ""}-${index}`,
+          code: assignment.code ?? "",
+          materialCode: material.code,
+          name: material.name ?? "",
+          uom: material.uom?.name,
+          quantity: material.quantity,
+          price: material.currentPrice,
+          note: "",
+          isGroupHeader: false,
+          originalAssignmentId: assignment._id
+        });
+      });
+    });
+
+    return grouped;
+  }, [data]);
+
+  const filteredData = useMemo(() => {
+    if (!searchValue.trim()) return groupedData;
+
+    // Filter by search value and maintain groups
+    const filteredGroups: FlatMaterial[] = [];
+    const searchLower = searchValue.toLowerCase();
+
+    data.forEach((assignment) => {
+      if (!assignment.materials || assignment.materials.length === 0) return;
+
+      // Check if assignment code or any material matches search
+      const assignmentMatches = assignment.code?.toLowerCase().includes(searchLower);
+      const matchingMaterials = assignment.materials.filter(material =>
+        material.code?.toLowerCase().includes(searchLower) ||
+        material.name?.toLowerCase().includes(searchLower) ||
+        material.uom?.name?.toLowerCase().includes(searchLower)
+      );
+
+      if (assignmentMatches || matchingMaterials.length > 0) {
+        // Add group header
+        filteredGroups.push({
+          _id: `header-${assignment._id}`,
+          code: assignment.code ?? "",
+          materialCode: "",
+          name: assignment.name ?? "", // Store assignment name for header display
+          uom: "",
+          quantity: undefined,
+          price: assignment.price ?? "",
+          note: "",
+          isGroupHeader: true,
+          originalAssignmentId: assignment._id
+        });
+
+        // Add materials (all if assignment matches, otherwise only matching ones)
+        const materialsToAdd = assignmentMatches ? assignment.materials : matchingMaterials;
+        materialsToAdd.forEach((material, index) => {
+          filteredGroups.push({
+            _id: `${assignment._id}-${material.code ?? ""}-${index}`,
+            code: assignment.code ?? "",
+            materialCode: material.code,
+            name: material.name ?? "",
+            uom: material.uom?.name,
+            quantity: material.quantity,
+            price: material.currentPrice,
+            note: "",
+            isGroupHeader: false,
+            originalAssignmentId: assignment._id
+          });
+        });
+      }
+    });
+
+    return filteredGroups;
+  }, [groupedData, searchValue]);
+
   const columns: TableProps<FlatMaterial>["columns"] = [
     {
       title: "",
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (_v, _r, idx) => <Typography>{idx + 1}</Typography>,
+      render: (_v, record, idx) => {
+        if (record.isGroupHeader) return null;
+
+        // Calculate actual material index (excluding headers)
+        const materialIndex = filteredData
+          .slice(0, idx + 1)
+          .filter(item => !item.isGroupHeader).length;
+
+        return (
+          <Typography
+            style={{
+              textAlign: "center",
+              display: "block",
+            }}
+          >
+            {materialIndex}
+          </Typography>
+        );
+      },
+      align: "center",
     },
     {
       title: (
@@ -179,34 +283,79 @@ const filteredData = React.useMemo(() => {
       key: "code",
       align: "center",
       width: 180,
-      render: (_v, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
-      ),
-      sorter: (a, b) =>
-        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
-          sensitivity: "base",
-        }),
+      render: (_v, record) => {
+        if (record.isGroupHeader) {
+          return (
+            <Box>
+              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
+                {record.code}
+              </Typography>
+            </Box>
+          );
+        }
+        return null; // Don't show code for material rows
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: <Typography style={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
       dataIndex: "materialCode",
       key: "materialCode",
       align: "center",
-      render: (_v, record) => (
-        <Typography>{record.materialCode ?? ""}</Typography>
-      ),
+      render: (_v, record) => {
+        if (record.isGroupHeader) return null;
+        return <Typography>{record.materialCode ?? ""}</Typography>;
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
       dataIndex: "name",
       key: "name",
+      render: (_v, record) => {
+        if (record.isGroupHeader) {
+          return (
+            <Box>
+              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
+                {record.name}
+              </Typography>
+            </Box>
+          );
+        }
+        return <Typography>{record.name}</Typography>;
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
       dataIndex: "uom",
       key: "uom",
       align: "center",
-      render: (_v, record) => record.uom ?? "",
+      render: (_v, record) => {
+        if (record.isGroupHeader) return null;
+        return <Typography>{record.uom ?? ""}</Typography>;
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
@@ -214,8 +363,20 @@ const filteredData = React.useMemo(() => {
       key: "quantity",
       width: 130,
       align: "center",
-      render: (_v, record) =>
-        record.quantity ? record.quantity.toLocaleString() : "",
+      render: (_v, record) => {
+        if (record.isGroupHeader) return null;
+        return (
+          <Typography>
+            {record.quantity ? record.quantity.toLocaleString() : ""}
+          </Typography>
+        );
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
     {
       title: (
@@ -228,25 +389,49 @@ const filteredData = React.useMemo(() => {
       key: "price",
       align: "center",
       width: 180,
-      render: (_v, record) =>
-        record.price ? record.price.toLocaleString() : "",
+      render: (_v, record) => {
+        if (record.isGroupHeader) {
+          return (
+            <Box>
+              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
+                {record.price ? record.price.toLocaleString() : ""}
+              </Typography>
+            </Box>
+          );
+        };
+        return (
+          <Typography>
+            {record.price ? record.price.toLocaleString() : ""}
+          </Typography>
+        );
+      },
+      onCell: (record) => ({
+        style: {
+          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
+          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+        }
+      })
     },
   ];
 
   const rowSelection: TableRowSelection<FlatMaterial> = {
     selectedRowKeys,
     onChange: (keys) => setSelectedRowKeys(keys),
+    getCheckboxProps: (record) => ({
+      disabled: record.isGroupHeader, // Disable selection for group headers
+    }),
   };
 
-
-
   return (
-    <Box>
+    <Box sx={{
+      px: 5,
+      py: 1,
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Đơn giá và định mức</Typography>
         <Typography>Đơn giá vật tư giao khoán</Typography>
       </Breadcrumbs>
-      <Typography variant="h4" sx={{ color: "blue", mt: 2 }}>
+      <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main, mt: 2 }}>
         Đơn giá vật tư giao khoán
       </Typography>
       <Box mt={3}>
@@ -264,6 +449,13 @@ const filteredData = React.useMemo(() => {
                 color="inherit"
                 startIcon={<FilterList />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -278,8 +470,8 @@ const filteredData = React.useMemo(() => {
                 fullWidth
                 size="small"
                 placeholder="Tìm kiếm"
-                value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
+                sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -296,6 +488,13 @@ const filteredData = React.useMemo(() => {
                 color="inherit"
                 startIcon={<FileUpload />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -311,6 +510,13 @@ const filteredData = React.useMemo(() => {
                 color="inherit"
                 startIcon={<FileDownload />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -326,6 +532,13 @@ const filteredData = React.useMemo(() => {
                 color="inherit"
                 startIcon={<Print />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -342,6 +555,13 @@ const filteredData = React.useMemo(() => {
                 startIcon={<Mail />}
                 endIcon={<ArrowDropDown />}
                 sx={{
+                  border: "none",
+                  boxShadow: custom_theme.customShadows.tableFunctional,
+                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -358,7 +578,6 @@ const filteredData = React.useMemo(() => {
 
         <Table<FlatMaterial>
           rowKey="_id"
-          rowSelection={rowSelection}
           pagination={{
             position: ["bottomCenter"],
             showSizeChanger: true,
@@ -372,6 +591,9 @@ const filteredData = React.useMemo(() => {
           }}
           columns={columns}
           dataSource={filteredData}
+          rowClassName={(record) =>
+            record.isGroupHeader ? 'group-header-row' : 'material-row'
+          }
         />
       </Box>
     </Box>

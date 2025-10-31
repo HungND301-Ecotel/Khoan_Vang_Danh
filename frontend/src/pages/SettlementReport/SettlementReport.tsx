@@ -25,13 +25,8 @@ import {
   MaterialBudgetInputType,
   PhaseOutputType,
 } from "../../types";
-import {
-  ArrowDropDown,
-  CalendarToday,
-  FileDownload,
-  Mail,
-  Print,
-} from "@mui/icons-material";
+import { ArrowDropDown, CalendarToday, FileDownload, Mail, Print } from "@mui/icons-material";
+import custom_theme from '../../theme';
 
 export default function SettlementReport() {
   const [selectedMonth, setSelectedMonth] = useState<Number>();
@@ -114,9 +109,7 @@ export default function SettlementReport() {
                       value={selectedYear}
                       InputProps={{ endAdornment: <CalendarToday /> }}
                       SelectProps={{ IconComponent: () => null }}
-                      onChange={(e) =>
-                        setSelectedYear(parseInt(e.target.value))
-                      }
+                      onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                     >
                       {years.map((item, index) => (
                         <MenuItem key={index} value={item}>
@@ -148,9 +141,7 @@ export default function SettlementReport() {
                       select
                       InputProps={{ endAdornment: <CalendarToday /> }}
                       SelectProps={{ IconComponent: () => null }}
-                      onChange={(e) =>
-                        setSelectedMonth(parseInt(e.target.value))
-                      }
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
                     >
                       {Array.from({ length: 12 }).map((_, index) => (
                         <MenuItem key={index} value={index + 1}>
@@ -198,6 +189,13 @@ export default function SettlementReport() {
                   startIcon={<FileDownload />}
                   // onClick={handleExport}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -217,6 +215,13 @@ export default function SettlementReport() {
                   startIcon={<Print />}
                   // onClick={handlePrint}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -237,6 +242,13 @@ export default function SettlementReport() {
                   endIcon={<ArrowDropDown />}
                   // onClick={handleSend}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -255,32 +267,14 @@ export default function SettlementReport() {
           </Box>
           <TableContainer
             component={Paper}
-            sx={{
-              boxShadow: "none",
-              border: "1px solid #e0e0e0",
-              width: "100%",
-            }}
+            sx={{ boxShadow: "none", border: "1px solid #e0e0e0" }}
           >
-            <Table
-              sx={{ width: "100%", tableLayout: "fixed", fontSize: "0.7rem" }}
-              size="small"
-            >
+            <Table sx={{ width: "100%" }} size="small">
               <TableHead>
                 <TableRow>
                   <TableCell
                     align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      p: 0.5,
-                      minWidth: 40,
-                    }}
-                  >
-                    <Checkbox size="small" />
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    colSpan={6}
+                    colSpan={7}
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
@@ -636,9 +630,10 @@ export default function SettlementReport() {
                       fontWeight: "bold",
                       fontSize: "0.75rem",
                       p: 0.5,
+                      textAlign: "center",
                     }}
                   >
-                    <Checkbox size="small" />
+                    1
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -652,12 +647,15 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
+                      {index === 0 ? "GL01205VNMM" : ""}
+                      {index === 1 ? "KT" : ""}
+                      {index === 2 ? "KT10" : ""}
                       {index === 3 ? "Chỉ tiêu hiện vật" : ""}
                     </TableCell>
                   ))}
@@ -669,9 +667,10 @@ export default function SettlementReport() {
                       fontWeight: "bold",
                       fontSize: "0.75rem",
                       p: 0.5,
+                      textAlign: "center",
                     }}
                   >
-                    <Checkbox size="small" />
+                    2
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -685,12 +684,15 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
+                      {index === 0 ? "GL01205VNMM" : ""}
+                      {index === 1 ? "KT" : ""}
+                      {index === 2 ? "KT11" : ""}
                       {index === 3 ? "Than nguyên khai" : ""}
                     </TableCell>
                   ))}
@@ -702,9 +704,10 @@ export default function SettlementReport() {
                       fontWeight: "bold",
                       fontSize: "0.75rem",
                       p: 0.5,
+                      textAlign: "center",
                     }}
                   >
-                    <Checkbox size="small" />
+                    3
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -718,12 +721,15 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
+                      {index === 0 ? "GL01205VNMM" : ""}
+                      {index === 1 ? "KT" : ""}
+                      {index === 2 ? "KT12" : ""}
                       {index === 3 ? "Mét lò đào" : ""}
                     </TableCell>
                   ))}
@@ -735,9 +741,10 @@ export default function SettlementReport() {
                       fontWeight: "bold",
                       fontSize: "0.75rem",
                       p: 0.5,
+                      textAlign: "center",
                     }}
                   >
-                    <Checkbox size="small" />
+                    4
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -751,12 +758,15 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
+                      {index === 0 ? "GL01205VNMM" : ""}
+                      {index === 1 ? "KT" : ""}
+                      {index === 2 ? "KT12" : ""}
                       {index === 3 ? "Mét lò xén" : ""}
                     </TableCell>
                   ))}
@@ -768,9 +778,10 @@ export default function SettlementReport() {
                       fontWeight: "bold",
                       fontSize: "0.75rem",
                       p: 0.5,
+                      textAlign: "center",
                     }}
                   >
-                    <Checkbox size="small" />
+                    5
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -784,12 +795,15 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
+                      {index === 0 ? "GL01205VNMM" : ""}
+                      {index === 1 ? "KT" : ""}
+                      {index === 2 ? "KT12" : ""}
                       {index === 3 ? "Tỉ lệ đá lẫn trong gương (Ckep)" : ""}
                     </TableCell>
                   ))}
@@ -801,9 +815,10 @@ export default function SettlementReport() {
                       fontWeight: "bold",
                       fontSize: "0.75rem",
                       p: 0.5,
+                      textAlign: "center",
                     }}
                   >
-                    <Checkbox size="small" />
+                    6
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -817,12 +832,15 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
+                      {index === 0 ? "GL01205VNMM" : ""}
+                      {index === 1 ? "KT" : ""}
+                      {index === 2 ? "KT12" : ""}
                       {index === 3 ? "Các chỉ tiêu vật tư" : ""}
                     </TableCell>
                   ))}
@@ -834,9 +852,10 @@ export default function SettlementReport() {
                       fontWeight: "bold",
                       fontSize: "0.75rem",
                       p: 0.5,
+                      textAlign: "center",
                     }}
                   >
-                    <Checkbox size="small" />
+                    7
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -850,12 +869,15 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
+                      {index === 0 ? "GL01205VNMM" : ""}
+                      {index === 1 ? "KT" : ""}
+                      {index === 2 ? "KT12" : ""}
                       {index === 3 ? "Vật tư có định mức" : ""}
                     </TableCell>
                   ))}
@@ -867,9 +889,10 @@ export default function SettlementReport() {
                       fontWeight: "bold",
                       fontSize: "0.75rem",
                       p: 0.5,
+                      textAlign: "center",
                     }}
                   >
-                    <Checkbox size="small" />
+                    8
                   </TableCell>
                   {Array.from({ length: 19 }).map((_, index) => (
                     <TableCell
@@ -883,12 +906,15 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
+                      {index === 0 ? "GL01205VNMM" : ""}
+                      {index === 1 ? "KT" : ""}
+                      {index === 2 ? "KT12" : ""}
                       {index === 3 ? "Vật tư chủ yếu" : ""}
                     </TableCell>
                   ))}
@@ -989,31 +1015,31 @@ export default function SettlementReport() {
                                 index >= 0 && index <= 6
                                   ? "#F3D01640"
                                   : index >= 7 && index <= 10
-                                  ? "#4CAF503D"
-                                  : index >= 11 && index <= 12
-                                  ? "#FF620040"
-                                  : "white",
+                                    ? "#4CAF503D"
+                                    : index >= 11 && index <= 12
+                                      ? "#FF620040"
+                                      : "white",
                             }}
                           >
                             {index === 0
                               ? data?.assignments.find(
-                                  (i: any) =>
-                                    i._id.toString() ===
-                                    material._id?.toString()
-                                )?.assignmentNorm
+                                (i: any) =>
+                                  i._id.toString() ===
+                                  material._id?.toString()
+                              )?.assignmentNorm
                               : index === 1
-                              ? data?.assignments.find(
+                                ? data?.assignments.find(
                                   (i: any) =>
                                     i._id.toString() ===
                                     material._id?.toString()
                                 )?.adjustmentNorm
-                              : index === 2
-                              ? data?.assignments.find(
-                                  (i: any) =>
-                                    i._id.toString() ===
-                                    material._id?.toString()
-                                )?.totalNorm
-                              : ""}
+                                : index === 2
+                                  ? data?.assignments.find(
+                                    (i: any) =>
+                                      i._id.toString() ===
+                                      material._id?.toString()
+                                  )?.totalNorm
+                                  : ""}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -1102,10 +1128,10 @@ export default function SettlementReport() {
                                   index >= 0 && index <= 6
                                     ? "#F3D01640"
                                     : index >= 7 && index <= 10
-                                    ? "#4CAF503D"
-                                    : index >= 11 && index <= 12
-                                    ? "#FF620040"
-                                    : "white",
+                                      ? "#4CAF503D"
+                                      : index >= 11 && index <= 12
+                                        ? "#FF620040"
+                                        : "white",
                               }}
                             ></TableCell>
                           ))}

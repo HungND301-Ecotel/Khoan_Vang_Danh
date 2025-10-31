@@ -18,8 +18,12 @@ import {
   InputAdornment,
   TextField,
   Typography,
+  CircularProgress,
+  Skeleton,
+  Card,
+  CardContent,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import StepModal from "../../components/StepModal/StepModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StepType } from "../../types";
@@ -31,23 +35,56 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
+import custom_theme from '../../theme';
 
 export default function Step() {
   const [open, setOpen] = useState(false);
   const [selectedStep, setSelectedStep] = useState<StepType | null>(null);
   const [selectedSteps, setSelectedSteps] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [filteredSteps, setFilteredSteps] = useState<StepType[]>([]);
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const queryClient = useQueryClient();
-  const { data: steps = [] } = useQuery({
+  const { data: steps = [], isLoading, isFetching } = useQuery({
     queryKey: ["steps"],
-    queryFn: () => api.get("/steps").then((res) => res.data.data),
+    queryFn: async () => {
+      try {
+        const response = await api.get("/steps");
+        return response.data.data || [];
+      } catch (error) {
+        showErrorAlert("Không thể tải dữ liệu");
+        return [];
+      }
+    },
   });
 
+  // Add filtering delay simulation for better UX
   useEffect(() => {
-    setFilteredSteps(steps);
-  }, [steps]);
+    if (searchValue) {
+      setIsFiltering(true);
+      const timer = setTimeout(() => {
+        setIsFiltering(false);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsFiltering(false);
+    }
+  }, [searchValue]);
+
+  // Enhanced filtering with useMemo for performance
+  const filteredStep = useMemo(() => {
+    if (!searchValue.trim()) {
+      return steps;
+    }
+
+    const searchTerm = searchValue.toLowerCase().trim();
+    return steps.filter((item: StepType) => {
+      const name = item.name?.toLowerCase() || "";
+
+      return name.includes(searchTerm);
+    });
+  }, [steps, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newStep: Partial<StepType>) =>
@@ -131,19 +168,76 @@ export default function Step() {
     setOpen(true);
   };
 
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
-
-    if (!value.trim()) {
-      setFilteredSteps(steps);
-      return;
-    }
-
-    const filtered = steps.filter((step: StepType) =>
-      step.name?.toLowerCase().includes(value.toLowerCase())
-    );
-    setFilteredSteps(filtered);
+  // Clear search function
+  const handleClearSearch = () => {
+    setSearchValue("");
   };
+
+  // Loading skeleton for initial page load
+  const LoadingSkeleton = () => (
+    <Box>
+      {/* Toolbar skeleton */}
+      <Box sx={{ mb: 2 }}>
+        <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+          <Box display={"flex"} gap={2}>
+            <Skeleton variant="rectangular" width={100} height={36} />
+            <Skeleton variant="rectangular" width={80} height={36} />
+          </Box>
+          <Box display={"flex"} flex={1} gap={2}>
+            <Skeleton variant="rectangular" width={60} height={36} />
+            <Skeleton variant="rectangular" height={36} sx={{ flex: 1 }} />
+          </Box>
+          <Box display={"flex"} gap={2}>
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} variant="rectangular" width={80} height={36} />
+            ))}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Table skeleton */}
+      <Card>
+        <CardContent sx={{ p: 0 }}>
+          {[...Array(5)].map((_, index) => (
+            <Box key={index} sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Skeleton variant="rectangular" width={20} height={20} />
+                <Skeleton variant="text" width={50} />
+                <Skeleton variant="text" width={250} sx={{ flex: 1 }} />
+                <Skeleton variant="text" width={80} />
+                <Skeleton variant="circular" width={32} height={32} />
+              </Box>
+            </Box>
+          ))}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  // Custom empty state component
+  const EmptyState = () => (
+    <Box sx={{ textAlign: 'center', py: 6 }}>
+      <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+        {searchValue ? "Không tìm thấy kết quả" : "Chưa có dữ liệu"}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {searchValue
+          ? `Không có tiết diện lò xén nào phù hợp với "${searchValue}"`
+          : "Hiện tại chưa có tiết diện lò xén nào được tạo"
+        }
+      </Typography>
+      {searchValue && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleClearSearch}
+          sx={{ mt: 1 }}
+        >
+          Xóa bộ lọc
+        </Button>
+      )}
+    </Box>
+  );
 
   const columns: TableProps<StepType>["columns"] = [
     {
@@ -184,19 +278,34 @@ export default function Step() {
     },
   };
 
+  // Show loading skeleton on initial load
+  if (isLoading) {
+    return (
+      <Box>
+        <Box mt={3}>
+          <LoadingSkeleton />
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
+            {/* <Typography variant="h4" sx={{ color: 'blue' }}>
+              Bước chống
+            </Typography> */}
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -209,10 +318,12 @@ export default function Step() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
+                  disabled={selectedSteps.length === 0}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -221,7 +332,7 @@ export default function Step() {
                     px: 3,
                   }}
                 >
-                  Xóa
+                  Xóa ({selectedSteps.length})
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -230,6 +341,13 @@ export default function Step() {
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -244,8 +362,8 @@ export default function Step() {
                   fullWidth
                   size="small"
                   placeholder="Tìm kiếm"
-                  value={searchValue}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -261,6 +379,13 @@ export default function Step() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -276,6 +401,13 @@ export default function Step() {
                   color="inherit"
                   startIcon={<FileDownload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -291,6 +423,13 @@ export default function Step() {
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -307,6 +446,13 @@ export default function Step() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -323,6 +469,7 @@ export default function Step() {
           <Table<StepType>
             rowKey="_id"
             rowSelection={rowSelection}
+            loading={isFiltering || isFetching}
             pagination={{
               position: ["bottomCenter"],
               showSizeChanger: true,
@@ -330,12 +477,21 @@ export default function Step() {
               defaultPageSize: 10,
               showTotal: (total, range) => (
                 <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                  {isFiltering ? (
+                    <Typography variant="body2" color="primary">
+                      Đang lọc...
+                    </Typography>
+                  ) : (
+                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
+                  )}
                 </div>
               ),
             }}
             columns={columns}
-            dataSource={searchValue ? filteredSteps : steps}
+            dataSource={filteredStep}
+            locale={{
+              emptyText: <EmptyState />
+            }}
           />
         </Box>
       </Box>

@@ -11,6 +11,7 @@ import AssignmentCode from './pages/AssignmentCode/AssignmentCode';
 
 import Unit from './pages/Unit/Unit';
 import MaterialAssignment from './pages/MaterialAssignment/MaterialAssignment';
+import MaterialAssignmentOutPlan from './pages/MaterialAssignmentOutPlan/MaterialAssignmentOutPlan';
 import PhaseGroup from './pages/PhaseGroup/PhaseGroup';
 import Phase from './pages/Phase/Phase';
 import ExcavationTech from './pages/ExcavationTech/ExcavationTech';
@@ -32,7 +33,7 @@ import MirrorRatio from './pages/MirrorRatio/MirrorRatio';
 import AdjustmentNormKKT from './pages/AdjustmentNormKKT/AdjustmentNormKKT';
 import AdjustmentNormKDL from './pages/AdjustmentNormKDL/AdjustmentNormKDL';
 import AdjustmentNormCM from './pages/AdjustmentNormCM/AdjustmentNormCM';
-import ProductScope from './pages/ProductionSope/ProductionScope';
+import ProductScope from './pages/ProductionScope/ProductionScope';
 import DeviceCode from './pages/DeviceCode/DeviceCode';
 import MaterialBudget from './pages/MaterialBudget/MaterialBudget';
 import MaterialCostUsed from './pages/MaterialCostUsed/MaterialCostUsed';
@@ -42,34 +43,24 @@ import Adjustmentfactorfornorms from './pages/Adjustmentfactorfornorms/Adjustmen
 import Parameter from './pages/Parameter/Parameter';
 import CoalCuttingNorm from './pages/CoalCuttingNorm/CoalCuttingNorm';
 // import Quarterlycontractsettlement from './pages/Quarterlycontractsettlement/Quarterlycontractsettlement';
-import SettlementReport123 from './pages/SettlementReport123/SettlementReport123';
-import MaterialsOutsideContract from './pages/MaterialsOutsideContract/MaterialsOutsideContract';
-import { PrivateRouteProps } from './types';
+import SettlementReportSummary from './pages/SettlementReportSummary/SettlementReportSummary';
+
+interface PrivateRouteProps {
+  children: React.ReactNode;
+}
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const token = localStorage.getItem("token");
   const [user] = useAtom(userAtom);
-  // if (!token) {
-  //   return <Navigate to="/login" />;
-  // }
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
   return <MainLayout>{children}</MainLayout>;
 };
 
 const App = () => {
   const token = localStorage.getItem("token");
   const [user, setUser] = useAtom(userAtom);
-
-  // const { data, isLoading } = useQuery({
-  //   queryKey: ['user', token],
-  //   queryFn: () => api.get(`/auth/me`).then(res => res.data.data.user),
-  //   enabled: !!token,
-  // })
-
-  // useEffect(() => {
-  //   if (data) {
-  //     setUser(data)
-  //   }
-  // }, [data])
 
   return (
     <BrowserRouter>
@@ -83,23 +74,15 @@ const App = () => {
             </PrivateRoute>
           }
         />
-         <Route
-          path="/settlementReport123"
-          element={
-            <PrivateRoute>
-              <SettlementReport123 />
-            </PrivateRoute>
-          }
-        /> 
         <Route
-        path="/materialsoutsidecontract"
+          path="/settlementReportSummary"
           element={
             <PrivateRoute>
-              <MaterialsOutsideContract />
+              <SettlementReportSummary />
             </PrivateRoute>
           }
         />
-         <Route
+        <Route
           path="/ratedadjustmentfactor"
           element={
             <PrivateRoute>
@@ -107,7 +90,7 @@ const App = () => {
             </PrivateRoute>
           }
         />
-          <Route
+        <Route
           path="/parameter"
           element={
             <PrivateRoute>
@@ -116,12 +99,12 @@ const App = () => {
           }
         />
         <Route
-        path="/adjustmentfactorfornorms"
-        element={
-          <PrivateRoute>
-            <Adjustmentfactorfornorms/>
-          </PrivateRoute>
-        }
+          path="/adjustmentfactorfornorms"
+          element={
+            <PrivateRoute>
+              <Adjustmentfactorfornorms />
+            </PrivateRoute>
+          }
         />
         <Route
           path="/unit"
@@ -160,6 +143,14 @@ const App = () => {
           element={
             <PrivateRoute>
               <MaterialAssignment />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/materialassignmentoutplan"
+          element={
+            <PrivateRoute>
+              <MaterialAssignmentOutPlan />
             </PrivateRoute>
           }
         />

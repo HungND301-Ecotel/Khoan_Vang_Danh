@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
@@ -11,9 +11,6 @@ import {
   Badge,
   Menu,
   MenuItem,
-  Divider,
-  Avatar,
-  Tooltip,
   ListItemIcon,
 } from "@mui/material";
 import {
@@ -53,8 +50,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [menuDanhMucEl, setMenuDanhMucEl] = useState<HTMLElement | null>(null);
   const [menuDonGiaEl, setMenuDonGiaEl] = useState<HTMLElement | null>(null);
   const [menuThongKeEl, setMenuThongKeEl] = useState<HTMLElement | null>(null);
-  const [menuSettingsEl, setMenuSettingsEl] = useState<HTMLElement | null>(null);
-  const [menuVatTuEl, setMenuVatTuEl] = useState<HTMLElement | null>(null);
+  const [menuSettingsEl, setMenuSettingsEl] = useState<HTMLElement | null>(
+    null
+  );
+  const [materialSubMenuEl, setMaterialSubMenuEl] = useState<null | HTMLElement>(null);
 
   const { data: phases = [] } = useQuery({
     queryKey: ["phases"],
@@ -157,12 +156,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               sx={{ minHeight: 24, lineHeight: 1.1 }} // cao bằng icon
             >
               <Typography sx={{ fontSize: 12, lineHeight: 1.1 }}>
-                Nguyễn Hà
+                {user?.fullName}
               </Typography>
               <Typography
                 sx={{ fontSize: 10, color: "text.secondary", lineHeight: 1.1 }}
               >
-                admin@gmail.com
+                {user?.email}
               </Typography>
             </Box>
 
@@ -171,14 +170,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </Toolbar>
       </AppBar>
 
-      <Box component="main" sx={{ flexGrow: 1, mt: 12, p: 3 }}>
+      {/* NƠI HIỂN THỊ NỘI DUNG PAGE */}
+      <Box component="main" sx={{ flexGrow: 1, mt: 12, p: 3, minHeight: "100vh", backgroundColor: '#f1f2f5' }}>
         {children || <Outlet />}
       </Box>
       
       <Menu
         anchorEl={menuDanhMucEl}
         open={Boolean(menuDanhMucEl)}
-        onClose={() => setMenuDanhMucEl(null)}
+        onClose={() => {
+          setMenuDanhMucEl(null);
+          setMaterialSubMenuEl(null);
+        }}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
@@ -206,17 +209,38 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         >
           MÃ GIAO KHOÁN
         </MenuItem>
+
+        {/* Material MenuItem - Click to open submenu */}
         <MenuItem
-          onMouseEnter={(e) => setMenuVatTuEl(e.currentTarget)}
-          sx={{ 
-            display: "flex", 
-            justifyContent: "space-between",
-            alignItems: "center" 
+          onClick={(event) => {
+            event.stopPropagation();
+            if (materialSubMenuEl) {
+              setMaterialSubMenuEl(null);
+            } else {
+              setMaterialSubMenuEl(event.currentTarget);
+            }
+          }}
+          sx={{
+            position: 'relative',
+            '&:after': {
+              content: '"▶"',
+              position: 'absolute',
+              right: 8,
+              fontSize: '12px',
+              color: 'rgba(0, 0, 0, 0.54)',
+              transform: materialSubMenuEl ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease'
+            },
+            backgroundColor: materialSubMenuEl ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+            '&:hover': {
+              backgroundColor: materialSubMenuEl ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0, 0, 0, 0.04)',
+            }
           }}
         >
           VẬT TƯ ,TÀI SẢN
           <ChevronRight className="w-4 h-4" />
         </MenuItem>
+
         <MenuItem
           onClick={() => {
             navigate("/rockratio");
@@ -233,7 +257,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         >
           Tỷ LỆ GƯƠNG THAN MỀM
         </MenuItem>
-        
         <MenuItem
           onClick={() => {
             navigate("/adjustmentfactorfornorms");
@@ -243,6 +266,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
          HỆ SỐ ĐIỀU CHỈNH ĐỊNH MỨC
         </MenuItem>
 
+        {/* Công đoạn sản xuất */}
         <MenuItem
           onClick={() => {
             navigate("/ratedadjustmentfactor");
@@ -267,20 +291,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          ĐIỆN SẢN XUẤT
+          Diện sản xuất
         </MenuItem>
       </Menu>
+
+      {/* Submenu - Simple and stable */}
       <Menu
-        anchorEl={menuVatTuEl}
-        open={Boolean(menuVatTuEl)}
-        onClose={() => setMenuVatTuEl(null)}
+        anchorEl={materialSubMenuEl}
+        open={Boolean(materialSubMenuEl)}
+        onClose={() => setMaterialSubMenuEl(null)}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
-        onMouseLeave={() => setMenuVatTuEl(null)}
         sx={{
           '& .MuiPaper-root': {
-            backgroundColor: '#f5f5f5',
-            minWidth: 200,
+            marginLeft: '8px',
+            boxShadow: '0px 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: '8px',
           }
         }}
       >
@@ -288,19 +314,35 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           onClick={() => {
             navigate("/materialassignment");
             setMenuDanhMucEl(null);
-            setMenuVatTuEl(null);
+            setMaterialSubMenuEl(null);
+          }}
+          sx={{
+            minWidth: 260,
+            fontSize: '14px',
+            padding: '10px 16px',
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)'
+            }
           }}
         >
-          VẬT TƯ, TÀI SẢN TRONG KHOÁN
+          Vật tư, tài sản trong khoán
         </MenuItem>
         <MenuItem
           onClick={() => {
-              navigate("/materialsoutsidecontract");
+            navigate("/materialassignmentoutplan"); // Update with your actual route
             setMenuDanhMucEl(null);
-            setMenuVatTuEl(null);
+            setMaterialSubMenuEl(null);
+          }}
+          sx={{
+            minWidth: 260,
+            fontSize: '14px',
+            padding: '10px 16px',
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)'
+            }
           }}
         >
-          VẬT TƯ, TÀI SẢN NGOÀI KHOÁN
+          Vật tư, tài sản khác
         </MenuItem>
       </Menu>
 
@@ -353,14 +395,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
-            navigate("/materialbudget");
-            setMenuThongKeEl(null);
-          }}
-        >
-          CHI PHÍ VẬT TƯ KẾ HOẠCH
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
             navigate("/materialcostused");
             setMenuThongKeEl(null);
           }}
@@ -369,7 +403,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/settlementReport123");
+            navigate("/materialbudget");
+            setMenuThongKeEl(null);
+          }}
+        >
+          Chi phí vật tư kế hoạch (Zkh)
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/settlementReportSummary");
             setMenuThongKeEl(null);
           }}
         >
@@ -389,7 +431,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           alignItems="flex-end"
           padding={2}
         >
-          <Typography>Nguyễn Hà</Typography>
+          <Typography>{user?.fullName}</Typography>
           <Typography>Kế toán</Typography>
         </Box>
         <MenuItem>

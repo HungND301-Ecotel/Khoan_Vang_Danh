@@ -16,6 +16,7 @@ import {
   Box,
   Breadcrumbs,
   Button,
+  Grid,
   IconButton,
   InputAdornment,
   TextField,
@@ -35,6 +36,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
+import custom_theme from '../../theme';
 
 export default function MaterialCostUsed() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -80,11 +82,6 @@ export default function MaterialCostUsed() {
       showErrorAlert(errorMessage);
     },
   });
-
-
-  const filteredData = materialcostuseds.filter((item: MaterialCostUsedOutputType) =>
-  item.code?.toLowerCase().includes(searchValue.toLowerCase())
-);
 
   const updateMutation = useMutation({
     mutationFn: (updateMaterialCostUsed: Partial<MaterialCostUsedInputType>) =>
@@ -206,39 +203,39 @@ export default function MaterialCostUsed() {
         </Box>
       );
     }
-    if (!data.materials) {
+    if (!data.phases) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
-
     const innerColumns = [
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>STT</Typography>,
+        title: <Typography sx={{ fontWeight: "bold" }}></Typography>,
+        width: 200,
         dataIndex: "index",
         key: "index",
-        width: 60,
         align: "center" as const,
         render: (text: string, item: any, index: number) => (
-          <Typography>{index + 1}</Typography>
+          <Typography>Công đoạn {index + 1}</Typography>
         ),
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
+        title: <Typography sx={{ fontWeight: "bold" }}>Mã công đoạn</Typography>,
+        width: 200,
         dataIndex: "code",
         key: "code",
         render: (text: string, item: any) => (
-          <Typography>{item.material?.code}</Typography>
+          <Typography>{item.phase?.code}</Typography>
         ),
       },
       {
         title: (
           <Typography sx={{ fontWeight: "bold" }}>
-            Tên vật tư, tài sản
+            Tên công đoạn
           </Typography>
         ),
         dataIndex: "name",
         key: "name",
         render: (text: string, item: any) => (
-          <Typography>{item.material?.name}</Typography>
+          <Typography>{item.phase?.name}</Typography>
         ),
       },
       {
@@ -246,35 +243,13 @@ export default function MaterialCostUsed() {
         dataIndex: "uom",
         key: "uom",
         render: (text: string, item: any) => (
-          <Typography>{item.material?.uom?.name}</Typography>
+          <Typography>{item.phase?.uom?.name}</Typography>
         ),
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
-        dataIndex: "quantity",
-        key: "quantity",
-        align: "center" as const,
-        render: (value: number) => (
-          <Typography>{value ? value.toLocaleString() : ""}</Typography>
-        ),
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>,
-        dataIndex: "price",
-        key: "price",
-        align: "center" as const,
-        render: (_: any, item: any) => (
-          <Typography>
-            {item.material && item.material.currentPrice
-              ? item.material.currentPrice.toLocaleString()
-              : ""}
-          </Typography>
-        ),
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Chi phí</Typography>,
-        dataIndex: "cost",
-        key: "cost",
+        dataIndex: "production",
+        key: "production",
         align: "center" as const,
         render: (value: number) => (
           <Typography>{value ? value.toLocaleString() : ""}</Typography>
@@ -284,22 +259,36 @@ export default function MaterialCostUsed() {
 
     return (
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-        <Box sx={{ mb: 2 }}>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Mã chi phí thực hiện: {data.code}
-          </Typography>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Mã chi phí vật tư kế hoạch: {data.plannedCostCode}
-          </Typography>
-        </Box>
+        <Grid container spacing={2} sx={{ backgroundColor: "white", p: 2 }}>
+          <Grid item xs={2}>
+            <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
+              Mã diện sản xuất:
+            </Typography>
+          </Grid>
+          <Grid item xs={10}>
+            <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
+              {data.productionScope?.code || ""}
+            </Typography>
+          </Grid>
+          <Grid item xs={2}>
+            <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
+              Diện sản xuất:
+            </Typography>
+          </Grid>
+          <Grid item xs={10}>
+            <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
+              {data.productionScope?.name || ""}
+            </Typography>
+          </Grid>
+        </Grid>
         <Table
           columns={innerColumns}
-          dataSource={data.materials || []}
+          dataSource={data.phases || []}
           pagination={false}
           size="small"
           rowKey={(item) => item._id}
         />
-      </Box>
+      </Box >
     );
   };
 
@@ -379,7 +368,10 @@ export default function MaterialCostUsed() {
   };
 
   return (
-    <Box>
+    <Box sx={{
+      px: 5,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Thống kê vận hành</Typography>
         <Typography>Chi phí vật tư thực hiện </Typography>
@@ -387,17 +379,18 @@ export default function MaterialCostUsed() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "blue" }}>
+            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
               Chi phí vật tư thực hiện
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -410,10 +403,12 @@ export default function MaterialCostUsed() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
+                  disabled={selectedRows.length === 0}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -422,7 +417,7 @@ export default function MaterialCostUsed() {
                     px: 3,
                   }}
                 >
-                  Xóa
+                  Xóa ({selectedRows.length})
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -431,6 +426,13 @@ export default function MaterialCostUsed() {
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -447,6 +449,7 @@ export default function MaterialCostUsed() {
                   placeholder="Tìm kiếm"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -462,6 +465,13 @@ export default function MaterialCostUsed() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -477,6 +487,13 @@ export default function MaterialCostUsed() {
                   color="inherit"
                   startIcon={<FileDownload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -492,6 +509,13 @@ export default function MaterialCostUsed() {
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -508,6 +532,13 @@ export default function MaterialCostUsed() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -543,7 +574,7 @@ export default function MaterialCostUsed() {
               ),
             }}
             columns={columns}
-            dataSource={filteredData}
+            dataSource={materialcostuseds}
           />
         </Box>
       </Box>

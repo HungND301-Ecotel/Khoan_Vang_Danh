@@ -18,8 +18,12 @@ import {
   InputAdornment,
   TextField,
   Typography,
+  CircularProgress,
+  Skeleton,
+  Card,
+  CardContent,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import MirrorRatioModal from "../../components/MirrorRatioModal/MirrorRatioModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MirrorRatioType } from "../../types";
@@ -31,6 +35,9 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
+import custom_theme from '../../theme';
+import MirrorRatioService from "../../service/MirrorRatioService";
+import { parseAxiosError } from "../../utils/handleApiError";
 
 export default function MirrorRatio() {
   const [open, setOpen] = useState(false);
@@ -40,12 +47,50 @@ export default function MirrorRatio() {
     []
   );
   const [searchValue, setSearchValue] = useState("");
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const queryClient = useQueryClient();
-  const { data: mirrorratios = [] } = useQuery({
+
+  const { data: mirrorratios = [], isLoading, isFetching } = useQuery({
     queryKey: ["mirrorratios"],
-    queryFn: () => api.get("/mirrorratios").then((res) => res.data.data),
+    queryFn: async () => {
+      try {
+        const response = await api.get("/mirrorratios");
+        return response.data.data || [];
+      } catch (error) {
+        showErrorAlert("Không thể tải dữ liệu");
+        return [];
+      }
+    },
   });
+
+  // Add filtering delay simulation for better UX
+  useEffect(() => {
+    if (searchValue) {
+      setIsFiltering(true);
+      const timer = setTimeout(() => {
+        setIsFiltering(false);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsFiltering(false);
+    }
+  }, [searchValue]);
+
+  // Enhanced filtering with useMemo for performance
+  const filteredMirrorRatios = useMemo(() => {
+    if (!searchValue.trim()) {
+      return mirrorratios;
+    }
+
+    const searchTerm = searchValue.toLowerCase().trim();
+    return mirrorratios.filter((item: MirrorRatioType) => {
+      const name = item.name?.toLowerCase() || "";
+
+      return name.includes(searchTerm);
+    });
+  }, [mirrorratios, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newMirrorRatio: Partial<MirrorRatioType>) =>
@@ -58,6 +103,14 @@ export default function MirrorRatio() {
     onError: (error: any) => {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
+  });
+  const exportExcel = useMutation({
+    mutationFn: MirrorRatioService.exportFile,
+    onSuccess: () => { },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error)
+      showErrorAlert(message);
+    }
   });
 
   const updateMutation = useMutation({
@@ -146,6 +199,77 @@ export default function MirrorRatio() {
     setOpen(true);
   };
 
+  // Clear search function
+  const handleClearSearch = () => {
+    setSearchValue("");
+  };
+
+  // Loading skeleton for initial page load
+  const LoadingSkeleton = () => (
+    <Box>
+      {/* Toolbar skeleton */}
+      <Box sx={{ mb: 2 }}>
+        <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+          <Box display={"flex"} gap={2}>
+            <Skeleton variant="rectangular" width={100} height={36} />
+            <Skeleton variant="rectangular" width={80} height={36} />
+          </Box>
+          <Box display={"flex"} flex={1} gap={2}>
+            <Skeleton variant="rectangular" width={60} height={36} />
+            <Skeleton variant="rectangular" height={36} sx={{ flex: 1 }} />
+          </Box>
+          <Box display={"flex"} gap={2}>
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} variant="rectangular" width={80} height={36} />
+            ))}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Table skeleton */}
+      <Card>
+        <CardContent sx={{ p: 0 }}>
+          {[...Array(5)].map((_, index) => (
+            <Box key={index} sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Skeleton variant="rectangular" width={20} height={20} />
+                <Skeleton variant="text" width={50} />
+                <Skeleton variant="text" width={250} sx={{ flex: 1 }} />
+                <Skeleton variant="text" width={80} />
+                <Skeleton variant="circular" width={32} height={32} />
+              </Box>
+            </Box>
+          ))}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+
+  // Custom empty state component
+  const EmptyState = () => (
+    <Box sx={{ textAlign: 'center', py: 6 }}>
+      <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+        {searchValue ? "Không tìm thấy kết quả" : "Chưa có dữ liệu"}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {searchValue
+          ? `Không có tiết diện lò xén nào phù hợp với "${searchValue}"`
+          : "Hiện tại chưa có tiết diện lò xén nào được tạo"
+        }
+      </Typography>
+      {searchValue && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleClearSearch}
+          sx={{ mt: 1 }}
+        >
+          Xóa bộ lọc
+        </Button>
+      )}
+    </Box>
+  );
+
   const columns: TableProps<MirrorRatioType>["columns"] = [
     {
       title: "",
@@ -177,11 +301,8 @@ export default function MirrorRatio() {
       render: (_, record) => (
         <Box display="flex" gap={1}>
           <IconButton onClick={() => handleOpen(record)}>
-                   <Edit />
-                 </IconButton>
-          {/* <IconButton onClick={() => handleDeleteSingle(record._id!)}>
-            <Delete color="error" />
-          </IconButton> */}
+            <Edit color="primary" />
+          </IconButton>
         </Box>
       ),
     },
@@ -194,8 +315,22 @@ export default function MirrorRatio() {
     },
   };
 
+  // Show loading skeleton on initial load
+  if (isLoading) {
+    return (
+      <Box>
+        <Box mt={3}>
+          <LoadingSkeleton />
+        </Box>
+      </Box>
+    );
+  }
+
   return (
-    <Box>
+    <Box sx={{
+      px: 5,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Tỉ lệ gương than mềm</Typography>
@@ -203,17 +338,18 @@ export default function MirrorRatio() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "blue" }}>
+            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
               Tỉ lệ gương than mềm
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -226,11 +362,12 @@ export default function MirrorRatio() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={handleDeleteMultiple}
                   disabled={selectedMirrorRatios.length === 0}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -248,6 +385,13 @@ export default function MirrorRatio() {
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -261,13 +405,27 @@ export default function MirrorRatio() {
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Tìm kiếm"
+                  placeholder="Tìm kiếm theo Tỉ lệ gương than mềm..."
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
+                        {searchValue && (
+                          <IconButton
+                            onClick={handleClearSearch}
+                            size="small"
+                            sx={{ mr: 1 }}
+                          >
+                            ×
+                          </IconButton>
+                        )}
+                        {isFiltering ? (
+                          <CircularProgress size={20} sx={{ mr: 1 }} />
+                        ) : (
+                          <Search sx={{ fontSize: 24 }} />
+                        )}
                       </InputAdornment>
                     ),
                   }}
@@ -279,6 +437,13 @@ export default function MirrorRatio() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -293,7 +458,15 @@ export default function MirrorRatio() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -309,6 +482,13 @@ export default function MirrorRatio() {
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -325,6 +505,13 @@ export default function MirrorRatio() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -338,9 +525,38 @@ export default function MirrorRatio() {
               </Box>
             </Box>
           </Box>
+
+          {/* Enhanced Search Results Info with Loading State */}
+          {searchValue && (
+            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+              <Typography variant="body2" color="primary">
+                {isFiltering ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CircularProgress size={16} sx={{ mr: 1 }} />
+                    Đang tìm kiếm "{searchValue}"...
+                  </Box>
+                ) : (
+                  <>
+                    Tìm thấy {filteredMirrorRatios.length} kết quả cho "{searchValue}"
+                    {filteredMirrorRatios.length > 0 && (
+                      <Button
+                        size="small"
+                        onClick={handleClearSearch}
+                        sx={{ ml: 2 }}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                    )}
+                  </>
+                )}
+              </Typography>
+            </Box>
+          )}
+
           <Table<MirrorRatioType>
             rowKey="_id"
             rowSelection={rowSelection}
+            loading={isFiltering || isFetching}
             pagination={{
               position: ["bottomCenter"],
               showSizeChanger: true,
@@ -348,14 +564,21 @@ export default function MirrorRatio() {
               defaultPageSize: 10,
               showTotal: (total, range) => (
                 <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
+                  {isFiltering ? (
+                    <Typography variant="body2" color="primary">
+                      Đang lọc...
+                    </Typography>
+                  ) : (
+                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
+                  )}
                 </div>
               ),
             }}
             columns={columns}
-            dataSource={mirrorratios.filter((item: MirrorRatioType) =>
-              item.name?.toLowerCase().includes(searchValue.toLowerCase())
-            )}
+            dataSource={filteredMirrorRatios}
+            locale={{
+              emptyText: <EmptyState />
+            }}
           />
         </Box>
       </Box>

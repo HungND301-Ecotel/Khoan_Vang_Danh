@@ -36,6 +36,7 @@ import {
 import CoalCuttingNormKB from "../CoalCuttingNormKB/CoalCuttingNormKB";
 import CoalCuttingNormZH from "../CoalCuttingNormZH/CoalCuttingNormZH";
 import CoalCuttingNormZRY from "../CoalCuttingNormZRY/CoalCuttingNormZRY";
+import custom_theme from '../../theme';
 
 export default function CoalCuttingNorm() {
   const { data: phases = [] } = useQuery({
@@ -53,14 +54,17 @@ export default function CoalCuttingNorm() {
   );
 
   return (
-    <>
+    <Box sx={{
+      px: 5,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Đơn giá và định mức</Typography>
         <Typography>Định mức khấu than</Typography>
         <Typography>{coalPhases[currentTab]?.code ?? "KB"}</Typography>
       </Breadcrumbs>
 
-      <Typography variant="h4" sx={{ color: "blue", mt: 2 }}>
+      <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main, mt: 2 }}>
         Định mức khấu than
       </Typography>
 
@@ -80,6 +84,7 @@ export default function CoalCuttingNorm() {
             variant="standard"
             TabIndicatorProps={{ style: { display: "none" } }}
             sx={{
+              backgroundColor: '#ffffffff',
               minHeight: "32px",
               "& .MuiTabs-flexContainer": { gap: 1.5 },
             }}
@@ -101,6 +106,7 @@ export default function CoalCuttingNorm() {
                     fontWeight: 500,
                     borderRadius: 1.5,
                     padding: "8px 18px",
+                    margin: "4px 4px",
                     color: "text.primary",
                     backgroundColor: "transparent",
                     "&.Mui-selected": {
@@ -119,6 +125,6 @@ export default function CoalCuttingNorm() {
         {currentTab === 1 && <CoalCuttingNormZH />}
         {currentTab === 2 && <CoalCuttingNormZRY />}
       </Box>
-    </>
+    </Box>
   );
 }

@@ -252,7 +252,7 @@ export default function ProductionScopeModal({
                           key={index}
                           sx={{
                             display: "grid",
-                            gridTemplateColumns: "1fr 1fr 1fr 1fr auto",
+                            gridTemplateColumns: "1fr 1fr auto",
                             gap: 1.5,
                             alignItems: "center",
                             width: "100%",
@@ -316,6 +316,8 @@ export default function ProductionScopeModal({
                               }}
                             />
                           </Box>
+
+                          {/* Sản lượng
                           <Box>
                             <Typography
                               sx={{
@@ -350,7 +352,9 @@ export default function ProductionScopeModal({
                                 },
                               }}
                             />
-                          </Box>
+                          </Box> */}
+
+                          {/* Đơn vị tính
                           <Box>
                             <Typography
                               sx={{
@@ -377,7 +381,7 @@ export default function ProductionScopeModal({
                                 },
                               }}
                             />
-                          </Box>
+                          </Box> */}
 
                           {/* Nút xóa */}
                           <IconButton

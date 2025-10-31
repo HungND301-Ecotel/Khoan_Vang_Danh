@@ -25,8 +25,12 @@ import {
   TableRow,
   TextField,
   Typography,
+  CircularProgress,
+  Skeleton,
+  Card,
+  CardContent,
 } from "@mui/material";
-import React, { useState, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import AssignmentCodeModal from "../../components/AssignmentCodeModal/AssignmentCodeModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AssignmentCodeInputType, AssignmentCodeOutputType } from "../../types";
@@ -38,6 +42,11 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { Table, TableProps } from "antd";
+import custom_theme from '../../theme';
+import AssignmentCodeService from "../../service/AssignmentCodeService";
+import { parseAxiosError } from "../../utils/handleApiError";
+import LoadingSkeleton from "../../ui/LoadingSkeleton";
+import EmptyState from "../../ui/EmptyState";
 
 export default function AssignmentCode() {
   const [open, setOpen] = useState(false);
@@ -47,28 +56,51 @@ export default function AssignmentCode() {
     React.Key[]
   >([]);
   const [searchValue, setSearchValue] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const queryClient = useQueryClient();
 
-  const { data: assignmentcodes = [] } = useQuery({
-    queryKey: ["assignmentcodes", searchValue],
-    queryFn: () =>
-      api.get(`/assignmentcodes?q=${searchValue}`).then((res) => res.data.data),
+  const { data: assignmentcodes = [], isLoading, isFetching } = useQuery({
+    queryKey: ["assignmentcodes"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/assignmentcodes");
+        return response.data.data || [];
+      } catch (error) {
+        showErrorAlert("Không thể tải dữ liệu");
+        return [];
+      }
+    },
   });
 
-  const filteredData = assignmentcodes.filter(
-    (item: AssignmentCodeOutputType) => {
-      const keyword = searchValue.toLowerCase();
-      return (
-        item.code?.toLowerCase().includes(keyword) ||
-        item.name?.toLowerCase().includes(keyword) ||
-        item.deviceCode?.code?.toLowerCase().includes(keyword) ||
-        item.uom?.name?.toLowerCase().includes(keyword) ||
-        item.price?.toString().includes(keyword)
-      );
+  // Add filtering delay simulation for better UX
+  useEffect(() => {
+    if (searchValue) {
+      setIsFiltering(true);
+      const timer = setTimeout(() => {
+        setIsFiltering(false);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsFiltering(false);
     }
-  );
+  }, [searchValue]);
+
+  // Enhanced filtering with useMemo for performance
+  const filteredAssignmentCodes = useMemo(() => {
+    if (!searchValue.trim()) {
+      return assignmentcodes;
+    }
+
+    const searchTerm = searchValue.toLowerCase().trim();
+    return assignmentcodes.filter((item: AssignmentCodeInputType) => {
+      const name = item.name?.toLowerCase() || "";
+      const code = item.code?.toLowerCase() || "";
+
+      return name.includes(searchTerm) || code.includes(searchTerm);
+    });
+  }, [assignmentcodes, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newAssignmentCode: Partial<AssignmentCodeInputType>) =>
@@ -81,6 +113,15 @@ export default function AssignmentCode() {
     onError: (error: any) => {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
+  });
+
+  const exportExcel = useMutation({
+    mutationFn: AssignmentCodeService.exportFile,
+    onSuccess: () => { },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error)
+      showErrorAlert(message);
+    }
   });
 
   const updateMutation = useMutation({
@@ -101,7 +142,6 @@ export default function AssignmentCode() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
-
   const handleDelete = () => {
     if (selectedAssignmentCodes.length === 0) {
       showErrorAlert("Không tìm thấy bản ghi");
@@ -115,7 +155,6 @@ export default function AssignmentCode() {
       }
     });
   };
-
   const deleteMutation = useMutation({
     mutationFn: (ids: React.Key[]) =>
       api
@@ -131,7 +170,6 @@ export default function AssignmentCode() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
-
   const handleSubmit = (values: Partial<AssignmentCodeInputType>) => {
     if (selectedAssignmentCode) {
       updateMutation.mutate({ ...values, _id: selectedAssignmentCode._id });
@@ -139,7 +177,6 @@ export default function AssignmentCode() {
       createMutation.mutate(values);
     }
   };
-
   const handleOpen = (AssignmentCode?: AssignmentCodeOutputType) => {
     if (AssignmentCode) {
       setSelectedAssignmentCode(AssignmentCode);
@@ -149,102 +186,12 @@ export default function AssignmentCode() {
     setOpen(true);
   };
 
-  const handleUpload = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+  // Clear search function
+  const handleClearSearch = () => {
+    setSearchValue("");
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    api
-      .post("/assignmentcodes/importFile", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      })
-      .then((response) => {
-        showSuccessAlert("Tải lên thành công");
-        queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
-      })
-      .catch((error) => {
-        showErrorAlert(error.response?.data?.message || "Tải lên thất bại");
-      });
-
-    if (event.target) {
-      event.target.value = "";
-    }
-  };
-
-  const handleExport = () => {
-    api
-      .post(
-        "/assignmentcodes/exportFile",
-        { data: filteredData },
-        {
-          responseType: "blob",
-        }
-      )
-      .then((response) => {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", "danh_sach_ma_giao_khoan.xlsx");
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        showSuccessAlert("Xuất file thành công");
-      })
-      .catch((error) => {
-        showErrorAlert(error.response?.data?.message || "Xuất file thất bại");
-      });
-  };
-
-  const handlePrint = () => {
-    const printContent = document.getElementById("assignment-code-table");
-    if (!printContent) {
-      showErrorAlert("Không tìm thấy dữ liệu để in");
-      return;
-    }
-
-    const originalContents = document.body.innerHTML;
-    const printWindow = window.open("", "_blank");
-
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>In danh sách mã giao khoán</title>
-            <style>
-              body { font-family: Arial, sans-serif; }
-              table { width: 100%; border-collapse: collapse; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; }
-              @media print {
-                body { margin: 0; }
-              }
-            </style>
-          </head>
-          <body>
-            <h2>Danh sách mã giao khoán</h2>
-            ${printContent.innerHTML}
-          </body>
-        </html>
-      `);
-
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    } else {
-      showErrorAlert("Không thể mở cửa sổ in. Vui lòng cho phép popup.");
-    }
-  };
+  // Custom empty state component
 
   const columns: TableProps<AssignmentCodeOutputType>["columns"] = [
     {
@@ -330,8 +277,23 @@ export default function AssignmentCode() {
     },
   };
 
+  // Show loading skeleton on initial load
+  if (isLoading) {
+    return (
+      <Box>
+        <Box mt={3}>
+          <LoadingSkeleton />
+        </Box>
+      </Box>
+    );
+  }
+
   return (
-    <Box>
+    <Box sx={{
+      px: 5,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Mã giao khoán</Typography>
@@ -339,17 +301,18 @@ export default function AssignmentCode() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: "blue" }}>
+            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
               Mã giao khoán
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
-                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -362,10 +325,12 @@ export default function AssignmentCode() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
+                  disabled={selectedAssignmentCodes.length === 0}
                   sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -374,7 +339,9 @@ export default function AssignmentCode() {
                     px: 3,
                   }}
                 >
-                  Xóa
+                  {deleteMutation.isPending
+                    ? "Đang xóa..."
+                    : `Xóa (${selectedAssignmentCodes.length})`}
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -383,6 +350,13 @@ export default function AssignmentCode() {
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -396,12 +370,27 @@ export default function AssignmentCode() {
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Tìm kiếm"
+                  placeholder="Tìm kiếm theo mã giao khoán hoặc tên giao khoán..."
+                  value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
+                        {searchValue && (
+                          <IconButton
+                            onClick={handleClearSearch}
+                            size="small"
+                            sx={{ mr: 1 }}
+                          >
+                            ×
+                          </IconButton>
+                        )}
+                        {isFiltering ? (
+                          <CircularProgress size={20} sx={{ mr: 1 }} />
+                        ) : (
+                          <Search sx={{ fontSize: 24 }} />
+                        )}
                       </InputAdornment>
                     ),
                   }}
@@ -412,8 +401,14 @@ export default function AssignmentCode() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
-                  onClick={handleUpload}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -424,19 +419,19 @@ export default function AssignmentCode() {
                 >
                   Tải lên
                 </Button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept=".xlsx, .xls"
-                  style={{ display: "none" }}
-                />
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
-                  onClick={handleExport}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -451,8 +446,14 @@ export default function AssignmentCode() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
-                  onClick={handlePrint}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -469,6 +470,13 @@ export default function AssignmentCode() {
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -482,25 +490,59 @@ export default function AssignmentCode() {
               </Box>
             </Box>
           </Box>
-          <div id="assignment-code-table">
-            <Table<AssignmentCodeOutputType>
-              rowKey="_id"
-              rowSelection={rowSelection}
-              pagination={{
-                position: ["bottomCenter"],
-                showSizeChanger: true,
-                pageSizeOptions: ["10", "20", "50", "100"],
-                defaultPageSize: 10,
-                showTotal: (total, range) => (
-                  <div style={{ flex: 1, textAlign: "left" }}>
-                    Hiển thị {range[0]}-{range[1]} trên {total} mục
-                  </div>
-                ),
-              }}
-              columns={columns}
-              dataSource={filteredData}
-            />
-          </div>
+          {/* Enhanced Search Results Info with Loading State */}
+          {searchValue && (
+            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+              <Typography variant="body2" color="primary">
+                {isFiltering ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CircularProgress size={16} sx={{ mr: 1 }} />
+                    Đang tìm kiếm "{searchValue}"...
+                  </Box>
+                ) : (
+                  <>
+                    Tìm thấy {filteredAssignmentCodes.length} kết quả cho "{searchValue}"
+                    {filteredAssignmentCodes.length > 0 && (
+                      <Button
+                        size="small"
+                        onClick={handleClearSearch}
+                        sx={{ ml: 2 }}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                    )}
+                  </>
+                )}
+              </Typography>
+            </Box>
+          )}
+          <Table<AssignmentCodeOutputType>
+            rowKey="_id"
+            rowSelection={rowSelection}
+            loading={isFiltering || isFetching}
+            pagination={{
+              position: ["bottomCenter"],
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
+              defaultPageSize: 10,
+              showTotal: (total, range) => (
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  {isFiltering ? (
+                    <Typography variant="body2" color="primary">
+                      Đang lọc...
+                    </Typography>
+                  ) : (
+                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
+                  )}
+                </div>
+              ),
+            }}
+            columns={columns}
+            dataSource={filteredAssignmentCodes}
+            locale={{
+              emptyText: <EmptyState searchValue={searchValue} handleClearSearch={handleClearSearch} />
+            }}
+          />
         </Box>
       </Box>
       <AssignmentCodeModal

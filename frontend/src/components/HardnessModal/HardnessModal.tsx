@@ -181,7 +181,7 @@ export default function HardnessModal({
                 </Button>
               ))}
             </Box>
-            <Box>
+            {/* <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Đơn vị tính
               </Typography>
@@ -241,7 +241,7 @@ export default function HardnessModal({
                   </MenuItem>
                 ))}
               </TextField>
-            </Box>
+            </Box> */}
             <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
               <Button
                 onClick={handleClose}

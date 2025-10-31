@@ -2,21 +2,25 @@ import React, { SyntheticEvent, useState } from "react";
 import Setttlementreport from "../SettlementReport/SettlementReport";
 import Quarterlycontractsettlement from "../Quarterlycontractsettlement/Quarterlycontractsettlement";
 import { Box, Breadcrumbs, Tab, Tabs, Typography } from "@mui/material";
+import custom_theme from '../../theme';
 
-export default function SettlementReport123() {
+export default function SettlementReportSummary() {
   const [currentTab, setCurrentTab] = useState<number>(0);
 
   const handleChange = (_event: SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
   return (
-    <>
+    <Box sx={{
+           px: 5,           // horizontal = 32px
+           py: 1,           // vertical = 8px
+          }}>
          <Breadcrumbs aria-label="breadcrumb">
            <Typography>Thống kê vận hành</Typography>
            <Typography>Quyết toán giao khoán</Typography>
          </Breadcrumbs>
    
-         <Typography variant="h4" sx={{ color: "blue", mt: 2 }}>
+         <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main, mt: 2 }}>
           Quyết toán giao khoán
          </Typography>
    
@@ -36,6 +40,7 @@ export default function SettlementReport123() {
                variant="standard"
                TabIndicatorProps={{ style: { display: "none" } }}
                sx={{
+                 backgroundColor: '#ffffffff',
                  minHeight: "32px",
                  "& .MuiTabs-flexContainer": { gap: 1.5 },
                }}
@@ -49,6 +54,7 @@ export default function SettlementReport123() {
                    fontWeight: 500,
                    borderRadius: 1.5,
                    padding: "8px 18px",
+                   margin: "4px 4px",
                    color: "text.primary",
                    backgroundColor: "transparent",
                    "&.Mui-selected": {
@@ -66,6 +72,7 @@ export default function SettlementReport123() {
                    fontWeight: 500,
                    borderRadius: 1.5,
                    padding: "8px 18px",
+                   margin: "4px 4px",
                    color: "text.primary",
                    backgroundColor: "transparent",
                    "&.Mui-selected": {
@@ -82,6 +89,6 @@ export default function SettlementReport123() {
            {currentTab === 0 && <Setttlementreport />}
            {currentTab === 1 && <Quarterlycontractsettlement />}
          </Box>
-       </>
+       </Box>
   );
 }
