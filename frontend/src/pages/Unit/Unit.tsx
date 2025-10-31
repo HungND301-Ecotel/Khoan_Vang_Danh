@@ -5,10 +5,7 @@ import {
   Edit,
   FileDownload,
   FileUpload,
-  Filter,
-  Filter1Outlined,
   FilterList,
-  ImportExport,
   Mail,
   Print,
   Search,
@@ -17,16 +14,8 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  Container,
   IconButton,
   InputAdornment,
-  Link,
-  Paper,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -43,6 +32,8 @@ import {
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from '../../theme';
+import UnitService from "../../service/UnitService";
+import { parseAxiosError } from "../../utils/handleApiError";
 
 export default function Unit() {
   const [open, setOpen] = useState(false);
@@ -70,6 +61,16 @@ export default function Unit() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
+  const exportExcel = useMutation({
+    mutationFn: UnitService.exportFile,
+    onSuccess: () => { },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error)
+      showErrorAlert(message);
+    }
+  });
+
   const updateMutation = useMutation({
     mutationFn: (updateUnit: Partial<UnitType>) =>
       api.put(`/units/${updateUnit._id}`, updateUnit).then((res) => res.data),
@@ -167,9 +168,9 @@ export default function Unit() {
 
   return (
     <Box sx={{
-           px: 5,           // horizontal = 32px
-           py: 1,           // vertical = 8px
-          }}>
+      px: 5,           // horizontal = 32px
+      py: 1,           // vertical = 8px
+    }}>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Đơn vị tính</Typography>
@@ -230,9 +231,10 @@ export default function Unit() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontSize: 14,
                     fontWeight: 500,
                     textTransform: "none",
@@ -266,9 +268,10 @@ export default function Unit() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -283,13 +286,15 @@ export default function Unit() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -308,9 +313,10 @@ export default function Unit() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -330,9 +336,10 @@ export default function Unit() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,

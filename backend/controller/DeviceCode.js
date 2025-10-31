@@ -1,4 +1,6 @@
 const DeviceCode = require('../model/DeviceCode')
+const { configExport } = require('../utils/config_export')
+const ExcelJS = require('exceljs')
 
 
 exports.create = async (req, res) => {
@@ -52,5 +54,38 @@ exports.get = async (req, res) => {
         res.status(200).json({ status: 'success', data: data })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+
+exports.export = async (req, res) => {
+    try {
+        const data = await DeviceCode.find();
+
+        const columns = [
+            { header: "Mã", key: "_id", width: 20 },
+            { header: "Thiết bị", key: "code", width: 20 }
+        ]
+
+        const formated = (data || []).map(devicecode => ({
+            _id: devicecode._id,
+            code: devicecode?.code || ''
+        }))
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('ma_thiet_bi');
+
+        // 🧩 1️⃣ Thêm dữ liệu chính TRƯỚC
+        worksheet.columns = columns;
+        worksheet.addRows(formated);
+
+        const MAX = Math.max(worksheet.rowCount + 100, 1000);
+
+        const buffer = await configExport(workbook, worksheet, [], MAX);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=' + `ma_thiet_bi.xlsx`);
+        res.send(buffer);
+    } catch (err) {
+        res.status(500).send({ status: 'error', message: err.message, stack: err.stack })
     }
 }

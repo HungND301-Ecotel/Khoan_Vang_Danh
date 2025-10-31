@@ -36,6 +36,8 @@ import {
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
 import custom_theme from '../../theme';
+import MirrorRatioService from "../../service/MirrorRatioService";
+import { parseAxiosError } from "../../utils/handleApiError";
 
 export default function MirrorRatio() {
   const [open, setOpen] = useState(false);
@@ -101,6 +103,14 @@ export default function MirrorRatio() {
     onError: (error: any) => {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
+  });
+  const exportExcel = useMutation({
+    mutationFn: MirrorRatioService.exportFile,
+    onSuccess: () => { },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error)
+      showErrorAlert(message);
+    }
   });
 
   const updateMutation = useMutation({
@@ -448,6 +458,7 @@ export default function MirrorRatio() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,

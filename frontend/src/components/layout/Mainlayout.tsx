@@ -11,9 +11,6 @@ import {
   Badge,
   Menu,
   MenuItem,
-  Divider,
-  Avatar,
-  Tooltip,
   ListItemIcon,
 } from "@mui/material";
 import {
@@ -168,12 +165,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               sx={{ minHeight: 24, lineHeight: 1.1 }} // cao bằng icon
             >
               <Typography sx={{ fontSize: 12, lineHeight: 1.1 }}>
-                Nguyễn Hà
+                {user?.fullName}
               </Typography>
               <Typography
                 sx={{ fontSize: 10, color: "text.secondary", lineHeight: 1.1 }}
               >
-                admin@gmail.com
+                {user?.email}
               </Typography>
             </Box>
 
@@ -447,7 +444,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           alignItems="flex-end"
           padding={2}
         >
-          <Typography>Nguyễn Hà</Typography>
+          <Typography>{user?.fullName}</Typography>
           <Typography>Kế toán</Typography>
         </Box>
         <MenuItem>

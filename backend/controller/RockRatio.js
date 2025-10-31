@@ -1,5 +1,6 @@
 const RockRatio = require('../model/RockRatio')
-
+const ExcelJS = require('exceljs')
+const { configExport } = require('../utils/config_export')
 
 exports.create = async (req, res) => {
     try {
@@ -43,5 +44,36 @@ exports.get = async (req, res) => {
         res.status(200).json({ status: 'success', data: data })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
+    }
+}
+
+exports.export = async (req, res) => {
+    try {
+        const data = await RockRatio.find();
+
+        const columns = [
+            { header: "Mã", key: "_id", width: 20 },
+            { header: "Tỉ lệ đá lẫn trong gương", key: "name", width: 20 }
+        ]
+
+        const formated = (data || []).map(rockratio => ({
+            _id: rockratio._id,
+            name: rockratio?.name || ''
+        }))
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('ti_le_da_lan_trong_guong');
+
+        // 🧩 1️⃣ Thêm dữ liệu chính TRƯỚC
+        worksheet.columns = columns;
+        worksheet.addRows(formated);
+
+        const MAX = Math.max(worksheet.rowCount + 100, 1000);
+
+        const buffer = await configExport(workbook, worksheet, [], MAX);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=' + `ti_le_da_lan_trong_guong.xlsx`);
+        res.send(buffer);
+    } catch (err) {
+        res.status(500).send({ status: 'error', message: err.message, stack: err.stack })
     }
 }
