@@ -446,6 +446,9 @@ export interface MaterialCostUsedInputType {
   phases: {
     phase: string;
     production: number;
+    unit: string;
+    assignmentNormCode: string;
+    adjustmentNormCode: string;
   }[];
   materialBudgetCode?: string;
   materials: {
@@ -466,6 +469,9 @@ export interface MaterialCostUsedOutputType {
   phases: {
     phase: PhaseGroupType;
     production: number;
+    unit: string;
+    assignmentNormCode: string;
+    adjustmentNormCode: string;
   }[];
   materialBudget?: MaterialBudgetOutputType | null;
 }
