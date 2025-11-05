@@ -23,7 +23,7 @@ import {
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
-import { MaterialCostUsedOutputType, Materials } from "../../types";
+import { MaterialBudgetInputType, Materials } from "../../types";
 import MaterialBudgetModal from "../../components/MaterialBudgetModal/MaterialBudgetModal";
 import {
   showConfirmAlert,
@@ -36,7 +36,7 @@ import custom_theme from '../../theme';
 
 export default function MaterialBudget() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
-  const [selected, setSelected] = useState<MaterialCostUsedOutputType | null>(
+  const [selected, setSelected] = useState<MaterialBudgetInputType | null>(
     null
   );
   const [open, setOpen] = useState(false);
@@ -46,10 +46,77 @@ export default function MaterialBudget() {
 
   const queryClient = useQueryClient();
 
-  const { data: materialcostuseds = [] } = useQuery({
-    queryKey: ["materialcostuseds", searchValue],
+  const { data: materialbudgets = [] } = useQuery({
+    queryKey: ["materialbudgets", searchValue],
     queryFn: async () =>
-      api.get(`/materialcostuseds?q=${searchValue}`).then((res) => res.data.data),
+      api.get(`/materialbudgets?q=${searchValue}`).then((res) => res.data.data),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (newMaterialBudget: Partial<MaterialBudgetInputType>) =>
+      api.post("/materialbudgets", newMaterialBudget).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
+      setOpen(false);
+      showSuccessAlert("Thêm mới thành công");
+    },
+    onError: (error: any) => {
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (updateMaterialBudget: Partial<MaterialBudgetInputType>) =>
+      api
+        .put(
+          `/materialbudgets/${updateMaterialBudget._id}`,
+          updateMaterialBudget
+        )
+        .then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
+      setOpen(false);
+      setSelected(null);
+      showSuccessAlert("Sửa thành công");
+    },
+    onError: (error: any) => {
+      console.log(error.response.data.message || error.response || "Lỗi");
+      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+
+  const handleDelete = () => {
+    if (selectedRows.length === 0) {
+      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
+      return;
+    }
+
+    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(selectedRows);
+      }
+    });
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: React.Key[]) => {
+      const deletePromises = ids.map((id) =>
+        api.delete(`/materialbudgets/${id}`).then((res) => res.data)
+      );
+      return Promise.all(deletePromises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
+      setSelectedRows([]);
+      showSuccessAlert("Xóa thành công");
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi không xác định";
+      console.error(errorMessage);
+      showErrorAlert(errorMessage);
+    },
   });
 
   const getOneMutation = useMutation({
@@ -64,16 +131,24 @@ export default function MaterialBudget() {
     },
   });
 
-  const handleOpen = (materialCostUsed?: MaterialCostUsedOutputType) => {
-    if (materialCostUsed) {
-      setSelected(materialCostUsed);
+  const handleSubmit = (values: Partial<MaterialBudgetInputType>) => {
+    if (selected) {
+      updateMutation.mutate({ ...values, _id: selected._id });
+    } else {
+      createMutation.mutate(values);
+    }
+  };
+
+  const handleOpen = (materialBudget?: MaterialBudgetInputType) => {
+    if (materialBudget) {
+      setSelected(materialBudget);
     } else {
       setSelected(null);
     }
     setOpen(true);
   };
 
-  const handleView = (record: MaterialCostUsedOutputType) => {
+  const handleView = (record: MaterialBudgetInputType) => {
     const key = record._id;
     if (!key) {
       showErrorAlert("Không tìm thấy ID của bản ghi");
@@ -89,7 +164,7 @@ export default function MaterialBudget() {
     }
   };
 
-  const expandedRowRender = (record: MaterialCostUsedOutputType) => {
+  const expandedRowRender = (record: MaterialBudgetInputType) => {
     const data = expandedData[record._id || ""];
 
     // Tạo dữ liệu mới với cấu trúc phẳng để hiển thị từng material riêng biệt
@@ -356,24 +431,24 @@ export default function MaterialBudget() {
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         <Box sx={{ mb: 2 }}>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Công đoạn: {data?.materialbudget?.phases?.phase?.name}
+            Công đoạn: {data?.materialbudget?.phase?.name}
           </Typography>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
             Mã định mức giao khoán: {data?.materialbudget?.code}
           </Typography>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Mã hệ số định mức: {data?.materialbudget?.phases?.adjustmentNormCode?.code}
+            Mã hệ số định mức: {data?.materialbudget?.adjustmentNormCode?.code}
           </Typography>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
             Sản lượng:{" "}
             {data?.materialbudget?.production
-              ? data?.materialbudget?.phases?.production.toLocaleString()
+              ? data?.materialbudget?.production.toLocaleString()
               : 0}{" "}
-            (
+            {/* (
             {data?.phaseGroup?.name?.toLowerCase() === "khấu than".toLowerCase()
               ? "tấn"
               : "mét"}
-            )
+            ) */}
           </Typography>
         </Box>
 
@@ -392,7 +467,7 @@ export default function MaterialBudget() {
     );
   };
 
-  const columns: TableProps<MaterialCostUsedOutputType>["columns"] = [
+  const columns: TableProps<MaterialBudgetInputType>["columns"] = [
     {
       title: "",
       dataIndex: "number",
@@ -437,9 +512,30 @@ export default function MaterialBudget() {
         </IconButton>
       ),
     },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+      dataIndex: "edit",
+      key: "edit",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <IconButton
+          onClick={() => handleOpen(record)}
+          sx={{
+            color: "#666",
+            "&:hover": {
+              color: "#1976d2",
+              backgroundColor: "rgba(25, 118, 210, 0.04)",
+            },
+          }}
+        >
+          <Edit />
+        </IconButton>
+      ),
+    },
   ];
 
-  const rowSelection: TableRowSelection<MaterialCostUsedOutputType> = {
+  const rowSelection: TableRowSelection<MaterialBudgetInputType> = {
     selectedRowKeys: selectedRows,
     onChange: (newSelectedRows: React.Key[]) => {
       setSelectedRows(newSelectedRows);
@@ -462,6 +558,43 @@ export default function MaterialBudget() {
               Chi phí vật tư kế hoạch
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  endIcon={<Add />}
+                  onClick={() => handleOpen()}
+                  sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Tạo mới
+                </Button>
+                <Button
+                  variant="contained"
+                  endIcon={<Delete />}
+                  onClick={() => handleDelete()}
+                  disabled={selectedRows.length === 0}
+                  sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Xóa ({selectedRows.length})
+                </Button>
+              </Box>
               <Box display={"flex"} flex={1} gap={2}>
                 <Button
                   variant="outlined"
@@ -589,7 +722,7 @@ export default function MaterialBudget() {
               </Box>
             </Box>
           </Box>
-          <Table<MaterialCostUsedOutputType>
+          <Table<MaterialBudgetInputType>
             rowKey={(record) => record._id || Math.random().toString()}
             rowSelection={rowSelection}
             expandable={{
@@ -611,7 +744,7 @@ export default function MaterialBudget() {
               ),
             }}
             columns={columns}
-            dataSource={materialcostuseds}
+            dataSource={materialbudgets}
           />
         </Box>
       </Box>

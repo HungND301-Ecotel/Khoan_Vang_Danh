@@ -1,11 +1,28 @@
 const MaterialCostUsed = require('../model/MaterialCostUsed')
 const MaterialAssignment = require('../model/MaterialAssignment')
+const MaterialBudget = require('../model/MaterialBudget')
 
 exports.create = async (req, res) => {
     try {
         const { code, productionScope, phases, materials } = req.body
         const newMaterialCostUsed = new MaterialCostUsed({ code, productionScope, phases, materials })
         await newMaterialCostUsed.save()
+
+        let i = 0
+        for (const p of phases) {
+            newMaterialBudget = new MaterialBudget({
+                code: code + i,
+                phase: p.phase,
+                assignmentNormCode: p.assignmentNormCode,
+                adjustmentNormCode: p.adjustmentNormCode,
+                production: p.production
+            })
+
+            i++
+
+            await newMaterialBudget.save()
+        }
+
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
