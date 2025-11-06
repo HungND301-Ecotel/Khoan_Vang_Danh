@@ -32,7 +32,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 
 export default function MaterialBudget() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -49,7 +49,9 @@ export default function MaterialBudget() {
   const { data: materialcostuseds = [] } = useQuery({
     queryKey: ["materialcostuseds", searchValue],
     queryFn: async () =>
-      api.get(`/materialcostuseds?q=${searchValue}`).then((res) => res.data.data),
+      api
+        .get(`/materialcostuseds?q=${searchValue}`)
+        .then((res) => res.data.data),
   });
 
   const getOneMutation = useMutation({
@@ -74,6 +76,11 @@ export default function MaterialBudget() {
   };
 
   const handleView = (record: MaterialCostUsedOutputType) => {
+    // console.log("🧩 record data =", record);
+    console.log("record = ", record);
+    console.log("record.materialBudget?._id = ", record.materialBudget?._id);
+    console.log("record._id = ", record._id);
+
     const key = record._id;
     if (!key) {
       showErrorAlert("Không tìm thấy ID của bản ghi");
@@ -362,7 +369,8 @@ export default function MaterialBudget() {
             Mã định mức giao khoán: {data?.materialbudget?.code}
           </Typography>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Mã hệ số định mức: {data?.materialbudget?.phases?.adjustmentNormCode?.code}
+            Mã hệ số định mức:{" "}
+            {data?.materialbudget?.phases?.adjustmentNormCode?.code}
           </Typography>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
             Sản lượng:{" "}
@@ -447,10 +455,12 @@ export default function MaterialBudget() {
   };
 
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box
+      sx={{
+        px: 5, // horizontal = 32px
+        py: 1, // vertical = 8px
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Thống kê vận hành</Typography>
         <Typography>Chi phí vật tư kế hoạch </Typography>
@@ -458,7 +468,10 @@ export default function MaterialBudget() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Chi phí vật tư kế hoạch
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -470,9 +483,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -489,7 +506,10 @@ export default function MaterialBudget() {
                   size="small"
                   placeholder="Tìm kiếm"
                   value={searchValue}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
+                  }}
                   onChange={(e) => setSearchValue(e.target.value)}
                   InputProps={{
                     endAdornment: (
@@ -508,9 +528,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -529,9 +553,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -550,9 +578,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -572,9 +604,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
