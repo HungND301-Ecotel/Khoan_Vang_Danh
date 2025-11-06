@@ -32,7 +32,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 
 export default function MaterialBudget() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -49,78 +49,9 @@ export default function MaterialBudget() {
   const { data: materialbudgets = [] } = useQuery({
     queryKey: ["materialbudgets", searchValue],
     queryFn: async () =>
-      api.get(`/materialbudgets?q=${searchValue}`).then((res) => res.data.data),
-  });
-
-  const filteredData = materialbudgets.filter((item: any) =>
-    item.code?.toLowerCase().includes(searchValue.toLowerCase())
-  );
-
-  const createMutation = useMutation({
-    mutationFn: (newMaterialBudget: Partial<MaterialBudgetInputType>) =>
-      api.post("/materialbudgets", newMaterialBudget).then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
-      setOpen(false);
-      showSuccessAlert("Thêm mới thành công");
-    },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || "Lỗi");
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (updateMaterialBudget: Partial<MaterialBudgetInputType>) =>
       api
-        .put(
-          `/materialbudgets/${updateMaterialBudget._id}`,
-          updateMaterialBudget
-        )
-        .then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
-      setOpen(false);
-      setSelected(null);
-      showSuccessAlert("Sửa thành công");
-    },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || "Lỗi");
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
-    },
-  });
-
-  const handleDelete = () => {
-    if (selectedRows.length === 0) {
-      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
-      return;
-    }
-
-    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
-      if (result.isConfirmed) {
-        deleteMutation.mutate(selectedRows);
-      }
-    });
-  };
-
-  const deleteMutation = useMutation({
-    mutationFn: async (ids: React.Key[]) => {
-      const deletePromises = ids.map((id) =>
-        api.delete(`/materialbudgets/${id}`).then((res) => res.data)
-      );
-      return Promise.all(deletePromises);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
-      setSelectedRows([]);
-      showSuccessAlert("Xóa thành công");
-    },
-    onError: (error: any) => {
-      const errorMessage =
-        error.response?.data?.message || error.message || "Lỗi không xác định";
-      console.error(errorMessage);
-      showErrorAlert(errorMessage);
-    },
+        .get(`/materialcostuseds?q=${searchValue}`)
+        .then((res) => res.data.data),
   });
 
   const getOneMutation = useMutation({
@@ -152,7 +83,7 @@ export default function MaterialBudget() {
     setOpen(true);
   };
 
-  const handleView = (record: MaterialBudgetInputType) => {
+  const handleView = (record: MaterialCostUsedOutputType) => {
     const key = record._id;
     if (!key) {
       showErrorAlert("Không tìm thấy ID của bản ghi");
@@ -415,7 +346,8 @@ export default function MaterialBudget() {
             Mã định mức giao khoán: {data?.materialbudget?.code}
           </Typography>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Mã hệ số định mức: {data?.materialbudget?.adjustmentNormCode?.code}
+            Mã hệ số định mức:{" "}
+            {data?.materialbudget?.phases?.adjustmentNormCode?.code}
           </Typography>
           <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
             Sản lượng:{" "}
@@ -521,10 +453,12 @@ export default function MaterialBudget() {
   };
 
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box
+      sx={{
+        px: 5, // horizontal = 32px
+        py: 1, // vertical = 8px
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Thống kê vận hành</Typography>
         <Typography>Chi phí vật tư kế hoạch </Typography>
@@ -532,7 +466,10 @@ export default function MaterialBudget() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Chi phí vật tư kế hoạch
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -542,8 +479,12 @@ export default function MaterialBudget() {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -560,8 +501,12 @@ export default function MaterialBudget() {
                   onClick={() => handleDelete()}
                   disabled={selectedRows.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -581,9 +526,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -600,7 +549,10 @@ export default function MaterialBudget() {
                   size="small"
                   placeholder="Tìm kiếm"
                   value={searchValue}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
+                  }}
                   onChange={(e) => setSearchValue(e.target.value)}
                   InputProps={{
                     endAdornment: (
@@ -619,9 +571,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -640,9 +596,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -661,9 +621,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -683,9 +647,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
