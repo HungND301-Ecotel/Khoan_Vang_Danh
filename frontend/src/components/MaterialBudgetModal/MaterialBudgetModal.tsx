@@ -13,8 +13,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import * as yup from "yup";
 import { FormikProvider, useFormik, FormikErrors } from "formik";
 import { useQuery, useQueries } from "@tanstack/react-query";
@@ -26,23 +25,29 @@ import {
   PhaseGroupType,
   PhaseOutputType,
   PhaseType,
-  FormValues
+  FormValues,
 } from "../../types";
 import { Divider } from "antd";
-
+import { Delete } from "@mui/icons-material";
 
 const phaseValidationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
   phase: yup.string().required("Công đoạn không được để trống"),
-  assignmentNormCode: yup.string().required("Mã định mức giao khoán không được để trống"),
+  assignmentNormCode: yup
+    .string()
+    .required("Mã định mức giao khoán không được để trống"),
   production: yup.number().required("Sản lượng không được để trống"),
-  adjustmentNormCode: yup.string().required("Mã hệ số điều chỉnh định mức không được để trống"),
+  adjustmentNormCode: yup
+    .string()
+    .required("Mã hệ số điều chỉnh định mức không được để trống"),
 });
-
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã chi phí không được để trống"),
-  phases: yup.array().of(phaseValidationSchema).min(1, "Cần ít nhất một công đoạn"),
+  phases: yup
+    .array()
+    .of(phaseValidationSchema)
+    .min(1, "Cần ít nhất một công đoạn"),
 });
 
 
@@ -90,7 +95,15 @@ export default function MaterialBudgetModal({
   const formik = useFormik<FormValues>({
     initialValues: {
       code: "",
-      phases: [{ phaseGroup: "", phase: "", assignmentNormCode: "", production: undefined, adjustmentNormCode: "" }],
+      phases: [
+        {
+          phaseGroup: "",
+          phase: "",
+          assignmentNormCode: "",
+          production: undefined,
+          adjustmentNormCode: "",
+        },
+      ],
     },
     enableReinitialize: true,
     validationSchema,
@@ -98,7 +111,7 @@ export default function MaterialBudgetModal({
       const submitData: Partial<MaterialBudgetInputType> = {
         code: values.code,
         phaseGroup: values.phases[0]?.phaseGroup || "",
-        phase: values.phases[0]?.phase || "",
+        phases: values.phases,
         assignmentNormCode: values.phases[0]?.assignmentNormCode || "",
         production: values.phases[0]?.production,
         adjustmentNormCode: values.phases[0]?.adjustmentNormCode || "",
@@ -109,15 +122,19 @@ export default function MaterialBudgetModal({
 
   useEffect(() => {
     if (selected) {
+      const firstPhase = selected.phases?.[0] || {};
+
       formik.setValues({
         code: selected.code || "",
-        phases: [{
-          phaseGroup: selected.phaseGroup || "",
-          phase: selected.phase || "",
-          assignmentNormCode: selected.assignmentNormCode || "",
-          production: selected.production,
-          adjustmentNormCode: selected.adjustmentNormCode || "",
-        }],
+        phases: [
+          {
+            phaseGroup: selected.phaseGroup || "",
+            phase: firstPhase.phase || "",
+            assignmentNormCode: selected.assignmentNormCode || "",
+            production: selected.production,
+            adjustmentNormCode: selected.adjustmentNormCode || "",
+          },
+        ],
       });
 
       if (selected.phaseGroup) {
@@ -126,9 +143,47 @@ export default function MaterialBudgetModal({
     }
   }, [selected]);
 
+  // Sử dụng useQueries để fetch phases cho từng phaseGroup
+  // const phaseQueries = useQueries({
+  //   queries: formik.values.phases.map((phase, index) => ({
+  //     queryKey: ["phases", phase.phaseGroup, index],
+  //     queryFn: async () =>
+  //       api
+  //         .get(`/phases?phaseGroup=${phase.phaseGroup || ""}`)
+  //         .then((res) => res.data.data),
+  //     enabled: !!phase.phaseGroup,
+  //   })),
+  // });
+
+  const toRoman = (num: number) => {
+    const romans: { value: number; numeral: string }[] = [
+      { value: 1000, numeral: "M" },
+      { value: 900, numeral: "CM" },
+      { value: 500, numeral: "D" },
+      { value: 400, numeral: "CD" },
+      { value: 100, numeral: "C" },
+      { value: 90, numeral: "XC" },
+      { value: 50, numeral: "L" },
+      { value: 40, numeral: "XL" },
+      { value: 10, numeral: "X" },
+      { value: 9, numeral: "IX" },
+      { value: 5, numeral: "V" },
+      { value: 4, numeral: "IV" },
+      { value: 1, numeral: "I" },
+    ];
+
+    let result = "";
+    for (const r of romans) {
+      while (num >= r.value) {
+        result += r.numeral;
+        num -= r.value;
+      }
+    }
+    return result;
+  };
+
   const handleClose = () => {
     formik.resetForm();
-    setPhaseGroupsForQuery({});
     setOpen(false);
   };
 
@@ -165,7 +220,11 @@ export default function MaterialBudgetModal({
     setPhaseGroupsForQuery(updatedPhaseGroups);
   };
 
-  const handlePhaseChange = (index: number, field: keyof PhaseType, value: any) => {
+  const handlePhaseChange = (
+    index: number,
+    field: keyof PhaseType,
+    value: any
+  ) => {
     const newPhases = [...formik.values.phases];
     newPhases[index] = { ...newPhases[index], [field]: value };
 
@@ -233,16 +292,23 @@ export default function MaterialBudgetModal({
           opacity: 0.7,
           "&:hover": {
             opacity: 1,
-          }
+          },
         }}
       >
         <CloseIcon sx={{ fontSize: "18px" }} />
       </IconButton>
 
       <DialogTitle sx={{ p: 0, mb: 3 }}>
-        <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
-          <Typography sx={{ fontSize: "12px", color: "#666" }}>Thống kê vận hành</Typography>
-          <Typography sx={{ fontSize: "12px", color: "#666" }}>Chi phí vật tư kế hoạch</Typography>
+        <Breadcrumbs
+          aria-label="breadcrumb"
+          sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+        >
+          <Typography sx={{ fontSize: "12px", color: "#666" }}>
+            Thống kê vận hành
+          </Typography>
+          <Typography sx={{ fontSize: "12px", color: "#666" }}>
+            Chi phí vật tư kế hoạch
+          </Typography>
         </Breadcrumbs>
         <Divider
           style={{
@@ -252,8 +318,19 @@ export default function MaterialBudgetModal({
             borderColor: "#6592B7",
           }}
         />
-        <Typography sx={{ fontSize: "20px", color: "#2B4A82", fontWeight: 700, mt: 1 }}>
-          {selected ? "Chỉnh sửa Chi phí vật tư kế hoạch" : "Tạo mới Chi phí vật tư kế hoạch"}
+        <Typography
+          sx={{
+            fontSize: "24px",
+            color: "#2B4A82",
+            fontWeight: 400,
+            fontFamily: "Roboto",
+            lineHeight: "100%",
+            mt: 1,
+          }}
+        >
+          {selected
+            ? "Chỉnh sửa Chi phí vật tư kế hoạch"
+            : "Tạo mới Chi phí vật tư kế hoạch"}
         </Typography>
       </DialogTitle>
 
@@ -262,7 +339,17 @@ export default function MaterialBudgetModal({
           <Box component="form" onSubmit={formik.handleSubmit}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <Box>
-                <Typography sx={{ fontWeight: 600, fontSize: "14px", mb: 1, color: "#333" }}>
+                <Typography
+                  sx={{
+                    fontWeight: 400,
+                    fontSize: "14px",
+                    mb: 1,
+                    color: "#000000",
+                    fontFamily: "Roboto",
+                    lineHeight: "100%",
+                    bgcolor: "#FFFFFF",
+                  }}
+                >
                   Mã chi phí vật tư kế hoạch
                 </Typography>
                 <TextField
@@ -276,16 +363,27 @@ export default function MaterialBudgetModal({
                   helperText={formik.touched.code && formik.errors.code}
                   variant="outlined"
                   sx={{
+                    bgcolor: "#FFFFFF",
                     "& .MuiInputBase-root": {
-                      height: "40px",
+                      height: "32px",
                       borderRadius: "4px",
                       fontSize: "14px",
-                      backgroundColor: "#fff",
+                      backgroundColor: "#FFFFFF",
+                    },
+                    "& .MuiInputBase-input": {
+                      color: "#000000",
+                      fontFamily: "Roboto",
+                      fontWeight: 400,
+                      fontSize: "14px",
+                      lineHeight: "100%",
+                      "&::placeholder": {
+                        color: "#000000",
+                        opacity: 1,
+                      },
                     },
                     "& .MuiOutlinedInput-root": {
                       "& fieldset": {
                         borderColor: "#d0d7de",
-                        borderWidth: "1px",
                       },
                       "&:hover fieldset": {
                         borderColor: "#0969da",
@@ -309,7 +407,7 @@ export default function MaterialBudgetModal({
                           size="small"
                           sx={{ color: '#ff4d4f' }}
                         >
-                          <DeleteIcon fontSize="small" />
+                          <Delete fontSize="small" />
                         </IconButton>
                       )}
                     </Box>
@@ -322,23 +420,50 @@ export default function MaterialBudgetModal({
                       mb: 2
                     }}>
                       <Box sx={{ mb: 2 }}>
-                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "14px",
+                            mb: 1,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
+                          }}
+                        >
                           Nhóm công đoạn
                         </Typography>
                         <TextField
                           fullWidth
                           select
                           value={phase.phaseGroup}
-                          onChange={(e) => handlePhaseChange(index, "phaseGroup", e.target.value)}
+                          onChange={(e) =>
+                            handlePhaseChange(
+                              index,
+                              "phaseGroup",
+                              e.target.value
+                            )
+                          }
                           error={Boolean(getError(index, "phaseGroup"))}
                           helperText={getError(index, "phaseGroup")}
                           variant="outlined"
                           sx={{
+                            bgcolor: "#FFFFFF",
                             "& .MuiInputBase-root": {
-                              height: "40px",
+                              height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
-                              backgroundColor: "#fff",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#000000",
+                              fontFamily: "Roboto",
+                              fontWeight: 400,
+                              fontSize: "14px",
+                              lineHeight: "100%",
+                              "&::placeholder": {
+                                color: "#000000",
+                                opacity: 1,
+                              },
                             },
                             "& .MuiOutlinedInput-root": {
                               "& fieldset": {
@@ -350,6 +475,7 @@ export default function MaterialBudgetModal({
                             },
                           }}
                         >
+                          <MenuItem value="">Chọn nhóm công đoạn</MenuItem>
                           {phasegroups?.map((group: PhaseGroupType) => (
                             <MenuItem key={group._id} value={group._id}>
                               {group.name}
@@ -359,7 +485,16 @@ export default function MaterialBudgetModal({
                       </Box>
 
                       <Box sx={{ mb: 2 }}>
-                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "14px",
+                            mb: 1,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
+                          }}
+                        >
                           Công đoạn
                         </Typography>
                         <Box display="flex" gap={2}>
@@ -412,23 +547,50 @@ export default function MaterialBudgetModal({
                       </Box>
 
                       <Box sx={{ mb: 2 }}>
-                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "14px",
+                            mb: 1,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
+                          }}
+                        >
                           Mã định mức giao khoán
                         </Typography>
                         <TextField
                           fullWidth
                           select
                           value={phase.assignmentNormCode}
-                          onChange={(e) => handlePhaseChange(index, "assignmentNormCode", e.target.value)}
+                          onChange={(e) =>
+                            handlePhaseChange(
+                              index,
+                              "assignmentNormCode",
+                              e.target.value
+                            )
+                          }
                           error={Boolean(getError(index, "assignmentNormCode"))}
                           helperText={getError(index, "assignmentNormCode")}
                           variant="outlined"
                           sx={{
+                            bgcolor: "#FFFFFF",
                             "& .MuiInputBase-root": {
-                              height: "40px",
+                              height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
-                              backgroundColor: "#fff",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#000000",
+                              fontFamily: "Roboto",
+                              fontWeight: 400,
+                              fontSize: "14px",
+                              lineHeight: "100%",
+                              "&::placeholder": {
+                                color: "#000000",
+                                opacity: 1,
+                              },
                             },
                             "& .MuiOutlinedInput-root": {
                               "& fieldset": {
@@ -440,33 +602,64 @@ export default function MaterialBudgetModal({
                             },
                           }}
                         >
-                          {assignmentnorms?.map((item: AssignmentNormOutputType) => (
-                            <MenuItem key={item._id} value={item._id}>
-                              {item.code}
-                            </MenuItem>
-                          ))}
+                          {assignmentnorms?.map(
+                            (item: AssignmentNormOutputType) => (
+                              <MenuItem key={item._id} value={item._id}>
+                                {item.code}
+                              </MenuItem>
+                            )
+                          )}
                         </TextField>
                       </Box>
 
                       <Box sx={{ mb: 2 }}>
-                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "14px",
+                            mb: 1,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
+                          }}
+                        >
                           Sản lượng
                         </Typography>
                         <TextField
                           fullWidth
                           type="number"
                           placeholder="Input Text"
-                          value={phase.production || ''}
-                          onChange={(e) => handlePhaseChange(index, "production", e.target.value ? Number(e.target.value) : undefined)}
+                          value={phase.production || ""}
+                          onChange={(e) =>
+                            handlePhaseChange(
+                              index,
+                              "production",
+                              e.target.value === ""
+                                ? undefined
+                                : Number(e.target.value)
+                            )
+                          }
                           error={Boolean(getError(index, "production"))}
                           helperText={getError(index, "production")}
                           variant="outlined"
                           sx={{
+                            bgcolor: "#FFFFFF",
                             "& .MuiInputBase-root": {
-                              height: "40px",
+                              height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
-                              backgroundColor: "#fff",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#000000",
+                              fontFamily: "Roboto",
+                              fontWeight: 400,
+                              fontSize: "14px",
+                              lineHeight: "100%",
+                              "&::placeholder": {
+                                color: "#000000",
+                                opacity: 1,
+                              },
                             },
                             "& .MuiOutlinedInput-root": {
                               "& fieldset": {
@@ -481,23 +674,50 @@ export default function MaterialBudgetModal({
                       </Box>
 
                       <Box>
-                        <Typography sx={{ fontSize: "13px", mb: 1, color: "#666", fontWeight: 500 }}>
+                        <Typography
+                          sx={{
+                            fontSize: "14px",
+                            mb: 1,
+                            color: "#000000",
+                            fontWeight: 400,
+                            fontFamily: "Roboto",
+                            lineHeight: "100%",
+                          }}
+                        >
                           Mã hệ số điều chỉnh định mức
                         </Typography>
                         <TextField
                           fullWidth
                           select
                           value={phase.adjustmentNormCode}
-                          onChange={(e) => handlePhaseChange(index, "adjustmentNormCode", e.target.value)}
+                          onChange={(e) =>
+                            handlePhaseChange(
+                              index,
+                              "adjustmentNormCode",
+                              e.target.value
+                            )
+                          }
                           error={Boolean(getError(index, "adjustmentNormCode"))}
                           helperText={getError(index, "adjustmentNormCode")}
                           variant="outlined"
                           sx={{
+                            bgcolor: "#FFFFFF",
                             "& .MuiInputBase-root": {
-                              height: "40px",
+                              height: "32px",
                               borderRadius: "4px",
                               fontSize: "14px",
-                              backgroundColor: "#fff",
+                              backgroundColor: "#FFFFFF",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#000000",
+                              fontFamily: "Roboto",
+                              fontWeight: 400,
+                              fontSize: "14px",
+                              lineHeight: "100%",
+                              "&::placeholder": {
+                                color: "#000000",
+                                opacity: 1,
+                              },
                             },
                             "& .MuiOutlinedInput-root": {
                               "& fieldset": {
@@ -509,11 +729,13 @@ export default function MaterialBudgetModal({
                             },
                           }}
                         >
-                          {adjustmentnorms?.map((item: AdjustmentNormOutputType) => (
-                            <MenuItem key={item._id} value={item._id}>
-                              {item.code}
-                            </MenuItem>
-                          ))}
+                          {adjustmentnorms?.map(
+                            (item: AdjustmentNormOutputType) => (
+                              <MenuItem key={item._id} value={item._id}>
+                                {item.code}
+                              </MenuItem>
+                            )
+                          )}
                         </TextField>
                       </Box>
                     </Box>
@@ -524,12 +746,14 @@ export default function MaterialBudgetModal({
               <Box sx={{ mt: -1 }}>
                 <Button
                   variant="text"
-                  startIcon={<AddIcon />}
+                  startIcon={<AddIcon sx={{ fontSize: "16px" }} />}
                   onClick={addPhase}
                   sx={{
-                    color: "#2B4A82",
+                    color: "#000000",
                     fontSize: "14px",
-                    fontWeight: 500,
+                    fontWeight: 400,
+                    fontFamily: "Roboto",
+                    lineHeight: "100%",
                     textTransform: "none",
                     padding: "4px 0",
                     "&:hover": {
@@ -546,21 +770,27 @@ export default function MaterialBudgetModal({
         </FormikProvider>
       </DialogContent>
 
-      <DialogActions sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}>
+      <DialogActions
+        sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}
+      >
         <Button
           onClick={handleClose}
           sx={{
-            backgroundColor: "#f6f8fa",
-            color: "#24292f",
-            border: "1px solid #d0d7de",
-            borderRadius: "6px",
-            height: "36px",
-            minWidth: "80px",
+            backgroundColor: "#DFE2EA",
+            color: "#757575",
+            borderRadius: "8px",
+            height: "32px",
+            minWidth: "91px",
             fontSize: "14px",
-            textTransform: "none",
             fontWeight: 500,
+            fontFamily: "Roboto",
+            lineHeight: "100%",
+            textTransform: "none",
+            textAlign: "center",
+            border: "none",
             "&:hover": {
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#D0D3DB",
+              border: "none",
             },
           }}
         >
@@ -570,15 +800,19 @@ export default function MaterialBudgetModal({
           onClick={() => formik.submitForm()}
           variant="contained"
           sx={{
-            backgroundColor: "#2B4A82",
-            borderRadius: "6px",
-            height: "36px",
-            minWidth: "100px",
+            backgroundColor: "#007BFF",
+            color: "#FFFFFF",
+            borderRadius: "8px",
+            height: "32px",
+            minWidth: "91px",
             fontSize: "14px",
             fontWeight: 500,
+            fontFamily: "Roboto",
+            lineHeight: "100%",
             textTransform: "none",
+            textAlign: "center",
             "&:hover": {
-              backgroundColor: "#1E3A8A",
+              backgroundColor: "#0056B3",
             },
           }}
         >
@@ -588,6 +822,3 @@ export default function MaterialBudgetModal({
     </Dialog>
   );
 }
-
-
-

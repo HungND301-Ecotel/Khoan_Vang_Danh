@@ -61,7 +61,6 @@ export default function StepModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{

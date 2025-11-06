@@ -262,7 +262,6 @@ export default function AdjustmentNormCMModal({
               />
             </Box>
 
-            {/* Danh sách định mức */}
             {formik.values.norms.length > 0 && (
               <Box>
                 <Box
@@ -277,7 +276,7 @@ export default function AdjustmentNormCMModal({
                     Mã giao khoán
                   </Typography>
                   <Typography sx={{ fontWeight: 500, fontSize: "14px" }}>
-                    Tên vật tư, tài sản
+                    Tên mã giao khoán
                   </Typography>
                   <Typography sx={{ fontWeight: 500, fontSize: "14px" }}>
                     Định mức

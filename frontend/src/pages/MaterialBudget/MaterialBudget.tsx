@@ -52,6 +52,10 @@ export default function MaterialBudget() {
       api.get(`/materialbudgets?q=${searchValue}`).then((res) => res.data.data),
   });
 
+  const filteredData = materialbudgets.filter((item: any) =>
+    item.code?.toLowerCase().includes(searchValue.toLowerCase())
+  );
+
   const createMutation = useMutation({
     mutationFn: (newMaterialBudget: Partial<MaterialBudgetInputType>) =>
       api.post("/materialbudgets", newMaterialBudget).then((res) => res.data),
@@ -175,20 +179,18 @@ export default function MaterialBudget() {
         return;
       }
 
-      // Nếu có materials, tạo một hàng cho mỗi material
       if (assignment.materials && assignment.materials.length > 0) {
         assignment.materials.forEach(
           (material: Materials, materialIndex: number) => {
             flattenedData.push({
               ...assignment,
               material: material,
-              isAssignmentHeader: materialIndex === 0, // Chỉ hiển thị thông tin assignment ở hàng đầu tiên
+              isAssignmentHeader: materialIndex === 0,
               materialIndex: materialIndex,
             });
           }
         );
       } else {
-        // Nếu không có materials, vẫn hiển thị assignment
         flattenedData.push({
           ...assignment,
           material: null,
@@ -370,36 +372,12 @@ export default function MaterialBudget() {
         width: 150,
         align: "center" as const,
         render: (value: number, row: any) => {
-          if (row.isAssignmentHeader) {
-            return (
-              <div>
-                <Typography
-                  sx={{
-                    color: "black",
-                    fontWeight: "bold",
-                    marginBottom: row.material ? 1 : 0,
-                  }}
-                >
-                  {value ? value.toLocaleString() : ""}
-                </Typography>
-                {row.material && (
-                  <Typography sx={{ color: "black" }}>
-                    {row.material.currentPrice
-                      ? row.material.currentPrice.toLocaleString()
-                      : ""}
-                  </Typography>
-                )}
-              </div>
-            );
-          } else {
-            return row.material ? (
-              <Typography sx={{ color: "black" }}>
-                {row.material.currentPrice
-                  ? row.material.currentPrice.toLocaleString()
-                  : ""}
-              </Typography>
-            ) : null;
-          }
+          // Chỉ hiển thị giá của assignment, không hiển thị giá vật tư
+          return row.isAssignmentHeader ? (
+            <Typography sx={{ color: "black", fontWeight: "bold" }}>
+              {value ? value.toLocaleString() : ""}
+            </Typography>
+          ) : null;
         },
       },
       {
@@ -744,7 +722,7 @@ export default function MaterialBudget() {
               ),
             }}
             columns={columns}
-            dataSource={materialbudgets}
+            dataSource={filteredData}
           />
         </Box>
       </Box>

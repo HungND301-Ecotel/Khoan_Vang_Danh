@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -18,87 +19,64 @@ import {
   InputAdornment,
   TextField,
   Typography,
-  CircularProgress,
-  Skeleton,
-  Card,
-  CardContent,
 } from "@mui/material";
-import React, { useState, useMemo, useEffect } from "react";
-import MaterialAssignmentModal from "../../components/MaterialAssignmentModal/MaterialAssignment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MaterialAssignmentInputType, MaterialAssignmentOutputType, Materials } from "../../types";
+import { TableProps, Table } from "antd";
+import { TableRowSelection } from "antd/es/table/interface";
+
+import MaterialsOutsideContractModal from "../../components/MaterialsOutsideContractModal/MaterialsOutsideContractModal";
 import api from "../../config/api.config";
 import {
   showConfirmAlert,
   showErrorAlert,
   showSuccessAlert,
 } from "../../components/Alert";
-import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table } from "antd";
-import custom_theme from '../../theme';
-import LoadingSkeleton from "../../ui/LoadingSkeleton";
-import EmptyState from "../../ui/EmptyState";
+import {
+  MaterialAssignmentInputType,
+  MaterialFormValues,
+  Materials,
+  UnitType,
+  AssignmentCodeOutputType,
+} from "../../types";
 
-export default function MaterialAssignment() {
+export default function MaterialsOutsideContract() {
   const [open, setOpen] = useState(false);
   const [selectedMaterialAssignment, setSelectedMaterialAssignment] =
     useState<Materials | null>(null);
   const [selectedMaterialAssignments, setSelectedMaterialAssignments] =
     useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [isFiltering, setIsFiltering] = useState(false);
 
   const queryClient = useQueryClient();
-  const { data: materialAssignments = [], isLoading, isFetching } = useQuery({
-    queryKey: ["materialAssignments"],
-    queryFn: async () => {
-      try {
-        const response = await api.get("/materialAssignments");
-        return response.data.data || [];
-      } catch (error) {
-        showErrorAlert("Không thể tải dữ liệu");
-        return [];
-      }
-    },
+
+  const { data: materialAssignments = [] } = useQuery({
+    queryKey: ["materialsOutsideContract"],
+    queryFn: () =>
+     api.get("/materials-outside-contract")
+.then((res) => res.data.data), 
   });
 
-  // Add filtering delay simulation for better UX
-  useEffect(() => {
-    if (searchValue) {
-      setIsFiltering(true);
-      const timer = setTimeout(() => {
-        setIsFiltering(false);
-      }, 300);
+  const filteredData = materialAssignments.filter((item: Materials) => {
+    const search = searchValue.toLowerCase();
 
-      return () => clearTimeout(timer);
-    } else {
-      setIsFiltering(false);
-    }
-  }, [searchValue]);
-
-  // Enhanced filtering with useMemo for performance
-  const filteredMaterialAssignment = useMemo(() => {
-    const allMaterials = materialAssignments.flatMap((assignment: MaterialAssignmentOutputType) => assignment.materials || [])
-    if (!searchValue.trim()) {
-      return allMaterials;
-    }
-
-    const searchTerm = searchValue.toLowerCase().trim();
-    return allMaterials.filter((item: Materials) => {
-      const name = item.name?.toLowerCase() || "";
-      const code = item.code?.toLowerCase() || "";
-
-      return name.includes(searchTerm) || code.includes(searchTerm);
-    });
-  }, [materialAssignments, searchValue]);
+    return (
+      item.code?.toLowerCase().includes(search) ||
+      item.name?.toLowerCase().includes(search) ||
+      item.uom?.name?.toLowerCase().includes(search) ||
+      (item.quantity !== undefined &&
+        item.quantity !== null &&
+        (String(item.quantity).includes(search) ||
+          item.quantity === Number(searchValue)))
+    );
+  });
 
   const createMutation = useMutation({
-    mutationFn: (newMaterialAssignment: Partial<MaterialAssignmentInputType>) =>
+    mutationFn: (newMaterialAssignment: Partial<Materials>) =>
       api
-        .post("/materialassignments", newMaterialAssignment)
+          .post("/materials-outside-contract", newMaterialAssignment)
         .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
+      queryClient.invalidateQueries({ queryKey: ["materialsOutsideContract"] });
       setOpen(false);
       showSuccessAlert("Thêm thành công");
     },
@@ -108,17 +86,15 @@ export default function MaterialAssignment() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (
-      updateMaterialAssignment: Partial<MaterialAssignmentInputType>
-    ) =>
+    mutationFn: (updateMaterialAssignment: Partial<Materials>) =>
       api
-        .put(
-          `/materialassignments/${updateMaterialAssignment._id}`,
-          updateMaterialAssignment
-        )
+       .put(
+        `/materials-outside-contract/${updateMaterialAssignment._id}`, 
+        updateMaterialAssignment
+      )
         .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
+      queryClient.invalidateQueries({ queryKey: ["materialsOutsideContract"] });
       setOpen(false);
       setSelectedMaterialAssignment(null);
       showSuccessAlert("Sửa thành công");
@@ -150,14 +126,14 @@ export default function MaterialAssignment() {
       `Bạn có muốn xóa ${selectedMaterialAssignments.length} bản ghi đã chọn?`
     ).then((result) => {
       if (result.isConfirmed) {
-        const deletePromises = selectedMaterialAssignments.map((id) =>
-          api.delete(`/materialassignments/${id}`)
+        const deletePromises = selectedMaterialAssignments.map(
+           (id) => api.delete(`/materials-outside-contract/${id}`)
         );
 
         Promise.all(deletePromises)
           .then(() => {
             queryClient.invalidateQueries({
-              queryKey: ["materialAssignments"],
+              queryKey: ["materialsOutsideContract"],
             });
             setSelectedMaterialAssignments([]);
             showSuccessAlert(
@@ -174,9 +150,9 @@ export default function MaterialAssignment() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      api.delete(`/materialassignments/${id}`).then((res) => res.data),
+       api.delete(`/materials-outside-contract/${id}`).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
+      queryClient.invalidateQueries({ queryKey: ["materialsOutsideContract"] });
       showSuccessAlert("Xóa thành công");
     },
     onError: (error: any) => {
@@ -185,23 +161,43 @@ export default function MaterialAssignment() {
   });
 
   const handleSubmit = (values: Partial<MaterialAssignmentInputType>) => {
-    if (selectedMaterialAssignment) {
-      updateMutation.mutate({ ...values, _id: selectedMaterialAssignment._id });
-    } else {
-      createMutation.mutate(values);
-    }
+  const submitValues: Partial<Materials> = {
+    code: values.code,
+    name: values.name,
+    quantity: values.quantity,
+    currentPrice: values.currentPrice, 
   };
 
-  const handleOpen = (MaterialAssignment?: Materials) => {
-    if (MaterialAssignment) {
-      setSelectedMaterialAssignment(MaterialAssignment);
+  if (values.priceHistory) {
+    submitValues.priceHistory = values.priceHistory.map((item) => ({
+      price: item.price ?? 0,
+      startDate: item.startDate ? new Date(item.startDate) : new Date(),
+      endDate: item.endDate ? new Date(item.endDate) : new Date(),
+    }));
+  }
+
+  if (selectedMaterialAssignment) {
+    updateMutation.mutate({
+      ...submitValues,
+      _id: selectedMaterialAssignment._id,
+    });
+  } else {
+    createMutation.mutate(submitValues);
+  }
+};
+
+  const handleOpen = (record?: Materials) => {
+    if (record) {
+      setSelectedMaterialAssignment(record);
     } else {
       setSelectedMaterialAssignment(null);
     }
     setOpen(true);
   };
 
-
+  const handleClose = () => {
+    setOpen(false);
+  };
 
   const columns: TableProps<Materials>["columns"] = [
     {
@@ -210,23 +206,6 @@ export default function MaterialAssignment() {
       key: "number",
       width: 50,
       render: (value, record, index) => <Typography>{index + 1}</Typography>,
-    },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
-      dataIndex: "assignmentCode",
-      key: "assignmentCode",
-      width: 200,
-      render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
-          {record.assignmentCode?.code}
-        </Typography>
-      ),
-      sorter: (a, b) =>
-        (a.assignmentCode?.code ?? "").localeCompare(
-          b.assignmentCode?.code ?? "",
-          "vi",
-          { sensitivity: "base" }
-        ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
@@ -297,46 +276,29 @@ export default function MaterialAssignment() {
     },
   };
 
-  // Clear search function
-  const handleClearSearch = () => {
-    setSearchValue("");
-  };
-  // Show loading skeleton on initial load
-  if (isLoading) {
-    return (
-      <Box>
-        <Box mt={3}>
-          <LoadingSkeleton />
-        </Box>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box>
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Vật tư tài sản</Typography>
-        <Typography>Vật tư tài sản trong khoán</Typography>
+        <Typography>Vật tư, tài sản ngoài khoán</Typography>
       </Breadcrumbs>
+
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
-              Vật tư tài sản trong khoán
+            <Typography variant="h4" sx={{ color: "blue" }}>
+              Vật tư, tài sản ngoài khoán
             </Typography>
+
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
+                  color="warning"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -347,14 +309,14 @@ export default function MaterialAssignment() {
                 >
                   Tạo mới
                 </Button>
+
                 <Button
                   variant="contained"
+                  color="error"
                   endIcon={<Delete />}
                   onClick={handleDeleteMultiple}
                   disabled={selectedMaterialAssignments.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -363,24 +325,16 @@ export default function MaterialAssignment() {
                     px: 3,
                   }}
                 >
-                  {deleteMutation.isPending
-                    ? "Đang xóa..."
-                    : `Xóa (${selectedMaterialAssignments.length})`}
+                  Xóa ({selectedMaterialAssignments.length})
                 </Button>
               </Box>
+
               <Box display={"flex"} flex={1} gap={2}>
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FilterList />}
                   sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -391,48 +345,29 @@ export default function MaterialAssignment() {
                 >
                   Lọc
                 </Button>
+
                 <TextField
                   fullWidth
                   size="small"
-                  placeholder="Tìm kiếm theo mã vật tư hoặc tên vật tư..."
-                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="Tìm kiếm"
                   value={searchValue}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  onChange={(e) => setSearchValue(e.target.value)}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        {searchValue && (
-                          <IconButton
-                            onClick={handleClearSearch}
-                            size="small"
-                            sx={{ mr: 1 }}
-                          >
-                            ×
-                          </IconButton>
-                        )}
-                        {isFiltering ? (
-                          <CircularProgress size={20} sx={{ mr: 1 }} />
-                        ) : (
-                          <Search sx={{ fontSize: 24 }} />
-                        )}
+                        <Search sx={{ fontSize: 24 }} />
                       </InputAdornment>
                     ),
                   }}
                 />
               </Box>
+
               <Box display={"flex"} gap={2}>
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
                   sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -443,18 +378,12 @@ export default function MaterialAssignment() {
                 >
                   Tải lên
                 </Button>
+
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
                   sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -465,18 +394,12 @@ export default function MaterialAssignment() {
                 >
                   Xuất file
                 </Button>
+
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<Print />}
                   sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -487,19 +410,13 @@ export default function MaterialAssignment() {
                 >
                   In
                 </Button>
+
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<Mail />}
                   endIcon={<ArrowDropDown />}
                   sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -513,36 +430,9 @@ export default function MaterialAssignment() {
               </Box>
             </Box>
           </Box>
-          {/* Enhanced Search Results Info with Loading State */}
-          {searchValue && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
-              <Typography variant="body2" color="primary">
-                {isFiltering ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Đang tìm kiếm "{searchValue}"...
-                  </Box>
-                ) : (
-                  <>
-                    Tìm thấy {filteredMaterialAssignment.length} kết quả cho "{searchValue}"
-                    {filteredMaterialAssignment.length > 0 && (
-                      <Button
-                        size="small"
-                        onClick={handleClearSearch}
-                        sx={{ ml: 2 }}
-                      >
-                        Xóa bộ lọc
-                      </Button>
-                    )}
-                  </>
-                )}
-              </Typography>
-            </Box>
-          )}
           <Table<Materials>
             rowKey="_id"
             rowSelection={rowSelection}
-            loading={isFiltering || isFetching}
             pagination={{
               position: ["bottomCenter"],
               showSizeChanger: true,
@@ -550,29 +440,20 @@ export default function MaterialAssignment() {
               defaultPageSize: 10,
               showTotal: (total, range) => (
                 <div style={{ flex: 1, textAlign: "left" }}>
-                  {isFiltering ? (
-                    <Typography variant="body2" color="primary">
-                      Đang lọc...
-                    </Typography>
-                  ) : (
-                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
-                  )}
+                  Hiển thị {range[0]}-{range[1]} trên {total} mục
                 </div>
               ),
             }}
             columns={columns}
-            dataSource={filteredMaterialAssignment}
-            locale={{
-              emptyText: <EmptyState searchValue={searchValue} handleClearSearch={handleClearSearch} />
-            }}
+            dataSource={filteredData}
           />
         </Box>
       </Box>
-      <MaterialAssignmentModal
+      <MaterialsOutsideContractModal
         open={open}
         setOpen={setOpen}
         handleSubmit={handleSubmit}
-        selectedMaterialAssignment={selectedMaterialAssignment}
+        selectedMaterialOutsideContract={selectedMaterialAssignment}
       />
     </Box>
   );

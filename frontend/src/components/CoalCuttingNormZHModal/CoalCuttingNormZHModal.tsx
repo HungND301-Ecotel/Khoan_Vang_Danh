@@ -117,7 +117,6 @@ export default function CuttingNormKBModal({
     if (assignmentcodes.length === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      // Trường hợp sửa
       const selectedCodes = assignmentcodes.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
@@ -340,8 +339,6 @@ export default function CuttingNormKBModal({
               ))}
             </TextField>
           </Box>
-
-          {/* Mã định mức */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Mã định mức
           </Typography>
@@ -382,8 +379,6 @@ export default function CuttingNormKBModal({
               borderWidth: "1px",
             }}
           />
-
-          {/* Mã giao khoán */}
           <Typography
             sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
           >

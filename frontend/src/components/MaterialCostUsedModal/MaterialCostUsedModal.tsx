@@ -186,7 +186,6 @@ export default function MaterialCostUsedModal({
         },
       }}
     >
-      {/* Nút X góc trên phải */}
       <IconButton
         onClick={handleClose}
         sx={{
@@ -256,7 +255,6 @@ export default function MaterialCostUsedModal({
         }}
       >
         <FormikProvider value={formik}>
-          {/* Mã chi phí vật tư thực hiện */}
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
             Mã chi phí vật tư thực hiện
           </Typography>
@@ -579,7 +577,7 @@ export default function MaterialCostUsedModal({
             sx={{
               mt: "12px",
               mb: "12px",
-              borderColor: "#6592B7",
+              borderColor: "#303030",
               opacity: 0.3,
               borderWidth: "1px",
             }}

@@ -292,7 +292,7 @@ export default function CoalCuttingNormKB() {
                 onClick={() => handleOpen()}
                 sx={{
                   backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -332,8 +332,9 @@ export default function CoalCuttingNormKB() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -346,19 +347,19 @@ export default function CoalCuttingNormKB() {
                 Lọc
               </Button>
               <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm kiếm"
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+                fullWidth
+                size="small"
+                placeholder="Tìm kiếm"
+                onChange={(e) => setSearchValue(e.target.value)}
+                sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Search sx={{ fontSize: 24 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
 
             <Box display={"flex"} gap={2}>
@@ -370,8 +371,9 @@ export default function CoalCuttingNormKB() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -391,8 +393,9 @@ export default function CoalCuttingNormKB() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -412,8 +415,9 @@ export default function CoalCuttingNormKB() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -434,8 +438,9 @@ export default function CoalCuttingNormKB() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,

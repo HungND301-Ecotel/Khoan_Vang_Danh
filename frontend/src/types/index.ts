@@ -4,6 +4,44 @@ export interface LoginType {
   password: string;
 }
 
+export interface MaterialFormValues {
+  _id?: string;
+  code?: string;
+  name?: string;
+  uom?: UnitType;   
+  quantity?: number;
+  currentPrice?: number;
+}
+export interface FlatMaterial {
+  _id: string;
+  code: string;
+  materialCode?: string;
+  name: string;
+  uom?: string;
+  quantity?: number;
+  price?: number;
+  note: string;
+}
+
+export interface PrivateRouteProps {
+  children: React.ReactNode;
+}
+
+export interface MainLayoutProps {
+  children?: React.ReactNode;
+}
+
+export interface FlatMaterial {
+  _id: string;
+  code: string;
+  materialCode?: string;
+  name: string;
+  uom?: string;
+  quantity?: number;
+  price?: number;
+  note: string;
+}
+
 export interface PhaseType {
   phaseGroup: string;
   phase: string;
@@ -62,8 +100,9 @@ export interface MaterialAssignmentOutputType {
 export interface MaterialAssignmentInputType {
   _id?: string;
   code?: string;
-  name: string;
-  uom?: string;
+  name: string;      
+    quantity?: number;  
+  currentPrice?: number; 
   assignmentCode?: string;
   priceHistory: {
     price?: number;
@@ -112,10 +151,13 @@ export interface PhaseOutputType {
   phaseGroup?: PhaseGroupType;
 }
 export interface PhaseInputType {
-  _id?: string;
-  code?: string;
-  name: string;
-  phaseGroup?: string;
+   name?: string; 
+    _id?: string;
+phaseGroup: string;
+  phase: string;
+  assignmentNormCode: string;
+  production?: number;
+  adjustmentNormCode: string;
 }
 //
 export interface CurbSlopeType {
@@ -291,6 +333,7 @@ export interface AssignmentNormInputType {
 }
 export interface AssignmentNormOutputType {
   _id?: string;
+   name?: string;
   code: string;
   phase?: PhaseInputType;
   phaseGroup?: PhaseGroupType;
@@ -418,7 +461,7 @@ export interface DeviceCodeType {
 export interface MaterialBudgetInputType {
   _id?: string;
   code: string;
-  phase?: string;
+  phases: PhaseInputType[];
   phaseGroup?: string;
   production?: number;
   assignmentNormCode: string;

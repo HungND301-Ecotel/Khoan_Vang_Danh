@@ -1,11 +1,5 @@
 import React, { useState, SyntheticEvent } from "react";
-import {
-  Box,
-  Typography,
-  Tabs,
-  Tab,
-  Breadcrumbs,
-} from "@mui/material";
+import { Box, Typography, Tabs, Tab, Breadcrumbs } from "@mui/material";
 import PhaseGroup from "../PhaseGroup/PhaseGroup";
 import Phase from "../Phase/Phase";
 import custom_theme from '../../theme';
@@ -23,7 +17,7 @@ export default function MainPage() {
            py: 1,           // vertical = 8px
           }}>
       <Breadcrumbs aria-label="breadcrumb">
-      <Typography>Danh muc</Typography>
+        <Typography>Danh muc</Typography>
         <Typography>Công đoạn sản xuất</Typography>
         <Typography>Nhóm công đoạn sản xuất</Typography>
       </Breadcrumbs>

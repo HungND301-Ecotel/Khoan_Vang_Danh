@@ -51,9 +51,16 @@ export default function CuttingNorm() {
       api.get(`/assignmentnorms?q=${searchValue}`).then((res) => res.data.data),
   });
 
-  const filteredData = assignmentnorms.filter(
-    (i: AssignmentNormOutputType) => i.type === "cutting"
-  );
+ const filteredData = assignmentnorms.filter((i: AssignmentNormOutputType) => {
+  const matchesType = i.type === "cutting";
+  const matchesSearch =
+    searchValue === "" ||
+    i.code?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    i.norms.some((n) =>
+      n.assignmentCode?.name?.toLowerCase().includes(searchValue.toLowerCase())
+    );
+  return matchesType && matchesSearch;
+});
 
   const createMutation = useMutation({
     mutationFn: (newCuttingNorm: Partial<AssignmentCodeInputType>) =>
@@ -269,7 +276,7 @@ export default function CuttingNorm() {
             }}
             size="small"
           >
-            <Visibility color="secondary" />
+            <Visibility />
           </IconButton>
         </Box>
       ),
@@ -287,7 +294,7 @@ export default function CuttingNorm() {
       render: (_, record) => (
         <Box display="flex" justifyContent="center">
           <IconButton onClick={() => handleOpen(record)} size="small">
-            <Edit color="primary" />
+            <Edit  />
           </IconButton>
         </Box>
       ),

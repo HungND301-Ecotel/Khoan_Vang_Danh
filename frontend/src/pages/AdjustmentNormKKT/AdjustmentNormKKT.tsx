@@ -81,7 +81,7 @@ export default function AdjustmentNormKKT() {
       const timer = setTimeout(() => {
         setIsFiltering(false);
       }, 300);
-      
+
       return () => clearTimeout(timer);
     } else {
       setIsFiltering(false);
@@ -101,28 +101,28 @@ export default function AdjustmentNormKKT() {
     }
 
     const searchTerm = searchValue.toLowerCase().trim();
-    
+
     return typeFiltered.filter((item: AdjustmentNormOutputType) => {
       // Search in main fields
       const code = item.code?.toLowerCase() || "";
       const hardnessName = item.hardness?.name?.toLowerCase() || "";
       const rockRatioName = item.rockRatio?.name?.toLowerCase() || "";
-      
+
       // Search in norms
       const normsMatch = item.norms?.some((norm: any) => {
         const assignmentCode = norm.assignmentCode?.code?.toLowerCase() || "";
         const assignmentName = norm.assignmentCode?.name?.toLowerCase() || "";
         const normValue = norm.norm?.toString().toLowerCase() || "";
-        
-        return assignmentCode.includes(searchTerm) || 
-               assignmentName.includes(searchTerm) || 
-               normValue.includes(searchTerm);
+
+        return assignmentCode.includes(searchTerm) ||
+          assignmentName.includes(searchTerm) ||
+          normValue.includes(searchTerm);
       });
 
-      return code.includes(searchTerm) || 
-             hardnessName.includes(searchTerm) || 
-             rockRatioName.includes(searchTerm) || 
-             normsMatch;
+      return code.includes(searchTerm) ||
+        hardnessName.includes(searchTerm) ||
+        rockRatioName.includes(searchTerm) ||
+        normsMatch;
     });
   }, [adjustmentnorms, searchValue]);
 
@@ -275,15 +275,15 @@ export default function AdjustmentNormKKT() {
         {searchValue ? "Không tìm thấy kết quả" : "Chưa có dữ liệu"}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {searchValue 
+        {searchValue
           ? `Không có hệ số điều chỉnh CKKT nào phù hợp với "${searchValue}"`
           : "Hiện tại chưa có hệ số điều chỉnh CKKT nào được tạo"
         }
       </Typography>
       {searchValue && (
-        <Button 
-          variant="outlined" 
-          size="small" 
+        <Button
+          variant="outlined"
+          size="small"
           onClick={handleClearSearch}
           sx={{ mt: 1 }}
         >
@@ -477,9 +477,10 @@ export default function AdjustmentNormKKT() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -496,7 +497,7 @@ export default function AdjustmentNormKKT() {
                   placeholder="Tìm kiếm theo mã định mức, độ cứng, tỷ lệ đá, mã giao khoán..."
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ 
+                  sx={{
                     backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
                     "& .MuiInputBase-root": {
                       fontSize: "14px",
@@ -533,9 +534,10 @@ export default function AdjustmentNormKKT() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -554,9 +556,10 @@ export default function AdjustmentNormKKT() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -575,9 +578,10 @@ export default function AdjustmentNormKKT() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -597,9 +601,10 @@ export default function AdjustmentNormKKT() {
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
                     backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -613,7 +618,7 @@ export default function AdjustmentNormKKT() {
               </Box>
             </Box>
           </Box>
-          
+
           {/* Enhanced Search Results Info with Loading State */}
           {searchValue && (
             <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
@@ -627,8 +632,8 @@ export default function AdjustmentNormKKT() {
                   <>
                     Tìm thấy {filteredData.length} kết quả cho "{searchValue}"
                     {filteredData.length > 0 && (
-                      <Button 
-                        size="small" 
+                      <Button
+                        size="small"
                         onClick={handleClearSearch}
                         sx={{ ml: 2 }}
                       >

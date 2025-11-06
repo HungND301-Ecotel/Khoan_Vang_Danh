@@ -150,15 +150,11 @@ export default function ExcavationNormModal({
       interpolatedNorm: "",
       norms:
         selected?.norms
-          ?.filter((item) => item.assignmentCode)
+          ?.filter((item) => item.assignmentCode?._id)
           .map((item) => ({
             assignmentCode: item.assignmentCode._id,
             norm: item.norm,
-          })) ||
-        assignmentcodes.map((item: any) => ({
-          assignmentCode: item._id,
-          norm: undefined,
-        })),
+          })) || [],
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
@@ -171,6 +167,12 @@ export default function ExcavationNormModal({
           | "coal_kb"
           | "coal_zh"
           | "coal_zry",
+        norms: values.norms
+          .filter((norm) => typeof norm.assignmentCode === "string" && norm.assignmentCode)
+          .map((norm) => ({
+            assignmentCode: norm.assignmentCode as string,
+            norm: norm.norm,
+          })), // Ensure assignmentCode is always string
       });
     },
   });
@@ -231,7 +233,7 @@ export default function ExcavationNormModal({
       );
       setSelectedAssignmentCodes(selectedCodes);
     } else {
-      setSelectedAssignmentCodes(assignmentcodes);
+      setSelectedAssignmentCodes([]);
     }
   }, [selected, assignmentcodes]);
 
@@ -326,7 +328,6 @@ export default function ExcavationNormModal({
 
       <DialogContent sx={{ p: 0, overflowY: "auto" }}>
         <FormikProvider value={formik}>
-          {/* Nhóm công đoạn */}
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
             Nhóm công đoạn
           </Typography>
@@ -375,7 +376,6 @@ export default function ExcavationNormModal({
             </TextField>
           </Box>
 
-          {/* Công đoạn */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Công đoạn
           </Typography>
@@ -421,7 +421,6 @@ export default function ExcavationNormModal({
             </TextField>
           </Box>
 
-          {/* Công nghệ xúc */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Công nghệ xúc
           </Typography>
@@ -841,7 +840,6 @@ export default function ExcavationNormModal({
             </>
           )}
 
-          {/* Mã định mức */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Mã định mức
           </Typography>
@@ -878,8 +876,6 @@ export default function ExcavationNormModal({
               borderWidth: "1px",
             }}
           />
-
-          {/* Mã giao khoán */}
           <Typography
             sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
           >
@@ -900,22 +896,36 @@ export default function ExcavationNormModal({
               value={selectedAssignmentCodes}
               onChange={(event, newValue) => {
                 setSelectedAssignmentCodes(newValue);
-                const updatedNorms = newValue.map((item) => {
-                  const existing = formik.values.norms.find(
-                    (n: any) => n.assignmentCode === item._id
-                  );
-                  return {
-                    assignmentCode: item._id,
-                    norm: existing?.norm || undefined,
-                  };
-                });
+                const updatedNorms = newValue
+                  .filter((item) => item._id) // Ensure no undefined _id
+                  .map((item) => {
+                    const existing = formik.values.norms.find(
+                      (n: any) => n.assignmentCode === item._id
+                    );
+                    return {
+                      assignmentCode: item._id,
+                      norm: existing?.norm || "",
+                    };
+                  });
                 formik.setFieldValue("norms", updatedNorms);
               }}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  sx={{ color: "#D9D9D9" }}
+                  // sx={{ color: "#D9D9D9" }}
                   variant="outlined"
+                  sx={{
+                    "& .MuiInputBase-root": {
+                      height: "32px",
+                      borderRadius: "6px",
+                      px: "12px",
+                      fontSize: "14px",
+                    },
+                    "& input::placeholder": {
+                      color: "#D9D9D9",
+                      opacity: 1,
+                    },
+                  }}
                 />
               )}
               sx={{
@@ -941,17 +951,9 @@ export default function ExcavationNormModal({
                   verticalAlign: "middle",
                   transform: "translateY(-6px)",
                 },
-                "& input::placeholder": {
-                  color: "#D9D9D9",
-                  opacity: 1,
-                  lineHeight: "32px",
-                  fontSize: "14px",
-                },
               }}
             />
           </Box>
-
-          {/* Danh sách norms */}
           <FieldArray name="norms">
             {() => (
               <Box
@@ -981,9 +983,9 @@ export default function ExcavationNormModal({
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode
-                            )?.code
+                            )?.code || ""
                           }
-                          InputLabelProps={{ shrink: true }}
+                          disabled
                           variant="outlined"
                           sx={{
                             "& .MuiInputBase-root": {
@@ -1008,9 +1010,9 @@ export default function ExcavationNormModal({
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode
-                            )?.name
+                            )?.name || ""
                           }
-                          InputLabelProps={{ shrink: true }}
+                          disabled
                           variant="outlined"
                           sx={{
                             "& .MuiInputBase-root": {
@@ -1033,19 +1035,19 @@ export default function ExcavationNormModal({
                           type="number"
                           name={`norms[${index}].norm`}
                           value={formik.values.norms[index]?.norm || ""}
-                          onChange={(e) =>
-                            formik.setFieldValue(
-                              `norms[${index}].norm`,
-                              e.target.value
-                            )
-                          }
+                          onChange={formik.handleChange}
                           variant="outlined"
+                          placeholder="Nhập định mức"
                           sx={{
                             "& .MuiInputBase-root": {
                               height: "32px",
                               borderRadius: "6px",
                               px: "12px",
                               fontSize: "14px",
+                            },
+                            "& input::placeholder": {
+                              color: "#D9D9D9",
+                              opacity: 1,
                             },
                           }}
                         />

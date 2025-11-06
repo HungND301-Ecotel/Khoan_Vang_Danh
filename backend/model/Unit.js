@@ -1,12 +1,15 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
-const Unit = new mongoose.Schema({
+const Unit = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: [true, 'Unit name is required']
-    }
-}, {
-    timestamps: true
-})
+      type: String,
+      required: [true, "Unit name is required"],
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = mongoose.model('Unit', Unit)
+module.exports = mongoose.model("Unit", Unit);
