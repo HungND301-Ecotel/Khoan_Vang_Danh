@@ -4,10 +4,10 @@ const MaterialBudget = new mongoose.Schema({
     code: {
         type: String
     },
-    phaseGroup: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'PhaseGroup'
-    },
+ //   phaseGroup: {
+ //       type: mongoose.Schema.Types.ObjectId,
+ //       ref: 'PhaseGroup'
+ //   },
     phase: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Phase'

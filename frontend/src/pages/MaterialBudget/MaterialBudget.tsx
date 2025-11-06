@@ -422,11 +422,11 @@ export default function MaterialBudget() {
             {data?.materialbudget?.production
               ? data?.materialbudget?.production.toLocaleString()
               : 0}{" "}
-            (
+            {/* (
             {data?.phaseGroup?.name?.toLowerCase() === "khấu than".toLowerCase()
               ? "tấn"
               : "mét"}
-            )
+            ) */}
           </Typography>
         </Box>
 
@@ -726,12 +726,6 @@ export default function MaterialBudget() {
           />
         </Box>
       </Box>
-      <MaterialBudgetModal
-        open={open}
-        setOpen={setOpen}
-        handleSubmit={handleSubmit}
-        selected={selected}
-      />
     </Box>
   );
 }

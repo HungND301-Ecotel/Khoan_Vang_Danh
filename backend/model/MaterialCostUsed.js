@@ -16,7 +16,18 @@ const MaterialCostUsed = new mongoose.Schema({
             },
             production: {
                 type: Number
-            }
+            },
+            unit: {
+                type: String
+            },
+            assignmentNormCode: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'AssignmentNorm'
+            },
+            adjustmentNormCode: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'AdjustmentNorm'
+            },
         }
     ],
     materials: [

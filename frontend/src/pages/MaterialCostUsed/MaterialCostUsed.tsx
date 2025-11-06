@@ -240,10 +240,11 @@ export default function MaterialCostUsed() {
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
-        dataIndex: "uom",
-        key: "uom",
-        render: (text: string, item: any) => (
-          <Typography>{item.phase?.uom?.name}</Typography>
+        dataIndex: "unit",
+        key: "unit",
+        align: "center" as const,
+        render: (value: number) => (
+          <Typography>{value ? value.toLocaleString() : ""}</Typography>
         ),
       },
       {

@@ -51,7 +51,6 @@ exports.getOne = async (req, res) => {
     try {
         const materialbudget = await MaterialBudget.findById(req.params.id)
             .populate('phase')
-            .populate('phaseGroup')
             .populate({
                 path: 'assignmentNormCode',
                 populate: {
