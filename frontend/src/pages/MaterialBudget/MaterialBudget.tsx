@@ -84,6 +84,11 @@ export default function MaterialBudget() {
   };
 
   const handleView = (record: MaterialCostUsedOutputType) => {
+    // console.log("🧩 record data =", record);
+    console.log("record = ", record);
+    console.log("record.materialBudget?._id = ", record.materialBudget?._id);
+    console.log("record._id = ", record._id);
+
     const key = record._id;
     if (!key) {
       showErrorAlert("Không tìm thấy ID của bản ghi");
