@@ -1,32 +1,41 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
-const MaterialAssignment = new mongoose.Schema({
+const MaterialAssignment = new mongoose.Schema(
+  {
     code: {
-        type: String,
-        unique: true
+      type: String,
+      unique: true,
     },
     name: {
-        type: String,
-        required: [true, 'MaterialAssignment name is required']
+      type: String,
+      required: [true, "MaterialAssignment name is required"],
     },
     uom: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Unit'
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Unit",
     },
     assignmentCode: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'AssignmentCode'
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AssignmentCode",
     },
-    quantity:{
-        type:Number
+    isOutPlan: {
+      type: Boolean,
+      default: false, // false = trong khoán, true = ngoài khoán
     },
-    priceHistory: [{
+    quantity: {
+      type: Number,
+    },
+    priceHistory: [
+      {
         price: Number,
         startDate: String,
-        endDate: String
-    }],
-}, {
-    timestamps: true
-})
+        endDate: String,
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = mongoose.model('MaterialAssignment', MaterialAssignment)
+module.exports = mongoose.model("MaterialAssignment", MaterialAssignment);
