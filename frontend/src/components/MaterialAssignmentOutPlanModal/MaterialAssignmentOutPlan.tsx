@@ -64,24 +64,27 @@ export default function MaterialAssignmentOutPlanModal({
         : "",
       quantity: selectedMaterialAssignment
         ? selectedMaterialAssignment.quantity
-        : "",
+        : undefined,
       assignmentCode: selectedMaterialAssignment
         ? selectedMaterialAssignment.assignmentCode?._id
         : "",
       priceHistory:
-        selectedMaterialAssignment && Array.isArray(selectedMaterialAssignment.priceHistory)
+        selectedMaterialAssignment &&
+        Array.isArray(selectedMaterialAssignment.priceHistory)
           ? selectedMaterialAssignment.priceHistory.map((item) => ({
-            price: item.price,
-            startDate: new Date(item.startDate).toISOString().substring(0, 10),
-            endDate: new Date(item.endDate).toISOString().substring(0, 10),
-          }))
+              price: item.price,
+              startDate: new Date(item.startDate)
+                .toISOString()
+                .substring(0, 10),
+              endDate: new Date(item.endDate).toISOString().substring(0, 10),
+            }))
           : [
-            {
-              price: 0,
-              startDate: new Date().toISOString().substring(0, 10),
-              endDate: new Date().toISOString().substring(0, 10),
-            },
-          ],
+              {
+                price: 0,
+                startDate: new Date().toISOString().substring(0, 10),
+                endDate: new Date().toISOString().substring(0, 10),
+              },
+            ],
     },
     enableReinitialize: true,
     validationSchema,
@@ -145,8 +148,12 @@ export default function MaterialAssignmentOutPlanModal({
             borderColor: "#ccc",
           }}
         />
-        <Typography sx={{ fontSize: "20px", color: "#1976d2", fontWeight: 500 }}>
-          {selectedMaterialAssignment ? "Chỉnh sửa Vật tư, tài sản khác" : "Tạo mới Vật tư, tài sản khác"}
+        <Typography
+          sx={{ fontSize: "20px", color: "#1976d2", fontWeight: 500 }}
+        >
+          {selectedMaterialAssignment
+            ? "Chỉnh sửa Vật tư, tài sản khác"
+            : "Tạo mới Vật tư, tài sản khác"}
         </Typography>
       </DialogTitle>
 
@@ -156,7 +163,9 @@ export default function MaterialAssignmentOutPlanModal({
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {/* Mã vật tư, tài sản */}
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã vật tư, tài sản</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Mã vật tư, tài sản
+                </Typography>
                 <TextField
                   fullWidth
                   id="code"
@@ -179,7 +188,9 @@ export default function MaterialAssignmentOutPlanModal({
 
               {/* Tên vật tư, tài sản */}
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Tên vật tư, tài sản</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Tên vật tư, tài sản
+                </Typography>
                 <TextField
                   fullWidth
                   id="name"
@@ -202,7 +213,9 @@ export default function MaterialAssignmentOutPlanModal({
 
               {/* Số lượng */}
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Số lượng</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Số lượng
+                </Typography>
                 <TextField
                   fullWidth
                   id="quantity"
@@ -210,7 +223,9 @@ export default function MaterialAssignmentOutPlanModal({
                   placeholder="Input Text"
                   value={formik.values.quantity}
                   onChange={formik.handleChange}
-                  error={formik.touched.quantity && Boolean(formik.errors.quantity)}
+                  error={
+                    formik.touched.quantity && Boolean(formik.errors.quantity)
+                  }
                   helperText={formik.touched.quantity && formik.errors.quantity}
                   variant="outlined"
                   sx={{
@@ -225,7 +240,9 @@ export default function MaterialAssignmentOutPlanModal({
 
               {/* Đơn vị tính */}
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Đơn vị tính</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Đơn vị tính
+                </Typography>
                 <TextField
                   fullWidth
                   select
@@ -255,7 +272,9 @@ export default function MaterialAssignmentOutPlanModal({
 
               {/* Đơn giá section */}
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>Đơn giá</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>
+                  Đơn giá
+                </Typography>
                 <TextField
                   fullWidth
                   type="number"
@@ -277,7 +296,9 @@ export default function MaterialAssignmentOutPlanModal({
               </Box>
 
               {/* Action buttons */}
-              <DialogActions sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}>
+              <DialogActions
+                sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}
+              >
                 <Button
                   onClick={handleClose}
                   sx={{

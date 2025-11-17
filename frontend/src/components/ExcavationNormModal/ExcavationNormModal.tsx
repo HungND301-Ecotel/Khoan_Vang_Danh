@@ -49,16 +49,21 @@ export default function ExcavationNormModal({
   existingNorms: AssignmentNormOutputType[];
 }) {
   const [phaseGroup, setPhaseGroup] = useState<string | null>(null);
-  const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<AssignmentCodeOutputType[]>([]);
+  const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<
+    AssignmentCodeOutputType[]
+  >([]);
   const [showAdditionalRows, setShowAdditionalRows] = useState(false);
 
   // State để lưu giá trị norm đầu tiên của cận trên và cận dưới
-  const [upperLimitFirstNorm, setUpperLimitFirstNorm] = useState<number | null>(null);
-  const [lowerLimitFirstNorm, setLowerLimitFirstNorm] = useState<number | null>(null);
+  const [upperLimitFirstNorm, setUpperLimitFirstNorm] = useState<number | null>(
+    null
+  );
+  const [lowerLimitFirstNorm, setLowerLimitFirstNorm] = useState<number | null>(
+    null
+  );
   const [upperLimitPoint, setUpperLimitPoint] = useState<number | null>(null);
   const [lowerLimitPoint, setLowerLimitPoint] = useState<number | null>(null);
   const [predictingPoint, setPredictingPoint] = useState<number | null>(null);
-  const [interpolatedNorm, setInterpolatedNorm] = useState<number | null>(null);
 
   const { data: phasegroups = [] } = useQuery({
     queryKey: ["phasegroups"],
@@ -94,15 +99,13 @@ export default function ExcavationNormModal({
   });
 
   // Hàm tính nội suy tuyến tính: y = y1 + (x - x1) * (y2 - y1) / (x2 - x1)
-  const handleInterpolationChange = (
-    next?: {
-      lowerLimitPoint?: number | null;
-      upperLimitPoint?: number | null;
-      lowerLimitFirstNorm?: number | null;
-      upperLimitFirstNorm?: number | null;
-      predictingPoint?: number | null;
-    }
-  ) => {
+  const handleInterpolationChange = (next?: {
+    lowerLimitPoint?: number | null;
+    upperLimitPoint?: number | null;
+    lowerLimitFirstNorm?: number | null;
+    upperLimitFirstNorm?: number | null;
+    predictingPoint?: number | null;
+  }) => {
     const x1 = next?.lowerLimitPoint ?? lowerLimitPoint;
     const y1 = next?.lowerLimitFirstNorm ?? lowerLimitFirstNorm;
     const x2 = next?.upperLimitPoint ?? upperLimitPoint;
@@ -154,7 +157,11 @@ export default function ExcavationNormModal({
           .map((item) => ({
             assignmentCode: item.assignmentCode._id,
             norm: item.norm,
-          })) || [],
+          })) ||
+        assignmentcodes.map((item: any) => ({
+          assignmentCode: item._id,
+          norm: "",
+        })),
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
@@ -167,12 +174,17 @@ export default function ExcavationNormModal({
           | "coal_kb"
           | "coal_zh"
           | "coal_zry",
-        norms: values.norms
-          .filter((norm) => typeof norm.assignmentCode === "string" && norm.assignmentCode)
-          .map((norm) => ({
-            assignmentCode: norm.assignmentCode as string,
-            norm: norm.norm,
-          })), // Ensure assignmentCode is always string
+        norms:
+          selected?.norms
+            ?.filter((item) => item.assignmentCode?._id)
+            .map((item) => ({
+              assignmentCode: item.assignmentCode._id,
+              norm: item.norm,
+            })) ||
+          assignmentcodes.map((item: any) => ({
+            assignmentCode: item._id,
+            norm: "",
+          })),
       });
     },
   });
@@ -233,11 +245,11 @@ export default function ExcavationNormModal({
       );
       setSelectedAssignmentCodes(selectedCodes);
     } else {
-      setSelectedAssignmentCodes([]);
+      setSelectedAssignmentCodes(assignmentcodes);
     }
   }, [selected, assignmentcodes]);
 
-    // Khi interpolatedNorm thay đổi, tự động cập nhật toàn bộ định mức
+  // Khi interpolatedNorm thay đổi, tự động cập nhật toàn bộ định mức
   useEffect(() => {
     if (
       formik.values.interpolatedNorm &&
@@ -278,6 +290,7 @@ export default function ExcavationNormModal({
           width: "800px",
           maxHeight: "90vh",
           p: "40px",
+          backgroundColor: "#F1F2F5",
         },
       }}
     >
@@ -393,7 +406,7 @@ export default function ExcavationNormModal({
                     position="start"
                     sx={{ color: "#D9D9D9", ml: "12px" }}
                   >
-                    Placeholder
+                    Chọn công đoạn
                   </InputAdornment>
                 ),
               }}
@@ -438,7 +451,7 @@ export default function ExcavationNormModal({
                     position="start"
                     sx={{ color: "#D9D9D9", ml: "12px" }}
                   >
-                    Placeholder
+                    Chọn công nghệ
                   </InputAdornment>
                 ),
               }}
@@ -471,30 +484,32 @@ export default function ExcavationNormModal({
           </Box>
 
           {/* Checkbox for additional rows */}
-          {hasExistingRecords && selectedAssignmentCodes && selectedAssignmentCodes.length > 0 && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showAdditionalRows}
-                    onChange={(e) => setShowAdditionalRows(e.target.checked)}
-                    sx={{
-                      color: "#007BFF",
-                      "&.Mui-checked": {
+          {hasExistingRecords &&
+            selectedAssignmentCodes &&
+            selectedAssignmentCodes.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={showAdditionalRows}
+                      onChange={(e) => setShowAdditionalRows(e.target.checked)}
+                      sx={{
                         color: "#007BFF",
-                      },
-                    }}
-                  />
-                }
-                label={
-                  <Typography sx={{ fontSize: "14px" }}>
-                    Tạo định mức bảng phương pháp nội suy
-                  </Typography>
-                }
-                sx={{ width: "700px" }}
-              />
-            </Box>
-          )}
+                        "&.Mui-checked": {
+                          color: "#007BFF",
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography sx={{ fontSize: "14px" }}>
+                      Tạo định mức bảng phương pháp nội suy
+                    </Typography>
+                  }
+                  sx={{ width: "700px" }}
+                />
+              </Box>
+            )}
 
           {/* Additional rows - shown when checkbox is checked */}
           {showAdditionalRows && (
@@ -541,7 +556,10 @@ export default function ExcavationNormModal({
                       value={formik.values.predictingPoint || ""}
                       placeholder="Input Text"
                       onChange={(event) => {
-                        const value = event.target.value === "" ? null : Number(event.target.value);
+                        const value =
+                          event.target.value === ""
+                            ? null
+                            : Number(event.target.value);
                         formik.setFieldValue("predictingPoint", value);
                         setPredictingPoint(value);
                         handleInterpolationChange({ predictingPoint: value });
@@ -574,7 +592,10 @@ export default function ExcavationNormModal({
                       fullWidth
                       value={formik.values.upperLimitNorm || ""}
                       onChange={(event) =>
-                        formik.setFieldValue("upperLimitNorm", event.target.value)
+                        formik.setFieldValue(
+                          "upperLimitNorm",
+                          event.target.value
+                        )
                       }
                       variant="outlined"
                       InputProps={{
@@ -616,7 +637,9 @@ export default function ExcavationNormModal({
 
                   {/* Điểm cận trên */}
                   <Grid item xs={6}>
-                    <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
                       Điểm cận trên
                     </Typography>
                     <TextField
@@ -624,7 +647,10 @@ export default function ExcavationNormModal({
                       value={formik.values.upperLimitPoint || ""}
                       placeholder="Input Text"
                       onChange={(event) => {
-                        const value = event.target.value === "" ? null : Number(event.target.value);
+                        const value =
+                          event.target.value === ""
+                            ? null
+                            : Number(event.target.value);
                         formik.setFieldValue("upperLimitPoint", value);
                         setUpperLimitPoint(value);
                         handleInterpolationChange({ upperLimitPoint: value });
@@ -686,7 +712,10 @@ export default function ExcavationNormModal({
                       fullWidth
                       value={formik.values.lowerLimitNorm || ""}
                       onChange={(event) => {
-                        formik.setFieldValue("lowerLimitNorm", event.target.value);
+                        formik.setFieldValue(
+                          "lowerLimitNorm",
+                          event.target.value
+                        );
                       }}
                       variant="outlined"
                       InputProps={{
@@ -728,7 +757,9 @@ export default function ExcavationNormModal({
 
                   {/* Điểm cận dưới */}
                   <Grid item xs={6}>
-                    <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
                       Điểm cận dưới
                     </Typography>
                     <TextField
@@ -736,7 +767,10 @@ export default function ExcavationNormModal({
                       value={formik.values.lowerLimitPoint || ""}
                       placeholder="Input Text"
                       onChange={(event) => {
-                        const value = event.target.value === "" ? null : Number(event.target.value);
+                        const value =
+                          event.target.value === ""
+                            ? null
+                            : Number(event.target.value);
                         formik.setFieldValue("lowerLimitPoint", value);
                         setLowerLimitPoint(value);
                         handleInterpolationChange({ lowerLimitPoint: value });
@@ -793,7 +827,9 @@ export default function ExcavationNormModal({
           {/* Chống - only show when checkbox is NOT checked */}
           {!showAdditionalRows && (
             <>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+              <Typography
+                sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+              >
                 Chống
               </Typography>
               <Box sx={{ display: "flex", justifyContent: "center" }}>
@@ -887,11 +923,12 @@ export default function ExcavationNormModal({
               options={assignmentcodes.filter(
                 (opt: AssignmentCodeOutputType) =>
                   !selectedAssignmentCodes.some(
-                    (selected: AssignmentCodeOutputType) => selected._id === opt._id
+                    (selected: AssignmentCodeOutputType) =>
+                      selected._id === opt._id
                   )
               )}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
-                option.code || ""
+                `${option.code} - ${option.name}`
               }
               value={selectedAssignmentCodes}
               onChange={(event, newValue) => {
@@ -912,20 +949,12 @@ export default function ExcavationNormModal({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  // sx={{ color: "#D9D9D9" }}
                   variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "32px",
-                      borderRadius: "6px",
-                      px: "12px",
-                      fontSize: "14px",
-                    },
-                    "& input::placeholder": {
-                      color: "#D9D9D9",
-                      opacity: 1,
-                    },
-                  }}
+                  placeholder={
+                    selectedAssignmentCodes.length === 0
+                      ? "Chọn mã giao khoán"
+                      : ""
+                  }
                 />
               )}
               sx={{
@@ -935,21 +964,26 @@ export default function ExcavationNormModal({
                   borderRadius: "6px",
                   px: "12px",
                   fontSize: "14px",
-                  "& .MuiAutocomplete-input": {
-                    padding: "0 !important",
-                    lineHeight: "26px",
-                    textIndent: "12px",
-                  },
+                  backgroundColor:
+                    selectedAssignmentCodes.length > 0 ? "#F2F2F2" : "#FFFFFF",
                   display: "flex",
                   alignItems: "center",
+                  flexWrap: "wrap",
+                  padding: "4px 12px",
+                },
+                "& .MuiAutocomplete-input": {
+                  padding: "0 !important",
+                  flexGrow: 1,
+                  minWidth: "60px",
                 },
                 "& .MuiChip-root": {
                   height: "20px",
                   fontSize: "12px",
                   margin: "2px",
-                  lineHeight: "26px",
-                  verticalAlign: "middle",
-                  transform: "translateY(-6px)",
+                  lineHeight: "20px",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
                 },
               }}
             />
@@ -993,6 +1027,10 @@ export default function ExcavationNormModal({
                               borderRadius: "6px",
                               px: "12px",
                               fontSize: "14px",
+                              backgroundColor: "#F2F2F2",
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
                             },
                           }}
                         />
@@ -1020,6 +1058,10 @@ export default function ExcavationNormModal({
                               borderRadius: "6px",
                               px: "12px",
                               fontSize: "14px",
+                              backgroundColor: "#F2F2F2",
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
                             },
                           }}
                         />
@@ -1044,6 +1086,12 @@ export default function ExcavationNormModal({
                               borderRadius: "6px",
                               px: "12px",
                               fontSize: "14px",
+                              backgroundColor: formik.values.norms[index]?.norm
+                                ? "#F2F2F2"
+                                : "#FFFFFF",
+                            },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#D9D9D9",
                             },
                             "& input::placeholder": {
                               color: "#D9D9D9",

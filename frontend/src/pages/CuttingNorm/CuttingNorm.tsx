@@ -23,7 +23,7 @@ import {
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
-import { AssignmentCodeInputType, AssignmentNormOutputType } from "../../types";
+import { AssignmentNormInputType, AssignmentNormOutputType } from "../../types";
 import CuttingNormModal from "../../components/CuttingNormModal/CuttingNormModal";
 import {
   showConfirmAlert,
@@ -32,7 +32,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 
 export default function CuttingNorm() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -51,19 +51,20 @@ export default function CuttingNorm() {
       api.get(`/assignmentnorms?q=${searchValue}`).then((res) => res.data.data),
   });
 
- const filteredData = assignmentnorms.filter((i: AssignmentNormOutputType) => {
-  const matchesType = i.type === "cutting";
-  const matchesSearch =
-    searchValue === "" ||
-    i.code?.toLowerCase().includes(searchValue.toLowerCase()) ||
-    i.norms.some((n) =>
-      n.assignmentCode?.name?.toLowerCase().includes(searchValue.toLowerCase())
+  const filteredData = assignmentnorms
+    .filter((i: AssignmentNormOutputType) => i.type === "cutting")
+    .filter(
+      (i: AssignmentNormOutputType) =>
+        (i.code?.toLowerCase() || "").includes(searchValue.toLowerCase()) ||
+        (i.norms || []).some((n) =>
+          (n.assignmentCode?.name?.toLowerCase() || "").includes(
+            searchValue.toLowerCase()
+          )
+        )
     );
-  return matchesType && matchesSearch;
-});
 
   const createMutation = useMutation({
-    mutationFn: (newCuttingNorm: Partial<AssignmentCodeInputType>) =>
+    mutationFn: (newCuttingNorm: Partial<AssignmentNormInputType>) =>
       api.post("/assignmentnorms", newCuttingNorm).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
@@ -77,7 +78,7 @@ export default function CuttingNorm() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (updateCuttingNorm: Partial<AssignmentCodeInputType>) =>
+    mutationFn: (updateCuttingNorm: Partial<AssignmentNormInputType>) =>
       api
         .put(`/assignmentnorms/${updateCuttingNorm._id}`, updateCuttingNorm)
         .then((res) => res.data),
@@ -93,31 +94,7 @@ export default function CuttingNorm() {
     },
   });
 
-  const handleDelete = (id?: string) => {
-    if (!id) {
-      if (selectedRows.length === 0) {
-        showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
-        return;
-      }
-
-      showConfirmAlert(
-        `Bạn có muốn xóa ${selectedRows.length} bản ghi đã chọn?`
-      ).then((result) => {
-        if (result.isConfirmed) {
-          deleteMultipleMutation.mutate(selectedRows as string[]);
-        }
-      });
-      return;
-    }
-
-    showConfirmAlert("Bạn có muốn xóa bản ghi này?").then((result) => {
-      if (result.isConfirmed) {
-        deleteMultipleMutation.mutate([id]);
-      }
-    });
-  };
-
-  const deleteMultipleMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (ids: React.Key[]) => {
       return api.delete("/assignmentnorms", { data: { ids } });
     },
@@ -132,7 +109,20 @@ export default function CuttingNorm() {
     },
   });
 
-  const handleSubmit = (values: Partial<AssignmentCodeInputType>) => {
+  const handleDelete = () => {
+    if (selectedRows.length === 0) {
+      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
+      return;
+    }
+
+    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(selectedRows);
+      }
+    });
+  };
+
+  const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
     const cleanedValues = Object.fromEntries(
       Object.entries(values).filter(
         ([_, value]) => value !== "" && value !== null && value !== undefined
@@ -180,14 +170,16 @@ export default function CuttingNorm() {
       },
       {
         title: (
-          <Typography sx={{ fontWeight: "bold" }}>Tên vật liệu</Typography>
+          <Typography sx={{ fontWeight: "bold" }}>
+            Tên vật tư, tài sản
+          </Typography>
         ),
         dataIndex: "assignmentCode",
         key: "name",
         render: (assignmentCode: any) => assignmentCode?.name,
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Đơn vị</Typography>,
+        title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
         dataIndex: "assignmentCode",
         key: "uom",
         render: (assignmentCode: any) => assignmentCode?.uom?.name,
@@ -204,8 +196,7 @@ export default function CuttingNorm() {
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-            Xén trong đá: 
-            {record.phase?.name || ""} {record.hardness?.name || ""}
+            Định mức {record.phase?.name} {record.hardness?.name}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Tiết diện lò xén: {record.crossSection?.name || ""} (
@@ -218,11 +209,7 @@ export default function CuttingNorm() {
           pagination={false}
           size="small"
           rowKey={(item) =>
-            `${record._id}-${
-              item.assignmentCode?._id ||
-              item.assignmentCode?.code ||
-              Math.random()
-            }`
+            `${record._id}-${item.assignmentCode?._id || Math.random()}`
           }
         />
       </Box>
@@ -294,7 +281,7 @@ export default function CuttingNorm() {
       render: (_, record) => (
         <Box display="flex" justifyContent="center">
           <IconButton onClick={() => handleOpen(record)} size="small">
-            <Edit  />
+            <Edit />
           </IconButton>
         </Box>
       ),
@@ -309,10 +296,12 @@ export default function CuttingNorm() {
   };
 
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box
+      sx={{
+        px: 5,
+        py: 1,
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Đơn giá và định mức</Typography>
         <Typography>Định mức xén lò</Typography>
@@ -320,7 +309,10 @@ export default function CuttingNorm() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Định mức xén lò
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -330,8 +322,12 @@ export default function CuttingNorm() {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -348,8 +344,12 @@ export default function CuttingNorm() {
                   onClick={() => handleDelete()}
                   disabled={selectedRows.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -358,7 +358,9 @@ export default function CuttingNorm() {
                     px: 3,
                   }}
                 >
-                  Xóa ({selectedRows.length})
+                  {deleteMutation.isPending
+                    ? "Đang xóa..."
+                    : `Xóa (${selectedRows.length})`}
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -369,10 +371,14 @@ export default function CuttingNorm() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -389,7 +395,10 @@ export default function CuttingNorm() {
                   placeholder="Tìm kiếm"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -407,10 +416,14 @@ export default function CuttingNorm() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -428,10 +441,14 @@ export default function CuttingNorm() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -449,10 +466,14 @@ export default function CuttingNorm() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -471,10 +492,14 @@ export default function CuttingNorm() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                                 boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                     },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -489,7 +514,7 @@ export default function CuttingNorm() {
             </Box>
           </Box>
           <Table<AssignmentNormOutputType>
-            rowKey="_id"
+            rowKey={(record) => record._id as string}
             rowSelection={rowSelection}
             expandable={{
               expandedRowKeys,
@@ -511,6 +536,7 @@ export default function CuttingNorm() {
             }}
             columns={columns}
             dataSource={filteredData}
+            loading={deleteMutation.isPending}
           />
         </Box>
       </Box>
@@ -519,6 +545,8 @@ export default function CuttingNorm() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+        hasExistingRecords={filteredData.length > 1}
+        existingNorms={filteredData}
       />
     </Box>
   );
