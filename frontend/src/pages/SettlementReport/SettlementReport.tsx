@@ -25,8 +25,14 @@ import {
   MaterialBudgetInputType,
   PhaseOutputType,
 } from "../../types";
-import { ArrowDropDown, CalendarToday, FileDownload, Mail, Print } from "@mui/icons-material";
-import custom_theme from '../../theme';
+import {
+  ArrowDropDown,
+  CalendarToday,
+  FileDownload,
+  Mail,
+  Print,
+} from "@mui/icons-material";
+import custom_theme from "../../theme";
 
 export default function SettlementReport() {
   const [selectedMonth, setSelectedMonth] = useState<Number>();
@@ -109,7 +115,9 @@ export default function SettlementReport() {
                       value={selectedYear}
                       InputProps={{ endAdornment: <CalendarToday /> }}
                       SelectProps={{ IconComponent: () => null }}
-                      onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                      onChange={(e) =>
+                        setSelectedYear(parseInt(e.target.value))
+                      }
                     >
                       {years.map((item, index) => (
                         <MenuItem key={index} value={item}>
@@ -141,7 +149,9 @@ export default function SettlementReport() {
                       select
                       InputProps={{ endAdornment: <CalendarToday /> }}
                       SelectProps={{ IconComponent: () => null }}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      onChange={(e) =>
+                        setSelectedMonth(parseInt(e.target.value))
+                      }
                     >
                       {Array.from({ length: 12 }).map((_, index) => (
                         <MenuItem key={index} value={index + 1}>
@@ -191,10 +201,13 @@ export default function SettlementReport() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -217,10 +230,13 @@ export default function SettlementReport() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -244,10 +260,13 @@ export default function SettlementReport() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -265,11 +284,24 @@ export default function SettlementReport() {
               </Box>
             </Box>
           </Box>
+
           <TableContainer
             component={Paper}
-            sx={{ boxShadow: "none", border: "1px solid #e0e0e0" }}
+            sx={{
+              boxShadow: "none",
+              border: "1px solid #e0e0e0",
+              mx: "auto",
+              overflowX: "auto",
+              "& .MuiTable-root": { tableLayout: "auto" },
+              "& .MuiTableCell-root": {
+                fontSize: "14px",
+                fontWeight: "bold",
+                py: { xs: 0.4, sm: 0.5 },
+                px: { xs: 0.6, sm: 0.5 },
+              },
+            }}
           >
-            <Table sx={{ width: "100%" }} size="small">
+            <Table sx={{ width: "100%", tableLayout: "auto" }} size="small">
               <TableHead>
                 <TableRow>
                   <TableCell
@@ -330,9 +362,9 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 40,
+                      minWidth: 42,
                     }}
                   >
                     STT
@@ -343,12 +375,14 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.7rem",
-                      p: 0.5,
-                      minWidth: 80,
+                      fontSize: "14px",
+                      p: 0.8,
+                      minWidth: 117,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
-                    Mã vật tư
+                    Mã vật tư, tài sản
                   </TableCell>
                   <TableCell
                     align="center"
@@ -356,9 +390,11 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 80,
+                      minWidth: 60,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Mã thiết bị
@@ -369,9 +405,11 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 100,
+                      minWidth: 55,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Mã giao khoán
@@ -382,9 +420,11 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.7rem",
-                      p: 0.5,
-                      minWidth: 150,
+                      fontSize: "14px",
+                      p: 0.8,
+                      minWidth: 143,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Tên vật tư, tài sản
@@ -395,9 +435,11 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 60,
+                      minWidth: 43,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     ĐVT
@@ -408,9 +450,11 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 80,
+                      minWidth: 64,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Đơn giá khoán
@@ -422,9 +466,11 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 48,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Định mức gốc
@@ -436,9 +482,11 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 80,
+                      minWidth: 85,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Hệ số điều chỉnh định mức
@@ -450,9 +498,11 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 45,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Định mức
@@ -464,7 +514,7 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
                     }}
                   >
@@ -477,9 +527,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 54,
                     }}
                   >
                     Giá trị
@@ -491,7 +541,7 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
                     }}
                   >
@@ -504,9 +554,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 54,
                     }}
                   >
                     Giá trị
@@ -518,9 +568,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#FF620040",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 52,
                     }}
                   >
                     Số lượng
@@ -532,9 +582,9 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#FF620040",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 54,
                     }}
                   >
                     Giá trị
@@ -547,9 +597,11 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 60,
+                      minWidth: 48,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Tổng
@@ -560,9 +612,11 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 56,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Trong khoán
@@ -573,9 +627,11 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#F3D01640",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 57,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Ngoài khoán
@@ -586,9 +642,11 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 60,
+                      minWidth: 48,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Tổng
@@ -599,9 +657,11 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 55,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Trong khoán
@@ -612,9 +672,11 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       bgcolor: "#4CAF503D",
-                      fontSize: "0.7rem",
+                      fontSize: "14px",
                       p: 0.5,
-                      minWidth: 70,
+                      minWidth: 55,
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
                     }}
                   >
                     Ngoài khoán
@@ -628,7 +690,7 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.75rem",
+                      fontSize: "14px",
                       p: 0.5,
                       textAlign: "center",
                     }}
@@ -640,17 +702,17 @@ export default function SettlementReport() {
                       key={index}
                       sx={{
                         border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "0.75rem",
+                        fontWeight: index <= 3 ? "bold" : "normal",
+                        fontSize: "14px",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                              ? "#4CAF503D"
-                              : index >= 17 && index <= 18
-                                ? "#FF620040"
-                                : "white",
+                            ? "#4CAF503D"
+                            : index >= 17 && index <= 18
+                            ? "#FF620040"
+                            : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -665,7 +727,7 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.75rem",
+                      fontSize: "14px",
                       p: 0.5,
                       textAlign: "center",
                     }}
@@ -677,17 +739,17 @@ export default function SettlementReport() {
                       key={index}
                       sx={{
                         border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "0.75rem",
+                        fontWeight: index <= 3 ? "bold" : "normal",
+                        fontSize: "14px",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                              ? "#4CAF503D"
-                              : index >= 17 && index <= 18
-                                ? "#FF620040"
-                                : "white",
+                            ? "#4CAF503D"
+                            : index >= 17 && index <= 18
+                            ? "#FF620040"
+                            : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -702,7 +764,7 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.75rem",
+                      fontSize: "14px",
                       p: 0.5,
                       textAlign: "center",
                     }}
@@ -714,17 +776,17 @@ export default function SettlementReport() {
                       key={index}
                       sx={{
                         border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "0.75rem",
+                        fontWeight: index <= 3 ? "bold" : "normal",
+                        fontSize: "14px",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                              ? "#4CAF503D"
-                              : index >= 17 && index <= 18
-                                ? "#FF620040"
-                                : "white",
+                            ? "#4CAF503D"
+                            : index >= 17 && index <= 18
+                            ? "#FF620040"
+                            : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -739,7 +801,7 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.75rem",
+                      fontSize: "14px",
                       p: 0.5,
                       textAlign: "center",
                     }}
@@ -751,17 +813,17 @@ export default function SettlementReport() {
                       key={index}
                       sx={{
                         border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "0.75rem",
+                        fontWeight: index <= 3 ? "bold" : "normal",
+                        fontSize: "14px",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                              ? "#4CAF503D"
-                              : index >= 17 && index <= 18
-                                ? "#FF620040"
-                                : "white",
+                            ? "#4CAF503D"
+                            : index >= 17 && index <= 18
+                            ? "#FF620040"
+                            : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -776,7 +838,7 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.75rem",
+                      fontSize: "14px",
                       p: 0.5,
                       textAlign: "center",
                     }}
@@ -788,17 +850,17 @@ export default function SettlementReport() {
                       key={index}
                       sx={{
                         border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "0.75rem",
+                        fontWeight: index <= 3 ? "bold" : "normal",
+                        fontSize: "14px",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                              ? "#4CAF503D"
-                              : index >= 17 && index <= 18
-                                ? "#FF620040"
-                                : "white",
+                            ? "#4CAF503D"
+                            : index >= 17 && index <= 18
+                            ? "#FF620040"
+                            : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -813,7 +875,7 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.75rem",
+                      fontSize: "14px",
                       p: 0.5,
                       textAlign: "center",
                     }}
@@ -825,17 +887,17 @@ export default function SettlementReport() {
                       key={index}
                       sx={{
                         border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "0.75rem",
+                        fontWeight: index <= 3 ? "bold" : "normal",
+                        fontSize: "14px",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                              ? "#4CAF503D"
-                              : index >= 17 && index <= 18
-                                ? "#FF620040"
-                                : "white",
+                            ? "#4CAF503D"
+                            : index >= 17 && index <= 18
+                            ? "#FF620040"
+                            : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -850,7 +912,7 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.75rem",
+                      fontSize: "14px",
                       p: 0.5,
                       textAlign: "center",
                     }}
@@ -862,17 +924,17 @@ export default function SettlementReport() {
                       key={index}
                       sx={{
                         border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "0.75rem",
+                        fontWeight: index <= 3 ? "bold" : "normal",
+                        fontSize: "14px",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                              ? "#4CAF503D"
-                              : index >= 17 && index <= 18
-                                ? "#FF620040"
-                                : "white",
+                            ? "#4CAF503D"
+                            : index >= 17 && index <= 18
+                            ? "#FF620040"
+                            : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -887,7 +949,7 @@ export default function SettlementReport() {
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
-                      fontSize: "0.75rem",
+                      fontSize: "14px",
                       p: 0.5,
                       textAlign: "center",
                     }}
@@ -899,17 +961,17 @@ export default function SettlementReport() {
                       key={index}
                       sx={{
                         border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "0.75rem",
+                        fontWeight: index <= 3 ? "bold" : "normal",
+                        fontSize: "14px",
                         p: 0.5,
                         bgcolor:
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                              ? "#4CAF503D"
-                              : index >= 17 && index <= 18
-                                ? "#FF620040"
-                                : "white",
+                            ? "#4CAF503D"
+                            : index >= 17 && index <= 18
+                            ? "#FF620040"
+                            : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -928,7 +990,7 @@ export default function SettlementReport() {
                           sx={{
                             border: "1px solid #ddd",
                             fontWeight: "bold",
-                            fontSize: "0.75rem",
+                            fontSize: "14px",
                             p: 0.5,
                           }}
                         >
@@ -939,7 +1001,7 @@ export default function SettlementReport() {
                           sx={{
                             border: "1px solid #ddd",
                             fontWeight: "bold",
-                            fontSize: "0.75rem",
+                            fontSize: "14px",
                             p: 0.5,
                           }}
                         ></TableCell>
@@ -949,7 +1011,7 @@ export default function SettlementReport() {
                             border: "1px solid #ddd",
                             fontWeight: "bold",
                             color: "black",
-                            fontSize: "0.75rem",
+                            fontSize: "14px",
                             p: 0.5,
                           }}
                         >
@@ -961,7 +1023,7 @@ export default function SettlementReport() {
                             border: "1px solid #ddd",
                             fontWeight: "bold",
                             color: "black",
-                            fontSize: "0.75rem",
+                            fontSize: "14px",
                             p: 0.5,
                           }}
                         >
@@ -971,7 +1033,7 @@ export default function SettlementReport() {
                           sx={{
                             border: "1px solid #ddd",
                             fontWeight: "bold",
-                            fontSize: "0.75rem",
+                            fontSize: "14px",
                             p: 0.5,
                           }}
                         >
@@ -981,20 +1043,8 @@ export default function SettlementReport() {
                           align="center"
                           sx={{
                             border: "1px solid #ddd",
-                            fontWeight: "bold",
-                            fontSize: "0.75rem",
-                            p: 0.5,
-                          }}
-                        >
-                          {material.uom}
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            border: "1px solid #ddd",
-                            fontWeight: "bold",
-                            color: "black",
-                            fontSize: "0.75rem",
+                            fontWeight: "normal",
+                            fontSize: "14px",
                             p: 0.5,
                           }}
                         >
@@ -1008,38 +1058,38 @@ export default function SettlementReport() {
                             align="center"
                             sx={{
                               border: "1px solid #ddd",
-                              fontWeight: "bold",
-                              fontSize: "0.75rem",
+                              fontWeight: "normal",
+                              fontSize: "14px",
                               p: 0.5,
                               bgcolor:
                                 index >= 0 && index <= 6
                                   ? "#F3D01640"
                                   : index >= 7 && index <= 10
-                                    ? "#4CAF503D"
-                                    : index >= 11 && index <= 12
-                                      ? "#FF620040"
-                                      : "white",
+                                  ? "#4CAF503D"
+                                  : index >= 11 && index <= 12
+                                  ? "#FF620040"
+                                  : "white",
                             }}
                           >
                             {index === 0
                               ? data?.assignments.find(
-                                (i: any) =>
-                                  i._id.toString() ===
-                                  material._id?.toString()
-                              )?.assignmentNorm
+                                  (i: any) =>
+                                    i._id.toString() ===
+                                    material._id?.toString()
+                                )?.assignmentNorm
                               : index === 1
-                                ? data?.assignments.find(
+                              ? data?.assignments.find(
                                   (i: any) =>
                                     i._id.toString() ===
                                     material._id?.toString()
                                 )?.adjustmentNorm
-                                : index === 2
-                                  ? data?.assignments.find(
-                                    (i: any) =>
-                                      i._id.toString() ===
-                                      material._id?.toString()
-                                  )?.totalNorm
-                                  : ""}
+                              : index === 2
+                              ? data?.assignments.find(
+                                  (i: any) =>
+                                    i._id.toString() ===
+                                    material._id?.toString()
+                                )?.totalNorm
+                              : ""}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -1050,7 +1100,7 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: "0.75rem",
+                              fontSize: "14px",
                               p: 0.5,
                             }}
                           >
@@ -1061,7 +1111,7 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: "0.75rem",
+                              fontSize: "14px",
                               p: 0.5,
                             }}
                           >
@@ -1072,7 +1122,7 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: "0.75rem",
+                              fontSize: "14px",
                               p: 0.5,
                             }}
                           ></TableCell>
@@ -1081,7 +1131,7 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: "0.75rem",
+                              fontSize: "14px",
                               p: 0.5,
                             }}
                           ></TableCell>
@@ -1089,7 +1139,7 @@ export default function SettlementReport() {
                             sx={{
                               border: "1px solid #ddd",
                               fontWeight: "bold",
-                              fontSize: "0.75rem",
+                              fontSize: "14px",
                               p: 0.5,
                             }}
                           >
@@ -1099,8 +1149,8 @@ export default function SettlementReport() {
                             align="center"
                             sx={{
                               border: "1px solid #ddd",
-                              fontWeight: "bold",
-                              fontSize: "0.75rem",
+                              fontWeight: "normal",
+                              fontSize: "14px",
                               p: 0.5,
                             }}
                           >
@@ -1110,8 +1160,8 @@ export default function SettlementReport() {
                             align="center"
                             sx={{
                               border: "1px solid #ddd",
-                              fontWeight: "bold",
-                              fontSize: "0.75rem",
+                              fontWeight: "normal",
+                              fontSize: "14px",
                               p: 0.5,
                             }}
                           ></TableCell>
@@ -1121,17 +1171,17 @@ export default function SettlementReport() {
                               align="center"
                               sx={{
                                 border: "1px solid #ddd",
-                                fontWeight: "bold",
-                                fontSize: "0.75rem",
+                                fontWeight: "normal",
+                                fontSize: "14px",
                                 p: 0.5,
                                 bgcolor:
                                   index >= 0 && index <= 6
                                     ? "#F3D01640"
                                     : index >= 7 && index <= 10
-                                      ? "#4CAF503D"
-                                      : index >= 11 && index <= 12
-                                        ? "#FF620040"
-                                        : "white",
+                                    ? "#4CAF503D"
+                                    : index >= 11 && index <= 12
+                                    ? "#FF620040"
+                                    : "white",
                               }}
                             ></TableCell>
                           ))}
