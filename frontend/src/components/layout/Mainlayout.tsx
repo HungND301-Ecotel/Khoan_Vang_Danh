@@ -53,7 +53,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [menuSettingsEl, setMenuSettingsEl] = useState<HTMLElement | null>(
     null
   );
-  const [materialSubMenuEl, setMaterialSubMenuEl] = useState<null | HTMLElement>(null);
+  const [materialSubMenuEl, setMaterialSubMenuEl] =
+    useState<null | HTMLElement>(null);
 
   const { data: phases = [] } = useQuery({
     queryKey: ["phases"],
@@ -171,10 +172,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </AppBar>
 
       {/* NƠI HIỂN THỊ NỘI DUNG PAGE */}
-      <Box component="main" sx={{ flexGrow: 1, mt: 12, p: 3, minHeight: "100vh", backgroundColor: '#f1f2f5' }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          mt: 12,
+          p: 3,
+          minHeight: "100vh",
+          backgroundColor: "#f1f2f5",
+        }}
+      >
         {children || <Outlet />}
       </Box>
-      
+
       <Menu
         anchorEl={menuDanhMucEl}
         open={Boolean(menuDanhMucEl)}
@@ -191,7 +201,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          ĐƠN VỊ TÍNH
+          Đơn vị tính
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -199,7 +209,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-         MÃ THIẾT BỊ
+          Mã thiết bị
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -207,7 +217,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          MÃ GIAO KHOÁN
+          Mã giao khoán
         </MenuItem>
 
         {/* Material MenuItem - Click to open submenu */}
@@ -221,23 +231,27 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             }
           }}
           sx={{
-            position: 'relative',
-            '&:after': {
+            position: "relative",
+            "&:after": {
               content: '"▶"',
-              position: 'absolute',
+              position: "absolute",
               right: 8,
-              fontSize: '12px',
-              color: 'rgba(0, 0, 0, 0.54)',
-              transform: materialSubMenuEl ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s ease'
+              fontSize: "12px",
+              color: "rgba(0, 0, 0, 0.54)",
+              transform: materialSubMenuEl ? "rotate(90deg)" : "rotate(0deg)",
+              transition: "transform 0.2s ease",
             },
-            backgroundColor: materialSubMenuEl ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
-            '&:hover': {
-              backgroundColor: materialSubMenuEl ? 'rgba(25, 118, 210, 0.12)' : 'rgba(0, 0, 0, 0.04)',
-            }
+            backgroundColor: materialSubMenuEl
+              ? "rgba(25, 118, 210, 0.08)"
+              : "transparent",
+            "&:hover": {
+              backgroundColor: materialSubMenuEl
+                ? "rgba(25, 118, 210, 0.12)"
+                : "rgba(0, 0, 0, 0.04)",
+            },
           }}
         >
-          VẬT TƯ ,TÀI SẢN
+          Vật tư, tài sản
           <ChevronRight className="w-4 h-4" />
         </MenuItem>
 
@@ -247,7 +261,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          TỶ LỆ ĐÁ LẪN TRONG GƯƠNG 
+          Tỷ lệ đá lẫn trong gương
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -255,7 +269,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          Tỷ LỆ GƯƠNG THAN MỀM
+          Tỷ lệ gương than mềm
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -263,7 +277,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-         HỆ SỐ ĐIỀU CHỈNH ĐỊNH MỨC
+          Hệ số điều chỉnh định mức
         </MenuItem>
 
         {/* Công đoạn sản xuất */}
@@ -273,7 +287,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          CÔNG ĐOẠN SẢN XUẤT
+          Công đoạn sản xuất
         </MenuItem>
 
         <MenuItem
@@ -282,7 +296,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDanhMucEl(null);
           }}
         >
-          THÔNG SỐ
+          Thông số
         </MenuItem>
 
         <MenuItem
@@ -303,11 +317,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         sx={{
-          '& .MuiPaper-root': {
-            marginLeft: '8px',
-            boxShadow: '0px 4px 12px rgba(0,0,0,0.15)',
-            borderRadius: '8px',
-          }
+          "& .MuiPaper-root": {
+            marginLeft: "8px",
+            boxShadow: "0px 4px 12px rgba(0,0,0,0.15)",
+            borderRadius: "8px",
+          },
         }}
       >
         <MenuItem
@@ -318,11 +332,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           }}
           sx={{
             minWidth: 260,
-            fontSize: '14px',
-            padding: '10px 16px',
-            '&:hover': {
-              backgroundColor: 'rgba(25, 118, 210, 0.08)'
-            }
+            fontSize: "14px",
+            padding: "10px 16px",
+            "&:hover": {
+              backgroundColor: "rgba(25, 118, 210, 0.08)",
+            },
           }}
         >
           Vật tư, tài sản trong khoán
@@ -335,11 +349,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           }}
           sx={{
             minWidth: 260,
-            fontSize: '14px',
-            padding: '10px 16px',
-            '&:hover': {
-              backgroundColor: 'rgba(25, 118, 210, 0.08)'
-            }
+            fontSize: "14px",
+            padding: "10px 16px",
+            "&:hover": {
+              backgroundColor: "rgba(25, 118, 210, 0.08)",
+            },
           }}
         >
           Vật tư, tài sản khác
@@ -358,7 +372,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-           ĐƠN GIÁ VẬT TƯ GIAO KHOÁN
+          Đơn giá vật tư giao khoán
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -366,7 +380,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-         ĐỊNH MỨC ĐÀO LÒ
+          Định mức đào lò
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -374,7 +388,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-          ĐỊNH MỨC XÉN LÒ
+          Định mức xén lò
         </MenuItem>
 
         <MenuItem
@@ -383,10 +397,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuDonGiaEl(null);
           }}
         >
-          ĐỊNH MỨC KHẤU THAN
+          Định mức khấu than
         </MenuItem>
       </Menu>
-      
+
       <Menu
         anchorEl={menuThongKeEl}
         open={Boolean(menuThongKeEl)}
@@ -399,7 +413,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuThongKeEl(null);
           }}
         >
-          CHI PHÍ VẬT TƯ THỰC HIỆN
+          Chi phí vật tư thực hiện
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -407,7 +421,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuThongKeEl(null);
           }}
         >
-          Chi phí vật tư kế hoạch (Zkh)
+          Chi phí vật tư kế hoạch
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -415,10 +429,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             setMenuThongKeEl(null);
           }}
         >
-          QUYẾT TOÁN GIAO KHOÁN
+          Quyết toán giao khoán
         </MenuItem>
       </Menu>
-      
+
       <Menu
         anchorEl={menuSettingsEl}
         open={Boolean(menuSettingsEl)}

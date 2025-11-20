@@ -31,7 +31,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 import DeviceCodeService from "../../service/DeviceCodeService";
 import { parseAxiosError } from "../../utils/handleApiError";
 
@@ -45,15 +45,17 @@ export default function DeviceCode() {
   const [searchValue, setSearchValue] = useState("");
 
   const queryClient = useQueryClient();
- const { data: devicecodes = [] } = useQuery({
-  queryKey: ["devicecodes", searchValue],
-  queryFn: () =>
-    api.get(`/devicecodes?q=${searchValue}`).then((res) =>
-      res.data.data.filter((item: DeviceCodeType) =>
-        (item.code ?? "").toLowerCase().includes(searchValue.toLowerCase())
-      )
-    ),
-});
+  const { data: devicecodes = [] } = useQuery({
+    queryKey: ["devicecodes", searchValue],
+    queryFn: () =>
+      api
+        .get(`/devicecodes?q=${searchValue}`)
+        .then((res) =>
+          res.data.data.filter((item: DeviceCodeType) =>
+            (item.code ?? "").toLowerCase().includes(searchValue.toLowerCase())
+          )
+        ),
+  });
 
   const createMutation = useMutation({
     mutationFn: (newDeviceCode: Partial<DeviceCodeType>) =>
@@ -71,11 +73,11 @@ export default function DeviceCode() {
 
   const exportExcel = useMutation({
     mutationFn: DeviceCodeService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
-      const message = await parseAxiosError(error)
+      const message = await parseAxiosError(error);
       showErrorAlert(message);
-    }
+    },
   });
 
   const updateMutation = useMutation({
@@ -189,29 +191,35 @@ export default function DeviceCode() {
   };
 
   const handleExport = () => {
-    showConfirmAlert("Bạn có muốn xuất dữ liệu ra file Excel?").then((result) => {
-      if (result.isConfirmed) {
-        api
-          .post("/devicecodes/exportFile", { data: devicecodes }, { responseType: "blob" })
-          .then((response) => {
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute("download", "danh_sach_ma_thiet_bi.xlsx");
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-            
-            showSuccessAlert("Xuất file thành công!");
-          })
-          .catch((error) => {
-            showErrorAlert(
-              error.response?.data?.message || "Xuất file thất bại"
-            );
-          });
+    showConfirmAlert("Bạn có muốn xuất dữ liệu ra file Excel?").then(
+      (result) => {
+        if (result.isConfirmed) {
+          api
+            .post(
+              "/devicecodes/exportFile",
+              { data: devicecodes },
+              { responseType: "blob" }
+            )
+            .then((response) => {
+              const url = window.URL.createObjectURL(new Blob([response.data]));
+              const link = document.createElement("a");
+              link.href = url;
+              link.setAttribute("download", "danh_sach_ma_thiet_bi.xlsx");
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              window.URL.revokeObjectURL(url);
+
+              showSuccessAlert("Xuất file thành công!");
+            })
+            .catch((error) => {
+              showErrorAlert(
+                error.response?.data?.message || "Xuất file thất bại"
+              );
+            });
+        }
       }
-    });
+    );
   };
 
   const handlePrint = () => {
@@ -239,25 +247,29 @@ export default function DeviceCode() {
                   </tr>
                 </thead>
                 <tbody>
-                  ${devicecodes.map((devicecode: DeviceCodeType, index: number) => `
+                  ${devicecodes
+                    .map(
+                      (devicecode: DeviceCodeType, index: number) => `
                     <tr>
                       <td>${index + 1}</td>
                       <td>${devicecode.code || ""}</td>
                     </tr>
-                  `).join("")}
+                  `
+                    )
+                    .join("")}
                 </tbody>
               </table>
             </body>
           </html>
         `;
-        
+
         const printWindow = window.open("", "_blank");
         if (printWindow) {
           printWindow.document.write(printContent);
           printWindow.document.close();
           printWindow.focus();
           printWindow.print();
-          // printWindow.close(); 
+          // printWindow.close();
         }
       }
     });
@@ -268,13 +280,16 @@ export default function DeviceCode() {
       showErrorAlert("Vui lòng chọn ít nhất một mã thiết bị để gửi");
       return;
     }
-    
-    showConfirmAlert("Bạn có muốn gửi danh sách mã thiết bị đã chọn qua email?").then((result) => {
+
+    showConfirmAlert(
+      "Bạn có muốn gửi danh sách mã thiết bị đã chọn qua email?"
+    ).then((result) => {
       if (result.isConfirmed) {
-        const selectedDeviceCodeData = devicecodes.filter((devicecode: DeviceCodeType) => 
-          selectedDeviceCodes.includes(devicecode._id as React.Key)
+        const selectedDeviceCodeData = devicecodes.filter(
+          (devicecode: DeviceCodeType) =>
+            selectedDeviceCodes.includes(devicecode._id as React.Key)
         );
-        
+
         api
           .post("/devicecodes/sendEmail", { data: selectedDeviceCodeData })
           .then((response) => {
@@ -329,10 +344,12 @@ export default function DeviceCode() {
   };
 
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box
+      sx={{
+        px: 5, // horizontal = 32px
+        py: 1, // vertical = 8px
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Mã thiết bị</Typography>
@@ -340,7 +357,10 @@ export default function DeviceCode() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Mã thiết bị
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -350,8 +370,12 @@ export default function DeviceCode() {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -368,8 +392,12 @@ export default function DeviceCode() {
                   onClick={() => handleDelete()}
                   disabled={selectedDeviceCodes.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -391,10 +419,13 @@ export default function DeviceCode() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -411,7 +442,10 @@ export default function DeviceCode() {
                   size="small"
                   placeholder="Tìm kiếm"
                   onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -429,10 +463,13 @@ export default function DeviceCode() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -453,10 +490,13 @@ export default function DeviceCode() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -465,7 +505,6 @@ export default function DeviceCode() {
                     borderRadius: "8px",
                     px: 3,
                   }}
-                  onClick={handleExport}
                 >
                   Xuất file
                 </Button>
@@ -476,10 +515,13 @@ export default function DeviceCode() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -500,10 +542,13 @@ export default function DeviceCode() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
