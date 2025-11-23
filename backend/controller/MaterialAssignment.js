@@ -3,6 +3,7 @@ const AssignmentCode = require('../model/AssignmentCode')
 const dayjs = require('dayjs');
 const quarterOfYear = require('dayjs/plugin/quarterOfYear');
 dayjs.extend(quarterOfYear);
+const { paginateQuery } = require('../utils/pagination')
 
 const recalculateAssignmentCodePrice = require('./recalculateAssignmentCodePrice')
 
@@ -44,17 +45,25 @@ exports.delete = async (req, res) => {
     }
 }
 
-exports.get = async (req, res) => {
+exports.getGroup = async (req, res) => {
     try {
-        const assignments = await AssignmentCode.find()
+        let query = {}
+        if (req.query.q) {
+            query.$or = [
+                { code: new RegExp(req.query.q, 'i') },
+                { name: new RegExp(req.query.q, 'i') }
+            ]
+        }
+        const modelQuery = AssignmentCode.find(query)
             .populate('deviceCode')
             .populate({
                 path: 'uom'
             });
+        const pagination = await paginateQuery(AssignmentCode, modelQuery, query, req.query)
 
         const result = [];
 
-        for (const assignment of assignments) {
+        for (const assignment of pagination.data) {
             await recalculateAssignmentCodePrice(assignment._id);
 
             const materials = await MaterialAssignment.find({ assignmentCode: assignment._id }).populate('assignmentCode').populate('uom');
@@ -88,30 +97,41 @@ exports.get = async (req, res) => {
                 materials: materialsWithPrice
             });
         }
+        pagination.data = result
 
-        res.status(200).json({ status: 'success', data: result });
+        res.status(200).json({ status: 'success', data: pagination });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
     }
 };
 
 
-exports.getAll = async (req, res) => {
+exports.get = async (req, res) => {
     try {
-
-        const materials = await MaterialAssignment.find().populate('assignmentCode').populate('uom');
+        let query = {}
+        if (req.query.q) {
+            query.$or = [
+                { code: new RegExp(req.query.q, 'i') },
+                { name: new RegExp(req.query.q, 'i') }
+            ]
+        }
+        if (req.query.type === "in") {
+            query.assignmentCode = { $ne: null, $exists: true };
+        } else if (req.query.type === "out") {
+            query.assignmentCode = { $exists: false };
+        }
+        let queryModel = MaterialAssignment.find(query).populate('assignmentCode').populate('uom');
+        const pagination = await paginateQuery(MaterialAssignment, queryModel, query, req.query)
         const assignmentIds = [
             ...new Set(
-                materials
+                pagination.data
                     .map(m => m.assignmentCode?._id?.toString())
                     .filter(Boolean)
             ),
         ];
-
         await Promise.all(assignmentIds.map(id => recalculateAssignmentCodePrice(id)));
         const todayStr = new Date().toISOString().split('T')[0];
-
-        const materialsWithPrice = materials.map(item => {
+        pagination.data = pagination.data.map(item => {
             let currentPrice = null;
 
             if (Array.isArray(item.priceHistory)) {
@@ -128,8 +148,9 @@ exports.getAll = async (req, res) => {
             };
         });
 
-        res.status(200).json({ status: 'success', data: materialsWithPrice });
+        res.status(200).json({ status: 'success', data: pagination });
     } catch (err) {
+        console.log(err.stack)
         res.status(500).json({ status: 'error', message: err.message });
     }
 };

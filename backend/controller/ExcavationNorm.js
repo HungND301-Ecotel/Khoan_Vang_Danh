@@ -1,4 +1,5 @@
 const ExcavationNorm = require('../model/ExcavationNorm')
+const {paginateQuery}=require('../utils/pagination')
 
 exports.create = async (req, res) => {
     try {
@@ -37,7 +38,11 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await ExcavationNorm.find()
+        let query = {}
+        if (req.query.q) {
+            query.code = new RegExp(req.query.q, 'i')
+        }
+        const modelQuery = await ExcavationNorm.find(query)
             .populate('phase')
             .populate('phaseGroup')
             .populate('excavationTech')
@@ -47,8 +52,10 @@ exports.get = async (req, res) => {
                 path: 'norms.assignmentCode',
                 populate: 'uom'
             })
+        const pagination = await paginateQuery(ExcavationNorm, modelQuery, query, req.query)
 
-        res.status(200).json({ status: 'success', data: data })
+
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

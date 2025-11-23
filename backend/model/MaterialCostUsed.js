@@ -38,7 +38,8 @@ const MaterialCostUsed = new mongoose.Schema({
             },
             quantity: {
                 type: Number
-            }
+            },
+            cost: Number
         }
     ]
 }, {

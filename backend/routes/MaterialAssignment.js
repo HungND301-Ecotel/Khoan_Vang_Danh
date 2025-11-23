@@ -5,7 +5,7 @@ router.post('/', materialAssignmentController.create)
 router.put('/:id', materialAssignmentController.update)
 router.delete('/:id', materialAssignmentController.delete)
 router.get('/', materialAssignmentController.get)
-router.get('/getAll', materialAssignmentController.getAll)
+router.get('/group', materialAssignmentController.getGroup)
 router.get('/getFilter', materialAssignmentController.getFilter)
 
 

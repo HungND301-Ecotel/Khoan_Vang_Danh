@@ -1,6 +1,7 @@
 const PhaseGroup = require('../model/PhaseGroup')
 const { configExport } = require('../utils/config_export')
 const ExcelJS = require('exceljs')
+const { paginateQuery } = require('../utils/pagination')
 
 exports.create = async (req, res) => {
     try {
@@ -39,10 +40,19 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await PhaseGroup.find()
+        let query = {}
+        if (req.query.q) {
+            query.$or = [
+                { code: new RegExp(req.query.q, 'i') },
+                { name: new RegExp(req.query.q, 'i') }
+            ]
+        }
+        const modelQuery = PhaseGroup.find(query)
+        const pagination = await paginateQuery(PhaseGroup, modelQuery, query, req.query)
 
-        res.status(200).json({ status: 'success', data: data })
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
+        console.log(err.stack)
         res.status(500).json({ status: 'error', message: err.message })
     }
 }

@@ -8,6 +8,7 @@ import {
   Typography,
   IconButton,
   InputAdornment,
+  Grid,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -34,6 +35,7 @@ import {
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from '../../theme';
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function CoalCuttingNormZH() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -43,13 +45,15 @@ export default function CoalCuttingNormZH() {
   const [open, setOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
   const queryClient = useQueryClient();
 
-  const { data: assignmentnorms = [] } = useQuery({
-    queryKey: ["assignmentnorms"],
+  const { data: assignmentnorms = { totalDocs: 0, data: [] }, isLoading } = useQuery({
+    queryKey: ["assignmentnorms", searchValue, page, limit],
     queryFn: async () =>
-      api.get("/assignmentnorms").then((res) => res.data.data),
+      api.get(`/assignmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=coal_zh`).then((res) => res.data.data),
   });
 
   const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
@@ -137,7 +141,7 @@ export default function CoalCuttingNormZH() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (_v, _r, idx) => <Typography>{idx + 1}</Typography>,
+      render: (_v, _r, idx) => <Typography>{(page - 1) * limit + idx + 1}</Typography>,
     },
     {
       title: (
@@ -197,7 +201,8 @@ export default function CoalCuttingNormZH() {
   const expandedRowRender = (record: AssignmentNormOutputType) => {
     const norms = record.norms || [];
     const thicknessLabel = record.thickness?.name || "";
-    const slopeLabel = record.curbSlope?.name || "";
+    const lengthLabel = record.length?.name || "";
+    const hardnessLabel = record.hardness?.name || "";
 
     const innerColumns = [
       {
@@ -250,15 +255,18 @@ export default function CoalCuttingNormZH() {
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         {/* Header */}
         <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-            Độ dốc vỉa {slopeLabel}
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Chiều dày vỉa (m)
-            <Box component="span" sx={{ ml: 30 }}>
-              {thicknessLabel}
-            </Box>
-          </Typography>
+          <Grid container>
+            <Grid item xs={3}>Độ dày vỉa (m)</Grid>
+            <Grid item xs={9}>{thicknessLabel}</Grid>
+          </Grid>
+          <Grid container>
+            <Grid item xs={3}>Chiều dài</Grid>
+            <Grid item xs={9}>{lengthLabel}</Grid>
+          </Grid>
+          <Grid container>
+            <Grid item xs={3}>Độ cứng</Grid>
+            <Grid item xs={9}>{hardnessLabel}</Grid>
+          </Grid>
         </Box>
 
         {/* Bảng con */}
@@ -274,6 +282,10 @@ export default function CoalCuttingNormZH() {
       </Box>
     );
   };
+
+  const handleClearSearch = () => {
+    setSearchValue('')
+  }
 
   return (
     <Box>
@@ -333,8 +345,9 @@ export default function CoalCuttingNormZH() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -347,19 +360,20 @@ export default function CoalCuttingNormZH() {
                 Lọc
               </Button>
               <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm kiếm"
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+                fullWidth
+                size="small"
+                placeholder="Tìm kiếm"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Search sx={{ fontSize: 24 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
 
             <Box display={"flex"} gap={2}>
@@ -371,8 +385,9 @@ export default function CoalCuttingNormZH() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -392,8 +407,9 @@ export default function CoalCuttingNormZH() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -413,8 +429,9 @@ export default function CoalCuttingNormZH() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -435,8 +452,9 @@ export default function CoalCuttingNormZH() {
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
                   backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                               boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                  "&:hover": {
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -452,22 +470,20 @@ export default function CoalCuttingNormZH() {
           </Box>
         </Box>
 
-        <Table<AssignmentNormOutputType>
-          rowKey="_id"
-          rowSelection={rowSelection}
-          pagination={{
-            position: ["bottomCenter"],
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            defaultPageSize: 10,
-            showTotal: (total: number, range: [number, number]) => (
-              <div style={{ flex: 1, textAlign: "left" }}>
-                Hiển thị {range[0]}-{range[1]} trên {total} mục
-              </div>
-            ),
-          }}
+        <CustomTable<AssignmentNormOutputType>
+          data={assignmentnorms.data}
+          total={assignmentnorms.totalDocs}
+          page={page}
+          limit={limit}
           columns={columns}
-          dataSource={assignmentnorms.filter((i: any) => i.type === "coal_zh")}
+          rowSelection={rowSelection}
+          onPageChange={(p, ps) => {
+            setPage(p);
+            setLimit(ps);
+          }}
+          isLoading={isLoading}
+          searchValue={searchValue}
+          handleClearSearch={handleClearSearch}
           expandable={{
             expandedRowKeys: expandedRow ? [expandedRow] : [],
             onExpand: (expanded, record) => {

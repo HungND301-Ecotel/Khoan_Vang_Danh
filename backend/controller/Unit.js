@@ -2,6 +2,7 @@ const Unit = require('../model/Unit')
 const { configExport } = require('../utils/config_export')
 const ExcelJS = require('exceljs')
 const xlsx = require('xlsx')
+const { paginateQuery } = require('../utils/pagination')
 
 exports.create = async (req, res) => {
     try {
@@ -53,10 +54,13 @@ exports.get = async (req, res) => {
         if (req.query.q) {
             query.name = new RegExp(req.query.q, 'i')
         }
-        const data = await Unit.find(query)
+        let modelQuery = Unit.find(query)
 
-        res.status(200).json({ status: 'success', data: data })
+        const pagination = await paginateQuery(Unit, modelQuery, query, req.query)
+
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
+        console.log(err.message)
         res.status(500).json({ status: 'error', message: err.message })
     }
 }

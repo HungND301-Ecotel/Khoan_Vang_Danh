@@ -39,6 +39,7 @@ import {
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table, Empty } from "antd";
 import custom_theme from '../../theme';
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -47,31 +48,25 @@ export default function MaterialAssignment() {
   const [selectedMaterialAssignments, setSelectedMaterialAssignments] =
     useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
   const queryClient = useQueryClient();
-  
+
   // Comment out or modify the API call to return empty array
-  const { data: materialAssignments = [] } = useQuery({
-    queryKey: ["materialAssignments"],
+  const { data: materialAssignments = {
+    totalDocs: 0,
+    results: 0,
+    data: []
+  }, isLoading } = useQuery({
+    queryKey: ["materialAssignments", searchValue, page, limit],
     queryFn: () => {
-      // Return empty array to simulate no data
-      return Promise.resolve([]);
-      
+
       // Original API call (commented out)
-      // return api.get("/materialassignments/getAll").then((res) => res.data.data);
+      return api.get(`/materialassignments?q=${searchValue}&page=${page}&limit=${limit}&type=out`).then((res) => res.data.data);
     },
   });
 
-  // This will always be empty since materialAssignments is always []
-  const filteredData = materialAssignments.filter(
-    (item: Materials) =>
-      item.assignmentCode?.code
-        ?.toLowerCase()
-        .includes(searchValue.toLowerCase()) ||
-      item.code?.toLowerCase().includes(searchValue.toLowerCase()) ||
-      item.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
-      item.uom?.name?.toLowerCase().includes(searchValue.toLowerCase())
-  );
 
   const createMutation = useMutation({
     mutationFn: (newMaterialAssignment: Partial<MaterialAssignmentInputType>) =>
@@ -188,7 +183,7 @@ export default function MaterialAssignment() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
@@ -257,6 +252,10 @@ export default function MaterialAssignment() {
     onChange: (newSelectedMaterialAssignments: React.Key[]) => {
       setSelectedMaterialAssignments(newSelectedMaterialAssignments);
     },
+  };
+
+  const handleClearSearch = () => {
+    setSearchValue("");
   };
 
   return (
@@ -342,6 +341,7 @@ export default function MaterialAssignment() {
                   fullWidth
                   size="small"
                   placeholder="Tìm kiếm"
+                  value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
@@ -446,34 +446,20 @@ export default function MaterialAssignment() {
               </Box>
             </Box>
           </Box>
-          <Table<Materials>
-            rowKey="_id"
-            rowSelection={rowSelection}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
-                </div>
-              ),
-            }}
+          <CustomTable<Materials>
+            data={materialAssignments.data}
+            total={materialAssignments.totalDocs}
+            page={page}
+            limit={limit}
             columns={columns}
-            dataSource={filteredData}
-            locale={{
-              emptyText: (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={
-                    <Typography variant="body2" color="textSecondary">
-                      Không có dữ liệu
-                    </Typography>
-                  }
-                />
-              ),
+            rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
             }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
           />
         </Box>
       </Box>

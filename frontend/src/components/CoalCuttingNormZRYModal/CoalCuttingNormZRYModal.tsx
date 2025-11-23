@@ -50,20 +50,20 @@ export default function CuttingNormZRYModal({
     AssignmentCodeOutputType[]
   >([]);
 
-  const { data: assignmentcodes = [] } = useQuery({
+  const { data: assignmentcodes = { data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
     queryFn: async () =>
       api.get(`/assignmentcodes`).then((res) => res.data.data),
   });
-  const { data: hardness = [] } = useQuery({
+  const { data: hardness = { data: [] } } = useQuery({
     queryKey: ["hardness"],
     queryFn: async () => api.get(`/hardness`).then((res) => res.data.data),
   });
-  const { data: thickness = [] } = useQuery({
+  const { data: thickness = { data: [] } } = useQuery({
     queryKey: ["thickness"],
     queryFn: async () => api.get(`/thickness`).then((res) => res.data.data),
   });
-  const { data: length = [] } = useQuery({
+  const { data: length = { data: [] } } = useQuery({
     queryKey: ["length"],
     queryFn: async () => api.get(`/length`).then((res) => res.data.data),
   });
@@ -80,7 +80,7 @@ export default function CuttingNormZRYModal({
           assignmentCode: item.assignmentCode?._id,
           norm: item.norm,
         })) ||
-        assignmentcodes.map((item: any) => ({
+        assignmentcodes.data.map((item: any) => ({
           assignmentCode: item._id,
           norm: undefined,
         })),
@@ -100,15 +100,15 @@ export default function CuttingNormZRYModal({
     },
   });
   useEffect(() => {
-    if (assignmentcodes.length === 0) return;
+    // if (assignmentcodes.length === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      const selectedCodes = assignmentcodes.filter((ac: any) =>
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
     } else {
-      setSelectedAssignmentCodes(assignmentcodes);
+      setSelectedAssignmentCodes(assignmentcodes.data);
     }
   }, [selected, assignmentcodes]);
   const handleClose = () => {
@@ -217,7 +217,7 @@ export default function CuttingNormZRYModal({
                 },
               }}
             >
-              {thickness?.map((item: ThicknessType) => (
+              {thickness?.data.map((item: ThicknessType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
                 </MenuItem>
@@ -264,7 +264,7 @@ export default function CuttingNormZRYModal({
                 },
               }}
             >
-              {length?.map((item: LengthType) => (
+              {length?.data.map((item: LengthType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
                 </MenuItem>
@@ -311,7 +311,7 @@ export default function CuttingNormZRYModal({
                 },
               }}
             >
-              {hardness?.map((item: HardnessType) => (
+              {hardness?.data.map((item: HardnessType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
                 </MenuItem>
@@ -366,7 +366,7 @@ export default function CuttingNormZRYModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Autocomplete
               multiple
-              options={assignmentcodes.filter(
+              options={assignmentcodes.data.filter(
                 (opt: AssignmentCodeOutputType) =>
                   !selectedAssignmentCodes.some(
                     (selected) => selected._id === opt._id
@@ -454,7 +454,7 @@ export default function CuttingNormZRYModal({
                         <TextField
                           fullWidth
                           value={
-                            assignmentcodes.find(
+                            assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode
@@ -485,7 +485,7 @@ export default function CuttingNormZRYModal({
                         <TextField
                           fullWidth
                           value={
-                            assignmentcodes.find(
+                            assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode

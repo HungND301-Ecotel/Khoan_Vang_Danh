@@ -38,6 +38,7 @@ import { TableProps, Table } from "antd";
 import custom_theme from '../../theme';
 import LoadingSkeleton from "../../ui/LoadingSkeleton";
 import EmptyState from "../../ui/EmptyState";
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -46,51 +47,26 @@ export default function MaterialAssignment() {
   const [selectedMaterialAssignments, setSelectedMaterialAssignments] =
     useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [isFiltering, setIsFiltering] = useState(false);
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
   const queryClient = useQueryClient();
-  const { data: materialAssignments = [], isLoading, isFetching } = useQuery({
-    queryKey: ["materialAssignments"],
+  const { data: materialAssignments = {
+    totalDocs: 0,
+    results: 0,
+    data: []
+  }, isLoading, isFetching } = useQuery({
+    queryKey: ["materialAssignments", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get("/materialAssignments");
-        return response.data.data || [];
+        const response = await api.get(`/materialAssignments?q=${searchValue}&page=${page}&limit=${limit}&type=in`);
+        return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
         return [];
       }
     },
   });
-
-  // Add filtering delay simulation for better UX
-  useEffect(() => {
-    if (searchValue) {
-      setIsFiltering(true);
-      const timer = setTimeout(() => {
-        setIsFiltering(false);
-      }, 300);
-
-      return () => clearTimeout(timer);
-    } else {
-      setIsFiltering(false);
-    }
-  }, [searchValue]);
-
-  // Enhanced filtering with useMemo for performance
-  const filteredMaterialAssignment = useMemo(() => {
-    const allMaterials = materialAssignments.flatMap((assignment: MaterialAssignmentOutputType) => assignment.materials || [])
-    if (!searchValue.trim()) {
-      return allMaterials;
-    }
-
-    const searchTerm = searchValue.toLowerCase().trim();
-    return allMaterials.filter((item: Materials) => {
-      const name = item.name?.toLowerCase() || "";
-      const code = item.code?.toLowerCase() || "";
-
-      return name.includes(searchTerm) || code.includes(searchTerm);
-    });
-  }, [materialAssignments, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newMaterialAssignment: Partial<MaterialAssignmentInputType>) =>
@@ -209,7 +185,7 @@ export default function MaterialAssignment() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
@@ -302,15 +278,15 @@ export default function MaterialAssignment() {
     setSearchValue("");
   };
   // Show loading skeleton on initial load
-  if (isLoading) {
-    return (
-      <Box>
-        <Box mt={3}>
-          <LoadingSkeleton />
-        </Box>
-      </Box>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <Box>
+  //       <Box mt={3}>
+  //         <LoadingSkeleton />
+  //       </Box>
+  //     </Box>
+  //   );
+  // }
 
   return (
     <Box sx={{
@@ -410,7 +386,7 @@ export default function MaterialAssignment() {
                             ×
                           </IconButton>
                         )}
-                        {isFiltering ? (
+                        {isLoading && searchValue !== '' ? (
                           <CircularProgress size={20} sx={{ mr: 1 }} />
                         ) : (
                           <Search sx={{ fontSize: 24 }} />
@@ -517,15 +493,15 @@ export default function MaterialAssignment() {
           {searchValue && (
             <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
               <Typography variant="body2" color="primary">
-                {isFiltering ? (
+                {isLoading && searchValue !== '' ? (
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
                 ) : (
                   <>
-                    Tìm thấy {filteredMaterialAssignment.length} kết quả cho "{searchValue}"
-                    {filteredMaterialAssignment.length > 0 && (
+                    Tìm thấy {materialAssignments.totalDocs} kết quả cho "{searchValue}"
+                    {materialAssignments.totalDocs > 0 && (
                       <Button
                         size="small"
                         onClick={handleClearSearch}
@@ -539,32 +515,20 @@ export default function MaterialAssignment() {
               </Typography>
             </Box>
           )}
-          <Table<Materials>
-            rowKey="_id"
-            rowSelection={rowSelection}
-            loading={isFiltering || isFetching}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  {isFiltering ? (
-                    <Typography variant="body2" color="primary">
-                      Đang lọc...
-                    </Typography>
-                  ) : (
-                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
-                  )}
-                </div>
-              ),
-            }}
+          <CustomTable<Materials>
+            data={materialAssignments.data}
+            total={materialAssignments.totalDocs}
+            page={page}
+            limit={limit}
             columns={columns}
-            dataSource={filteredMaterialAssignment}
-            locale={{
-              emptyText: <EmptyState searchValue={searchValue} handleClearSearch={handleClearSearch} />
+            rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
             }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
           />
         </Box>
       </Box>

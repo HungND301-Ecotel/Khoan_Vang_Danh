@@ -47,6 +47,7 @@ import AssignmentCodeService from "../../service/AssignmentCodeService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import LoadingSkeleton from "../../ui/LoadingSkeleton";
 import EmptyState from "../../ui/EmptyState";
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function AssignmentCode() {
   const [open, setOpen] = useState(false);
@@ -56,16 +57,21 @@ export default function AssignmentCode() {
     React.Key[]
   >([]);
   const [searchValue, setSearchValue] = useState("");
-  const [isFiltering, setIsFiltering] = useState(false);
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
   const queryClient = useQueryClient();
 
-  const { data: assignmentcodes = [], isLoading, isFetching } = useQuery({
-    queryKey: ["assignmentcodes"],
+  const { data: assignmentcodes = {
+    totalDocs: 0,
+    results: 0,
+    data: []
+  }, isLoading, isFetching } = useQuery({
+    queryKey: ["assignmentcodes", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get("/assignmentcodes");
-        return response.data.data || [];
+        const response = await api.get(`/assignmentcodes?q=${searchValue}&page=${page}&limit=${limit}`);
+        return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
         return [];
@@ -73,34 +79,6 @@ export default function AssignmentCode() {
     },
   });
 
-  // Add filtering delay simulation for better UX
-  useEffect(() => {
-    if (searchValue) {
-      setIsFiltering(true);
-      const timer = setTimeout(() => {
-        setIsFiltering(false);
-      }, 300);
-
-      return () => clearTimeout(timer);
-    } else {
-      setIsFiltering(false);
-    }
-  }, [searchValue]);
-
-  // Enhanced filtering with useMemo for performance
-  const filteredAssignmentCodes = useMemo(() => {
-    if (!searchValue.trim()) {
-      return assignmentcodes;
-    }
-
-    const searchTerm = searchValue.toLowerCase().trim();
-    return assignmentcodes.filter((item: AssignmentCodeInputType) => {
-      const name = item.name?.toLowerCase() || "";
-      const code = item.code?.toLowerCase() || "";
-
-      return name.includes(searchTerm) || code.includes(searchTerm);
-    });
-  }, [assignmentcodes, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newAssignmentCode: Partial<AssignmentCodeInputType>) =>
@@ -199,7 +177,7 @@ export default function AssignmentCode() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã thiết bị</Typography>,
@@ -277,16 +255,16 @@ export default function AssignmentCode() {
     },
   };
 
-  // Show loading skeleton on initial load
-  if (isLoading) {
-    return (
-      <Box>
-        <Box mt={3}>
-          <LoadingSkeleton />
-        </Box>
-      </Box>
-    );
-  }
+  // // Show loading skeleton on initial load
+  // if (isLoading) {
+  //   return (
+  //     <Box>
+  //       <Box mt={3}>
+  //         <LoadingSkeleton />
+  //       </Box>
+  //     </Box>
+  //   );
+  // }
 
   return (
     <Box sx={{
@@ -386,7 +364,7 @@ export default function AssignmentCode() {
                             ×
                           </IconButton>
                         )}
-                        {isFiltering ? (
+                        {isLoading && searchValue !== '' ? (
                           <CircularProgress size={20} sx={{ mr: 1 }} />
                         ) : (
                           <Search sx={{ fontSize: 24 }} />
@@ -494,15 +472,15 @@ export default function AssignmentCode() {
           {searchValue && (
             <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
               <Typography variant="body2" color="primary">
-                {isFiltering ? (
+                {isLoading && searchValue !== '' ? (
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
                 ) : (
                   <>
-                    Tìm thấy {filteredAssignmentCodes.length} kết quả cho "{searchValue}"
-                    {filteredAssignmentCodes.length > 0 && (
+                    Tìm thấy {assignmentcodes.totalDocs} kết quả cho "{searchValue}"
+                    {assignmentcodes.totalDocs > 0 && (
                       <Button
                         size="small"
                         onClick={handleClearSearch}
@@ -516,32 +494,20 @@ export default function AssignmentCode() {
               </Typography>
             </Box>
           )}
-          <Table<AssignmentCodeOutputType>
-            rowKey="_id"
-            rowSelection={rowSelection}
-            loading={isFiltering || isFetching}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  {isFiltering ? (
-                    <Typography variant="body2" color="primary">
-                      Đang lọc...
-                    </Typography>
-                  ) : (
-                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
-                  )}
-                </div>
-              ),
-            }}
+          <CustomTable<AssignmentCodeOutputType>
+            data={assignmentcodes.data}
+            total={assignmentcodes.totalDocs}
+            page={page}
+            limit={limit}
             columns={columns}
-            dataSource={filteredAssignmentCodes}
-            locale={{
-              emptyText: <EmptyState searchValue={searchValue} handleClearSearch={handleClearSearch} />
+            rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
             }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
           />
         </Box>
       </Box>

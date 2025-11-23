@@ -39,7 +39,7 @@ import CoalCuttingNormZRY from "../CoalCuttingNormZRY/CoalCuttingNormZRY";
 import custom_theme from '../../theme';
 
 export default function CoalCuttingNorm() {
-  const { data: phases = [] } = useQuery({
+  const { data: phases = { data: [] } } = useQuery({
     queryKey: ["phases"],
     queryFn: () => api.get("/phases").then((res) => res.data.data),
   });
@@ -49,7 +49,7 @@ export default function CoalCuttingNorm() {
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
-  const coalPhases = phases.filter(
+  const coalPhases = phases.data.filter(
     (i: PhaseOutputType) => i.phaseGroup?.name?.toLowerCase() === "khấu than"
   );
 
@@ -89,7 +89,7 @@ export default function CoalCuttingNorm() {
               "& .MuiTabs-flexContainer": { gap: 1.5 },
             }}
           >
-            {phases
+            {phases.data
               .filter(
                 (i: PhaseOutputType) =>
                   i.phaseGroup?.name?.toLowerCase() === "khấu than"

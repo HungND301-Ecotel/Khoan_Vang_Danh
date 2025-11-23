@@ -1,5 +1,5 @@
 const ProductionScope = require('../model/ProductionScope')
-
+const { paginateQuery } = require('../utils/pagination')
 
 exports.create = async (req, res) => {
     try {
@@ -38,11 +38,20 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await ProductionScope.find()
+        let query = {}
+        if (req.query.q) {
+            query.$or = [
+                { code: new RegExp(req.query.q, 'i') },
+                { name: new RegExp(req.query.q, 'i') }
+            ]
+        }
+        const modelQuery = ProductionScope.find(query)
             .populate('phases.phase')
+        const pagination = await paginateQuery(ProductionScope, modelQuery, query, req.query)
 
-        res.status(200).json({ status: 'success', data: data })
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
+        console.log(err.stack)
         res.status(500).json({ status: 'error', message: err.message })
     }
 }

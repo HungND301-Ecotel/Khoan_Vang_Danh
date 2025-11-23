@@ -9,6 +9,7 @@ import {
   IconButton,
   InputAdornment,
   Divider,
+  Grid,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -35,6 +36,7 @@ import {
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from '../../theme';
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function CoalCuttingNormKB() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -44,13 +46,15 @@ export default function CoalCuttingNormKB() {
   const [open, setOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
   const queryClient = useQueryClient();
 
-  const { data: assignmentnorms = [] } = useQuery({
-    queryKey: ["assignmentnorms"],
+  const { data: assignmentnorms = { totalDocs: 0, data: [] }, isLoading } = useQuery({
+    queryKey: ["assignmentnorms", searchValue, page, limit],
     queryFn: async () =>
-      api.get("/assignmentnorms").then((res) => res.data.data),
+      api.get(`/assignmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=coal_kb`).then((res) => res.data.data),
   });
 
   const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
@@ -138,7 +142,7 @@ export default function CoalCuttingNormKB() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (_v, _r, idx) => <Typography>{idx + 1}</Typography>,
+      render: (_v, _r, idx) => <Typography>{(page - 1) * limit + idx + 1}</Typography>,
     },
     {
       title: (
@@ -199,6 +203,7 @@ export default function CoalCuttingNormKB() {
     const norms = record.norms || [];
     const thicknessLabel = record.thickness?.name || "";
     const slopeLabel = record.curbSlope?.name || "";
+    const hardnessLabel = record.hardness?.name || "";
 
     const innerColumns = [
       {
@@ -250,16 +255,19 @@ export default function CoalCuttingNormKB() {
     return (
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         {/* Header */}
-        <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-            Độ dốc vỉa {slopeLabel}
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Chiều dày vỉa (m)
-            <Box component="span" sx={{ ml: 30 }}>
-              {thicknessLabel}
-            </Box>
-          </Typography>
+        <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1, backgroundColor: 'white' }}>
+          <Grid container>
+            <Grid item xs={3}>Độ dày vỉa (m)</Grid>
+            <Grid item xs={9}>{thicknessLabel}</Grid>
+          </Grid>
+          <Grid container>
+            <Grid item xs={3}>Độ dốc vỉa</Grid>
+            <Grid item xs={9}>{slopeLabel}</Grid>
+          </Grid>
+          <Grid container>
+            <Grid item xs={3}>Độ cứng</Grid>
+            <Grid item xs={9}>{hardnessLabel}</Grid>
+          </Grid>
         </Box>
         {/* Bảng con */}
         <Table
@@ -273,6 +281,10 @@ export default function CoalCuttingNormKB() {
       </Box>
     );
   };
+
+  const handleClearSearch = () => {
+    setSearchValue('')
+  }
 
   return (
     <Box>
@@ -350,6 +362,7 @@ export default function CoalCuttingNormKB() {
                 fullWidth
                 size="small"
                 placeholder="Tìm kiếm"
+                value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                 InputProps={{
@@ -456,22 +469,20 @@ export default function CoalCuttingNormKB() {
           </Box>
         </Box>
 
-        <Table<AssignmentNormOutputType>
-          rowKey="_id"
-          rowSelection={rowSelection}
-          pagination={{
-            position: ["bottomCenter"],
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            defaultPageSize: 10,
-            showTotal: (total: number, range: [number, number]) => (
-              <div style={{ flex: 1, textAlign: "left" }}>
-                Hiển thị {range[0]}-{range[1]} trên {total} mục
-              </div>
-            ),
-          }}
+        <CustomTable<AssignmentNormOutputType>
+          data={assignmentnorms.data}
+          total={assignmentnorms.totalDocs}
+          page={page}
+          limit={limit}
           columns={columns}
-          dataSource={assignmentnorms.filter((i: any) => i.type === "coal_kb")}
+          rowSelection={rowSelection}
+          onPageChange={(p, ps) => {
+            setPage(p);
+            setLimit(ps);
+          }}
+          isLoading={isLoading}
+          searchValue={searchValue}
+          handleClearSearch={handleClearSearch}
           expandable={{
             expandedRowKeys: expandedRow ? [expandedRow] : [],
             onExpand: (expanded, record) => {

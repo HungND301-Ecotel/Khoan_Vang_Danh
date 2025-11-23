@@ -36,7 +36,7 @@ export default function PhaseModal({
   handleSubmit: (values: Partial<PhaseInputType>) => void;
   selectedPhase: PhaseOutputType | null;
 }) {
-  const { data: phasegroups = [] } = useQuery({
+  const { data: phasegroups = { data: [] } } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: () => api.get("/phasegroups").then((res) => res.data.data),
   });
@@ -141,14 +141,14 @@ export default function PhaseModal({
                   displayEmpty: true,
                   renderValue: (value) => {
                     if (!value) return "Placeholder";
-                    const item = phasegroups.find((group: PhaseGroupType) => group._id === value);
+                    const item = phasegroups.data.find((group: PhaseGroupType) => group._id === value);
                     return item?.name || "";
                   },
                 }}
                 error={formik.touched.phaseGroup && Boolean(formik.errors.phaseGroup)}
                 helperText={formik.touched.phaseGroup && formik.errors.phaseGroup}
               >
-                {phasegroups.map((group: PhaseGroupType) => (
+                {phasegroups.data.map((group: PhaseGroupType) => (
                   <MenuItem key={group._id} value={group._id}>
                     {group.name}
                   </MenuItem>

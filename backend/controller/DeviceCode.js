@@ -1,6 +1,7 @@
 const DeviceCode = require('../model/DeviceCode')
 const { configExport } = require('../utils/config_export')
 const ExcelJS = require('exceljs')
+const { paginateQuery } = require('../utils/pagination')
 
 
 exports.create = async (req, res) => {
@@ -49,10 +50,13 @@ exports.get = async (req, res) => {
         if (req.query.q) {
             query.code = new RegExp(req.query.q, 'i')
         }
-        const data = await DeviceCode.find(query)
+        let modelQuery = DeviceCode.find(query)
 
-        res.status(200).json({ status: 'success', data: data })
+        const pagination = await paginateQuery(DeviceCode, modelQuery, query, req.query)
+
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
+        console.log(err.message)
         res.status(500).json({ status: 'error', message: err.message })
     }
 }

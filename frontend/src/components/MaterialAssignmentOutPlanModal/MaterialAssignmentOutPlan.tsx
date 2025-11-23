@@ -50,7 +50,9 @@ export default function MaterialAssignmentOutPlanModal({
     queryFn: () => api.get("/assignmentcodes").then((res) => res.data.data),
   });
 
-  const { data: units = [] } = useQuery({
+  const { data: units = {
+    data: []
+  } } = useQuery({
     queryKey: ["units"],
     queryFn: () => api.get("/units").then((res) => res.data.data),
   });
@@ -65,26 +67,26 @@ export default function MaterialAssignmentOutPlanModal({
       quantity: selectedMaterialAssignment
         ? selectedMaterialAssignment.quantity
         : undefined,
-      assignmentCode: selectedMaterialAssignment
-        ? selectedMaterialAssignment.assignmentCode?._id
-        : "",
+      // assignmentCode: selectedMaterialAssignment
+      //   ? selectedMaterialAssignment.assignmentCode?._id
+      //   : "",
       priceHistory:
         selectedMaterialAssignment &&
-        Array.isArray(selectedMaterialAssignment.priceHistory)
+          Array.isArray(selectedMaterialAssignment.priceHistory)
           ? selectedMaterialAssignment.priceHistory.map((item) => ({
-              price: item.price,
-              startDate: new Date(item.startDate)
-                .toISOString()
-                .substring(0, 10),
-              endDate: new Date(item.endDate).toISOString().substring(0, 10),
-            }))
+            price: item.price,
+            startDate: new Date(item.startDate)
+              .toISOString()
+              .substring(0, 10),
+            endDate: new Date(item.endDate).toISOString().substring(0, 10),
+          }))
           : [
-              {
-                price: 0,
-                startDate: new Date().toISOString().substring(0, 10),
-                endDate: new Date().toISOString().substring(0, 10),
-              },
-            ],
+            {
+              price: 0,
+              startDate: new Date().toISOString().substring(0, 10),
+              endDate: new Date().toISOString().substring(0, 10),
+            },
+          ],
     },
     enableReinitialize: true,
     validationSchema,
@@ -262,7 +264,7 @@ export default function MaterialAssignmentOutPlanModal({
                     },
                   }}
                 >
-                  {units.map((unit: UnitType) => (
+                  {units.data.map((unit: UnitType) => (
                     <MenuItem key={unit._id} value={unit._id}>
                       {unit.name}
                     </MenuItem>
@@ -272,27 +274,117 @@ export default function MaterialAssignmentOutPlanModal({
 
               {/* Đơn giá section */}
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>
-                  Đơn giá
-                </Typography>
-                <TextField
-                  fullWidth
-                  type="number"
-                  name="price"
-                  placeholder="Placeholder"
-                  value=""
-                  onChange={(e) =>
-                    formik.setFieldValue("price", e.target.value)
-                  }
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
-                />
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>Đơn giá</Typography>
+                <FieldArray name="priceHistory">
+                  {({ push, remove }) => (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      {formik.values.priceHistory.map((item, index) => (
+                        <Grid container spacing={2} key={index} alignItems="center">
+                          <Grid item xs={4}>
+                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                              Ngày bắt đầu
+                            </Typography>
+                            <TextField
+                              fullWidth
+                              type="date"
+                              name={`priceHistory[${index}].startDate`}
+                              value={formik.values.priceHistory[index].startDate.toString().substring(0, 10)}
+                              onChange={(e) =>
+                                formik.setFieldValue(`priceHistory[${index}].startDate`, e.target.value)
+                              }
+                              InputLabelProps={{ shrink: true }}
+                              variant="outlined"
+                              sx={{
+                                "& .MuiInputBase-root": {
+                                  height: "40px",
+                                  borderRadius: "6px",
+                                  fontSize: "14px",
+                                },
+                              }}
+                            />
+                          </Grid>
+
+                          <Grid item xs={4}>
+                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                              Ngày kết thúc
+                            </Typography>
+                            <TextField
+                              fullWidth
+                              type="date"
+                              name={`priceHistory[${index}].endDate`}
+                              value={formik.values.priceHistory[index].endDate.toString().substring(0, 10)}
+                              onChange={(e) =>
+                                formik.setFieldValue(`priceHistory[${index}].endDate`, e.target.value)
+                              }
+                              InputLabelProps={{ shrink: true }}
+                              variant="outlined"
+                              sx={{
+                                "& .MuiInputBase-root": {
+                                  height: "40px",
+                                  borderRadius: "6px",
+                                  fontSize: "14px",
+                                },
+                              }}
+                            />
+                          </Grid>
+
+                          <Grid item xs={3}>
+                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                              Đơn giá
+                            </Typography>
+                            <TextField
+                              fullWidth
+                              type="number"
+                              name={`priceHistory[${index}].price`}
+                              placeholder="Placeholder"
+                              value={formik.values.priceHistory[index].price}
+                              onChange={(e) =>
+                                formik.setFieldValue(`priceHistory[${index}].price`, e.target.value)
+                              }
+                              variant="outlined"
+                              sx={{
+                                "& .MuiInputBase-root": {
+                                  height: "40px",
+                                  borderRadius: "6px",
+                                  fontSize: "14px",
+                                },
+                              }}
+                            />
+                          </Grid>
+
+
+                          <Grid item xs={1}>
+                            {formik.values.priceHistory.length > 1 && (
+                              <IconButton
+                                color="error"
+                                onClick={() => remove(index)}
+                                sx={{ mt: 2 }}
+                              >
+                                <Delete />
+                              </IconButton>
+                            )}
+                          </Grid>
+                        </Grid>
+                      ))}
+
+                      {/* Add button */}
+                      <Box textAlign="right" sx={{ mt: 1 }}>
+                        <IconButton
+                          color="primary"
+                          onClick={() =>
+                            push({
+                              price: 0,
+                              startDate: new Date().toISOString().substring(0, 10),
+                              endDate: new Date().toISOString().substring(0, 10),
+                            })
+                          }
+                        >
+                          <Add />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  )}
+                </FieldArray>
               </Box>
 
               {/* Action buttons */}

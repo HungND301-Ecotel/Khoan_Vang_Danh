@@ -1,5 +1,5 @@
 const AdjustmentNorm = require('../model/AdjustmentNorm')
-
+const { paginateQuery } = require('../utils/pagination')
 
 exports.create = async (req, res) => {
     try {
@@ -38,7 +38,14 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await AdjustmentNorm.find()
+        let query = {}
+        if (req.query.q) {
+            query.code = new RegExp(req.query.q, 'i')
+        }
+        if (req.query.type) {
+            query.type = new RegExp(req.query.type, 'i')
+        }
+        const modelQuery = AdjustmentNorm.find(query)
             .populate('mirrorRatio')
             .populate('rockRatio')
             .populate('hardness')
@@ -46,8 +53,9 @@ exports.get = async (req, res) => {
                 path: 'norms.assignmentCode',
                 populate: 'uom'
             })
+        const pagination = await paginateQuery(AdjustmentNorm, modelQuery, query, req.query)
 
-        res.status(200).json({ status: 'success', data: data })
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

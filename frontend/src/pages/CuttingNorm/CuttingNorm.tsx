@@ -33,6 +33,7 @@ import {
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function CuttingNorm() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -42,26 +43,16 @@ export default function CuttingNorm() {
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
   const queryClient = useQueryClient();
 
-  const { data: assignmentnorms = [] } = useQuery({
-    queryKey: ["assignmentnorms", searchValue],
+  const { data: assignmentnorms = { totalDocs: 0, data: [] }, isLoading } = useQuery({
+    queryKey: ["assignmentnorms", searchValue, page, limit],
     queryFn: async () =>
-      api.get(`/assignmentnorms?q=${searchValue}`).then((res) => res.data.data),
+      api.get(`/assignmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=cutting`).then((res) => res.data.data),
   });
-
-  const filteredData = assignmentnorms
-    .filter((i: AssignmentNormOutputType) => i.type === "cutting")
-    .filter(
-      (i: AssignmentNormOutputType) =>
-        (i.code?.toLowerCase() || "").includes(searchValue.toLowerCase()) ||
-        (i.norms || []).some((n) =>
-          (n.assignmentCode?.name?.toLowerCase() || "").includes(
-            searchValue.toLowerCase()
-          )
-        )
-    );
 
   const createMutation = useMutation({
     mutationFn: (newCuttingNorm: Partial<AssignmentNormInputType>) =>
@@ -222,7 +213,7 @@ export default function CuttingNorm() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: (
@@ -294,6 +285,10 @@ export default function CuttingNorm() {
       setSelectedRows(newSelectedRows);
     },
   };
+
+  const handleClearSearch = () => {
+    setSearchValue('')
+  }
 
   return (
     <Box
@@ -513,9 +508,20 @@ export default function CuttingNorm() {
               </Box>
             </Box>
           </Box>
-          <Table<AssignmentNormOutputType>
-            rowKey={(record) => record._id as string}
+          <CustomTable<AssignmentNormOutputType>
+            data={assignmentnorms.data}
+            total={assignmentnorms.totalDocs}
+            page={page}
+            limit={limit}
+            columns={columns}
             rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
+            }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
             expandable={{
               expandedRowKeys,
               onExpandedRowsChange: (keys) =>
@@ -523,20 +529,6 @@ export default function CuttingNorm() {
               expandedRowRender,
               showExpandColumn: false,
             }}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
-                </div>
-              ),
-            }}
-            columns={columns}
-            dataSource={filteredData}
-            loading={deleteMutation.isPending}
           />
         </Box>
       </Box>
@@ -545,8 +537,8 @@ export default function CuttingNorm() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
-        hasExistingRecords={filteredData.length > 1}
-        existingNorms={filteredData}
+        hasExistingRecords={assignmentnorms.totalDocs > 1}
+        existingNorms={assignmentnorms.data}
       />
     </Box>
   );

@@ -64,34 +64,34 @@ export default function CuttingNormModal({
   const [lowerLimitPoint, setLowerLimitPoint] = useState<number | null>(null);
   const [predictingPoint, setPredictingPoint] = useState<number | null>(null);
 
-  const { data: phasegroups = [] } = useQuery({
+  const { data: phasegroups = { data: [] } } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: async () => api.get("/phasegroups").then((res) => res.data.data),
   });
-  const { data: phases = [] } = useQuery({
+  const { data: phases = { data: [] } } = useQuery({
     queryKey: ["phases", phaseGroup],
     queryFn: async () =>
       api.get(`/phases?phaseGroup=${phaseGroup}`).then((res) => res.data.data),
     enabled: !!phaseGroup,
   });
 
-  const { data: assignmentcodes = [] } = useQuery({
+  const { data: assignmentcodes = { data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
     queryFn: async () =>
       api.get(`/assignmentcodes`).then((res) => res.data.data),
   });
-  const { data: hardness = [] } = useQuery({
+  const { data: hardness = { data: [] } } = useQuery({
     queryKey: ["hardness"],
     queryFn: async () => api.get(`/hardness`).then((res) => res.data.data),
   });
-  const { data: crosssections = [] } = useQuery({
+  const { data: crosssections = { data: [] } } = useQuery({
     queryKey: ["crosssections"],
     queryFn: () => api.get("/crosssections").then((res) => res.data.data),
   });
 
   useEffect(() => {
     setPhaseGroup(
-      phasegroups.find(
+      phasegroups.data.find(
         (p: PhaseGroupType) => p.name?.toLowerCase() === "xén lò".toLowerCase()
       )?._id
     );
@@ -115,13 +115,13 @@ export default function CuttingNormModal({
       norms:
         selected?.norms && selected.norms.length > 0
           ? selected.norms.map((item) => ({
-              assignmentCode: item.assignmentCode?._id,
-              norm: item.norm,
-            }))
-          : assignmentcodes.map((item: any) => ({
-              assignmentCode: item._id,
-              norm: undefined,
-            })),
+            assignmentCode: item.assignmentCode?._id,
+            norm: item.norm,
+          }))
+          : assignmentcodes.data.map((item: any) => ({
+            assignmentCode: item._id,
+            norm: undefined,
+          })),
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
@@ -138,16 +138,16 @@ export default function CuttingNormModal({
     },
   });
   useEffect(() => {
-    if (assignmentcodes.length === 0) return;
+    // if (assignmentcodes.length === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      const selectedCodes = assignmentcodes.filter((ac: any) =>
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
     } else {
       // For Cutting modal: default to selecting all assignment codes so checkbox shows
-      setSelectedAssignmentCodes(assignmentcodes);
+      setSelectedAssignmentCodes(assignmentcodes.data);
     }
   }, [selected, assignmentcodes]);
 
@@ -198,7 +198,7 @@ export default function CuttingNormModal({
   }, [formik.values.lowerLimitNorm, existingNorms]);
 
   useEffect(() => {
-    if (!assignmentcodes || assignmentcodes.length === 0) return;
+    // if (!assignmentcodes || assignmentcodes.totalDocs === 0) return;
 
     // Mỗi khi selectedAssignmentCodes thay đổi → cập nhật lại formik.norms
     const updatedNorms = selectedAssignmentCodes.map((item: any) => {
@@ -383,7 +383,7 @@ export default function CuttingNormModal({
               }}
             >
               {phasegroups
-                ?.filter((group: PhaseGroupType | null) => group)
+                ?.data.filter((group: PhaseGroupType | null) => group)
                 .map((group: PhaseGroupType) => (
                   <MenuItem key={group._id} value={group._id}>
                     {group.name}
@@ -440,7 +440,7 @@ export default function CuttingNormModal({
                 },
               }}
             >
-              {phases?.map((phase: PhaseOutputType) => (
+              {phases?.data.map((phase: PhaseOutputType) => (
                 <MenuItem key={phase._id} value={phase._id}>
                   {phase.name}
                 </MenuItem>
@@ -492,7 +492,7 @@ export default function CuttingNormModal({
                 },
               }}
             >
-              {crosssections?.map((crosssection: CrossSectionInputType) => (
+              {crosssections?.data.map((crosssection: CrossSectionInputType) => (
                 <MenuItem key={crosssection._id} value={crosssection._id}>
                   {crosssection.name}
                 </MenuItem>
@@ -834,7 +834,7 @@ export default function CuttingNormModal({
                 },
               }}
             >
-              {hardness?.map((item: HardnessType) => (
+              {hardness?.data.map((item: HardnessType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
                 </MenuItem>
@@ -893,7 +893,7 @@ export default function CuttingNormModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Autocomplete
               multiple
-              options={assignmentcodes}
+              options={assignmentcodes.data}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
                 `${option.code} - ${option.name}`
               }
@@ -980,7 +980,7 @@ export default function CuttingNormModal({
                         <TextField
                           fullWidth
                           value={
-                            assignmentcodes.find(
+                            assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode
@@ -1011,7 +1011,7 @@ export default function CuttingNormModal({
                         <TextField
                           fullWidth
                           value={
-                            assignmentcodes.find(
+                            assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode

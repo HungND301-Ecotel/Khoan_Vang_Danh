@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { Add, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction, useState } from "react";
 import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import {
@@ -45,12 +45,18 @@ export default function MaterialAssignmentModal({
   handleSubmit: (values: Partial<MaterialAssignmentInputType>) => void;
   selectedMaterialAssignment: Materials | null;
 }) {
-  const { data: assignmentCodes = [] } = useQuery({
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [searchValue, setSearchValue] = useState('')
+
+  const { data: assignmentCodes = {
+    data: []
+  } } = useQuery({
     queryKey: ["assignmentCodes"],
     queryFn: () => api.get("/assignmentcodes").then((res) => res.data.data),
   });
 
-  const { data: units = [] } = useQuery({
+  const { data: units = { data: [] } } = useQuery({
     queryKey: ["units"],
     queryFn: () => api.get("/units").then((res) => res.data.data),
   });
@@ -139,7 +145,7 @@ export default function MaterialAssignmentModal({
         <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "14px" }}>
           <Typography sx={{ color: "#666" }}>Danh mục</Typography>
           <Typography sx={{ color: "#666" }}>Vật tư, tài sản</Typography>
-           <Typography sx={{ color: "#666" }}>Vật tư, tài sản trong khoán</Typography>
+          <Typography sx={{ color: "#666" }}>Vật tư, tài sản trong khoán</Typography>
         </Breadcrumbs>
         <Divider
           style={{
@@ -183,7 +189,7 @@ export default function MaterialAssignmentModal({
                     },
                   }}
                 >
-                  {assignmentCodes.map((assignmentCode: AssignmentCodeOutputType) => (
+                  {assignmentCodes.data.map((assignmentCode: AssignmentCodeOutputType) => (
                     <MenuItem key={assignmentCode._id} value={assignmentCode._id}>
                       {assignmentCode.code}
                     </MenuItem>
@@ -275,7 +281,7 @@ export default function MaterialAssignmentModal({
                     },
                   }}
                 >
-                  {units.map((unit: UnitType) => (
+                  {units.data.map((unit: UnitType) => (
                     <MenuItem key={unit._id} value={unit._id}>
                       {unit.name}
                     </MenuItem>
@@ -362,7 +368,7 @@ export default function MaterialAssignmentModal({
                             />
                           </Grid>
 
-                      
+
                           <Grid item xs={1}>
                             {formik.values.priceHistory.length > 1 && (
                               <IconButton

@@ -38,6 +38,7 @@ import { TableProps, Table } from "antd";
 import custom_theme from '../../theme';
 import RockRatioService from "../../service/RockRatioService";
 import { parseAxiosError } from "../../utils/handleApiError";
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function RockRatio() {
   const [open, setOpen] = useState(false);
@@ -45,16 +46,21 @@ export default function RockRatio() {
     useState<RockRatioType | null>(null);
   const [selectedRockRatios, setSelectedRockRatios] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [isFiltering, setIsFiltering] = useState(false);
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
   const queryClient = useQueryClient();
 
-  const { data: rockratios = [], isLoading, isFetching } = useQuery({
-    queryKey: ["rockratios"],
+  const { data: rockratios = {
+    totalDocs: 0,
+    results: 0,
+    data: []
+  }, isLoading, isFetching } = useQuery({
+    queryKey: ["rockratios", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get("/rockratios");
-        return response.data.data || [];
+        const response = await api.get(`/rockratios?q=${searchValue}&page=${page}&limit=${limit}`);
+        return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
         return [];
@@ -62,33 +68,6 @@ export default function RockRatio() {
     },
   });
 
-  // Add filtering delay simulation for better UX
-  useEffect(() => {
-    if (searchValue) {
-      setIsFiltering(true);
-      const timer = setTimeout(() => {
-        setIsFiltering(false);
-      }, 300);
-
-      return () => clearTimeout(timer);
-    } else {
-      setIsFiltering(false);
-    }
-  }, [searchValue]);
-
-  // Enhanced filtering with useMemo for performance
-  const filteredRockRatio = useMemo(() => {
-    if (!searchValue.trim()) {
-      return rockratios;
-    }
-
-    const searchTerm = searchValue.toLowerCase().trim();
-    return rockratios.filter((item: RockRatioType) => {
-      const name = item.name?.toLowerCase() || "";
-
-      return name.includes(searchTerm);
-    });
-  }, [rockratios, searchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newRockRatio: Partial<RockRatioType>) =>
@@ -205,70 +184,46 @@ export default function RockRatio() {
   };
 
   // Loading skeleton for initial page load
-  const LoadingSkeleton = () => (
-    <Box>
-      {/* Toolbar skeleton */}
-      <Box sx={{ mb: 2 }}>
-        <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-          <Box display={"flex"} gap={2}>
-            <Skeleton variant="rectangular" width={100} height={36} />
-            <Skeleton variant="rectangular" width={80} height={36} />
-          </Box>
-          <Box display={"flex"} flex={1} gap={2}>
-            <Skeleton variant="rectangular" width={60} height={36} />
-            <Skeleton variant="rectangular" height={36} sx={{ flex: 1 }} />
-          </Box>
-          <Box display={"flex"} gap={2}>
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} variant="rectangular" width={80} height={36} />
-            ))}
-          </Box>
-        </Box>
-      </Box>
+  // const LoadingSkeleton = () => (
+  //   <Box>
+  //     {/* Toolbar skeleton */}
+  //     <Box sx={{ mb: 2 }}>
+  //       <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+  //         <Box display={"flex"} gap={2}>
+  //           <Skeleton variant="rectangular" width={100} height={36} />
+  //           <Skeleton variant="rectangular" width={80} height={36} />
+  //         </Box>
+  //         <Box display={"flex"} flex={1} gap={2}>
+  //           <Skeleton variant="rectangular" width={60} height={36} />
+  //           <Skeleton variant="rectangular" height={36} sx={{ flex: 1 }} />
+  //         </Box>
+  //         <Box display={"flex"} gap={2}>
+  //           {[1, 2, 3, 4].map((i) => (
+  //             <Skeleton key={i} variant="rectangular" width={80} height={36} />
+  //           ))}
+  //         </Box>
+  //       </Box>
+  //     </Box>
 
-      {/* Table skeleton */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          {[...Array(5)].map((_, index) => (
-            <Box key={index} sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
-              <Box display="flex" alignItems="center" gap={2}>
-                <Skeleton variant="rectangular" width={20} height={20} />
-                <Skeleton variant="text" width={50} />
-                <Skeleton variant="text" width={250} sx={{ flex: 1 }} />
-                <Skeleton variant="text" width={80} />
-                <Skeleton variant="circular" width={32} height={32} />
-              </Box>
-            </Box>
-          ))}
-        </CardContent>
-      </Card>
-    </Box>
-  );
+  //     {/* Table skeleton */}
+  //     <Card>
+  //       <CardContent sx={{ p: 0 }}>
+  //         {[...Array(5)].map((_, index) => (
+  //           <Box key={index} sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
+  //             <Box display="flex" alignItems="center" gap={2}>
+  //               <Skeleton variant="rectangular" width={20} height={20} />
+  //               <Skeleton variant="text" width={50} />
+  //               <Skeleton variant="text" width={250} sx={{ flex: 1 }} />
+  //               <Skeleton variant="text" width={80} />
+  //               <Skeleton variant="circular" width={32} height={32} />
+  //             </Box>
+  //           </Box>
+  //         ))}
+  //       </CardContent>
+  //     </Card>
+  //   </Box>
+  // );
 
-  // Custom empty state component
-  const EmptyState = () => (
-    <Box sx={{ textAlign: 'center', py: 6 }}>
-      <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-        {searchValue ? "Không tìm thấy kết quả" : "Chưa có dữ liệu"}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {searchValue
-          ? `Không có tiết diện lò xén nào phù hợp với "${searchValue}"`
-          : "Hiện tại chưa có tiết diện lò xén nào được tạo"
-        }
-      </Typography>
-      {searchValue && (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleClearSearch}
-          sx={{ mt: 1 }}
-        >
-          Xóa bộ lọc
-        </Button>
-      )}
-    </Box>
-  );
 
   const columns: TableProps<RockRatioType>["columns"] = [
     {
@@ -276,7 +231,7 @@ export default function RockRatio() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: (
@@ -314,15 +269,15 @@ export default function RockRatio() {
   };
 
   // Show loading skeleton on initial load
-  if (isLoading) {
-    return (
-      <Box>
-        <Box mt={3}>
-          <LoadingSkeleton />
-        </Box>
-      </Box>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <Box>
+  //       <Box mt={3}>
+  //         <LoadingSkeleton />
+  //       </Box>
+  //     </Box>
+  //   );
+  // }
 
   return (
     <Box sx={{
@@ -419,7 +374,7 @@ export default function RockRatio() {
                             ×
                           </IconButton>
                         )}
-                        {isFiltering ? (
+                        {isLoading && searchValue ? (
                           <CircularProgress size={20} sx={{ mr: 1 }} />
                         ) : (
                           <Search sx={{ fontSize: 24 }} />
@@ -527,15 +482,15 @@ export default function RockRatio() {
           {searchValue && (
             <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
               <Typography variant="body2" color="primary">
-                {isFiltering ? (
+                {isLoading && searchValue ? (
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
                 ) : (
                   <>
-                    Tìm thấy {filteredRockRatio.length} kết quả cho "{searchValue}"
-                    {filteredRockRatio.length > 0 && (
+                    Tìm thấy {rockratios.totalDocs} kết quả cho "{searchValue}"
+                    {rockratios.totalDocs > 0 && (
                       <Button
                         size="small"
                         onClick={handleClearSearch}
@@ -549,32 +504,20 @@ export default function RockRatio() {
               </Typography>
             </Box>
           )}
-          <Table<RockRatioType>
-            rowKey="_id"
-            rowSelection={rowSelection}
-            loading={isFiltering || isFetching}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  {isFiltering ? (
-                    <Typography variant="body2" color="primary">
-                      Đang lọc...
-                    </Typography>
-                  ) : (
-                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
-                  )}
-                </div>
-              ),
-            }}
+          <CustomTable<RockRatioType>
+            data={rockratios.data}
+            total={rockratios.totalDocs}
+            page={page}
+            limit={limit}
             columns={columns}
-            dataSource={filteredRockRatio}
-            locale={{
-              emptyText: <EmptyState />
+            rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
             }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
           />
         </Box>
       </Box>

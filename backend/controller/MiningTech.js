@@ -1,4 +1,5 @@
 const MiningTech = require('../model/MiningTech')
+const { paginateQuery } = require('../utils/pagination')
 
 
 exports.create = async (req, res) => {
@@ -38,9 +39,17 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await MiningTech.find()
+        let query = {}
+        if (req.query.q) {
+            query.$or = [
+                { name: new RegExp(req.query.q, 'i') },
+                { code: new RegExp(req.query.q, 'i') }
+            ]
+        }
+        const modelQuery = MiningTech.find(query)
+        const pagination = await paginateQuery(MiningTech, modelQuery, query, req.query)
 
-        res.status(200).json({ status: 'success', data: data })
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

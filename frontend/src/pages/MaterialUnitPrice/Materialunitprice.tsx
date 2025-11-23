@@ -39,388 +39,108 @@ import {
   Search,
 } from "@mui/icons-material";
 import custom_theme from '../../theme';
-
-interface FlatMaterial {
-  _id: string;
-  code: string;
-  materialCode?: string;
-  name: string;
-  uom?: string;
-  quantity?: number;
-  price?: number;
-  note: string;
-  isGroupHeader?: boolean;
-  originalAssignmentId?: string;
-}
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function Materialunitprice() {
   const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<MaterialAssignmentOutputType[]>([]);
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<MaterialAssignmentOutputType | null>(
-    null
-  );
-  const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
-  const { data: materialAssignments = [] } = useQuery({
-    queryKey: ["materialAssignments"],
+  const { data: materialAssignments = { totalDocs: 0, data: [] }, isLoading } = useQuery({
+    queryKey: ["materialAssignments", searchValue, page, limit],
     queryFn: () =>
-      api.get("/materialassignments").then((res) => {
-        setData(res.data.data);
+      api.get(`/materialassignments/group?q=${searchValue}&page=${page}&limit=${limit}`).then((res) => {
         return res.data.data;
       }),
   });
 
-  const handleDelete = () => {
-    if (selectedRowKeys.length === 0) {
-      showErrorAlert("Không tìm thấy bản ghi");
-      return;
-    }
-    showConfirmAlert(
-      `Bạn có muốn xóa ${selectedRowKeys.length} bản ghi? hành động này không thể hoàn tác.`
-    ).then((result) => {
-      if (result.isConfirmed) {
-        deleteMutation.mutate(selectedRowKeys);
-      }
-    });
-  };
+  const treeData = useMemo(() => {
+    return materialAssignments.data.map((assignment: MaterialAssignmentOutputType, i: number) => ({
 
-  const deleteMutation = useMutation({
-    mutationFn: (ids: React.Key[]) =>
-      api
-        .delete(`/materialassignments`, { data: { ids } })
-        .then((res) => res.data.message),
-    onSuccess: (message) => {
-      queryClient.invalidateQueries({ queryKey: ["materialassignments"] });
-      setSelectedRowKeys([]);
-      showSuccessAlert(message || "Xóa thành công");
-    },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || "Lỗi");
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
-    },
-  });
+      // Header (parent row)
+      key: assignment._id,
+      _id: assignment._id,
+      number: (page - 1) * limit + i + 1,
+      materialCode: '',
+      assignmentCode: assignment.code,
+      name: assignment.name,
+      price: assignment.price,
 
-  const updateAssignmentMutation = useMutation({
-    mutationFn: (
-      updateMaterialAssignment: Partial<MaterialAssignmentInputType>
-    ) =>
-      api
-        .put(
-          `/materialassignments/${updateMaterialAssignment._id}`,
-          updateMaterialAssignment
-        )
-        .then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
-      showSuccessAlert("Sửa thành công");
-    },
-    onError: (error: any) => {
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
-    },
-  });
+      // Children
+      children: assignment.materials.map((m, idx) => ({
+        key: `${assignment._id}-${idx}`,
+        number: '',
+        materialCode: m.code,
+        assignmentCode: '',
+        name: m.name,
+        uom: m.uom?.name,
+        quantity: m.quantity,
+        price: m.currentPrice,
+      }))
+    }));
+  }, [materialAssignments.data]);
 
-  const updatematerialMutation = useMutation({
-    mutationFn: (updateAssignmentCode: Partial<AssignmentCodeInputType>) =>
-      api
-        .put(
-          `/assignmentcodes/${updateAssignmentCode._id}`,
-          updateAssignmentCode
-        )
-        .then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
-      showSuccessAlert("Sửa thành công");
-    },
-    onError: (error: any) => {
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
-    },
-  });
-
-  const handleToggleExpand = (cuttingnorm: MaterialAssignmentOutputType) => {
-    const id = cuttingnorm?._id;
-    if (!id) return;
-
-    setExpandedRow((prev) => (prev === id ? null : id));
-  };
-
-  const handleOpen = (record?: MaterialAssignmentOutputType) => {
-    setSelected(record ?? null);
-    setOpen(true);
-  };
-
-  // Create grouped data structure
-  const groupedData = useMemo(() => {
-    const grouped: FlatMaterial[] = [];
-
-    data.forEach((assignment) => {
-      if (!assignment.materials || assignment.materials.length === 0) return;
-
-      // Add group header row
-      grouped.push({
-        _id: `header-${assignment._id}`,
-        code: assignment.code ?? "",
-        materialCode: "",
-        name: assignment.name ?? "", // Store assignment name in the name field for header
-        uom: "",
-        quantity: undefined,
-        price: assignment.price ?? "",
-        note: "",
-        isGroupHeader: true,
-        originalAssignmentId: assignment._id
-      });
-
-      // Add material rows
-      assignment.materials.forEach((material, index) => {
-        grouped.push({
-          _id: `${assignment._id}-${material.code ?? ""}-${index}`,
-          code: assignment.code ?? "",
-          materialCode: material.code,
-          name: material.name ?? "",
-          uom: material.uom?.name,
-          quantity: material.quantity,
-          price: material.currentPrice,
-          note: "",
-          isGroupHeader: false,
-          originalAssignmentId: assignment._id
-        });
-      });
-    });
-
-    return grouped;
-  }, [data]);
-
-  const filteredData = useMemo(() => {
-    if (!searchValue.trim()) return groupedData;
-
-    // Filter by search value and maintain groups
-    const filteredGroups: FlatMaterial[] = [];
-    const searchLower = searchValue.toLowerCase();
-
-    data.forEach((assignment) => {
-      if (!assignment.materials || assignment.materials.length === 0) return;
-
-      // Check if assignment code or any material matches search
-      const assignmentMatches = assignment.code?.toLowerCase().includes(searchLower);
-      const matchingMaterials = assignment.materials.filter(material =>
-        material.code?.toLowerCase().includes(searchLower) ||
-        material.name?.toLowerCase().includes(searchLower) ||
-        material.uom?.name?.toLowerCase().includes(searchLower)
-      );
-
-      if (assignmentMatches || matchingMaterials.length > 0) {
-        // Add group header
-        filteredGroups.push({
-          _id: `header-${assignment._id}`,
-          code: assignment.code ?? "",
-          materialCode: "",
-          name: assignment.name ?? "", // Store assignment name for header display
-          uom: "",
-          quantity: undefined,
-          price: assignment.price ?? "",
-          note: "",
-          isGroupHeader: true,
-          originalAssignmentId: assignment._id
-        });
-
-        // Add materials (all if assignment matches, otherwise only matching ones)
-        const materialsToAdd = assignmentMatches ? assignment.materials : matchingMaterials;
-        materialsToAdd.forEach((material, index) => {
-          filteredGroups.push({
-            _id: `${assignment._id}-${material.code ?? ""}-${index}`,
-            code: assignment.code ?? "",
-            materialCode: material.code,
-            name: material.name ?? "",
-            uom: material.uom?.name,
-            quantity: material.quantity,
-            price: material.currentPrice,
-            note: "",
-            isGroupHeader: false,
-            originalAssignmentId: assignment._id
-          });
-        });
-      }
-    });
-
-    return filteredGroups;
-  }, [groupedData, searchValue]);
-
-  const columns: TableProps<FlatMaterial>["columns"] = [
+  const columns: TableProps<any>["columns"] = [
     {
       title: "",
-      dataIndex: "number",
-      key: "number",
+      dataIndex: 'number',
       width: 50,
-      render: (_v, record, idx) => {
-        if (record.isGroupHeader) return null;
-
-        // Calculate actual material index (excluding headers)
-        const materialIndex = filteredData
-          .slice(0, idx + 1)
-          .filter(item => !item.isGroupHeader).length;
-
-        return (
-          <Typography
-            style={{
-              textAlign: "center",
-              display: "block",
-            }}
-          >
-            {materialIndex}
-          </Typography>
-        );
-      },
-      align: "center",
+      render: (value, record) => {
+        return <Typography>{value}</Typography>;
+      }
     },
     {
-      title: (
-        <Typography style={{ fontWeight: "bold" }}>Mã giao khoán</Typography>
-      ),
-      dataIndex: "code",
-      key: "code",
-      align: "center",
-      width: 180,
-      render: (_v, record) => {
-        if (record.isGroupHeader) {
-          return (
-            <Box>
-              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
-                {record.code}
-              </Typography>
-            </Box>
-          );
-        }
-        return null; // Don't show code for material rows
-      },
-      onCell: (record) => ({
-        style: {
-          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
-          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
-        }
-      })
-    },
-    {
-      title: <Typography style={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
+      title: "Mã vật tư",
       dataIndex: "materialCode",
-      key: "materialCode",
-      align: "center",
-      render: (_v, record) => {
-        if (record.isGroupHeader) return null;
-        return <Typography>{record.materialCode ?? ""}</Typography>;
-      },
-      onCell: (record) => ({
-        style: {
-          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
-          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
-        }
-      })
-    },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
-      dataIndex: "name",
-      key: "name",
-      render: (_v, record) => {
-        if (record.isGroupHeader) {
-          return (
-            <Box>
-              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
-                {record.name}
-              </Typography>
-            </Box>
-          );
-        }
-        return <Typography>{record.name}</Typography>;
-      },
-      onCell: (record) => ({
-        style: {
-          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
-          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
-        }
-      })
-    },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
-      dataIndex: "uom",
-      key: "uom",
-      align: "center",
-      render: (_v, record) => {
-        if (record.isGroupHeader) return null;
-        return <Typography>{record.uom ?? ""}</Typography>;
-      },
-      onCell: (record) => ({
-        style: {
-          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
-          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
-        }
-      })
-    },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
-      dataIndex: "quantity",
-      key: "quantity",
-      width: 130,
-      align: "center",
-      render: (_v, record) => {
-        if (record.isGroupHeader) return null;
-        return (
-          <Typography>
-            {record.quantity ? record.quantity.toLocaleString() : ""}
-          </Typography>
-        );
-      },
-      onCell: (record) => ({
-        style: {
-          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
-          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
-        }
-      })
-    },
-    {
-      title: (
-        <Box sx={{ textAlign: "center" }}>
-          <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>
-          <Typography sx={{ fontWeight: "bold" }}>bình quân năm</Typography>
-        </Box>
-      ),
-      dataIndex: "price",
-      key: "price",
-      align: "center",
       width: 180,
-      render: (_v, record) => {
-        if (record.isGroupHeader) {
-          return (
-            <Box>
-              <Typography sx={{ fontWeight: "bold", fontSize: '16px' }}>
-                {record.price ? record.price.toLocaleString() : ""}
-              </Typography>
-            </Box>
-          );
-        };
-        return (
-          <Typography>
-            {record.price ? record.price.toLocaleString() : ""}
-          </Typography>
-        );
-      },
-      onCell: (record) => ({
-        style: {
-          backgroundColor: record.isGroupHeader ? '#f9f9f9' : 'transparent',
-          borderBottom: record.isGroupHeader ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
-        }
-      })
+      render: (value, record) => {
+        return <Typography fontWeight={"bold"}>{value}</Typography>;
+      }
     },
+    {
+      title: "Mã giao khoán",
+      dataIndex: "assignmentCode",
+      width: 180,
+      render: (value, record) => {
+        return <Typography fontWeight={"bold"}>{value}</Typography>;
+      }
+    },
+    {
+      title: "Tên vật tư",
+      dataIndex: "name",
+      render: (value, record) => {
+        return <Typography fontWeight="bold">{value}</Typography>;
+      }
+    },
+    {
+      title: "ĐVT",
+      dataIndex: "uom",
+      align: "center",
+      render: v => v || ""
+    },
+    {
+      title: "Số lượng",
+      dataIndex: "quantity",
+      align: "center",
+    },
+    {
+      title: "Đơn giá bình quân năm",
+      dataIndex: "price",
+      align: "center",
+      render: v => v?.toLocaleString()
+    }
   ];
 
-  const rowSelection: TableRowSelection<FlatMaterial> = {
-    selectedRowKeys,
-    onChange: (keys) => setSelectedRowKeys(keys),
-    getCheckboxProps: (record) => ({
-      disabled: record.isGroupHeader, // Disable selection for group headers
-    }),
-  };
+
+  const handleClearSearch = () => {
+    setSearchValue('')
+  }
+
+  const parentKeys = useMemo(() => {
+    return materialAssignments.data.map((a: any) => a._id);
+  }, [materialAssignments.data]);
 
   return (
     <Box sx={{
@@ -470,6 +190,7 @@ export default function Materialunitprice() {
                 fullWidth
                 size="small"
                 placeholder="Tìm kiếm"
+                value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                 InputProps={{
@@ -576,24 +297,27 @@ export default function Materialunitprice() {
           </Box>
         </Box>
 
-        <Table<FlatMaterial>
-          rowKey="_id"
-          pagination={{
-            position: ["bottomCenter"],
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            defaultPageSize: 10,
-            showTotal: (total: number, range: [number, number]) => (
-              <div style={{ flex: 1, textAlign: "left" }}>
-                Hiển thị {range[0]}-{range[1]} trên {total} mục
-              </div>
-            ),
-          }}
+        <CustomTable<any>
+          data={treeData}
+          total={materialAssignments.totalDocs}
+          page={page}
+          limit={limit}
           columns={columns}
-          dataSource={filteredData}
-          rowClassName={(record) =>
-            record.isGroupHeader ? 'group-header-row' : 'material-row'
-          }
+          // rowSelection={rowSelection}
+          onPageChange={(p, ps) => {
+            setPage(p);
+            setLimit(ps);
+          }}
+          isLoading={isLoading}
+          searchValue={searchValue}
+          handleClearSearch={handleClearSearch}
+          expandable={{
+            expandedRowKeys: parentKeys,
+            defaultExpandAllRows: true,
+            showExpandColumn: false,  // ❌ bỏ cột icon
+            expandIcon: () => null,
+            rowExpandable: (record) => record.children?.length > 0
+          }}
         />
       </Box>
     </Box>

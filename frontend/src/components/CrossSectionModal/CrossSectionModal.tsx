@@ -35,7 +35,7 @@ export default function CrossSection({
   handleSubmit: (values: Partial<CrossSectionInputType>) => void;
   selectedCrossSection: CrossSectionOutputType | null;
 }) {
-  const { data: units = [] } = useQuery({
+  const { data: units = { data: [] } } = useQuery({
     queryKey: ["units"],
     queryFn: () => api.get("/units").then((res) => res.data.data),
   });
@@ -187,12 +187,12 @@ export default function CrossSection({
                     if (!selected) {
                       return <span style={{ color: "#999" }}>Chọn đơn vị tính</span>;
                     }
-                    const selectedUnit = units.find((unit: UnitType) => unit._id === selected);
+                    const selectedUnit = units.data.find((unit: UnitType) => unit._id === selected);
                     return selectedUnit?.name;
                   },
                 }}
               >
-                {units.map((unit: UnitType) => (
+                {units.data.map((unit: UnitType) => (
                   <MenuItem
                     key={unit._id}
                     value={unit._id}

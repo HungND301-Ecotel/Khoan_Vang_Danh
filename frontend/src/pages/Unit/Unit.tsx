@@ -19,7 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import UnitModal from "../../components/UnitModal/UnitModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UnitType } from "../../types";
@@ -34,18 +34,24 @@ import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from '../../theme';
 import UnitService from "../../service/UnitService";
 import { parseAxiosError } from "../../utils/handleApiError";
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function Unit() {
   const [open, setOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<UnitType | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
   const queryClient = useQueryClient();
-  const { data: units = [] } = useQuery({
-    queryKey: ["units", searchValue],
+  const { data: units = {
+    totalDocs: 0,
+    data: []
+  }, isLoading } = useQuery({
+    queryKey: ["units", searchValue, page, limit],
     queryFn: () =>
-      api.get(`/units?q=${searchValue}`).then((res) => res.data.data),
+      api.get(`/units?q=${searchValue}&page=${page}&limit=${limit}`).then((res) => res.data.data),
   });
 
   const createMutation = useMutation({
@@ -133,7 +139,7 @@ export default function Unit() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Đơn vị tính</Typography>,
@@ -165,7 +171,9 @@ export default function Unit() {
       setSelectedUnits(newSelectedUnits);
     },
   };
-
+  const handleClearSearch = () => {
+    setSearchValue("");
+  };
   return (
     <Box sx={{
       px: 5,           // horizontal = 32px
@@ -248,6 +256,7 @@ export default function Unit() {
                   fullWidth
                   size="small"
                   placeholder="Tìm kiếm"
+                  value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   InputProps={{
@@ -353,22 +362,20 @@ export default function Unit() {
               </Box>
             </Box>
           </Box>
-          <Table<UnitType>
-            rowKey="_id"
-            rowSelection={rowSelection}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
-                </div>
-              ),
-            }}
+          <CustomTable<UnitType>
+            data={units.data}
+            total={units.totalDocs}
+            page={page}
+            limit={limit}
             columns={columns}
-            dataSource={units}
+            rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
+            }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
           />
         </Box>
       </Box>

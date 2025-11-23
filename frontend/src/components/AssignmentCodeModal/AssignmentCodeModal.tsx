@@ -35,11 +35,11 @@ export default function AssignmentCodeModal({
   handleSubmit: (values: Partial<AssignmentCodeInputType>) => void;
   selectedAssignmentCode: AssignmentCodeOutputType | null;
 }) {
-  const { data: units = [] } = useQuery({
+  const { data: units = { data: [] } } = useQuery({
     queryKey: ["units"],
     queryFn: () => api.get("/units").then((res) => res.data.data),
   });
-  const { data: devicecodes = [] } = useQuery({
+  const { data: devicecodes = { data: [] } } = useQuery({
     queryKey: ["devicecodes"],
     queryFn: () => api.get("/devicecodes").then((res) => res.data.data),
   });
@@ -181,7 +181,7 @@ export default function AssignmentCodeModal({
                   },
                 }}
               >
-                {units.map((unit: UnitType) => (
+                {units.data.map((unit: UnitType) => (
                   <MenuItem key={unit._id} value={unit._id}>
                     {unit.name}
                   </MenuItem>
@@ -211,7 +211,7 @@ export default function AssignmentCodeModal({
                   },
                 }}
               >
-                {devicecodes.map((devicecode: DeviceCodeType) => (
+                {devicecodes.data.map((devicecode: DeviceCodeType) => (
                   <MenuItem key={devicecode._id} value={devicecode._id}>
                     {devicecode.code}
                   </MenuItem>

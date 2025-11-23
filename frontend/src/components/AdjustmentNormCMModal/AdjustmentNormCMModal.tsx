@@ -43,12 +43,12 @@ export default function AdjustmentNormCMModal({
     AssignmentCodeOutputType[]
   >([]);
 
-  const { data: assignmentcodes = [] } = useQuery({
+  const { data: assignmentcodes = { totalDocs: 0, data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
     queryFn: async () =>
       api.get(`/assignmentcodes`).then((res) => res.data.data),
   });
-  const { data: mirrorratios = [] } = useQuery({
+  const { data: mirrorratios = { data: [] } } = useQuery({
     queryKey: ["mirrorratios"],
     queryFn: async () => api.get(`/mirrorratios`).then((res) => res.data.data),
   });
@@ -74,10 +74,10 @@ export default function AdjustmentNormCMModal({
   });
 
   useEffect(() => {
-    if (assignmentcodes.length === 0) return;
+    // if (assignmentcodes.totalDocs === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      const selectedCodes = assignmentcodes.filter((ac: any) =>
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
@@ -195,7 +195,7 @@ export default function AdjustmentNormCMModal({
                   },
                 }}
               >
-                {mirrorratios?.map((step: StepType) => (
+                {mirrorratios.data.map((step: StepType) => (
                   <MenuItem key={step._id} value={step._id}>
                     {step.name}
                   </MenuItem>
@@ -209,7 +209,7 @@ export default function AdjustmentNormCMModal({
               </Typography>
               <Autocomplete
                 multiple
-                options={assignmentcodes.filter(
+                options={assignmentcodes.data.filter(
                   (opt: AssignmentCodeOutputType) =>
                     !selectedAssignmentCodes.some(
                       (selected) => selected._id === opt._id
@@ -298,7 +298,7 @@ export default function AdjustmentNormCMModal({
                     <TextField
                       fullWidth
                       value={
-                        assignmentcodes.find(
+                        assignmentcodes.data.find(
                           (ac: AssignmentCodeOutputType) =>
                             ac._id === formik.values.norms[index].assignmentCode
                         )?.code || ""
@@ -319,7 +319,7 @@ export default function AdjustmentNormCMModal({
                     <TextField
                       fullWidth
                       value={
-                        assignmentcodes.find(
+                        assignmentcodes.data.find(
                           (ac: AssignmentCodeOutputType) =>
                             ac._id === formik.values.norms[index].assignmentCode
                         )?.name || ""
@@ -364,7 +364,7 @@ export default function AdjustmentNormCMModal({
                           (code) => code._id !== formik.values.norms[index].assignmentCode
                         );
                         setSelectedAssignmentCodes(updatedCodes);
-                        
+
                         const updatedNorms = formik.values.norms.filter(
                           (_, i) => i !== index
                         );

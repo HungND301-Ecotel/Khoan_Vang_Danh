@@ -34,6 +34,7 @@ import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import DeviceCodeService from "../../service/DeviceCodeService";
 import { parseAxiosError } from "../../utils/handleApiError";
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function DeviceCode() {
   const [open, setOpen] = useState(false);
@@ -43,17 +44,20 @@ export default function DeviceCode() {
     []
   );
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
   const queryClient = useQueryClient();
-  const { data: devicecodes = [] } = useQuery({
-    queryKey: ["devicecodes", searchValue],
+  const { data: devicecodes = {
+    totalDocs: 0,
+    data: []
+  }, isLoading } = useQuery({
+    queryKey: ["devicecodes", searchValue, page, limit],
     queryFn: () =>
       api
-        .get(`/devicecodes?q=${searchValue}`)
+        .get(`/devicecodes?q=${searchValue}&page=${page}&limit=${limit}`)
         .then((res) =>
-          res.data.data.filter((item: DeviceCodeType) =>
-            (item.code ?? "").toLowerCase().includes(searchValue.toLowerCase())
-          )
+          res.data.data
         ),
   });
 
@@ -73,7 +77,7 @@ export default function DeviceCode() {
 
   const exportExcel = useMutation({
     mutationFn: DeviceCodeService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -248,15 +252,15 @@ export default function DeviceCode() {
                 </thead>
                 <tbody>
                   ${devicecodes
-                    .map(
-                      (devicecode: DeviceCodeType, index: number) => `
+            .map(
+              (devicecode: DeviceCodeType, index: number) => `
                     <tr>
                       <td>${index + 1}</td>
                       <td>${devicecode.code || ""}</td>
                     </tr>
                   `
-                    )
-                    .join("")}
+            )
+            .join("")}
                 </tbody>
               </table>
             </body>
@@ -310,7 +314,7 @@ export default function DeviceCode() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã thiết bị</Typography>,
@@ -341,6 +345,10 @@ export default function DeviceCode() {
     onChange: (newSelectedDeviceCodes: React.Key[]) => {
       setSelectedDeviceCodes(newSelectedDeviceCodes);
     },
+  };
+
+  const handleClearSearch = () => {
+    setSearchValue("");
   };
 
   return (
@@ -441,6 +449,7 @@ export default function DeviceCode() {
                   fullWidth
                   size="small"
                   placeholder="Tìm kiếm"
+                  value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   sx={{
                     backgroundColor: (theme) =>
@@ -564,22 +573,20 @@ export default function DeviceCode() {
               </Box>
             </Box>
           </Box>
-          <Table<DeviceCodeType>
-            rowKey="_id"
-            rowSelection={rowSelection}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
-                </div>
-              ),
-            }}
+          <CustomTable<DeviceCodeType>
+            data={devicecodes.data}
+            total={devicecodes.totalDocs}
+            page={page}
+            limit={limit}
             columns={columns}
-            dataSource={devicecodes}
+            rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
+            }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
           />
         </Box>
       </Box>

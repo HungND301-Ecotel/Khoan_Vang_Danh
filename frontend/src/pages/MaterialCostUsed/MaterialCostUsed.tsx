@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Fragment, useState } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -13,6 +13,7 @@ import {
   Visibility,
 } from "@mui/icons-material";
 import {
+  Table as TableMui,
   Box,
   Breadcrumbs,
   Button,
@@ -21,6 +22,10 @@ import {
   InputAdornment,
   TextField,
   Typography,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -37,6 +42,7 @@ import {
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from '../../theme';
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function MaterialCostUsed() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -46,22 +52,22 @@ export default function MaterialCostUsed() {
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
 
   const queryClient = useQueryClient();
 
-  const { data: materialcostuseds = [] } = useQuery({
-    queryKey: ["materialcostuseds", searchValue],
+  const { data: materialcostuseds = { totalDocs: 0, data: [] }, isLoading } = useQuery({
+    queryKey: ["materialcostuseds", searchValue, page, limit],
     queryFn: async () => {
-      const query = searchValue ? `?q=${searchValue}` : "";
       try {
-        const res = await api.get(`/materialcostuseds${query}`);
-        return res.data?.data || [];
+        const res = await api.get(`/materialcostuseds?q=${searchValue}&page=${page}&limit=${limit}`);
+        return res.data?.data;
       } catch (error: any) {
         const errorMessage =
           error.response?.data?.message || "Lỗi khi tải dữ liệu";
         showErrorAlert(errorMessage);
-        return [];
       }
     },
   });
@@ -137,26 +143,6 @@ export default function MaterialCostUsed() {
     },
   });
 
-  const getOneMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.get(`/materialcostuseds/${id}`).then((res) => res.data.data),
-    onSuccess: (data, id) => {
-      setExpandedData((prev) => ({
-        ...prev,
-        [id]: { ...data, plannedCostCode: data.plannedCostCode },
-      }));
-    },
-    onError: (error: any, variables) => {
-      const errorMessage =
-        error.response?.data?.message || "Không tìm thấy dữ liệu";
-      console.log(errorMessage);
-      setExpandedData((prev) => ({ ...prev, [variables]: null }));
-      if (error.response?.status !== 404) {
-        showErrorAlert(errorMessage);
-      }
-    },
-  });
-
   const handleSubmit = (values: Partial<MaterialCostUsedInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
@@ -185,9 +171,6 @@ export default function MaterialCostUsed() {
       setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
     } else {
       setExpandedRowKeys([...expandedRowKeys, key]);
-      if (!expandedData[key] && expandedData[key] !== null) {
-        getOneMutation.mutate(key);
-      }
     }
   };
 
@@ -263,16 +246,6 @@ export default function MaterialCostUsed() {
         <Grid container spacing={2} sx={{ backgroundColor: "white", p: 2 }}>
           <Grid item xs={2}>
             <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
-              Mã diện sản xuất:
-            </Typography>
-          </Grid>
-          <Grid item xs={10}>
-            <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
-              {data.productionScope?.code || ""}
-            </Typography>
-          </Grid>
-          <Grid item xs={2}>
-            <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
               Diện sản xuất:
             </Typography>
           </Grid>
@@ -289,6 +262,47 @@ export default function MaterialCostUsed() {
           size="small"
           rowKey={(item) => item._id}
         />
+        <Box>
+          <TableMui>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: "bold" }}>Mã giao khoán</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Mã vật tư</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Tên vật tư, tài sản</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>ĐVT</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Số lượng</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Đơn giá bình quân</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Chi phí thực hiện</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody sx={{ backgroundColor: "white" }}>
+              {data.materials.map((m: any) => (
+                <Fragment>
+                  <TableRow>
+                    <TableCell>{m?.assignmentCode?.code}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell>{m?.assignmentCode?.name}</TableCell>
+                    <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                  {m.materials.map((i: any) => (
+                    <TableRow>
+                      <TableCell></TableCell>
+                      <TableCell>{i?.material?.code}</TableCell>
+                      <TableCell>{i?.material?.name}</TableCell>
+                      <TableCell>{i?.material?.uom?.name}</TableCell>
+                      <TableCell>{i?.quantity}</TableCell>
+                      <TableCell>{i?.material?.currentPrice}</TableCell>
+                      <TableCell>{i?.cost}</TableCell>
+                    </TableRow>
+                  ))}
+                </Fragment>
+              ))}
+            </TableBody>
+          </TableMui>
+        </Box>
       </Box >
     );
   };
@@ -299,21 +313,21 @@ export default function MaterialCostUsed() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: (
         <Typography sx={{ fontWeight: "bold" }}>
-          Mã chi phí thực hiện{" "}
+          Mã diện sản xuất{" "}
         </Typography>
       ),
       dataIndex: "code",
       key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography sx={{ fontWeight: "bold" }}>{record.productionScope?.code}</Typography>
       ),
       sorter: (a, b) =>
-        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+        (a.productionScope?.code ?? "").localeCompare(b.productionScope?.code ?? "", "vi", {
           sensitivity: "base",
         }),
     },
@@ -360,6 +374,10 @@ export default function MaterialCostUsed() {
       ),
     },
   ];
+
+  const handleClearSearch = () => {
+    setSearchValue('')
+  }
 
   const rowSelection: TableRowSelection<MaterialCostUsedOutputType> = {
     selectedRowKeys: selectedRows,
@@ -553,9 +571,20 @@ export default function MaterialCostUsed() {
               </Box>
             </Box>
           </Box>
-          <Table<MaterialCostUsedOutputType>
-            rowKey="_id"
+          <CustomTable<MaterialCostUsedOutputType>
+            data={materialcostuseds.data}
+            total={materialcostuseds.totalDocs}
+            page={page}
+            limit={limit}
+            columns={columns}
             rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
+            }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
             expandable={{
               expandedRowKeys,
               onExpandedRowsChange: (keys) =>
@@ -563,19 +592,6 @@ export default function MaterialCostUsed() {
               expandedRowRender,
               showExpandColumn: false,
             }}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
-                </div>
-              ),
-            }}
-            columns={columns}
-            dataSource={materialcostuseds}
           />
         </Box>
       </Box>

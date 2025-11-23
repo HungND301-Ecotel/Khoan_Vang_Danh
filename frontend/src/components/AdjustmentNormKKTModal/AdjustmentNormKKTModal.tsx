@@ -24,6 +24,7 @@ import {
   AdjustmentNormOutputType,
   HardnessType,
   StepType,
+  RockRatioType,
 } from "../../types";
 import { useQuery } from "@tanstack/react-query";
 import { Divider } from "antd";
@@ -43,16 +44,16 @@ export default function AdjustmentNormKKTModal({
     AssignmentCodeOutputType[]
   >([]);
 
-  const { data: assignmentcodes = [] } = useQuery({
+  const { data: assignmentcodes = { totalDocs: 0, data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
     queryFn: async () =>
       api.get(`/assignmentcodes`).then((res) => res.data.data),
   });
-  const { data: rockratios = [] } = useQuery({
+  const { data: rockratios = { data: [] } } = useQuery({
     queryKey: ["rockratios"],
     queryFn: async () => api.get(`/rockratios`).then((res) => res.data.data),
   });
-  const { data: hardness = [] } = useQuery({
+  const { data: hardness = { totalDocs: 0, data: [] } } = useQuery({
     queryKey: ["hardness"],
     queryFn: async () => api.get(`/hardness`).then((res) => res.data.data),
   });
@@ -80,10 +81,10 @@ export default function AdjustmentNormKKTModal({
   });
 
   useEffect(() => {
-    if (assignmentcodes.length === 0) return;
+    // if (assignmentcodes.totalDocs === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      const selectedCodes = assignmentcodes.filter((ac: any) =>
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
@@ -100,14 +101,14 @@ export default function AdjustmentNormKKTModal({
       open={open}
       onClose={handleClose}
       PaperProps={{
-    sx: {
-      width: "800px",
-        maxWidth: "667px",  
-      height: "740px",
-      p: "40px",
-      position: "relative",
-    },
-  }}
+        sx: {
+          width: "800px",
+          maxWidth: "667px",
+          height: "740px",
+          p: "40px",
+          position: "relative",
+        },
+      }}
     >
       <IconButton
         onClick={handleClose}
@@ -129,13 +130,13 @@ export default function AdjustmentNormKKTModal({
           <Typography sx={{ fontSize: "12px", color: "#666" }}>Hệ số điều chỉnh định mức (CK.KT)</Typography>
         </Breadcrumbs>
         <Divider
-                    style={{
-                      margin: "10px 0",
-                      borderBlockWidth: 1,
-                      opacity: "30%",
-                      borderColor: "#6592B7",
-                    }}
-                  />
+          style={{
+            margin: "10px 0",
+            borderBlockWidth: 1,
+            opacity: "30%",
+            borderColor: "#6592B7",
+          }}
+        />
         <Typography sx={{ fontSize: "18px", color: "#1976d2", fontWeight: 500, mt: 1 }}>
           {selected
             ? "Chỉnh sửa Hệ số điều chỉnh định mức (CK.KT)"
@@ -197,7 +198,7 @@ export default function AdjustmentNormKKTModal({
                   },
                 }}
               >
-                {hardness?.map((item: HardnessType) => (
+                {hardness?.data.map((item: HardnessType) => (
                   <MenuItem key={item._id} value={item._id}>
                     {item.name}
                   </MenuItem>
@@ -229,7 +230,7 @@ export default function AdjustmentNormKKTModal({
                   },
                 }}
               >
-                {rockratios?.map((step: StepType) => (
+                {rockratios.data?.map((step: RockRatioType) => (
                   <MenuItem key={step._id} value={step._id}>
                     {step.name}
                   </MenuItem>
@@ -242,7 +243,7 @@ export default function AdjustmentNormKKTModal({
               </Typography>
               <Autocomplete
                 multiple
-                options={assignmentcodes.filter(
+                options={assignmentcodes.data.filter(
                   (opt: AssignmentCodeOutputType) =>
                     !selectedAssignmentCodes.some(
                       (selected) => selected._id === opt._id
@@ -330,7 +331,7 @@ export default function AdjustmentNormKKTModal({
                     <TextField
                       fullWidth
                       value={
-                        assignmentcodes.find(
+                        assignmentcodes.data.find(
                           (ac: AssignmentCodeOutputType) =>
                             ac._id === formik.values.norms[index].assignmentCode
                         )?.code || ""
@@ -351,7 +352,7 @@ export default function AdjustmentNormKKTModal({
                     <TextField
                       fullWidth
                       value={
-                        assignmentcodes.find(
+                        assignmentcodes.data.find(
                           (ac: AssignmentCodeOutputType) =>
                             ac._id === formik.values.norms[index].assignmentCode
                         )?.name || ""
@@ -396,7 +397,7 @@ export default function AdjustmentNormKKTModal({
                           (code) => code._id !== formik.values.norms[index].assignmentCode
                         );
                         setSelectedAssignmentCodes(updatedCodes);
-                        
+
                         const updatedNorms = formik.values.norms.filter(
                           (_, i) => i !== index
                         );

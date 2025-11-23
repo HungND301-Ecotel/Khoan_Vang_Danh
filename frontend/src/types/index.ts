@@ -8,7 +8,7 @@ export interface MaterialFormValues {
   _id?: string;
   code?: string;
   name?: string;
-  uom?: UnitType;   
+  uom?: UnitType;
   quantity?: number;
   currentPrice?: number;
 }
@@ -100,9 +100,9 @@ export interface MaterialAssignmentOutputType {
 export interface MaterialAssignmentInputType {
   _id?: string;
   code?: string;
-  name: string;      
-    quantity?: number;  
-  currentPrice?: number; 
+  name: string;
+  quantity?: number;
+  currentPrice?: number;
   assignmentCode?: string;
   priceHistory: {
     price?: number;
@@ -151,9 +151,9 @@ export interface PhaseOutputType {
   phaseGroup?: PhaseGroupType;
 }
 export interface PhaseInputType {
-   name?: string; 
-    _id?: string;
-phaseGroup: string;
+  name?: string;
+  _id?: string;
+  phaseGroup: string;
   phase: string;
   assignmentNormCode: string;
   production?: number;
@@ -333,7 +333,7 @@ export interface AssignmentNormInputType {
 }
 export interface AssignmentNormOutputType {
   _id?: string;
-   name?: string;
+  name?: string;
   code: string;
   phase?: PhaseInputType;
   phaseGroup?: PhaseGroupType;
@@ -484,7 +484,6 @@ export interface MaterialBudgetOutputType {
 
 export interface MaterialCostUsedInputType {
   _id?: string;
-  code: string;
   productionScope?: string;
   phases: {
     phase: string;
@@ -502,15 +501,17 @@ export interface MaterialCostUsedInputType {
 
 export interface MaterialCostUsedOutputType {
   _id?: string;
-  code: string;
   productionScope?: ProductionScopeOutputType;
   materials: {
-    material?: Materials;
-    quantity: number;
-    cost: number;
+    assignmentCode: AssignmentCodeInputType;
+    materials: {
+      material?: Materials;
+      quantity: number;
+      cost: number;
+    }[]
   }[];
   phases: {
-    phase: PhaseGroupType;
+    phase: PhaseOutputType;
     production: number;
     unit: string;
     assignmentNormCode: string;

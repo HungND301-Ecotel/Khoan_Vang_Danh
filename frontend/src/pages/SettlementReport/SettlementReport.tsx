@@ -49,7 +49,7 @@ export default function SettlementReport() {
     years.push(currentYear - i);
   }
 
-  const { data: phases = [] } = useQuery({
+  const { data: phases = { data: [] } } = useQuery({
     queryKey: ["phases"],
     queryFn: () => api.get("/phases").then((res) => res.data.data),
   });
@@ -183,7 +183,7 @@ export default function SettlementReport() {
                       select
                       variant="outlined"
                     >
-                      {phases?.map((item: PhaseOutputType) => (
+                      {phases?.data?.map((item: PhaseOutputType) => (
                         <MenuItem key={item._id} value={item._id}>
                           {item.name}
                         </MenuItem>
@@ -709,10 +709,10 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -746,10 +746,10 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -783,10 +783,10 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -820,10 +820,10 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -857,10 +857,10 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -894,10 +894,10 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -931,10 +931,10 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -968,10 +968,10 @@ export default function SettlementReport() {
                           index >= 6 && index <= 12
                             ? "#F3D01640"
                             : index >= 13 && index <= 16
-                            ? "#4CAF503D"
-                            : index >= 17 && index <= 18
-                            ? "#FF620040"
-                            : "white",
+                              ? "#4CAF503D"
+                              : index >= 17 && index <= 18
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
                       {index === 0 ? "GL01205VNMM" : ""}
@@ -1065,31 +1065,31 @@ export default function SettlementReport() {
                                 index >= 0 && index <= 6
                                   ? "#F3D01640"
                                   : index >= 7 && index <= 10
-                                  ? "#4CAF503D"
-                                  : index >= 11 && index <= 12
-                                  ? "#FF620040"
-                                  : "white",
+                                    ? "#4CAF503D"
+                                    : index >= 11 && index <= 12
+                                      ? "#FF620040"
+                                      : "white",
                             }}
                           >
                             {index === 0
                               ? data?.assignments.find(
-                                  (i: any) =>
-                                    i._id.toString() ===
-                                    material._id?.toString()
-                                )?.assignmentNorm
+                                (i: any) =>
+                                  i._id.toString() ===
+                                  material._id?.toString()
+                              )?.assignmentNorm
                               : index === 1
-                              ? data?.assignments.find(
+                                ? data?.assignments.find(
                                   (i: any) =>
                                     i._id.toString() ===
                                     material._id?.toString()
                                 )?.adjustmentNorm
-                              : index === 2
-                              ? data?.assignments.find(
-                                  (i: any) =>
-                                    i._id.toString() ===
-                                    material._id?.toString()
-                                )?.totalNorm
-                              : ""}
+                                : index === 2
+                                  ? data?.assignments.find(
+                                    (i: any) =>
+                                      i._id.toString() ===
+                                      material._id?.toString()
+                                  )?.totalNorm
+                                  : ""}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -1178,10 +1178,10 @@ export default function SettlementReport() {
                                   index >= 0 && index <= 6
                                     ? "#F3D01640"
                                     : index >= 7 && index <= 10
-                                    ? "#4CAF503D"
-                                    : index >= 11 && index <= 12
-                                    ? "#FF620040"
-                                    : "white",
+                                      ? "#4CAF503D"
+                                      : index >= 11 && index <= 12
+                                        ? "#FF620040"
+                                        : "white",
                               }}
                             ></TableCell>
                           ))}

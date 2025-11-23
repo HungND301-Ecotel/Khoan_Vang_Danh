@@ -1,6 +1,7 @@
 const RockRatio = require('../model/RockRatio')
 const ExcelJS = require('exceljs')
 const { configExport } = require('../utils/config_export')
+const { paginateQuery } = require('../utils/pagination')
 
 exports.create = async (req, res) => {
     try {
@@ -39,10 +40,16 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await RockRatio.find()
+        let query = {}
+        if (req.query.q) {
+            query.name = new RegExp(req.query.q, 'i')
+        }
+        let queryModel = RockRatio.find(query)
+        const pagination = await paginateQuery(RockRatio, queryModel, query, req.query)
 
-        res.status(200).json({ status: 'success', data: data })
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
+        console.log(err.stack)
         res.status(500).json({ status: 'error', message: err.message })
     }
 }

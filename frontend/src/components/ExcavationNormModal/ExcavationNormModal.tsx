@@ -65,35 +65,35 @@ export default function ExcavationNormModal({
   const [lowerLimitPoint, setLowerLimitPoint] = useState<number | null>(null);
   const [predictingPoint, setPredictingPoint] = useState<number | null>(null);
 
-  const { data: phasegroups = [] } = useQuery({
+  const { data: phasegroups = { data: [] } } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: async () => api.get("/phasegroups").then((res) => res.data.data),
   });
 
-  const { data: phases = [] } = useQuery({
+  const { data: phases = { data: [] } } = useQuery({
     queryKey: ["phases", phaseGroup],
     queryFn: async () =>
       api.get(`/phases?phaseGroup=${phaseGroup}`).then((res) => res.data.data),
     enabled: !!phaseGroup,
   });
 
-  const { data: assignmentcodes = [] } = useQuery({
+  const { data: assignmentcodes = { data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
     queryFn: async () =>
       api.get(`/assignmentcodes`).then((res) => res.data.data),
   });
 
-  const { data: steps = [] } = useQuery({
+  const { data: steps = { data: [] } } = useQuery({
     queryKey: ["steps"],
     queryFn: async () => api.get(`/steps`).then((res) => res.data.data),
   });
 
-  const { data: hardness = [] } = useQuery({
+  const { data: hardness = { data: [] } } = useQuery({
     queryKey: ["hardness"],
     queryFn: async () => api.get(`/hardness`).then((res) => res.data.data),
   });
 
-  const { data: excavationtechs = [] } = useQuery({
+  const { data: excavationtechs = { data: [] } } = useQuery({
     queryKey: ["excavationtechs"],
     queryFn: () => api.get("/excavationtechs").then((res) => res.data.data),
   });
@@ -129,7 +129,7 @@ export default function ExcavationNormModal({
 
   useEffect(() => {
     setPhaseGroup(
-      phasegroups.find(
+      phasegroups.data.find(
         (p: PhaseGroupType) => p.name?.toLowerCase() === "đào lò".toLowerCase()
       )?._id
     );
@@ -158,7 +158,7 @@ export default function ExcavationNormModal({
             assignmentCode: item.assignmentCode._id,
             norm: item.norm,
           })) ||
-        assignmentcodes.map((item: any) => ({
+        assignmentcodes.data.map((item: any) => ({
           assignmentCode: item._id,
           norm: "",
         })),
@@ -181,7 +181,7 @@ export default function ExcavationNormModal({
               assignmentCode: item.assignmentCode._id,
               norm: item.norm,
             })) ||
-          assignmentcodes.map((item: any) => ({
+          assignmentcodes.data.map((item: any) => ({
             assignmentCode: item._id,
             norm: "",
           })),
@@ -237,15 +237,15 @@ export default function ExcavationNormModal({
   }, [formik.values.lowerLimitNorm, existingNorms]);
 
   useEffect(() => {
-    if (assignmentcodes.length === 0) return;
+    // if (assignmentcodes.length === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      const selectedCodes = assignmentcodes.filter((ac: any) =>
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
     } else {
-      setSelectedAssignmentCodes(assignmentcodes);
+      setSelectedAssignmentCodes(assignmentcodes.data);
     }
   }, [selected, assignmentcodes]);
 
@@ -380,7 +380,7 @@ export default function ExcavationNormModal({
               }}
             >
               {phasegroups
-                ?.filter((group: PhaseGroupType | null) => group)
+                ?.data.filter((group: PhaseGroupType | null) => group)
                 .map((group: PhaseGroupType) => (
                   <MenuItem key={group._id} value={group._id}>
                     {group.name}
@@ -426,7 +426,7 @@ export default function ExcavationNormModal({
                 },
               }}
             >
-              {phases?.map((phase: PhaseOutputType) => (
+              {phases?.data.map((phase: PhaseOutputType) => (
                 <MenuItem key={phase._id} value={phase._id}>
                   {phase.name}
                 </MenuItem>
@@ -475,7 +475,7 @@ export default function ExcavationNormModal({
                 },
               }}
             >
-              {excavationtechs?.map((excavationtech: ExcavationTechType) => (
+              {excavationtechs?.data.map((excavationtech: ExcavationTechType) => (
                 <MenuItem key={excavationtech._id} value={excavationtech._id}>
                   {excavationtech.name}
                 </MenuItem>
@@ -866,7 +866,7 @@ export default function ExcavationNormModal({
                     },
                   }}
                 >
-                  {steps?.map((step: StepType) => (
+                  {steps.data?.map((step: StepType) => (
                     <MenuItem key={step._id} value={step._id}>
                       {step.name}
                     </MenuItem>
@@ -920,7 +920,7 @@ export default function ExcavationNormModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Autocomplete
               multiple
-              options={assignmentcodes.filter(
+              options={assignmentcodes.data?.filter(
                 (opt: AssignmentCodeOutputType) =>
                   !selectedAssignmentCodes.some(
                     (selected: AssignmentCodeOutputType) =>
@@ -1013,7 +1013,7 @@ export default function ExcavationNormModal({
                         <TextField
                           fullWidth
                           value={
-                            assignmentcodes.find(
+                            assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode
@@ -1044,7 +1044,7 @@ export default function ExcavationNormModal({
                         <TextField
                           fullWidth
                           value={
-                            assignmentcodes.find(
+                            assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode

@@ -62,29 +62,29 @@ export default function CuttingNormKBModal({
     AssignmentCodeOutputType[]
   >([]);
 
-  const { data: assignmentcodes = [] } = useQuery({
+  const { data: assignmentcodes = { data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
     queryFn: async () =>
       api.get(`/assignmentcodes`).then((res) => res.data.data),
   });
-  const { data: hardness = [] } = useQuery({
+  const { data: hardness = { data: [] } } = useQuery({
     queryKey: ["hardness"],
     queryFn: async () => api.get(`/hardness`).then((res) => res.data.data),
   });
-  const { data: thickness = [] } = useQuery({
+  const { data: thickness = { data: [] } } = useQuery({
     queryKey: ["thickness"],
     queryFn: async () => api.get(`/thickness`).then((res) => res.data.data),
   });
-  const { data: curbslopes = [] } = useQuery({
-    queryKey: ["curbslopes"],
-    queryFn: async () => api.get(`/curbslopes`).then((res) => res.data.data),
+  const { data: length = { data: [] } } = useQuery({
+    queryKey: ["length"],
+    queryFn: async () => api.get(`/length`).then((res) => res.data.data),
   });
 
   const formik = useFormik({
     initialValues: {
       hardness: selected?.hardness?._id || "",
       code: selected?.code || "",
-      curbSlope: selected?.curbSlope?._id || "",
+      length: selected?.length?._id || "",
       thickness: selected?.thickness?._id || "",
       type: "coal_zh",
       norms:
@@ -92,7 +92,7 @@ export default function CuttingNormKBModal({
           assignmentCode: item.assignmentCode?._id,
           norm: item.norm,
         })) ||
-        assignmentcodes.map((item: any) => ({
+        assignmentcodes.data.map((item: any) => ({
           assignmentCode: item._id,
           norm: undefined,
         })),
@@ -114,15 +114,15 @@ export default function CuttingNormKBModal({
   });
 
   useEffect(() => {
-    if (assignmentcodes.length === 0) return;
+    // if (assignmentcodes.length === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      const selectedCodes = assignmentcodes.filter((ac: any) =>
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
     } else {
-      setSelectedAssignmentCodes(assignmentcodes);
+      setSelectedAssignmentCodes(assignmentcodes.data);
     }
   }, [selected, assignmentcodes]);
 
@@ -234,7 +234,7 @@ export default function CuttingNormKBModal({
                 },
               }}
             >
-              {thickness?.map((item: ThicknessType) => (
+              {thickness?.data.map((item: ThicknessType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
                 </MenuItem>
@@ -242,20 +242,20 @@ export default function CuttingNormKBModal({
             </TextField>
           </Box>
 
-          {/* Độ dốc vỉa */}
+          {/* Chiều dài lò */}
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-            Độ dốc vỉa
+            Chiều dài
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <TextField
               select
-              value={formik.values.curbSlope || ""}
+              value={formik.values.length || ""}
               onChange={(event) =>
-                formik.setFieldValue("curbSlope", event.target.value)
+                formik.setFieldValue("length", event.target.value)
               }
               variant="outlined"
               InputProps={{
-                startAdornment: formik.values.curbSlope ? null : (
+                startAdornment: formik.values.length ? null : (
                   <InputAdornment
                     position="start"
                     sx={{ color: "#D9D9D9", ml: "12px" }}
@@ -271,19 +271,17 @@ export default function CuttingNormKBModal({
                   borderRadius: "6px",
                   px: "12px",
                   fontSize: "14px",
-                  backgroundColor: formik.values.curbSlope
-                    ? "#F2F2F2"
-                    : "#FFFFFF",
+                  backgroundColor: formik.values.length ? "#F2F2F2" : "#FFFFFF",
                 },
                 "& .MuiInputBase-input": {
-                  color: formik.values.curbSlope ? "inherit" : "transparent",
+                  color: formik.values.length ? "inherit" : "transparent",
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#D9D9D9",
                 },
               }}
             >
-              {curbslopes?.map((item: LengthType) => (
+              {length?.data.map((item: LengthType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
                 </MenuItem>
@@ -332,7 +330,7 @@ export default function CuttingNormKBModal({
                 },
               }}
             >
-              {hardness?.map((item: HardnessType) => (
+              {hardness?.data.map((item: HardnessType) => (
                 <MenuItem key={item._id} value={item._id}>
                   {item.name}
                 </MenuItem>
@@ -387,7 +385,7 @@ export default function CuttingNormKBModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Autocomplete
               multiple
-              options={assignmentcodes.filter(
+              options={assignmentcodes.data.filter(
                 (opt: AssignmentCodeOutputType) =>
                   !selectedAssignmentCodes.some(
                     (selected) => selected._id === opt._id
@@ -475,7 +473,7 @@ export default function CuttingNormKBModal({
                         <TextField
                           fullWidth
                           value={
-                            assignmentcodes.find(
+                            assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode
@@ -506,7 +504,7 @@ export default function CuttingNormKBModal({
                         <TextField
                           fullWidth
                           value={
-                            assignmentcodes.find(
+                            assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
                                 formik.values.norms[index].assignmentCode

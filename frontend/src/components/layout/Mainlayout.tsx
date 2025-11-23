@@ -252,7 +252,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           }}
         >
           Vật tư, tài sản
-          <ChevronRight className="w-4 h-4" />
         </MenuItem>
 
         <MenuItem

@@ -36,6 +36,7 @@ import { TableProps, Table } from "antd";
 import custom_theme from '../../theme';
 import { parseAxiosError } from "../../utils/handleApiError";
 import PhaseService from "../../service/PhaseService";
+import CustomTable from "../../components/CustomTable/CustomTable";
 
 interface PhaseProps {
   searchValue?: string;
@@ -47,59 +48,27 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
     null
   );
   const [selectedPhases, setSelectedPhases] = useState<React.Key[]>([]);
-  const [localSearchValue, setLocalSearchValue] = useState("");
-  const [isFiltering, setIsFiltering] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
 
-  // Use parent search value if provided, otherwise use local search
-  const effectiveSearchValue = parentSearchValue !== undefined ? parentSearchValue : localSearchValue;
 
   const queryClient = useQueryClient();
 
-  const { data: phases = [], isLoading } = useQuery({
-    queryKey: ["phases"],
+  const { data: phases = {
+    totalDocs: 0,
+    data: []
+  }, isLoading } = useQuery({
+    queryKey: ["phases", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get("/phases");
-        return response.data.data || [];
+        const response = await api.get(`/phases?q=${searchValue}&page=${page}&limit=${limit}`);
+        return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
-        return [];
       }
     },
   });
-
-  // Add filtering delay simulation for better UX
-  useEffect(() => {
-    if (effectiveSearchValue) {
-      setIsFiltering(true);
-      const timer = setTimeout(() => {
-        setIsFiltering(false);
-      }, 300); // Small delay to show loading state
-
-      return () => clearTimeout(timer);
-    } else {
-      setIsFiltering(false);
-    }
-  }, [effectiveSearchValue]);
-
-  // Enhanced filtering with useMemo for performance
-  const filteredPhases = useMemo(() => {
-    if (!effectiveSearchValue.trim()) {
-      return phases;
-    }
-
-    const searchTerm = effectiveSearchValue.toLowerCase().trim();
-
-    return phases.filter((item: PhaseOutputType) => {
-      const code = item.code?.toLowerCase() || "";
-      const name = item.name?.toLowerCase() || "";
-      const phaseGroupName = item.phaseGroup?.name?.toLowerCase() || "";
-
-      return code.includes(searchTerm) ||
-        name.includes(searchTerm) ||
-        phaseGroupName.includes(searchTerm);
-    });
-  }, [phases, effectiveSearchValue]);
 
   const createMutation = useMutation({
     mutationFn: (newPhase: Partial<PhaseInputType>) =>
@@ -211,33 +180,8 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
   };
 
   const handleClearSearch = () => {
-    setLocalSearchValue("");
+    setSearchValue("");
   };
-
-  // Custom empty state component
-  const EmptyState = () => (
-    <Box sx={{ textAlign: 'center', py: 6 }}>
-      <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-        {effectiveSearchValue ? "Không tìm thấy kết quả" : "Chưa có dữ liệu"}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {effectiveSearchValue
-          ? `Không có công đoạn nào phù hợp với "${effectiveSearchValue}"`
-          : "Hiện tại chưa có công đoạn nào được tạo"
-        }
-      </Typography>
-      {effectiveSearchValue && showLocalSearchUI && (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleClearSearch}
-          sx={{ mt: 1 }}
-        >
-          Xóa bộ lọc
-        </Button>
-      )}
-    </Box>
-  );
 
   const columns: TableProps<PhaseOutputType>["columns"] = [
     {
@@ -245,7 +189,7 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã công đoạn</Typography>,
@@ -308,219 +252,215 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
     },
   };
 
-  // Only show search UI if not controlled by parent
-  const showLocalSearchUI = parentSearchValue === undefined;
 
   return (
     <Box>
       <Box mt={3}>
         <Box>
-          {showLocalSearchUI && (
-            <Box sx={{ mb: 2 }}>
-              <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-                <Box display={"flex"} gap={2}>
-                  <Button
-                    variant="contained"
-                    endIcon={<Add />}
-                    onClick={() => handleOpen()}
-                    sx={{
-                      backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                      "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Tạo mới
-                  </Button>
-                  <Button
-                    variant="contained"
-                    endIcon={<Delete />}
-                    onClick={handleDeleteMultiple}
-                    disabled={selectedPhases.length === 0}
-                    sx={{
-                      backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                      "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Xóa ({selectedPhases.length})
-                  </Button>
-                </Box>
-                <Box display={"flex"} flex={1} gap={2}>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FilterList />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                        boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Lọc
-                  </Button>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Tìm kiếm theo mã, tên công đoạn hoặc nhóm công đoạn..."
-                    value={localSearchValue}
-                    onChange={(e) => setLocalSearchValue(e.target.value)}
-                    sx={{
-                      backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
-                      "& .MuiInputBase-root": {
-                        fontSize: "14px",
-                      }
-                    }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          {localSearchValue && (
-                            <IconButton
-                              onClick={handleClearSearch}
-                              size="small"
-                              sx={{ mr: 1 }}
-                            >
-                              ×
-                            </IconButton>
-                          )}
-                          {isFiltering ? (
-                            <CircularProgress size={20} sx={{ mr: 1 }} />
-                          ) : (
-                            <Search sx={{ fontSize: 24 }} />
-                          )}
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
-                <Box display={"flex"} gap={2}>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FileUpload />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                        boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Tải lên
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FileDownload />}
-                    onClick={() => exportExcel.mutate()}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                        boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Xuất file
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<Print />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                        boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    In
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<Mail />}
-                    endIcon={<ArrowDropDown />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                        boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Gửi
-                  </Button>
-                </Box>
+          <Box sx={{ mb: 2 }}>
+            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="contained"
+                  endIcon={<Add />}
+                  onClick={() => handleOpen()}
+                  sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Tạo mới
+                </Button>
+                <Button
+                  variant="contained"
+                  endIcon={<Delete />}
+                  onClick={handleDeleteMultiple}
+                  disabled={selectedPhases.length === 0}
+                  sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
+                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Xóa ({selectedPhases.length})
+                </Button>
+              </Box>
+              <Box display={"flex"} flex={1} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FilterList />}
+                  sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Lọc
+                </Button>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Tìm kiếm theo mã, tên công đoạn hoặc nhóm công đoạn..."
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{
+                    backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
+                    "& .MuiInputBase-root": {
+                      fontSize: "14px",
+                    }
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        {searchValue && (
+                          <IconButton
+                            onClick={handleClearSearch}
+                            size="small"
+                            sx={{ mr: 1 }}
+                          >
+                            ×
+                          </IconButton>
+                        )}
+                        {isLoading && searchValue ? (
+                          <CircularProgress size={20} sx={{ mr: 1 }} />
+                        ) : (
+                          <Search sx={{ fontSize: 24 }} />
+                        )}
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <Box display={"flex"} gap={2}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                  sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Tải lên
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
+                  sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Xuất file
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Print />}
+                  sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  In
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Mail />}
+                  endIcon={<ArrowDropDown />}
+                  sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                    },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Gửi
+                </Button>
               </Box>
             </Box>
-          )}
+          </Box>
 
           {/* Enhanced Search Results Info with Loading State */}
-          {effectiveSearchValue && (
+          {searchValue && (
             <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
               <Typography variant="body2" color="primary">
-                {isFiltering ? (
+                {isLoading && searchValue ? (
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Đang tìm kiếm "{effectiveSearchValue}"...
+                    Đang tìm kiếm "{searchValue}"...
                   </Box>
                 ) : (
                   <>
-                    Tìm thấy {filteredPhases.length} kết quả cho "{effectiveSearchValue}"
-                    {showLocalSearchUI && filteredPhases.length > 0 && (
+                    Tìm thấy {phases.totalDocs} kết quả cho "{searchValue}"
+                    {phases.totalDocs > 0 && (
                       <Button
                         size="small"
                         onClick={handleClearSearch}
@@ -535,32 +475,20 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
             </Box>
           )}
 
-          <Table<PhaseOutputType>
-            rowKey="_id"
-            rowSelection={rowSelection}
-            loading={isLoading || isFiltering}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  {isFiltering ? (
-                    <Typography variant="body2" color="primary">
-                      Đang lọc...
-                    </Typography>
-                  ) : (
-                    `Hiển thị ${range[0]}-${range[1]} trên ${total} mục`
-                  )}
-                </div>
-              ),
-            }}
+          <CustomTable<PhaseOutputType>
+            data={phases.data}
+            total={phases.totalDocs}
+            page={page}
+            limit={limit}
             columns={columns}
-            dataSource={filteredPhases}
-            locale={{
-              emptyText: <EmptyState />
+            rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
             }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
           />
         </Box>
       </Box>

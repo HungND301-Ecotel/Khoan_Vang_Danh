@@ -24,6 +24,7 @@ import {
   AdjustmentNormOutputType,
   HardnessType,
   StepType,
+  RockRatioType,
 } from "../../types";
 import { useQuery } from "@tanstack/react-query";
 import { Divider } from "antd";
@@ -43,16 +44,16 @@ export default function AdjustmentNormKDLModal({
     AssignmentCodeOutputType[]
   >([]);
 
-  const { data: assignmentcodes = [] } = useQuery({
+  const { data: assignmentcodes = { totalDocs: 0, data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
     queryFn: async () =>
       api.get(`/assignmentcodes`).then((res) => res.data.data),
   });
-  const { data: rockratios = [] } = useQuery({
+  const { data: rockratios = { data: [] } } = useQuery({
     queryKey: ["rockratios"],
     queryFn: async () => api.get(`/rockratios`).then((res) => res.data.data),
   });
-  const { data: hardness = [] } = useQuery({
+  const { data: hardness = { totalDocs: 0, data: [] } } = useQuery({
     queryKey: ["hardness"],
     queryFn: async () => api.get(`/hardness`).then((res) => res.data.data),
   });
@@ -80,10 +81,10 @@ export default function AdjustmentNormKDLModal({
   });
 
   useEffect(() => {
-    if (assignmentcodes.length === 0) return;
+    // if (assignmentcodes.totalDocs === 0) return;
 
     if (selected && selected.norms.length > 0) {
-      const selectedCodes = assignmentcodes.filter((ac: any) =>
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
@@ -201,7 +202,7 @@ export default function AdjustmentNormKDLModal({
                   },
                 }}
               >
-                {hardness?.map((item: HardnessType) => (
+                {hardness?.data.map((item: HardnessType) => (
                   <MenuItem key={item._id} value={item._id}>
                     {item.name}
                   </MenuItem>
@@ -233,7 +234,7 @@ export default function AdjustmentNormKDLModal({
                   },
                 }}
               >
-                {rockratios?.map((step: StepType) => (
+                {rockratios?.data.map((step: RockRatioType) => (
                   <MenuItem key={step._id} value={step._id}>
                     {step.name}
                   </MenuItem>
@@ -246,7 +247,7 @@ export default function AdjustmentNormKDLModal({
               </Typography>
               <Autocomplete
                 multiple
-                options={assignmentcodes.filter(
+                options={assignmentcodes.data.filter(
                   (opt: AssignmentCodeOutputType) =>
                     !selectedAssignmentCodes.some(
                       (selected) => selected._id === opt._id
@@ -334,7 +335,7 @@ export default function AdjustmentNormKDLModal({
                     <TextField
                       fullWidth
                       value={
-                        assignmentcodes.find(
+                        assignmentcodes.data.find(
                           (ac: AssignmentCodeOutputType) =>
                             ac._id === formik.values.norms[index].assignmentCode
                         )?.code || ""
@@ -355,7 +356,7 @@ export default function AdjustmentNormKDLModal({
                     <TextField
                       fullWidth
                       value={
-                        assignmentcodes.find(
+                        assignmentcodes.data.find(
                           (ac: AssignmentCodeOutputType) =>
                             ac._id === formik.values.norms[index].assignmentCode
                         )?.name || ""
@@ -400,7 +401,7 @@ export default function AdjustmentNormKDLModal({
                           (code) => code._id !== formik.values.norms[index].assignmentCode
                         );
                         setSelectedAssignmentCodes(updatedCodes);
-                        
+
                         const updatedNorms = formik.values.norms.filter(
                           (_, i) => i !== index
                         );

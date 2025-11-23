@@ -42,7 +42,7 @@ export default function ProductionScopeModal({
 }) {
   const [selectedPhases, setSelectedPhases] = useState<PhaseGroupType[]>([]);
 
-  const { data: phasegroups = [] } = useQuery({
+  const { data: phasegroups = { totalDocs: 0, data: [] } } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: async () => api.get(`/phasegroups`).then((res) => res.data.data),
   });
@@ -65,10 +65,10 @@ export default function ProductionScopeModal({
   });
 
   useEffect(() => {
-    if (phasegroups.length === 0) return;
+    // if (phasegroups.totalDocs === 0) return;
 
     if (selected && selected.phases.length > 0) {
-      const selectedCodes = phasegroups.filter((ac: any) =>
+      const selectedCodes = phasegroups.data.filter((ac: any) =>
         selected.phases.some((norm) => norm.phase?._id === ac._id)
       );
       setSelectedPhases(selectedCodes);
@@ -199,7 +199,7 @@ export default function ProductionScopeModal({
                 </Typography>
                 <Autocomplete
                   multiple
-                  options={phasegroups.filter(
+                  options={phasegroups.data.filter(
                     (opt: PhaseGroupType) =>
                       !selectedPhases.some(
                         (selected) => selected._id === opt._id
@@ -244,7 +244,7 @@ export default function ProductionScopeModal({
                     sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
                   >
                     {formik.values.phases.map((item: any, index: number) => {
-                      const phase = phasegroups.find(
+                      const phase = phasegroups.data.find(
                         (pg: PhaseGroupType) => pg._id === item.phase
                       );
                       return (

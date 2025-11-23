@@ -1,4 +1,5 @@
 const Hardness = require('../model/Hardness')
+const { paginateQuery } = require('../utils/pagination')
 
 
 exports.create = async (req, res) => {
@@ -38,9 +39,14 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await Hardness.find()
+        let query = {}
+        if (req.query.q) {
+            query.name = new RegExp(req.query.q, 'i')
+        }
+        const modelQuery = Hardness.find(query)
+        const pagination = await paginateQuery(Hardness, modelQuery, query, req.query)
 
-        res.status(200).json({ status: 'success', data: data })
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }

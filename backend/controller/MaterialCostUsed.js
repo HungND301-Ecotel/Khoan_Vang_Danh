@@ -1,27 +1,48 @@
 const MaterialCostUsed = require('../model/MaterialCostUsed')
 const MaterialAssignment = require('../model/MaterialAssignment')
 const MaterialBudget = require('../model/MaterialBudget')
+const ProductionScope = require('../model/ProductionScope')
+const { paginateQuery } = require('../utils/pagination')
 
 exports.create = async (req, res) => {
     try {
         const { code, productionScope, phases, materials } = req.body
-        const newMaterialCostUsed = new MaterialCostUsed({ code, productionScope, phases, materials })
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const processedMaterials = materials.map(async (doc) => {
+            const material = await MaterialAssignment.findById(doc?.material)
+            let currentPrice = null;
+
+            if (material && Array.isArray(material.priceHistory)) {
+                const matched = material.priceHistory.find(priceItem =>
+                    todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
+                );
+
+                if (matched) currentPrice = matched.price;
+            }
+
+            return {
+                ...doc,
+                cost: currentPrice * doc.quantity || 0,
+            };
+        })
+        const newMaterialCostUsed = new MaterialCostUsed({ code, productionScope, phases, processedMaterials })
         await newMaterialCostUsed.save()
 
-        let i = 0
-        for (const p of phases) {
-            newMaterialBudget = new MaterialBudget({
-                code: code + i,
-                phase: p.phase,
-                assignmentNormCode: p.assignmentNormCode,
-                adjustmentNormCode: p.adjustmentNormCode,
-                production: p.production
-            })
+        // let i = 0
+        // for (const p of phases) {
+        //     newMaterialBudget = new MaterialBudget({
+        //         code: code + i,
+        //         phase: p.phase,
+        //         assignmentNormCode: p.assignmentNormCode,
+        //         adjustmentNormCode: p.adjustmentNormCode,
+        //         production: p.production
+        //     })
 
-            i++
+        //     i++
 
-            await newMaterialBudget.save()
-        }
+        //     await newMaterialBudget.save()
+        // }
 
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
     } catch (err) {
@@ -55,7 +76,13 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await MaterialCostUsed.find()
+        let query = {}
+        if (req.query.q) {
+            const productionScopes = await ProductionScope.find({ code: new RegExp(req.query.q, 'i') })
+            const productionScopeIds = productionScopes.map(i => i._id)
+            query.productionScope = { $in: productionScopeIds }
+        }
+        const modelQuery = MaterialCostUsed.find(query)
             .populate({
                 path: 'productionScope',
                 populate: 'phases.phase'
@@ -63,15 +90,25 @@ exports.get = async (req, res) => {
             .populate('phases.phase', 'code name')
             .populate({
                 path: 'materials.material',
-                populate: 'uom'
+                populate: [
+                    { path: 'uom', select: 'name' },
+                    {
+                        path: 'assignmentCode', select: 'code name uom',
+                        populate: 'uom'
+                    }
+                ]
             })
+        const pagination = await paginateQuery(MaterialCostUsed, modelQuery, query, req.query)
+
         const todayStr = new Date().toISOString().split('T')[0];
 
-        const processedData = data.map((doc) => {
+        pagination.data = pagination.data.map((doc) => {
             const docObj = doc.toObject();
-
+            const groupMap = {};
             docObj.materials = docObj.materials.map((mat) => {
                 const material = mat.material;
+
+                const assignmentCode = material?.assignmentCode?.code || "";
 
                 let currentPrice = null;
 
@@ -83,22 +120,29 @@ exports.get = async (req, res) => {
                     if (matched) currentPrice = matched.price;
                 }
 
-                return {
+                if (!groupMap[assignmentCode]) {
+                    groupMap[assignmentCode] = {
+                        assignmentCode: material.assignmentCode,
+                        materials: []
+                    };
+                }
+                groupMap[assignmentCode].materials.push({
                     ...mat,
-                    cost: currentPrice * mat.quantity || 0,
+                    cost: (currentPrice || 0) * mat.quantity,
                     material: {
                         ...material,
                         currentPrice
                     }
-                };
+                });
             });
-
+            docObj.materials = Object.values(groupMap);
             return docObj;
         });
 
 
-        res.status(200).json({ status: 'success', data: processedData })
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
-        res.status(500).json({ status: 'error', message: err.stack })
+        console.log(err.stack)
+        res.status(500).json({ status: 'error', message: err.message })
     }
 }
