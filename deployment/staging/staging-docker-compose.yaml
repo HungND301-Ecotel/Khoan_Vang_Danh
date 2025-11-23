@@ -29,8 +29,6 @@ services:
         max-file: "3"
 
   kvd_Frontend_service:
-    env_file:
-      - ./frontend/.env
     image: ${REGISTRY}/kvd_ecotel_frontend_img:${VERSION}
     # target: development
     stdin_open: true
@@ -55,7 +53,7 @@ services:
   
   kvd_Backend_service:
     env_file:
-      - ./backend/.env
+      - .env_backend
     image: ${REGISTRY}/kvd_ecotel_backend_img:${VERSION}
     build:
       context: ./backend
