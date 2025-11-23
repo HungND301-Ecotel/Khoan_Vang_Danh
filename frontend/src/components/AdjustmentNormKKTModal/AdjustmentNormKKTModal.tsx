@@ -89,7 +89,7 @@ export default function AdjustmentNormKKTModal({
       );
       setSelectedAssignmentCodes(selectedCodes);
     }
-  }, [selected, assignmentcodes]);
+  }, [selected, assignmentcodes.data]);
 
   const handleClose = () => {
     formik.resetForm();

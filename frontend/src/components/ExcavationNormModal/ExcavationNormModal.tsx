@@ -155,13 +155,13 @@ export default function ExcavationNormModal({
         selected?.norms
           ?.filter((item) => item.assignmentCode?._id)
           .map((item) => ({
-            assignmentCode: item.assignmentCode._id,
+            assignmentCode: item.assignmentCode._id ?? '',
             norm: item.norm,
-          })) ||
-        assignmentcodes.data.map((item: any) => ({
-          assignmentCode: item._id,
-          norm: "",
-        })),
+          })) || []
+      // assignmentcodes.data.map((item: any) => ({
+      //   assignmentCode: item._id,
+      //   norm: "",
+      // })),
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
@@ -175,16 +175,12 @@ export default function ExcavationNormModal({
           | "coal_zh"
           | "coal_zry",
         norms:
-          selected?.norms
-            ?.filter((item) => item.assignmentCode?._id)
+          values?.norms
+            ?.filter((item) => item.assignmentCode && item.norm)
             .map((item) => ({
-              assignmentCode: item.assignmentCode._id,
-              norm: item.norm,
-            })) ||
-          assignmentcodes.data.map((item: any) => ({
-            assignmentCode: item._id,
-            norm: "",
-          })),
+              assignmentCode: item.assignmentCode,
+              norm: item?.norm,
+            }))
       });
     },
   });
@@ -244,10 +240,8 @@ export default function ExcavationNormModal({
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
-    } else {
-      setSelectedAssignmentCodes(assignmentcodes.data);
     }
-  }, [selected, assignmentcodes]);
+  }, [selected, assignmentcodes.data]);
 
   // Khi interpolatedNorm thay đổi, tự động cập nhật toàn bộ định mức
   useEffect(() => {
@@ -275,6 +269,7 @@ export default function ExcavationNormModal({
 
   const handleClose = () => {
     formik.resetForm();
+    setSelectedAssignmentCodes([])
     setShowAdditionalRows(false);
     setUpperLimitFirstNorm(null);
     setLowerLimitFirstNorm(null);

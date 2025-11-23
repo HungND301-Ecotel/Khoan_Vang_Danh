@@ -9,24 +9,28 @@ exports.create = async (req, res) => {
         const { code, productionScope, phases, materials } = req.body
         const todayStr = new Date().toISOString().split('T')[0];
 
-        const processedMaterials = materials.map(async (doc) => {
-            const material = await MaterialAssignment.findById(doc?.material)
-            let currentPrice = null;
+        const processedMaterials = await Promise.all(
+            materials.map(async (doc) => {
+                const material = await MaterialAssignment.findById(doc?.material);
+                let currentPrice = null;
 
-            if (material && Array.isArray(material.priceHistory)) {
-                const matched = material.priceHistory.find(priceItem =>
-                    todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
-                );
+                if (material && Array.isArray(material.priceHistory)) {
+                    const matched = material.priceHistory.find(priceItem =>
+                        todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
+                    );
 
-                if (matched) currentPrice = matched.price;
-            }
+                    if (matched) currentPrice = matched.price;
+                }
 
-            return {
-                ...doc,
-                cost: currentPrice * doc.quantity || 0,
-            };
-        })
-        const newMaterialCostUsed = new MaterialCostUsed({ code, productionScope, phases, processedMaterials })
+                return {
+                    material: doc.material,
+                    quantity: Number(doc.quantity),
+                    cost: (currentPrice || 0) * Number(doc.quantity || 0)
+                };
+            })
+        );
+
+        const newMaterialCostUsed = new MaterialCostUsed({ code, productionScope, phases, materials: processedMaterials })
         await newMaterialCostUsed.save()
 
         // let i = 0
@@ -122,7 +126,7 @@ exports.get = async (req, res) => {
 
                 if (!groupMap[assignmentCode]) {
                     groupMap[assignmentCode] = {
-                        assignmentCode: material.assignmentCode,
+                        assignmentCode: material?.assignmentCode,
                         materials: []
                     };
                 }

@@ -93,7 +93,7 @@ export default function MaterialCostUsedModal({
       phases: (selected?.phases || []).map((p: any) => ({
         phase: p.phase?._id ? String(p.phase._id) : "",
         production: Number(p.production ?? 0),                 // CHANGED
-        unit: p.phase?.unit ?? '',                            // CHANGED
+        unit: p.phase?.unit ?? (p.phase?.name?.toLowerCase()?.includes('khấu than') ? 'tấn' : 'mét'),                            // CHANGED
         assignmentNormCode: p.assignmentNormCode ?? "",        // CHANGED
         adjustmentNormCode: p.adjustmentNormCode ?? "",        // CHANGED
       })),
@@ -102,11 +102,11 @@ export default function MaterialCostUsedModal({
           group.materials.map(mat => ({
             material: mat.material?._id ? String(mat.material._id) : "",
             quantity: mat.quantity
-          }))) ||
-        materialassignments.data.map((item: Materials) => ({
-          material: item._id ? String(item._id) : "",
-          quantity: undefined as unknown as number,
-        })),
+          }))) || []
+      // materialassignments.data.map((item: Materials) => ({
+      //   material: item._id ? String(item._id) : "",
+      //   quantity: undefined as unknown as number,
+      // })),
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
@@ -140,13 +140,12 @@ export default function MaterialCostUsedModal({
         )
       );
       setSelectedMaterials(selectedCodes);
-    } else {
-      setSelectedMaterials(materialassignments.data);
     }
   }, [selected, materialassignments]);
 
   const handleClose = () => {
     formik.resetForm();
+    setSelectedMaterials([])
     setOpen(false);
   };
 
@@ -282,7 +281,7 @@ export default function MaterialCostUsedModal({
                   const mappedPhases = scope.phases.map((ph: any) => ({
                     phase: ph.phase?._id ?? "",
                     production: 0,               // CHANGED
-                    unit: "",                    // CHANGED
+                    unit: ph.phase?.name.toLowerCase().includes('khấu than') ? 'tấn' : 'mét',                    // CHANGED
                     assignmentNormCode: "",
                     adjustmentNormCode: "",
                   }));
@@ -465,7 +464,7 @@ export default function MaterialCostUsedModal({
                             fullWidth
                             type="text"                                   // CHANGED
                             name={`phases[${index}].unit`}                 // CHANGED
-                            value={phase?.name.toLowerCase().includes('khấu than') ? 'tấn' : 'mét'}
+                            value={formik.values.phases[index]?.unit}
                             onChange={(e) =>
                               formik.setFieldValue(
                                 `phases[${index}].unit`,

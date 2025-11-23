@@ -499,6 +499,8 @@ export default function CoalCuttingNormZRY() {
           setOpen={setOpen}
           handleSubmit={handleSubmit}
           selected={selected}
+          hasExistingRecords={assignmentnorms.totalDocs > 1}
+          existingNorms={assignmentnorms.data}
         />
       </Box>
     </Box>

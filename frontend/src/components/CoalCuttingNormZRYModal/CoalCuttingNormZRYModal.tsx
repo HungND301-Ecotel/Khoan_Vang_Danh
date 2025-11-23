@@ -4,11 +4,13 @@ import {
   Box,
   Breadcrumbs,
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
+  FormControlLabel,
   Grid,
   IconButton,
   InputAdornment,
@@ -40,15 +42,30 @@ export default function CuttingNormZRYModal({
   setOpen,
   handleSubmit,
   selected,
+  hasExistingRecords,
+  existingNorms,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<AssignmentNormInputType>) => void;
   selected: AssignmentNormOutputType | null;
+  hasExistingRecords: boolean;
+  existingNorms: AssignmentNormOutputType[];
 }) {
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<
     AssignmentCodeOutputType[]
   >([]);
+  const [showAdditionalRows, setShowAdditionalRows] = useState(false);
+  // interpolation states (mirrors ExcavationNormModal behavior)
+  const [upperLimitFirstNorm, setUpperLimitFirstNorm] = useState<number | null>(
+    null
+  );
+  const [lowerLimitFirstNorm, setLowerLimitFirstNorm] = useState<number | null>(
+    null
+  );
+  const [upperLimitPoint, setUpperLimitPoint] = useState<number | null>(null);
+  const [lowerLimitPoint, setLowerLimitPoint] = useState<number | null>(null);
+  const [predictingPoint, setPredictingPoint] = useState<number | null>(null);
 
   const { data: assignmentcodes = { data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
@@ -75,15 +92,18 @@ export default function CuttingNormZRYModal({
       length: selected?.length?._id || "",
       thickness: selected?.thickness?._id || "",
       type: "coal_zry",
+      interpolationMethod: "",
+      predictingPoint: "",
+      upperLimitNorm: "",
+      upperLimitPoint: "",
+      lowerLimitNorm: "",
+      lowerLimitPoint: "",
+      interpolatedNorm: "",
       norms:
         selected?.norms?.map((item) => ({
-          assignmentCode: item.assignmentCode?._id,
+          assignmentCode: item.assignmentCode?._id ?? '',
           norm: item.norm,
-        })) ||
-        assignmentcodes.data.map((item: any) => ({
-          assignmentCode: item._id,
-          norm: undefined,
-        })),
+        })) || []
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
@@ -96,6 +116,13 @@ export default function CuttingNormZRYModal({
           | "coal_kb"
           | "coal_zh"
           | "coal_zry",
+        norms:
+          values?.norms
+            ?.filter((item) => item.assignmentCode && item.norm)
+            .map((item) => ({
+              assignmentCode: item.assignmentCode,
+              norm: item?.norm,
+            }))
       });
     },
   });
@@ -107,12 +134,107 @@ export default function CuttingNormZRYModal({
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
-    } else {
-      setSelectedAssignmentCodes(assignmentcodes.data);
     }
-  }, [selected, assignmentcodes]);
+  }, [selected, assignmentcodes.data]);
+  // Effect to set upperLimitFirstNorm when an upper limit norm (existing norm) is chosen
+  useEffect(() => {
+    if (formik.values.upperLimitNorm && existingNorms) {
+      const selectedNorm = existingNorms.find(
+        (norm) => norm._id === formik.values.upperLimitNorm
+      );
+      if (selectedNorm && selectedNorm.norms && selectedNorm.norms.length > 0) {
+        const firstNorm = selectedNorm.norms[0]?.norm;
+        setUpperLimitFirstNorm(firstNorm ?? null);
+      } else {
+        setUpperLimitFirstNorm(null);
+      }
+    } else {
+      setUpperLimitFirstNorm(null);
+    }
+  }, [formik.values.upperLimitNorm, existingNorms]);
+
+  // Effect to set lowerLimitFirstNorm and prefill norms when a lower limit norm is chosen
+  useEffect(() => {
+    if (formik.values.lowerLimitNorm && existingNorms) {
+      const selectedNorm = existingNorms.find(
+        (norm) => norm._id === formik.values.lowerLimitNorm
+      );
+      if (selectedNorm && selectedNorm.norms && selectedNorm.norms.length > 0) {
+        const firstNorm = selectedNorm.norms[0]?.norm;
+        setLowerLimitFirstNorm(firstNorm ?? null);
+
+        // Prefill all assignment codes norms from selected lower-limit existing norm
+        const updatedNorms = formik.values.norms.map((item: any) => {
+          const matchingNorm = selectedNorm.norms.find(
+            (n) => n.assignmentCode?._id === item.assignmentCode
+          );
+          return {
+            assignmentCode: item.assignmentCode,
+            norm: matchingNorm?.norm ?? item.norm,
+          };
+        });
+        formik.setFieldValue("norms", updatedNorms);
+      } else {
+        setLowerLimitFirstNorm(null);
+      }
+    } else {
+      setLowerLimitFirstNorm(null);
+    }
+  }, [formik.values.lowerLimitNorm, existingNorms]);
+
+  useEffect(() => {
+    // if (!assignmentcodes || assignmentcodes.totalDocs === 0) return;
+
+    // Mỗi khi selectedAssignmentCodes thay đổi → cập nhật lại formik.norms
+    const updatedNorms = selectedAssignmentCodes.map((item: any) => {
+      const existing = formik.values.norms.find(
+        (n: any) => n.assignmentCode === item._id
+      );
+      return {
+        assignmentCode: item._id,
+        norm: existing?.norm ?? undefined,
+      };
+    });
+
+    formik.setFieldValue("norms", updatedNorms);
+  }, [selectedAssignmentCodes]);
+
+  // Interpolation helper: compute interpolated norm and set to formik
+  const handleInterpolationChange = (next?: {
+    lowerLimitPoint?: number | null;
+    upperLimitPoint?: number | null;
+    lowerLimitFirstNorm?: number | null;
+    upperLimitFirstNorm?: number | null;
+    predictingPoint?: number | null;
+  }) => {
+    const x1 = next?.lowerLimitPoint ?? lowerLimitPoint;
+    const y1 = next?.lowerLimitFirstNorm ?? lowerLimitFirstNorm;
+    const x2 = next?.upperLimitPoint ?? upperLimitPoint;
+    const y2 = next?.upperLimitFirstNorm ?? upperLimitFirstNorm;
+    const x = next?.predictingPoint ?? predictingPoint;
+
+    if (
+      x1 != null &&
+      y1 != null &&
+      x2 != null &&
+      y2 != null &&
+      x != null &&
+      x2 !== x1
+    ) {
+      const interpolated = y1 + ((x - x1) * (y2 - y1)) / (x2 - x1);
+      const rounded = Number(interpolated.toFixed(2));
+      formik.setFieldValue("interpolatedNorm", rounded);
+    } else {
+      formik.setFieldValue("interpolatedNorm", "");
+    }
+  };
+
   const handleClose = () => {
     formik.resetForm();
+    setSelectedAssignmentCodes([])
+    setShowAdditionalRows(false);
+    setUpperLimitFirstNorm(null);
+    setLowerLimitFirstNorm(null);
     setOpen(false);
   };
 
@@ -348,7 +470,294 @@ export default function CuttingNormZRYModal({
               }}
             />
           </Box>
+          {hasExistingRecords &&
+            selectedAssignmentCodes &&
+            selectedAssignmentCodes.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={showAdditionalRows}
+                      onChange={(e) => setShowAdditionalRows(e.target.checked)}
+                      sx={{
+                        color: "#007BFF",
+                        "&.Mui-checked": {
+                          color: "#007BFF",
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography sx={{ fontSize: "14px" }}>
+                      Tạo định mức bảng phương pháp nội suy
+                    </Typography>
+                  }
+                  sx={{ width: "700px" }}
+                />
+              </Box>
+            )}
 
+          {/* Additional rows - shown when checkbox is checked */}
+          {showAdditionalRows && (
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "center" }}>
+                <Grid container spacing={2} sx={{ width: "700px" }}>
+                  {/* Điểm nội suy */}
+                  <Grid item xs={12}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Điểm nội suy
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      value={formik.values.predictingPoint || ""}
+                      placeholder="Input Text"
+                      onChange={(event) => {
+                        const value =
+                          event.target.value === ""
+                            ? null
+                            : Number(event.target.value);
+                        formik.setFieldValue("predictingPoint", value);
+                        setPredictingPoint(value);
+                        handleInterpolationChange({
+                          predictingPoint: value,
+                        });
+                      }}
+                      variant="outlined"
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& input::placeholder": {
+                          color: "#D9D9D9",
+                          opacity: 1,
+                        },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Định mức cận trên */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Định mức cận trên
+                    </Typography>
+                    <TextField
+                      select
+                      fullWidth
+                      value={formik.values.upperLimitNorm || ""}
+                      onChange={(event) =>
+                        formik.setFieldValue(
+                          "upperLimitNorm",
+                          event.target.value
+                        )
+                      }
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: formik.values.upperLimitNorm ? null : (
+                          <InputAdornment
+                            position="start"
+                            sx={{ color: "#D9D9D9", ml: "12px" }}
+                          >
+                            Placeholder
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& .MuiInputBase-input": {
+                          color: formik.values.upperLimitNorm
+                            ? "inherit"
+                            : "transparent",
+                        },
+                        "& .MuiOutlinedInput-notchedOutline": {
+                          borderColor: formik.values.upperLimitNorm
+                            ? "inherit"
+                            : "#D9D9D9",
+                        },
+                      }}
+                    >
+                      {(existingNorms || []).map((norm) => (
+                        <MenuItem key={norm._id} value={norm._id}>
+                          {norm.code}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+
+                  {/* Điểm cận trên */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Điểm cận trên
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      value={formik.values.upperLimitPoint || ""}
+                      placeholder="Input Text"
+                      onChange={(event) => {
+                        const value =
+                          event.target.value === ""
+                            ? null
+                            : Number(event.target.value);
+                        formik.setFieldValue("upperLimitPoint", value);
+                        setUpperLimitPoint(value);
+                        handleInterpolationChange({
+                          upperLimitPoint: value,
+                        });
+                      }}
+                      variant="outlined"
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& input::placeholder": {
+                          color: "#D9D9D9",
+                          opacity: 1,
+                        },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Định mức cận dưới */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Định mức cận dưới
+                    </Typography>
+                    <TextField
+                      select
+                      fullWidth
+                      value={formik.values.lowerLimitNorm || ""}
+                      onChange={(event) => {
+                        formik.setFieldValue(
+                          "lowerLimitNorm",
+                          event.target.value
+                        );
+                      }}
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: formik.values.lowerLimitNorm ? null : (
+                          <InputAdornment
+                            position="start"
+                            sx={{ color: "#D9D9D9", ml: "12px" }}
+                          >
+                            Placeholder
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& .MuiInputBase-input": {
+                          color: formik.values.lowerLimitNorm
+                            ? "inherit"
+                            : "transparent",
+                        },
+                        "& .MuiOutlinedInput-notchedOutline": {
+                          borderColor: formik.values.lowerLimitNorm
+                            ? "inherit"
+                            : "#D9D9D9",
+                        },
+                      }}
+                    >
+                      {(existingNorms || []).map((norm) => (
+                        <MenuItem key={norm._id} value={norm._id}>
+                          {norm.code}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+
+                  {/* Điểm cận dưới */}
+                  <Grid item xs={6}>
+                    <Typography
+                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                    >
+                      Điểm cận dưới
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      value={formik.values.lowerLimitPoint || ""}
+                      placeholder="Input Text"
+                      onChange={(event) => {
+                        const value =
+                          event.target.value === ""
+                            ? null
+                            : Number(event.target.value);
+                        formik.setFieldValue("lowerLimitPoint", value);
+                        setLowerLimitPoint(value);
+                        handleInterpolationChange({
+                          lowerLimitPoint: value,
+                        });
+                      }}
+                      variant="outlined"
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          height: "32px",
+                          borderRadius: "6px",
+                          px: "12px",
+                          fontSize: "14px",
+                        },
+                        "& input::placeholder": {
+                          color: "#D9D9D9",
+                          opacity: 1,
+                        },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Interpolated norm */}
+                  {/* <Grid item xs={12}>
+                            <Typography
+                              sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                            >
+                              Kết quả định mức nội suy
+                            </Typography>
+                            <TextField
+                              fullWidth
+                              value={formik.values.interpolatedNorm || ""}
+                              placeholder="Tự động tính toán khi đủ dữ liệu"
+                              disabled
+                              variant="outlined"
+                              sx={{
+                                "& .MuiInputBase-root": {
+                                  height: "32px",
+                                  borderRadius: "6px",
+                                  px: "12px",
+                                  fontSize: "14px",
+                                  backgroundColor: "#f5f5f5",
+                                },
+                                "& input::placeholder": {
+                                  color: "#999",
+                                  opacity: 1,
+                                },
+                              }}
+                            />
+                          </Grid> */}
+                </Grid>
+              </Box>
+            </Box>
+          )}
           <Divider
             sx={{
               mt: "12px",

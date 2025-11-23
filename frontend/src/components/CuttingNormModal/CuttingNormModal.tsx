@@ -115,13 +115,10 @@ export default function CuttingNormModal({
       norms:
         selected?.norms && selected.norms.length > 0
           ? selected.norms.map((item) => ({
-            assignmentCode: item.assignmentCode?._id,
+            assignmentCode: item.assignmentCode?._id ?? '',
             norm: item.norm,
           }))
-          : assignmentcodes.data.map((item: any) => ({
-            assignmentCode: item._id,
-            norm: undefined,
-          })),
+          : []
     },
     enableReinitialize: true,
     onSubmit: async (values) => {
@@ -134,6 +131,13 @@ export default function CuttingNormModal({
           | "coal_kb"
           | "coal_zh"
           | "coal_zry",
+        norms:
+          values?.norms
+            ?.filter((item) => item.assignmentCode && item.norm)
+            .map((item) => ({
+              assignmentCode: item.assignmentCode,
+              norm: item?.norm,
+            }))
       });
     },
   });
@@ -145,11 +149,8 @@ export default function CuttingNormModal({
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
       );
       setSelectedAssignmentCodes(selectedCodes);
-    } else {
-      // For Cutting modal: default to selecting all assignment codes so checkbox shows
-      setSelectedAssignmentCodes(assignmentcodes.data);
     }
-  }, [selected, assignmentcodes]);
+  }, [selected, assignmentcodes.data]);
 
   // Effect to set upperLimitFirstNorm when an upper limit norm (existing norm) is chosen
   useEffect(() => {
@@ -246,6 +247,7 @@ export default function CuttingNormModal({
 
   const handleClose = () => {
     formik.resetForm();
+    setSelectedAssignmentCodes([])
     setShowAdditionalRows(false);
     setUpperLimitFirstNorm(null);
     setLowerLimitFirstNorm(null);
