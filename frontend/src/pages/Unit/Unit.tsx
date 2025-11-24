@@ -19,7 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import UnitModal from "../../components/UnitModal/UnitModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UnitType } from "../../types";
@@ -65,6 +65,26 @@ export default function Unit() {
     onError: (error: any) => {
       console.log(error.response.data.message || error.response || "Lỗi");
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
+    },
+  });
+
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      UnitService.importFile(formData, setProgress),
+    onMutate: () => {
+      setIsUploading(true);
+      setProgress(0); // Reset tiến trình khi bắt đầu
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["units"] });
+      setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
     },
   });
 
@@ -174,6 +194,11 @@ export default function Unit() {
   const handleClearSearch = () => {
     setSearchValue("");
   };
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => {
+    // Gọi trực tiếp click() trên phần tử input bị ẩn
+    fileInputRef.current?.click();
+  };
   return (
     <Box sx={{
       px: 5,           // horizontal = 32px
@@ -269,28 +294,48 @@ export default function Unit() {
                 />
               </Box>
               <Box display={"flex"} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileUpload />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
+                <input
+                  ref={fileInputRef}
+                  id="upload-excel"
+                  type="file"
+                  accept=".xlsx, .xls"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      importFile.mutate(formData);
+                    }
+                    e.target.value = "";
                   }}
-                >
-                  Tải lên
-                </Button>
+                />
+
+                <label htmlFor="upload-excel">
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<FileUpload />}
+                    onClick={handleUploadClick}
+                    sx={{
+                      border: "none",
+                      boxShadow: custom_theme.customShadows.tableFunctional,
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                        boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    Tải lên
+                  </Button>
+                </label>
                 <Button
                   variant="outlined"
                   color="inherit"

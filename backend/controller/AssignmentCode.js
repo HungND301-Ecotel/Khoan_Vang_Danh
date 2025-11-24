@@ -72,6 +72,101 @@ exports.get = async (req, res) => {
     }
 }
 
+const columnMapping = {
+    'Thiết bị': 'deviceCode',
+    'Mã giao khoán': 'code',
+    'Tên giao khoán': 'name',
+    'ĐVT': 'uom',
+    'Đơn giá': 'price'
+};
+exports.import = async (req, res) => {
+    try {
+        const user = req.user;
+        if (!req.file) {
+            return res.status(400).json({ status: 'error', message: 'Vui lòng chọn file' });
+        }
+
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        const headers = xlsx.utils.sheet_to_json(worksheet, { header: 1, range: 0, raw: true })[0];
+        const mappedHeaders = headers.map(header => columnMapping[header] || header);
+        const data = xlsx.utils.sheet_to_json(worksheet, { header: mappedHeaders, range: 1 });
+        const dataImport = data.filter(row => row.code && row.name);
+
+        if (dataImport.length === 0) {
+            return res.status(400).json({ status: 'error', message: 'Không tìm thấy dữ liệu hợp lệ trong file.' });
+        }
+        const uniqueDeviceCodes = [...new Set(dataImport.map(d => d.deviceCode).filter(Boolean))];
+        const uniqueUnits = [...new Set(dataImport.map(d => d.uom).filter(Boolean))]
+
+        const [exitingDeviceCodes, exitingUnits] = await Promise.all([
+            DeviceCode.find({ code: { $in: uniqueDeviceCodes } }).lean(),
+            Unit.find({ name: { $in: uniqueUnits } }).lean()
+        ])
+
+        const deviceCodeMap = new Map(exitingDeviceCodes.map(d => [d.code, d._id]))
+        const unitMap = new Map(exitingUnits.map(d => [d.name, d._id]))
+
+        const operations = [];
+        const invalidRows = [];
+
+        for (const item of dataImport) {
+            const { deviceCode, uom, ...updateData } = item
+            if (deviceCode) {
+                const deviceCodeId = deviceCodeMap.get(deviceCode)
+                if (!deviceCodeId) {
+                    invalidRows.push({ item, error: `Thiết bị không hợp lệ: ${deviceCode}` })
+                    continue
+                }
+                updateData.deviceCode = deviceCodeId
+            }
+
+            if (uom) {
+                const unitId = unitMap.get(uom)
+                if (!unitId) {
+                    invalidRows.push({ item, error: `Đơn vị tính không hợp lệ:${uom}` })
+                }
+                updateData.uom = unitId
+            }
+
+            operations.push({
+                updateOne: {
+                    filter: {
+                        code: item.code,
+                        name: item.name
+                    },
+                    update: { $set: updateData },
+                    upsert: true,
+                },
+            });
+        };
+
+        let bulkResult = null;
+        if (operations.length > 0) {
+            bulkResult = await AssignmentCode.bulkWrite(operations);
+        }
+        res.status(200).json({
+            status: 'success',
+            message: 'Import dữ liệu hoàn tất.',
+            summary: {
+                totalProcessed: dataImport.length,
+                insertedCount: bulkResult ? bulkResult.upsertedCount : 0,
+                updatedCount: bulkResult ? bulkResult.modifiedCount : 0,
+                invalidCount: invalidRows.length,
+            },
+            invalidRows: invalidRows,
+        });
+    } catch (error) {
+        console.log(error.stack)
+        res.status(500).json({
+            status: 'error',
+            message: 'Tải thất bại',
+            error: error.message
+        });
+    }
+};
 exports.export = async (req, res) => {
     try {
         const data = await AssignmentCode.find()
@@ -79,7 +174,6 @@ exports.export = async (req, res) => {
             .populate("deviceCode");
 
         const columns = [
-            { header: "Mã", key: "_id", width: 20 },
             { header: "Thiết bị", key: "deviceCode", width: 20 },
             { header: "Mã giao khoán", key: "code", width: 20 },
             { header: "Tên giao khoán", key: "name", width: 20 },
@@ -88,7 +182,6 @@ exports.export = async (req, res) => {
         ];
 
         const formated = (data || []).map(i => ({
-            _id: i._id,
             deviceCode: i?.deviceCode?.code || '',
             code: i?.code || '',
             name: i?.name || '',
@@ -119,8 +212,8 @@ exports.export = async (req, res) => {
 
         // 🎯 Danh sách vùng dropdown cần gán
         const validations = [
-            { range: `B2:B${MAX}`, formula: `=$X$2:$X$${deviceCodeList.length + 1}` },
-            { range: `E2:E${MAX}`, formula: `=$Y$2:$Y$${unitList.length + 1}` },
+            { range: `A2:A${MAX}`, formula: `=$X$2:$X$${deviceCodeList.length + 1}` },
+            { range: `D2:D${MAX}`, formula: `=$Y$2:$Y$${unitList.length + 1}` },
         ];
 
         const buffer = await configExport(workbook, worksheet, validations, MAX);

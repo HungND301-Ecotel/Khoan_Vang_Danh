@@ -30,7 +30,7 @@ import {
   Card,
   CardContent,
 } from "@mui/material";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import AssignmentCodeModal from "../../components/AssignmentCodeModal/AssignmentCodeModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AssignmentCodeInputType, AssignmentCodeOutputType } from "../../types";
@@ -59,6 +59,12 @@ export default function AssignmentCode() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => {
+    // Gọi trực tiếp click() trên phần tử input bị ẩn
+    fileInputRef.current?.click();
+  };
 
   const queryClient = useQueryClient();
 
@@ -100,6 +106,26 @@ export default function AssignmentCode() {
       const message = await parseAxiosError(error)
       showErrorAlert(message);
     }
+  });
+
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      AssignmentCodeService.importFile(formData, setProgress),
+    onMutate: () => {
+      setIsUploading(true);
+      setProgress(0); // Reset tiến trình khi bắt đầu
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
+      setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
+    },
   });
 
   const updateMutation = useMutation({
@@ -375,28 +401,48 @@ export default function AssignmentCode() {
                 />
               </Box>
               <Box display={"flex"} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileUpload />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
+                <input
+                  ref={fileInputRef}
+                  id="upload-excel"
+                  type="file"
+                  accept=".xlsx, .xls"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      importFile.mutate(formData);
+                    }
+                    e.target.value = "";
                   }}
-                >
-                  Tải lên
-                </Button>
+                />
+
+                <label htmlFor="upload-excel">
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<FileUpload />}
+                    onClick={handleUploadClick}
+                    sx={{
+                      border: "none",
+                      boxShadow: custom_theme.customShadows.tableFunctional,
+                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                        boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    Tải lên
+                  </Button>
+                </label>
                 <Button
                   variant="outlined"
                   color="inherit"

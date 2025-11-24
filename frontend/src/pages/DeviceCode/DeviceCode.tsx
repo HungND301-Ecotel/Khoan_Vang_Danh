@@ -19,7 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import DeviceCodeModal from "../../components/DeviceCodeModal/DeviceCodeModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DeviceCodeType } from "../../types";
@@ -144,87 +144,25 @@ export default function DeviceCode() {
     setOpen(true);
   };
 
-  const handleImport = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".xlsx, .xls";
-    input.onchange = (e) => {
-      const target = e.target as HTMLInputElement;
-      const file = target.files?.[0];
-      if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        showConfirmAlert(
-          "Bạn có chắc chắn muốn import dữ liệu từ file này?"
-        ).then((result) => {
-          if (result.isConfirmed) {
-            api
-              .post("/devicecodes/importFile", formData, {
-                headers: {
-                  "Content-Type": "multipart/form-data",
-                },
-              })
-              .then((response) => {
-                const { summary, invalidRows } = response.data;
-                let message = `Import thành công!<br/>
-              Tổng: ${summary.totalProcessed}<br/>
-              Thêm mới: ${summary.insertedCount}<br/>
-              Cập nhật: ${summary.updatedCount}<br/>
-              Lỗi: ${summary.invalidCount}`;
-
-                if (invalidRows.length > 0) {
-                  message += `<br/><br/>Các dòng lỗi: ${invalidRows
-                    .map((row: any) => JSON.stringify(row))
-                    .join("<br/>")}`;
-                }
-
-                showSuccessAlert(message);
-                queryClient.invalidateQueries({ queryKey: ["devicecodes"] });
-              })
-              .catch((error) => {
-                showErrorAlert(
-                  error.response?.data?.message || "Import thất bại"
-                );
-              });
-          }
-        });
-      }
-    };
-    input.click();
-  };
-
-  const handleExport = () => {
-    showConfirmAlert("Bạn có muốn xuất dữ liệu ra file Excel?").then(
-      (result) => {
-        if (result.isConfirmed) {
-          api
-            .post(
-              "/devicecodes/exportFile",
-              { data: devicecodes },
-              { responseType: "blob" }
-            )
-            .then((response) => {
-              const url = window.URL.createObjectURL(new Blob([response.data]));
-              const link = document.createElement("a");
-              link.href = url;
-              link.setAttribute("download", "danh_sach_ma_thiet_bi.xlsx");
-              document.body.appendChild(link);
-              link.click();
-              link.remove();
-              window.URL.revokeObjectURL(url);
-
-              showSuccessAlert("Xuất file thành công!");
-            })
-            .catch((error) => {
-              showErrorAlert(
-                error.response?.data?.message || "Xuất file thất bại"
-              );
-            });
-        }
-      }
-    );
-  };
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      DeviceCodeService.importFile(formData, setProgress),
+    onMutate: () => {
+      setIsUploading(true);
+      setProgress(0); // Reset tiến trình khi bắt đầu
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devicecodes"] });
+      setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
+    },
+  });
 
   const handlePrint = () => {
     showConfirmAlert("Bạn có muốn in dữ liệu mã thiết bị?").then((result) => {
@@ -350,6 +288,11 @@ export default function DeviceCode() {
   const handleClearSearch = () => {
     setSearchValue("");
   };
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => {
+    // Gọi trực tiếp click() trên phần tử input bị ẩn
+    fileInputRef.current?.click();
+  };
 
   return (
     <Box
@@ -465,32 +408,51 @@ export default function DeviceCode() {
                 />
               </Box>
               <Box display={"flex"} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileUpload />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
+                <input
+                  ref={fileInputRef}
+                  id="upload-excel"
+                  type="file"
+                  accept=".xlsx, .xls"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      importFile.mutate(formData);
+                    }
+                    e.target.value = "";
                   }}
-                  onClick={handleImport}
-                >
-                  Tải lên
-                </Button>
+                />
+
+                <label htmlFor="upload-excel">
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<FileUpload />}
+                    onClick={handleUploadClick}
+                    sx={{
+                      border: "none",
+                      boxShadow: custom_theme.customShadows.tableFunctional,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) =>
+                          custom_theme.palette.table_functional_button.dark,
+                        boxShadow:
+                          custom_theme.customShadows.tableFunctionalHover,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    Tải lên
+                  </Button>
+                </label>
                 <Button
                   variant="outlined"
                   color="inherit"
