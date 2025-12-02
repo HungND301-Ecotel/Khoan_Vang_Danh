@@ -12,18 +12,14 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
-  Breadcrumbs,
   Button,
   IconButton,
   InputAdornment,
   TextField,
   Typography,
   CircularProgress,
-  Skeleton,
-  Card,
-  CardContent,
 } from "@mui/material";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import CrossSectionModal from "../../components/CrossSectionModal/CrossSectionModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CrossSectionOutputType, CrossSectionInputType } from "../../types";
@@ -34,9 +30,11 @@ import {
   showSuccessAlert,
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table } from "antd";
-import custom_theme from '../../theme';
+import { TableProps } from "antd";
+import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import CrossSectionService from "../../service/CrossSectionService";
+import { parseAxiosError } from "../../utils/handleApiError";
 
 export default function CrossSection() {
   const [open, setOpen] = useState(false);
@@ -46,16 +44,26 @@ export default function CrossSection() {
     React.Key[]
   >([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => fileInputRef.current?.click();
 
-  const { data: crosssections = { totalDocs: 0, data: [] }, isLoading, isFetching } = useQuery({
+  const {
+    data: crosssections = { totalDocs: 0, data: [] },
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: ["crosssections", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get(`/crosssections?q=${searchValue}&page=${page}&limit=${limit}`);
+        const response = await api.get(
+          `/crosssections?q=${searchValue}&page=${page}&limit=${limit}`
+        );
         return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
@@ -89,6 +97,33 @@ export default function CrossSection() {
     },
     onError: (error: any) => {
       showErrorAlert(error.response?.data?.message || error.response || "Lỗi");
+    },
+  });
+
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      CrossSectionService.importFile(formData, setProgress),
+    onMutate: () => {
+      setIsUploading(true);
+      setProgress(0);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["crosssections"] });
+      setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
+    },
+  });
+
+  const exportExcel = useMutation({
+    mutationFn: CrossSectionService.exportFile,
+    onSuccess: () => {},
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
     },
   });
 
@@ -174,7 +209,9 @@ export default function CrossSection() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: (
@@ -231,8 +268,12 @@ export default function CrossSection() {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -249,8 +290,12 @@ export default function CrossSection() {
                   onClick={handleDeleteMultiple}
                   disabled={selectedCrossSections.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -270,10 +315,13 @@ export default function CrossSection() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -292,10 +340,11 @@ export default function CrossSection() {
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
                     "& .MuiInputBase-root": {
                       fontSize: "14px",
-                    }
+                    },
                   }}
                   InputProps={{
                     endAdornment: (
@@ -324,13 +373,17 @@ export default function CrossSection() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -346,13 +399,17 @@ export default function CrossSection() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -371,10 +428,13 @@ export default function CrossSection() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -394,10 +454,13 @@ export default function CrossSection() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -415,16 +478,19 @@ export default function CrossSection() {
 
           {/* Enhanced Search Results Info with Loading State */}
           {searchValue && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+            <Box
+              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
+            >
               <Typography variant="body2" color="primary">
                 {isLoading && searchValue ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
                 ) : (
                   <>
-                    Tìm thấy {crosssections.totalDocs} kết quả cho "{searchValue}"
+                    Tìm thấy {crosssections.totalDocs} kết quả cho "
+                    {searchValue}"
                     {crosssections.totalDocs > 0 && (
                       <Button
                         size="small"
@@ -462,6 +528,21 @@ export default function CrossSection() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedCrossSection={selectedCrossSection}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx, .xls"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            importFile.mutate(formData);
+          }
+          e.target.value = "";
+        }}
       />
     </Box>
   );

@@ -23,10 +23,14 @@ import {
   Card,
   CardContent,
 } from "@mui/material";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import MaterialAssignmentModal from "../../components/MaterialAssignmentModal/MaterialAssignment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MaterialAssignmentInputType, MaterialAssignmentOutputType, Materials } from "../../types";
+import {
+  MaterialAssignmentInputType,
+  MaterialAssignmentOutputType,
+  Materials,
+} from "../../types";
 import api from "../../config/api.config";
 import {
   showConfirmAlert,
@@ -35,10 +39,12 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 import LoadingSkeleton from "../../ui/LoadingSkeleton";
 import EmptyState from "../../ui/EmptyState";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import MaterialAssignmentService from "../../service/MaterialAssignmentService";
+import { parseAxiosError } from "../../utils/handleApiError";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -47,19 +53,25 @@ export default function MaterialAssignment() {
   const [selectedMaterialAssignments, setSelectedMaterialAssignments] =
     useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
-  const { data: materialAssignments = {
-    totalDocs: 0,
-    results: 0,
-    data: []
-  }, isLoading, isFetching } = useQuery({
+  const {
+    data: materialAssignments = {
+      totalDocs: 0,
+      results: 0,
+      data: [],
+    },
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: ["materialAssignments", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get(`/materialAssignments?q=${searchValue}&page=${page}&limit=${limit}&type=in`);
+        const response = await api.get(
+          `/materialAssignments?q=${searchValue}&page=${page}&limit=${limit}&type=in`
+        );
         return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
@@ -177,7 +189,34 @@ export default function MaterialAssignment() {
     setOpen(true);
   };
 
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      MaterialAssignmentService.importFile(formData, setProgress),
+    onMutate: () => {
+      setIsUploading(true);
+      setProgress(0); // Reset tiến trình khi bắt đầu
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
+      setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
+    },
+  });
 
+  const exportExcel = useMutation({
+    mutationFn: MaterialAssignmentService.exportFile,
+    onSuccess: () => {},
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
+    },
+  });
 
   const columns: TableProps<Materials>["columns"] = [
     {
@@ -185,7 +224,9 @@ export default function MaterialAssignment() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
@@ -288,11 +329,19 @@ export default function MaterialAssignment() {
   //   );
   // }
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => {
+    // Gọi trực tiếp click() trên phần tử input bị ẩn
+    fileInputRef.current?.click();
+  };
+
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box
+      sx={{
+        px: 5, // horizontal = 32px
+        py: 1, // vertical = 8px
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Vật tư tài sản</Typography>
@@ -301,7 +350,10 @@ export default function MaterialAssignment() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Vật tư tài sản trong khoán
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -311,8 +363,12 @@ export default function MaterialAssignment() {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -329,8 +385,12 @@ export default function MaterialAssignment() {
                   onClick={handleDeleteMultiple}
                   disabled={selectedMaterialAssignments.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -352,10 +412,13 @@ export default function MaterialAssignment() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -373,7 +436,10 @@ export default function MaterialAssignment() {
                   placeholder="Tìm kiếm theo mã vật tư hoặc tên vật tư..."
                   onChange={(e) => setSearchValue(e.target.value)}
                   value={searchValue}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -386,7 +452,7 @@ export default function MaterialAssignment() {
                             ×
                           </IconButton>
                         )}
-                        {isLoading && searchValue !== '' ? (
+                        {isLoading && searchValue !== "" ? (
                           <CircularProgress size={20} sx={{ mr: 1 }} />
                         ) : (
                           <Search sx={{ fontSize: 24 }} />
@@ -397,17 +463,38 @@ export default function MaterialAssignment() {
                 />
               </Box>
               <Box display={"flex"} gap={2}>
+                <input
+                  ref={fileInputRef}
+                  id="upload-excel"
+                  type="file"
+                  accept=".xlsx, .xls"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      importFile.mutate(formData);
+                    }
+                    e.target.value = "";
+                  }}
+                />
+
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -423,13 +510,17 @@ export default function MaterialAssignment() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate("in")}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -448,10 +539,13 @@ export default function MaterialAssignment() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -471,10 +565,13 @@ export default function MaterialAssignment() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -491,16 +588,19 @@ export default function MaterialAssignment() {
           </Box>
           {/* Enhanced Search Results Info with Loading State */}
           {searchValue && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+            <Box
+              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
+            >
               <Typography variant="body2" color="primary">
-                {isLoading && searchValue !== '' ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {isLoading && searchValue !== "" ? (
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
                 ) : (
                   <>
-                    Tìm thấy {materialAssignments.totalDocs} kết quả cho "{searchValue}"
+                    Tìm thấy {materialAssignments.totalDocs} kết quả cho "
+                    {searchValue}"
                     {materialAssignments.totalDocs > 0 && (
                       <Button
                         size="small"

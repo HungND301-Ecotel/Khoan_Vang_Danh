@@ -31,7 +31,7 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 import UnitService from "../../service/UnitService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
@@ -41,17 +41,22 @@ export default function Unit() {
   const [selectedUnit, setSelectedUnit] = useState<UnitType | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
-  const { data: units = {
-    totalDocs: 0,
-    data: []
-  }, isLoading } = useQuery({
+  const {
+    data: units = {
+      totalDocs: 0,
+      data: [],
+    },
+    isLoading,
+  } = useQuery({
     queryKey: ["units", searchValue, page, limit],
     queryFn: () =>
-      api.get(`/units?q=${searchValue}&page=${page}&limit=${limit}`).then((res) => res.data.data),
+      api
+        .get(`/units?q=${searchValue}&page=${page}&limit=${limit}`)
+        .then((res) => res.data.data),
   });
 
   const createMutation = useMutation({
@@ -90,11 +95,11 @@ export default function Unit() {
 
   const exportExcel = useMutation({
     mutationFn: UnitService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
-      const message = await parseAxiosError(error)
+      const message = await parseAxiosError(error);
       showErrorAlert(message);
-    }
+    },
   });
 
   const updateMutation = useMutation({
@@ -159,7 +164,9 @@ export default function Unit() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Đơn vị tính</Typography>,
@@ -200,10 +207,12 @@ export default function Unit() {
     fileInputRef.current?.click();
   };
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box
+      sx={{
+        px: 5, // horizontal = 32px
+        py: 1, // vertical = 8px
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Đơn vị tính</Typography>
@@ -211,7 +220,10 @@ export default function Unit() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Đơn vị tính
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -219,8 +231,12 @@ export default function Unit() {
                 <Button
                   variant="contained"
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -237,8 +253,12 @@ export default function Unit() {
                   variant="contained"
                   disabled={selectedUnits.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -263,10 +283,13 @@ export default function Unit() {
                     fontFamily: "Roboto, sans-serif",
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontSize: 14,
                     fontWeight: 500,
@@ -283,7 +306,10 @@ export default function Unit() {
                   placeholder="Tìm kiếm"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -311,31 +337,32 @@ export default function Unit() {
                   }}
                 />
 
-                <label htmlFor="upload-excel">
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FileUpload />}
-                    onClick={handleUploadClick}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                        boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Tải lên
-                  </Button>
-                </label>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
+                  sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
+                    },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Tải lên
+                </Button>
                 <Button
                   variant="outlined"
                   color="inherit"
@@ -344,10 +371,13 @@ export default function Unit() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -366,10 +396,13 @@ export default function Unit() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -389,10 +422,13 @@ export default function Unit() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,

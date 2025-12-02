@@ -1,10 +1,13 @@
-const router = require('express').Router()
-const phaseController = require('../controller/Phase')
+const router = require("express").Router();
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage() });
+const phaseController = require("../controller/Phase");
 
-router.post('/', phaseController.create)
-router.put('/:id', phaseController.update)
-router.delete('/:id', phaseController.delete)
-router.get('/', phaseController.get)
-router.post('/exportFile', phaseController.export)
+router.post("/", phaseController.create);
+router.put("/:id", phaseController.update);
+router.delete("/:id", phaseController.delete);
+router.get("/", phaseController.get);
+router.post("/importFile", upload.single("file"), phaseController.import);
+router.post("/exportFile", phaseController.export);
 
-module.exports = router
+module.exports = router;

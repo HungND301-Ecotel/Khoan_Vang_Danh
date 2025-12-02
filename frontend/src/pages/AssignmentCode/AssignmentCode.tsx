@@ -42,7 +42,7 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { Table, TableProps } from "antd";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 import AssignmentCodeService from "../../service/AssignmentCodeService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import LoadingSkeleton from "../../ui/LoadingSkeleton";
@@ -57,8 +57,8 @@ export default function AssignmentCode() {
     React.Key[]
   >([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleUploadClick = () => {
@@ -68,15 +68,21 @@ export default function AssignmentCode() {
 
   const queryClient = useQueryClient();
 
-  const { data: assignmentcodes = {
-    totalDocs: 0,
-    results: 0,
-    data: []
-  }, isLoading, isFetching } = useQuery({
+  const {
+    data: assignmentcodes = {
+      totalDocs: 0,
+      results: 0,
+      data: [],
+    },
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: ["assignmentcodes", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get(`/assignmentcodes?q=${searchValue}&page=${page}&limit=${limit}`);
+        const response = await api.get(
+          `/assignmentcodes?q=${searchValue}&page=${page}&limit=${limit}`
+        );
         return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
@@ -84,7 +90,6 @@ export default function AssignmentCode() {
       }
     },
   });
-
 
   const createMutation = useMutation({
     mutationFn: (newAssignmentCode: Partial<AssignmentCodeInputType>) =>
@@ -101,11 +106,11 @@ export default function AssignmentCode() {
 
   const exportExcel = useMutation({
     mutationFn: AssignmentCodeService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
-      const message = await parseAxiosError(error)
+      const message = await parseAxiosError(error);
       showErrorAlert(message);
-    }
+    },
   });
 
   const [progress, setProgress] = useState(0);
@@ -203,7 +208,9 @@ export default function AssignmentCode() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã thiết bị</Typography>,
@@ -293,10 +300,11 @@ export default function AssignmentCode() {
   // }
 
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}
+    <Box
+      sx={{
+        px: 5, // horizontal = 32px
+        py: 1, // vertical = 8px
+      }}
     >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
@@ -305,7 +313,10 @@ export default function AssignmentCode() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Mã giao khoán
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -315,8 +326,12 @@ export default function AssignmentCode() {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -333,8 +348,12 @@ export default function AssignmentCode() {
                   onClick={() => handleDelete()}
                   disabled={selectedAssignmentCodes.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -356,10 +375,13 @@ export default function AssignmentCode() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -377,7 +399,10 @@ export default function AssignmentCode() {
                   placeholder="Tìm kiếm theo mã giao khoán hoặc tên giao khoán..."
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -390,7 +415,7 @@ export default function AssignmentCode() {
                             ×
                           </IconButton>
                         )}
-                        {isLoading && searchValue !== '' ? (
+                        {isLoading && searchValue !== "" ? (
                           <CircularProgress size={20} sx={{ mr: 1 }} />
                         ) : (
                           <Search sx={{ fontSize: 24 }} />
@@ -418,31 +443,32 @@ export default function AssignmentCode() {
                   }}
                 />
 
-                <label htmlFor="upload-excel">
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FileUpload />}
-                    onClick={handleUploadClick}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                        boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Tải lên
-                  </Button>
-                </label>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
+                  sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
+                    },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Tải lên
+                </Button>
                 <Button
                   variant="outlined"
                   color="inherit"
@@ -451,10 +477,13 @@ export default function AssignmentCode() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -473,10 +502,13 @@ export default function AssignmentCode() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -496,10 +528,13 @@ export default function AssignmentCode() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -516,16 +551,19 @@ export default function AssignmentCode() {
           </Box>
           {/* Enhanced Search Results Info with Loading State */}
           {searchValue && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+            <Box
+              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
+            >
               <Typography variant="body2" color="primary">
-                {isLoading && searchValue !== '' ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {isLoading && searchValue !== "" ? (
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
                 ) : (
                   <>
-                    Tìm thấy {assignmentcodes.totalDocs} kết quả cho "{searchValue}"
+                    Tìm thấy {assignmentcodes.totalDocs} kết quả cho "
+                    {searchValue}"
                     {assignmentcodes.totalDocs > 0 && (
                       <Button
                         size="small"

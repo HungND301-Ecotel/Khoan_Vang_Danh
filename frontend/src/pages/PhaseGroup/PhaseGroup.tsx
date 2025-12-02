@@ -21,7 +21,7 @@ import {
   CircularProgress,
   Skeleton,
 } from "@mui/material";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import PhaseGroupModal from "../../components/PhaseGroupModal/PhaseGroupModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PhaseGroupType } from "../../types";
@@ -33,7 +33,7 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 import PhaseGroupService from "../../service/PhaseGroupService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
@@ -42,7 +42,9 @@ interface PhaseGroupProps {
   searchValue?: string;
 }
 
-export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGroupProps) {
+export default function PhaseGroup({
+  searchValue: parentSearchValue,
+}: PhaseGroupProps) {
   const [open, setOpen] = useState(false);
   const [selectedPhaseGroup, setSelectedPhaseGroup] =
     useState<PhaseGroupType | null>(null);
@@ -50,28 +52,32 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
     []
   );
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   // Use parent search value if provided, otherwise use local search
 
   const queryClient = useQueryClient();
 
-  const { data: phasegroups = {
-    totalDocs: 0,
-    data: []
-  }, isLoading } = useQuery({
+  const {
+    data: phasegroups = {
+      totalDocs: 0,
+      data: [],
+    },
+    isLoading,
+  } = useQuery({
     queryKey: ["phasegroups", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get(`/phasegroups?q=${searchValue}&page=${page}&limit=${limit}`);
+        const response = await api.get(
+          `/phasegroups?q=${searchValue}&page=${page}&limit=${limit}`
+        );
         return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
       }
     },
   });
-
 
   const createMutation = useMutation({
     mutationFn: (newPhaseGroup: Partial<PhaseGroupType>) =>
@@ -88,11 +94,31 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
 
   const exportExcel = useMutation({
     mutationFn: PhaseGroupService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
-      const message = await parseAxiosError(error)
+      const message = await parseAxiosError(error);
       showErrorAlert(message);
-    }
+    },
+  });
+
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      PhaseGroupService.importFile(formData, setProgress),
+    onMutate: () => {
+      setIsUploading(true);
+      setProgress(0); // Reset tiến trình khi bắt đầu
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["phasegroups"] });
+      setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
+    },
   });
 
   const updateMutation = useMutation({
@@ -190,13 +216,20 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
     setSearchValue("");
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   const columns: TableProps<PhaseGroupType>["columns"] = [
     {
       title: "",
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: (
@@ -259,8 +292,12 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -276,8 +313,12 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
                   endIcon={<Delete />}
                   onClick={handleDeleteMultiple}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -298,10 +339,13 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -320,10 +364,11 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
                     "& .MuiInputBase-root": {
                       fontSize: "14px",
-                    }
+                    },
                   }}
                   InputProps={{
                     endAdornment: (
@@ -352,13 +397,17 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -378,10 +427,13 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -400,10 +452,13 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -423,10 +478,13 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -444,10 +502,12 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
 
           {/* Enhanced Search Results Info with Loading State */}
           {searchValue && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+            <Box
+              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
+            >
               <Typography variant="body2" color="primary">
                 {isLoading && searchValue ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
@@ -491,6 +551,22 @@ export default function PhaseGroup({ searchValue: parentSearchValue }: PhaseGrou
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedPhaseGroup={selectedPhaseGroup}
+      />
+      <input
+        ref={fileInputRef}
+        id="upload-excel"
+        type="file"
+        accept=".xlsx, .xls"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            importFile.mutate(formData);
+          }
+          e.target.value = "";
+        }}
       />
     </Box>
   );

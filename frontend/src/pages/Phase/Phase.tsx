@@ -12,16 +12,14 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
-  Breadcrumbs,
   Button,
   IconButton,
   InputAdornment,
   TextField,
   Typography,
   CircularProgress,
-  Skeleton,
 } from "@mui/material";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import PhaseModal from "../../components/PhaseModal/PhaseModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PhaseOutputType, PhaseInputType } from "../../types";
@@ -32,8 +30,8 @@ import {
   showSuccessAlert,
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table } from "antd";
-import custom_theme from '../../theme';
+import { TableProps } from "antd";
+import custom_theme from "../../theme";
 import { parseAxiosError } from "../../utils/handleApiError";
 import PhaseService from "../../service/PhaseService";
 import CustomTable from "../../components/CustomTable/CustomTable";
@@ -49,24 +47,52 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
   );
   const [selectedPhases, setSelectedPhases] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => fileInputRef.current?.click();
 
   const queryClient = useQueryClient();
 
-  const { data: phases = {
-    totalDocs: 0,
-    data: []
-  }, isLoading } = useQuery({
+  const {
+    data: phases = {
+      totalDocs: 0,
+      data: [],
+    },
+    isLoading,
+  } = useQuery({
     queryKey: ["phases", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get(`/phases?q=${searchValue}&page=${page}&limit=${limit}`);
+        const response = await api.get(
+          `/phases?q=${searchValue}&page=${page}&limit=${limit}`
+        );
         return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
       }
+    },
+  });
+
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      PhaseService.importFile(formData, setProgress),
+    onMutate: () => {
+      setIsUploading(true);
+      setProgress(0);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["phases"] });
+      setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
     },
   });
 
@@ -85,11 +111,11 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
 
   const exportExcel = useMutation({
     mutationFn: PhaseService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
-      const message = await parseAxiosError(error)
+      const message = await parseAxiosError(error);
       showErrorAlert(message);
-    }
+    },
   });
 
   const updateMutation = useMutation({
@@ -189,7 +215,9 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã công đoạn</Typography>,
@@ -252,7 +280,6 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
     },
   };
 
-
   return (
     <Box>
       <Box mt={3}>
@@ -265,8 +292,12 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -283,8 +314,12 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
                   onClick={handleDeleteMultiple}
                   disabled={selectedPhases.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -304,10 +339,13 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -326,10 +364,11 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
                     "& .MuiInputBase-root": {
                       fontSize: "14px",
-                    }
+                    },
                   }}
                   InputProps={{
                     endAdornment: (
@@ -358,13 +397,17 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -384,10 +427,13 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -406,10 +452,13 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -429,10 +478,13 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -450,10 +502,12 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
 
           {/* Enhanced Search Results Info with Loading State */}
           {searchValue && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+            <Box
+              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
+            >
               <Typography variant="body2" color="primary">
                 {isLoading && searchValue ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
@@ -497,6 +551,21 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedPhase={selectedPhase}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx, .xls"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            importFile.mutate(formData);
+          }
+          e.target.value = "";
+        }}
       />
     </Box>
   );

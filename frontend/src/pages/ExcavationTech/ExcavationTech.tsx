@@ -23,11 +23,13 @@ import {
   Card,
   CardContent,
 } from "@mui/material";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import ExcavationTechModal from "../../components/ExcavationTechModal/ExcavationTechModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExcavationTechType } from "../../types";
 import api from "../../config/api.config";
+import ExcavationTechService from "../../service/ExcavationTechService";
+import { parseAxiosError } from "../../utils/handleApiError";
 import {
   showConfirmAlert,
   showErrorAlert,
@@ -35,7 +37,7 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table } from "antd";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function ExcavationTech() {
@@ -46,23 +48,58 @@ export default function ExcavationTech() {
     React.Key[]
   >([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const { data: excavationtechs = {
-    totalDocs: 0,
-    data: []
-  }, isLoading, isFetching } = useQuery({
+  const {
+    data: excavationtechs = {
+      totalDocs: 0,
+      data: [],
+    },
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: ["excavationtechs", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get(`/excavationtechs?q=${searchValue}&page=${page}&limit=${limit}`);
+        const response = await api.get(
+          `/excavationtechs?q=${searchValue}&page=${page}&limit=${limit}`
+        );
         return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
       }
+    },
+  });
+
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      ExcavationTechService.importFile(formData, setProgress),
+    onMutate: () => {
+      setIsUploading(true);
+      setProgress(0);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["excavationtechs"] });
+      setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
+    },
+  });
+
+  const exportExcel = useMutation({
+    mutationFn: ExcavationTechService.exportFile,
+    onSuccess: () => {},
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
     },
   });
 
@@ -171,11 +208,13 @@ export default function ExcavationTech() {
     setOpen(true);
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => fileInputRef.current?.click();
+
   // Clear search function
   const handleClearSearch = () => {
     setSearchValue("");
   };
-
 
   const columns: TableProps<ExcavationTechType>["columns"] = [
     {
@@ -183,7 +222,9 @@ export default function ExcavationTech() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Công nghệ xúc</Typography>,
@@ -216,7 +257,6 @@ export default function ExcavationTech() {
     },
   };
 
-
   return (
     <Box>
       <Box mt={3}>
@@ -229,8 +269,12 @@ export default function ExcavationTech() {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -247,8 +291,12 @@ export default function ExcavationTech() {
                   onClick={handleDeleteMultiple}
                   disabled={selectedExcavationTechs.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -268,10 +316,13 @@ export default function ExcavationTech() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -290,10 +341,11 @@ export default function ExcavationTech() {
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
                     "& .MuiInputBase-root": {
                       fontSize: "14px",
-                    }
+                    },
                   }}
                   InputProps={{
                     endAdornment: (
@@ -322,13 +374,17 @@ export default function ExcavationTech() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -344,13 +400,17 @@ export default function ExcavationTech() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -369,10 +429,13 @@ export default function ExcavationTech() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -392,10 +455,13 @@ export default function ExcavationTech() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -413,16 +479,19 @@ export default function ExcavationTech() {
 
           {/* Enhanced Search Results Info with Loading State */}
           {searchValue && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+            <Box
+              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
+            >
               <Typography variant="body2" color="primary">
                 {isLoading && searchValue ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
                 ) : (
                   <>
-                    Tìm thấy {excavationtechs.totalDocs} kết quả cho "{searchValue}"
+                    Tìm thấy {excavationtechs.totalDocs} kết quả cho "
+                    {searchValue}"
                     {excavationtechs.totalDocs > 0 && (
                       <Button
                         size="small"
@@ -460,6 +529,21 @@ export default function ExcavationTech() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedExcavationTech={selectedExcavationTech}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx, .xls"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            importFile.mutate(formData);
+          }
+          e.target.value = "";
+        }}
       />
     </Box>
   );

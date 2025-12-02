@@ -26,7 +26,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import MaterialAssignmentOutPlanModal from "../../components/MaterialAssignmentOutPlanModal/MaterialAssignmentOutPlan";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MaterialAssignmentInputType, Materials } from "../../types";
@@ -38,8 +38,10 @@ import {
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
 import { TableProps, Table, Empty } from "antd";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import MaterialAssignmentService from "../../service/MaterialAssignmentService";
+import { parseAxiosError } from "../../utils/handleApiError";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -48,25 +50,28 @@ export default function MaterialAssignment() {
   const [selectedMaterialAssignments, setSelectedMaterialAssignments] =
     useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
 
-  // Comment out or modify the API call to return empty array
-  const { data: materialAssignments = {
-    totalDocs: 0,
-    results: 0,
-    data: []
-  }, isLoading } = useQuery({
-    queryKey: ["materialAssignments", searchValue, page, limit],
-    queryFn: () => {
-
-      // Original API call (commented out)
-      return api.get(`/materialassignments?q=${searchValue}&page=${page}&limit=${limit}&type=out`).then((res) => res.data.data);
+  const {
+    data: materialAssignments = {
+      totalDocs: 0,
+      results: 0,
+      data: [],
     },
+    isLoading,
+  } = useQuery({
+    queryKey: ["materialAssignments", searchValue, page, limit],
+    queryFn: () =>
+      MaterialAssignmentService.getAll({
+        q: searchValue,
+        page,
+        limit,
+        type: "out",
+      }),
   });
-
 
   const createMutation = useMutation({
     mutationFn: (newMaterialAssignment: Partial<MaterialAssignmentInputType>) =>
@@ -177,13 +182,44 @@ export default function MaterialAssignment() {
     setOpen(true);
   };
 
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      MaterialAssignmentService.importFile(formData, setProgress),
+    onMutate: () => {
+      setIsUploading(true);
+      setProgress(0); // Reset tiến trình khi bắt đầu
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
+      setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
+    },
+  });
+
+  const exportExcel = useMutation({
+    mutationFn: () => MaterialAssignmentService.exportFile("out"),
+    onSuccess: () => {},
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
+    },
+  });
+
   const columns: TableProps<Materials>["columns"] = [
     {
       title: "",
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
@@ -258,11 +294,19 @@ export default function MaterialAssignment() {
     setSearchValue("");
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => {
+    // Gọi trực tiếp click() trên phần tử input bị ẩn
+    fileInputRef.current?.click();
+  };
+
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box
+      sx={{
+        px: 5, // horizontal = 32px
+        py: 1, // vertical = 8px
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Danh mục</Typography>
         <Typography>Vật tư tài sản</Typography>
@@ -271,7 +315,10 @@ export default function MaterialAssignment() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Vật tư tài sản khác
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
@@ -281,8 +328,12 @@ export default function MaterialAssignment() {
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -299,8 +350,12 @@ export default function MaterialAssignment() {
                   onClick={handleDeleteMultiple}
                   disabled={selectedMaterialAssignments.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -322,10 +377,13 @@ export default function MaterialAssignment() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -343,7 +401,10 @@ export default function MaterialAssignment() {
                   placeholder="Tìm kiếm"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -354,17 +415,38 @@ export default function MaterialAssignment() {
                 />
               </Box>
               <Box display={"flex"} gap={2}>
+                <input
+                  ref={fileInputRef}
+                  id="upload-excel"
+                  type="file"
+                  accept=".xlsx, .xls"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      importFile.mutate(formData);
+                    }
+                    e.target.value = "";
+                  }}
+                />
+
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -380,13 +462,17 @@ export default function MaterialAssignment() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -405,10 +491,13 @@ export default function MaterialAssignment() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -428,10 +517,13 @@ export default function MaterialAssignment() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,

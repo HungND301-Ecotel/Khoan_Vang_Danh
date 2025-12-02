@@ -44,21 +44,22 @@ export default function DeviceCode() {
     []
   );
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
-  const { data: devicecodes = {
-    totalDocs: 0,
-    data: []
-  }, isLoading } = useQuery({
+  const {
+    data: devicecodes = {
+      totalDocs: 0,
+      data: [],
+    },
+    isLoading,
+  } = useQuery({
     queryKey: ["devicecodes", searchValue, page, limit],
     queryFn: () =>
       api
         .get(`/devicecodes?q=${searchValue}&page=${page}&limit=${limit}`)
-        .then((res) =>
-          res.data.data
-        ),
+        .then((res) => res.data.data),
   });
 
   const createMutation = useMutation({
@@ -77,7 +78,7 @@ export default function DeviceCode() {
 
   const exportExcel = useMutation({
     mutationFn: DeviceCodeService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -190,15 +191,15 @@ export default function DeviceCode() {
                 </thead>
                 <tbody>
                   ${devicecodes
-            .map(
-              (devicecode: DeviceCodeType, index: number) => `
+                    .map(
+                      (devicecode: DeviceCodeType, index: number) => `
                     <tr>
                       <td>${index + 1}</td>
                       <td>${devicecode.code || ""}</td>
                     </tr>
                   `
-            )
-            .join("")}
+                    )
+                    .join("")}
                 </tbody>
               </table>
             </body>
@@ -252,7 +253,9 @@ export default function DeviceCode() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã thiết bị</Typography>,
@@ -425,34 +428,32 @@ export default function DeviceCode() {
                   }}
                 />
 
-                <label htmlFor="upload-excel">
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FileUpload />}
-                    onClick={handleUploadClick}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
+                  sx={{
+                    border: "none",
+                    boxShadow: custom_theme.customShadows.tableFunctional,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
+                    "&:hover": {
                       backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Tải lên
-                  </Button>
-                </label>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
+                    },
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "8px",
+                    px: 3,
+                  }}
+                >
+                  Tải lên
+                </Button>
                 <Button
                   variant="outlined"
                   color="inherit"
