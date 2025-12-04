@@ -208,12 +208,12 @@ export default function MaterialsOutsideContract() {
       render: (value, record, index) => <Typography>{index + 1}</Typography>,
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
+      title: <Typography >Mã vật tư</Typography>,
       dataIndex: "code",
       key: "code",
       width: 200,
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography >{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
@@ -221,7 +221,7 @@ export default function MaterialsOutsideContract() {
         }),
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
+      title: <Typography >Tên vật tư</Typography>,
       dataIndex: "name",
       key: "name",
       sorter: (a, b) =>
@@ -230,35 +230,35 @@ export default function MaterialsOutsideContract() {
         }),
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
+      title: <Typography >ĐVT</Typography>,
       dataIndex: "uom",
       key: "uom",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.uom?.name}</Typography>
+        <Typography >{record.uom?.name}</Typography>
       ),
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
+      title: <Typography >Số lượng</Typography>,
       dataIndex: "quantity",
       key: "quantity",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
+        <Typography >
           {record.quantity ? record.quantity.toLocaleString() : ""}
         </Typography>
       ),
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>,
+      title: <Typography >Đơn giá</Typography>,
       dataIndex: "price",
       key: "price",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
+        <Typography >
           {record.currentPrice ? record.currentPrice.toLocaleString() : ""}
         </Typography>
       ),
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
+      title: <Typography >Sửa</Typography>,
       dataIndex: "edit",
       width: 50,
       render: (_, record) => (

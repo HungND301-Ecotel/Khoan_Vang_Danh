@@ -3,7 +3,8 @@ const mongoose = require('mongoose')
 const CrossSection = new mongoose.Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     uom: {
         type: mongoose.Schema.Types.ObjectId,

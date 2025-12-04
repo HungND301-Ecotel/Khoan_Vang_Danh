@@ -232,7 +232,7 @@ export default function AdjustmentNormCM() {
       dataIndex: "code",
       key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography >{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {

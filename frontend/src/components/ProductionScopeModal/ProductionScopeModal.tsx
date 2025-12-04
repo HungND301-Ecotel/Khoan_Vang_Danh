@@ -27,6 +27,9 @@ import { useQuery } from "@tanstack/react-query";
 const validationSchema = yup.object({
   code: yup.string().required("Mã diện sản xuất không được để trống"),
   name: yup.string().required("Tên diện sản xuất không được để trống"),
+  phases: yup
+    .array()
+    .min(1, "Phải chọn ít nhất một công đoạn")
 });
 
 export default function ProductionScopeModal({
@@ -54,7 +57,7 @@ export default function ProductionScopeModal({
       phases:
         selected?.phases?.map((item) => ({
           phase: item.phase?._id,
-          production: item.production,
+          // production: item.production,
         })) || [],
     },
     enableReinitialize: true,
@@ -215,7 +218,7 @@ export default function ProductionScopeModal({
                       );
                       return {
                         phase: item._id,
-                        production: existing?.production || undefined,
+                        // production: existing?.production || undefined,
                       };
                     });
                     formik.setFieldValue("phases", updatedNorms);
@@ -234,6 +237,17 @@ export default function ProductionScopeModal({
                           fontSize: "14px",
                         },
                       }}
+                      error={
+                        formik.touched.phases &&
+                        Boolean(formik.errors.phases) &&
+                        typeof formik.errors.phases === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                      }
+                      helperText={
+                        formik.touched.phases &&
+                          typeof formik.errors.phases === 'string'
+                          ? formik.errors.phases // TRUYỀN CHUỖI VÀO helperText
+                          : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
+                      }
                     />
                   )}
                 />

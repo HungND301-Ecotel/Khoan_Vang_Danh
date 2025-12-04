@@ -1,7 +1,7 @@
 const AssignmentCode = require('../model/AssignmentCode')
 const DeviceCode = require('../model/DeviceCode')
 const Unit = require('../model/Unit')
-const recalculateAssignmentCodePrice = require('./recalculateAssignmentCodePrice')
+const { updatePriceAssignmentCode } = require('../utils/recalculateAssignmentCodePrice')
 const ExcelJS = require('exceljs')
 const xlsx = require('xlsx')
 const { configExport } = require('../utils/config_export')
@@ -63,7 +63,7 @@ exports.get = async (req, res) => {
         let queryModel = AssignmentCode.find(query).populate("uom").populate("deviceCode")
         const pagination = await paginateQuery(AssignmentCode, queryModel, query, req.query)
         for (const assignment of pagination.data) {
-            await recalculateAssignmentCodePrice(assignment._id);
+            await updatePriceAssignmentCode(assignment._id);
         }
 
         res.status(200).json({ status: 'success', data: pagination })

@@ -3,7 +3,8 @@ const mongoose = require('mongoose')
 const CurbSlope = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'CurbSlope name is required']
+        required: [true, 'CurbSlope name is required'],
+        unique: true
     }
 }, {
     timestamps: true

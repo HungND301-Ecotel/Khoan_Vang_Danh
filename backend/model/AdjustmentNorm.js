@@ -2,7 +2,9 @@ const mongoose = require('mongoose')
 
 const AdjustmentNorm = new mongoose.Schema({
     code: {
-        type: String
+        type: String,
+        required: [true, 'code is required'],
+        unique: true
     },
     hardness: {
         type: mongoose.Schema.Types.ObjectId,
@@ -18,7 +20,7 @@ const AdjustmentNorm = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum:['CM','CKKT','CKĐL']
+        enum: ['CM', 'CKKT', 'CKĐL']
     },
     norms: [
         {

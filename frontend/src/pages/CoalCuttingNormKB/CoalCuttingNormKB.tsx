@@ -153,7 +153,7 @@ export default function CoalCuttingNormKB() {
       dataIndex: "code",
       key: "code",
       render: (_v, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography>{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
@@ -211,7 +211,7 @@ export default function CoalCuttingNormKB() {
         key: "index",
         align: "center" as const,
         width: "5%",
-        render: (_: any, __: any, index: number) => index + 1,
+        render: (_: any, __: any, index: number) => <Typography>{index + 1}</Typography>,
       },
       {
         title: (
@@ -221,6 +221,9 @@ export default function CoalCuttingNormKB() {
         key: "assignmentCode",
         align: "center" as const,
         width: "20%",
+        render: (text: string) => (
+          <Typography>{text}</Typography>
+        ),
       },
       {
         title: (
@@ -232,7 +235,7 @@ export default function CoalCuttingNormKB() {
         key: "name",
         width: "55%",
         render: (text: string) => (
-          <Typography sx={{ color: "black" }}>{text}</Typography>
+          <Typography>{text}</Typography>
         ),
       },
       {
@@ -241,6 +244,9 @@ export default function CoalCuttingNormKB() {
         key: "uom",
         align: "center" as const,
         width: "10%",
+        render: (text: string) => (
+          <Typography>{text}</Typography>
+        ),
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
@@ -248,7 +254,7 @@ export default function CoalCuttingNormKB() {
         key: "norm",
         align: "center" as const,
         width: "10%",
-        render: (value: number) => (value ? value.toLocaleString() : ""),
+        render: (value: number) => <Typography>{(value ? value.toLocaleString() : "")}</Typography>,
       },
     ];
 
@@ -257,16 +263,16 @@ export default function CoalCuttingNormKB() {
         {/* Header */}
         <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1, backgroundColor: 'white' }}>
           <Grid container>
-            <Grid item xs={3}>Độ dày vỉa (m)</Grid>
-            <Grid item xs={9}>{thicknessLabel}</Grid>
+            <Grid item xs={3}><Typography>Độ dày vỉa (m)</Typography></Grid>
+            <Grid item xs={9}><Typography>{thicknessLabel}</Typography></Grid>
           </Grid>
           <Grid container>
-            <Grid item xs={3}>Độ dốc vỉa</Grid>
-            <Grid item xs={9}>{slopeLabel}</Grid>
+            <Grid item xs={3}><Typography>Độ dốc vỉa</Typography></Grid>
+            <Grid item xs={9}><Typography>{slopeLabel}</Typography></Grid>
           </Grid>
           <Grid container>
-            <Grid item xs={3}>Độ cứng</Grid>
-            <Grid item xs={9}>{hardnessLabel}</Grid>
+            <Grid item xs={3}><Typography>Độ cứng</Typography></Grid>
+            <Grid item xs={9}><Typography>{hardnessLabel}</Typography></Grid>
           </Grid>
         </Box>
         {/* Bảng con */}

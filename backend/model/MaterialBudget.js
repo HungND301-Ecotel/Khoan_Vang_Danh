@@ -2,7 +2,8 @@ const mongoose = require('mongoose')
 
 const MaterialBudget = new mongoose.Schema({
     code: {
-        type: String
+        type: String,
+        unique: true
     },
  //   phaseGroup: {
  //       type: mongoose.Schema.Types.ObjectId,

@@ -4,7 +4,7 @@ const dayjs = require("dayjs");
 const quarterOfYear = require("dayjs/plugin/quarterOfYear");
 dayjs.extend(quarterOfYear);
 
-const recalculateAssignmentCodePrice = require("./recalculateAssignmentCodePrice");
+const { updatePriceAssignmentCode } = require("./recalculateAssignmentCodePrice");
 
 exports.create = async (req, res) => {
   try {
@@ -26,7 +26,7 @@ exports.create = async (req, res) => {
       });
     }
     await newMaterialAssignment.save();
-    await recalculateAssignmentCodePrice(assignmentCode);
+    await updatePriceAssignmentCode(assignmentCode);
     res.status(201).json({ status: "success", message: "Tạo thành công" });
   } catch (err) {
     console.error("Error in create:", err);
@@ -45,7 +45,7 @@ exports.update = async (req, res) => {
     if (!updateData) {
       return res.status(404).json({ status: "error", message: "Sửa thất bại" });
     }
-    await recalculateAssignmentCodePrice(updateData.assignmentCode);
+    await updatePriceAssignmentCode(updateData.assignmentCode);
     res.status(200).json({ status: "success", message: "Sửa thành công" });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -78,7 +78,7 @@ exports.get = async (req, res) => {
     const result = [];
 
     for (const assignment of assignments) {
-      await recalculateAssignmentCodePrice(assignment._id);
+      await updatePriceAssignmentCode(assignment._id);
 
       // SỬA: MaterialsOutsideContract thay vì MaterialAssignment
       const materials = await MaterialsOutsideContract.find({
@@ -137,7 +137,7 @@ exports.getAll = async (req, res) => {
     ];
 
     await Promise.all(
-      assignmentIds.map((id) => recalculateAssignmentCodePrice(id))
+      assignmentIds.map((id) => updatePriceAssignmentCode(id))
     );
     const todayStr = new Date().toISOString().split("T")[0];
 

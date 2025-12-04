@@ -224,7 +224,7 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
       dataIndex: "code",
       key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography >{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
@@ -236,7 +236,7 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
       dataIndex: "name",
       key: "name",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.name}</Typography>
+        <Typography>{record.name}</Typography>
       ),
       sorter: (a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {
@@ -250,7 +250,7 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
       dataIndex: "phaseGroup",
       key: "phaseGroup",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
+        <Typography>
           {record.phaseGroup?.name}
         </Typography>
       ),

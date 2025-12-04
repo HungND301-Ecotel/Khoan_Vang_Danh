@@ -2,7 +2,9 @@ const mongoose = require('mongoose')
 
 const ExcavationNorm = new mongoose.Schema({
     code: {
-        type: String
+        type: String,
+        required: [true, 'code is required'],
+        unique: true
     },
     phaseGroup: {
         type: mongoose.Schema.Types.ObjectId,
@@ -28,7 +30,8 @@ const ExcavationNorm = new mongoose.Schema({
         {
             assignmentCode: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'AssignmentCode'
+                ref: 'AssignmentCode',
+                required: [true, 'AssignmentCode is required'],
             },
             norm: {
                 type: Number

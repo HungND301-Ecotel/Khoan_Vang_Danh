@@ -143,7 +143,7 @@ export default function ExcavationNorm() {
   const expandedRowRender = (record: AssignmentNormOutputType) => {
     const innerColumns = [
       {
-        title: "STT",
+        title: (<Typography sx={{ fontWeight: "bold" }}>STT</Typography>),
         dataIndex: "index",
         key: "index",
         width: 60,
@@ -158,7 +158,7 @@ export default function ExcavationNorm() {
         dataIndex: "assignmentCode",
         key: "assignmentCode",
         render: (assignmentCode: any) => (
-          <Typography sx={{ color: "black" }}>
+          <Typography >
             {assignmentCode?.code}
           </Typography>
         ),
@@ -171,26 +171,26 @@ export default function ExcavationNorm() {
         ),
         dataIndex: "assignmentCode",
         key: "name",
-        render: (assignmentCode: any) => assignmentCode?.name,
+        render: (assignmentCode: any) => <Typography>{assignmentCode?.name}</Typography>,
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
         dataIndex: "assignmentCode",
         key: "uom",
-        render: (assignmentCode: any) => assignmentCode?.uom?.name,
+        render: (assignmentCode: any) => <Typography>{assignmentCode?.uom?.name}</Typography>,
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
         dataIndex: "norm",
         key: "norm",
-        render: (norm: number) => (norm ? norm.toLocaleString() : ""),
+        render: (norm: number) => <Typography>{(norm ? norm.toLocaleString() : "")}</Typography>,
       },
     ];
 
     return (
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+          <Typography variant="subtitle1">
             Định mức {record.phase?.name} {record.hardness?.name} (
             {record.excavationTech?.name})
           </Typography>
@@ -228,7 +228,7 @@ export default function ExcavationNorm() {
       dataIndex: "code",
       key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography >{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {

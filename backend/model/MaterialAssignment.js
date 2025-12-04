@@ -3,11 +3,13 @@ const mongoose = require('mongoose')
 const MaterialAssignment = new mongoose.Schema({
     code: {
         type: String,
+        required: [true, 'code is required'],
         unique: true
     },
     name: {
         type: String,
-        required: [true, 'MaterialAssignment name is required']
+        required: [true, 'MaterialAssignment name is required'],
+        unique: true
     },
     uom: {
         type: mongoose.Schema.Types.ObjectId,
@@ -17,8 +19,8 @@ const MaterialAssignment = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'AssignmentCode'
     },
-    quantity:{
-        type:Number
+    quantity: {
+        type: Number
     },
     priceHistory: [{
         price: Number,

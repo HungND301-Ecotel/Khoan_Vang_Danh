@@ -28,6 +28,18 @@ import {
 import { Divider } from "antd";
 import { useQuery } from "@tanstack/react-query";
 
+const validationSchema = yup.object({
+  code: yup.string().required("Mã định mức không được để trống"),
+  mirrorRatio: yup.string().required("Tỉ lệ gương than mềm không được để trống"),
+  norms: yup.array().of(
+    yup.object().shape({
+      assignmentCode: yup.string().required("Bắt buộc"),
+      norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
+    })
+  ).min(1, "Chọn mã giao khoán"),
+})
+
+
 export default function AdjustmentNormCMModal({
   open,
   setOpen,
@@ -65,6 +77,7 @@ export default function AdjustmentNormCMModal({
         })) || [],
     },
     enableReinitialize: true,
+    validationSchema,
     onSubmit: async (values) => {
       handleSubmit({
         ...values,
@@ -164,6 +177,8 @@ export default function AdjustmentNormCMModal({
                 }}
                 variant="outlined"
                 size="small"
+                error={formik.touched.code && Boolean(formik.errors.code)}
+                helperText={formik.touched.code && formik.errors.code}
                 sx={{
                   "& .MuiInputBase-root": {
                     height: "36px",
@@ -188,6 +203,8 @@ export default function AdjustmentNormCMModal({
                 }}
                 variant="outlined"
                 size="small"
+                error={formik.touched.mirrorRatio && Boolean(formik.errors.mirrorRatio)}
+                helperText={formik.touched.mirrorRatio && formik.errors.mirrorRatio}
                 sx={{
                   "& .MuiInputBase-root": {
                     height: "36px",
@@ -251,6 +268,17 @@ export default function AdjustmentNormCMModal({
                     placeholder="Chọn..."
                     variant="outlined"
                     size="small"
+                    error={
+                      formik.touched.norms &&
+                      Boolean(formik.errors.norms) &&
+                      typeof formik.errors.norms === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                    }
+                    helperText={
+                      formik.touched.norms &&
+                        typeof formik.errors.norms === 'string'
+                        ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
+                        : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
+                    }
                     sx={{
                       "& .MuiInputBase-root": {
                         minHeight: "36px",
@@ -351,6 +379,15 @@ export default function AdjustmentNormCMModal({
                       placeholder="Placeholder"
                       variant="outlined"
                       size="small"
+                      error={Boolean(
+                        typeof formik.errors.norms?.[index] === 'object' &&
+                        (formik.errors.norms?.[index] as any)?.norm
+                      )}
+                      helperText={
+                        typeof formik.errors.norms?.[index] === 'object'
+                          ? (formik.errors.norms?.[index] as any)?.norm
+                          : ''
+                      }
                       sx={{
                         "& .MuiInputBase-root": {
                           height: "36px",

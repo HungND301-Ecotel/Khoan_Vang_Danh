@@ -179,7 +179,7 @@ export default function AdjustmentNormKKT() {
 
   const columns: TableProps<AdjustmentNormOutputType>["columns"] = [
     {
-      title: "STT",
+      title: (<Typography sx={{ fontWeight: "bold" }}>STT</Typography>),
       dataIndex: "number",
       key: "number",
       width: 50,
@@ -194,7 +194,7 @@ export default function AdjustmentNormKKT() {
       dataIndex: "code",
       key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography >{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {

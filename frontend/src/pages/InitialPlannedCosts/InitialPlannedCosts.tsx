@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { Fragment, useState } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -11,27 +11,29 @@ import {
   Print,
   Search,
   Visibility,
+  VisibilityOff,
 } from "@mui/icons-material";
 import {
+  Table as TableMui,
   Box,
   Breadcrumbs,
   Button,
+  Grid,
   IconButton,
   InputAdornment,
   TextField,
   Typography,
-  CircularProgress,
-  Skeleton,
-  Card,
-  CardContent,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import {
-  ProductionScopeInputType,
-  ProductionScopeOutputType,
+  InitialPlannedCostInputType,
+  InitialPlannedCostOutputType,
 } from "../../types";
-import ProductionScopeModal from "../../components/ProductionScopeModal/ProductionScopeModal";
 import {
   showConfirmAlert,
   showErrorAlert,
@@ -41,10 +43,13 @@ import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from '../../theme';
 import CustomTable from "../../components/CustomTable/CustomTable";
+import InitialPlannedCostModal from "../../components/InitialPlannedCostModal/InitialPlannedCostModal";
+import PhaseTable from "./PhaseTable";
+import dayjs from "dayjs";
 
-export default function ProductScope() {
-  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
-  const [selected, setSelected] = useState<ProductionScopeOutputType | null>(
+export default function InitialPlannedCosts() {
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [selected, setSelected] = useState<InitialPlannedCostOutputType | null>(
     null
   );
   const [open, setOpen] = useState(false);
@@ -52,54 +57,59 @@ export default function ProductScope() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
+  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
 
   const queryClient = useQueryClient();
 
-  const { data: productionscopes = { totalDocs: 0, data: [] }, isLoading, isFetching } = useQuery({
-    queryKey: ["productionscopes", searchValue, page, limit],
+  const { data: initialplannedcosts = { totalDocs: 0, data: [] }, isLoading } = useQuery({
+    queryKey: ["initialplannedcosts", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get(`/productionscopes?q=${searchValue}&page=${page}&limit=${limit}`);
-        return response.data.data || [];
-      } catch (error) {
-        showErrorAlert("Không thể tải dữ liệu");
-        return [];
+        const res = await api.get(`/initialplannedcosts?q=${searchValue}&page=${page}&limit=${limit}`);
+        return res.data?.data;
+      } catch (error: any) {
+        const errorMessage =
+          error.response?.data?.message || "Lỗi khi tải dữ liệu";
+        showErrorAlert(errorMessage);
       }
     },
   });
 
-
   const createMutation = useMutation({
-    mutationFn: (newExcavationNorm: Partial<ProductionScopeInputType>) =>
-      api.post("/productionscopes", newExcavationNorm).then((res) => res.data),
+    mutationFn: (newInitialPlannedCost: Partial<InitialPlannedCostInputType>) =>
+      api
+        .post("/initialplannedcosts", newInitialPlannedCost)
+        .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["productionscopes"] });
+      queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
       setOpen(false);
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || "Lỗi");
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+      const errorMessage = error.response?.data?.message || "Lỗi khi thêm mới";
+      console.log(errorMessage);
+      showErrorAlert(errorMessage);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (updateExcavationNorm: Partial<ProductionScopeInputType>) =>
+    mutationFn: (updateInitialPlannedCost: Partial<InitialPlannedCostInputType>) =>
       api
         .put(
-          `/productionscopes/${updateExcavationNorm._id}`,
-          updateExcavationNorm
+          `/initialplannedcosts/${updateInitialPlannedCost._id}`,
+          updateInitialPlannedCost
         )
         .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["productionscopes"] });
+      queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
       setOpen(false);
       setSelected(null);
       showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
-      console.log(error.response.data.message || error.response || "Lỗi");
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
+      const errorMessage = error.response?.data?.message || "Lỗi khi cập nhật";
+      console.log(errorMessage);
+      showErrorAlert(errorMessage);
     },
   });
 
@@ -111,99 +121,114 @@ export default function ProductScope() {
 
     showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
-        deleteMutation.mutate(selectedRows);
+        handleDeleteMutation(selectedRows);
       }
     });
   };
 
-  const deleteMutation = useMutation({
+  const { mutate: handleDeleteMutation } = useMutation({
     mutationFn: async (ids: React.Key[]) => {
       const deletePromises = ids.map((id) =>
-        api.delete(`/productionscopes/${id}`).then((res) => res.data)
+        api.delete(`/initialplannedcosts/${id}`).then((res) => res.data)
       );
       return Promise.all(deletePromises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["productionscopes"] });
+      queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
       setSelectedRows([]);
       showSuccessAlert("Xóa thành công");
     },
     onError: (error: any) => {
       const errorMessage =
-        error.response?.data?.message || error.message || "Lỗi không xác định";
+        error.response?.data?.message || error.message || "Lỗi khi xóa";
       console.error(errorMessage);
       showErrorAlert(errorMessage);
     },
   });
 
-  const handleSubmit = (values: Partial<ProductionScopeInputType>) => {
-    if (selected) {
-      updateMutation.mutate({ ...values, _id: selected._id });
+  const handleSubmit = (values: Partial<InitialPlannedCostInputType>) => {
+    if (values._id) {
+      updateMutation.mutate(values);
     } else {
       createMutation.mutate(values);
     }
   };
 
-  const handleOpen = (excavationNorm?: ProductionScopeOutputType) => {
-    if (excavationNorm) {
-      setSelected(excavationNorm);
+  const handleOpen = (materialCostUsed?: InitialPlannedCostOutputType) => {
+    if (materialCostUsed) {
+      setSelected(materialCostUsed);
     } else {
       setSelected(null);
     }
     setOpen(true);
   };
 
-  const handleView = (record: ProductionScopeOutputType) => {
-    const key = record._id;
-    if (key && expandedRowKeys.includes(key)) {
-      setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
-    } else if (key) {
-      setExpandedRowKeys([...expandedRowKeys, key]);
+  const handleView = (initialplannedcost: InitialPlannedCostOutputType) => {
+    const id = initialplannedcost?._id;
+    if (!id) return;
+
+    setExpandedRow((prev) => (prev === id ? null : id));
+  };
+
+
+  const expandedRowRender = (record: InitialPlannedCostOutputType) => {
+    const key = record._id || "";
+    const data = expandedData[key] || record;
+    if (data === null) {
+      return (
+        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
+          <Typography color="error">
+            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
+          </Typography>
+        </Box>
+      );
     }
+    if (!data.group) {
+      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
+    }
+    return <PhaseTable data={data} />
   };
 
-  // Clear search function
-  const handleClearSearch = () => {
-    setSearchValue("");
-  };
-
-  // Main columns
-  const columns: TableProps<ProductionScopeOutputType>["columns"] = [
+  const columns: TableProps<InitialPlannedCostOutputType>["columns"] = [
     {
       title: "",
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (_value, _record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
     },
     {
       title: (
-        <Typography sx={{ fontWeight: "bold" }}>Mã diện sản xuất</Typography>
+        <Typography sx={{ fontWeight: "bold" }}>
+          Mã diện sản xuất{" "}
+        </Typography>
       ),
       dataIndex: "code",
       key: "code",
-      width: 200,
       render: (_, record) => (
-        <Typography >{record.code}</Typography>
+        <Typography>{record.productionScope?.code}</Typography>
       ),
       sorter: (a, b) =>
-        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+        (a.productionScope?.code ?? "").localeCompare(b.productionScope?.code ?? "", "vi", {
           sensitivity: "base",
         }),
     },
     {
-      title: (
-        <Typography sx={{ fontWeight: "bold" }}>Tên diện sản xuất</Typography>
+      title: <Typography sx={{ fontWeight: "bold" }}>Chi phí</Typography>,
+      dataIndex: "totalPlannedCost",
+      key: "totalPlannedCost",
+      render: (text: string, item: any) => {
+        const total = item.group.reduce((sum: number, i: any) => sum + i.totalPlannedCost, 0)
+        return <Typography > {total.toLocaleString()}</Typography >
+      }
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Thời gian</Typography>,
+      dataIndex: "time",
+      key: "time",
+      render: (text: string, item: any) => (
+        <Typography>{dayjs(item?.startDate).format("DD/MM/YYYY")} - {dayjs(item?.endDate).format("DD/MM/YYYY")}</Typography>
       ),
-      dataIndex: "name",
-      key: "name",
-      render: (_, record) => (
-        <Typography >{record.name}</Typography>
-      ),
-      sorter: (a, b) =>
-        (a.name ?? "").localeCompare(b.name ?? "", "vi", {
-          sensitivity: "base",
-        }),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
@@ -222,7 +247,7 @@ export default function ProductScope() {
             },
           }}
         >
-          <Visibility />
+          {expandedRow === record?._id ? <Visibility /> : <VisibilityOff />}
         </IconButton>
       ),
     },
@@ -249,54 +274,16 @@ export default function ProductScope() {
     },
   ];
 
-  // Expanded row render
-  const expandedRowRender = (record: ProductionScopeOutputType) => {
-    const innerColumns = [
-      {
-        width: '200px',
-        title: <Typography sx={{ fontWeight: "bold", pl: 2 }} align="center">Mã công đoạn</Typography>,
-        dataIndex: "code",
-        key: "code",
-        render: (_: any, record: any) => (
-          <Typography sx={{ color: "blue", pl: 2 }} align="center">{record?.phase?.code}</Typography>
-        ),
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold", pl: 2 }}>Công đoạn</Typography>,
-        dataIndex: "phase",
-        key: "phase",
-        render: (phase: any) => (
-          <Typography sx={{ color: "blue", pl: 2 }}>{phase?.name}</Typography>
-        ),
-      },
-    ];
+  const handleClearSearch = () => {
+    setSearchValue('')
+  }
 
-    return (
-      <Box sx={{ backgroundColor: "#f5f5f5", p: 0, borderRadius: 1 }}>
-        <Table
-          columns={innerColumns}
-          dataSource={record.phases}
-          pagination={false}
-          size="small"
-          rowKey={(item, index) => `${record._id}-${index}`}
-          showHeader={true} // ✅ show header now
-          style={{
-            marginLeft: 0,
-            marginRight: 0,
-          }}
-        />
-      </Box>
-    );
-  };
-
-
-  const rowSelection: TableRowSelection<ProductionScopeOutputType> = {
+  const rowSelection: TableRowSelection<InitialPlannedCostOutputType> = {
     selectedRowKeys: selectedRows,
     onChange: (newSelectedRows: React.Key[]) => {
       setSelectedRows(newSelectedRows);
     },
   };
-
 
   return (
     <Box sx={{
@@ -304,14 +291,14 @@ export default function ProductScope() {
       py: 1,           // vertical = 8px
     }}>
       <Breadcrumbs aria-label="breadcrumb">
-        <Typography>Danh mục</Typography>
-        <Typography>Diện sản xuất</Typography>
+        <Typography>Thống kê vận hành</Typography>
+        <Typography>Chi phí kế hoạch ban đầu </Typography>
       </Breadcrumbs>
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
-              Diện sản xuất
+              Chi phí kế hoạch ban đầu
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
               <Box display={"flex"} gap={2}>
@@ -334,7 +321,6 @@ export default function ProductScope() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="error"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                   disabled={selectedRows.length === 0}
@@ -385,20 +371,7 @@ export default function ProductScope() {
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        {searchValue && (
-                          <IconButton
-                            onClick={handleClearSearch}
-                            size="small"
-                            sx={{ mr: 1 }}
-                          >
-                            ×
-                          </IconButton>
-                        )}
-                        {isLoading && searchValue ? (
-                          <CircularProgress size={20} sx={{ mr: 1 }} />
-                        ) : (
-                          <Search sx={{ fontSize: 24 }} />
-                        )}
+                        <Search sx={{ fontSize: 24 }} />
                       </InputAdornment>
                     ),
                   }}
@@ -497,35 +470,9 @@ export default function ProductScope() {
               </Box>
             </Box>
           </Box>
-          {/* Enhanced Search Results Info with Loading State */}
-          {searchValue && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
-              <Typography variant="body2" color="primary">
-                {isLoading && searchValue ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Đang tìm kiếm "{searchValue}"...
-                  </Box>
-                ) : (
-                  <>
-                    Tìm thấy {productionscopes.totalDocs} kết quả cho "{searchValue}"
-                    {productionscopes.totalDocs > 0 && (
-                      <Button
-                        size="small"
-                        onClick={handleClearSearch}
-                        sx={{ ml: 2 }}
-                      >
-                        Xóa bộ lọc
-                      </Button>
-                    )}
-                  </>
-                )}
-              </Typography>
-            </Box>
-          )}
-          <CustomTable<ProductionScopeOutputType>
-            data={productionscopes.data}
-            total={productionscopes.totalDocs}
+          <CustomTable<InitialPlannedCostOutputType>
+            data={initialplannedcosts.data}
+            total={initialplannedcosts.totalDocs}
             page={page}
             limit={limit}
             columns={columns}
@@ -538,20 +485,22 @@ export default function ProductScope() {
             searchValue={searchValue}
             handleClearSearch={handleClearSearch}
             expandable={{
-              expandedRowKeys,
-              onExpandedRowsChange: (keys) =>
-                setExpandedRowKeys(keys as React.Key[]),
+              expandedRowKeys: expandedRow ? [expandedRow] : [],
+              onExpand: (expanded, record) => {
+                setExpandedRow(expanded ? record._id || null : null);
+              },
               expandedRowRender,
-              showExpandColumn: false,
+              showExpandColumn: false
             }}
           />
         </Box>
       </Box>
-      <ProductionScopeModal
+      <InitialPlannedCostModal
         open={open}
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+        deleteMutation={handleDeleteMutation}
       />
     </Box>
   );

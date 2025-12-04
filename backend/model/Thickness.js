@@ -3,7 +3,8 @@ const mongoose = require('mongoose')
 const Thickness = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Thickness name is required']
+        required: [true, 'Thickness name is required'],
+        unique: true
     }
 }, {
     timestamps: true

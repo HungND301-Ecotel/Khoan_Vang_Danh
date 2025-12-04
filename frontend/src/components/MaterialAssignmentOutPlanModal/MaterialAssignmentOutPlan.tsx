@@ -31,6 +31,7 @@ import dayjs from "dayjs";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
+  code:yup.string().required("Mã vật tư giao khoán không được để trống"),
   name: yup.string().required("Tên vật tư giao khoán không được để trống"),
 });
 

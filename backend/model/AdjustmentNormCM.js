@@ -2,7 +2,8 @@ const mongoose = require('mongoose')
 
 const AdjustmentNormCM = new mongoose.Schema({
     code: {
-        type: String
+        type: String,
+        unique: true
     },
     mirrorRatio: {
         type: mongoose.Schema.Types.ObjectId,

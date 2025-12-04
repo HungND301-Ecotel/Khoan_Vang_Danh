@@ -92,44 +92,45 @@ export default function Materialunitprice() {
       }
     },
     {
-      title: "Mã vật tư",
+      title: <Typography fontWeight="bold">{"Mã vật tư"}</Typography>,
       dataIndex: "materialCode",
       width: 180,
       render: (value, record) => {
-        return <Typography fontWeight={"bold"}>{value}</Typography>;
+        return <Typography >{value}</Typography>;
       }
     },
     {
-      title: "Mã giao khoán",
+      title: <Typography fontWeight="bold">Mã giao khoán</Typography>,
       dataIndex: "assignmentCode",
       width: 180,
       render: (value, record) => {
-        return <Typography fontWeight={"bold"}>{value}</Typography>;
+        return <Typography >{value}</Typography>;
       }
     },
     {
-      title: "Tên vật tư",
+      title: <Typography fontWeight="bold">Tên vật tư</Typography>,
       dataIndex: "name",
       render: (value, record) => {
-        return <Typography fontWeight="bold">{value}</Typography>;
+        return <Typography>{value}</Typography>;
       }
     },
     {
-      title: "ĐVT",
+      title: <Typography fontWeight="bold">ĐVT</Typography>,
       dataIndex: "uom",
       align: "center",
-      render: v => v || ""
+      render: v => <Typography>{v}</Typography>
     },
     {
-      title: "Số lượng",
+      title: <Typography fontWeight="bold">Số lượng</Typography>,
       dataIndex: "quantity",
       align: "center",
+      render: v => <Typography>{v}</Typography>
     },
     {
-      title: "Đơn giá bình quân năm",
+      title: <Typography fontWeight="bold">Đơn giá bình quân năm</Typography>,
       dataIndex: "price",
       align: "center",
-      render: v => v?.toLocaleString()
+      render: v => <Typography>{v?.toLocaleString()}</Typography>
     }
   ];
 

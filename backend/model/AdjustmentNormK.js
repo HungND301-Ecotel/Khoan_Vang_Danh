@@ -2,7 +2,8 @@ const mongoose = require('mongoose')
 
 const AdjustmentNormK = new mongoose.Schema({
     code: {
-        type: String
+        type: String,
+        unique: true
     },
     hardness: {
         type: mongoose.Schema.Types.ObjectId,

@@ -178,7 +178,7 @@ export default function MiningTech() {
       dataIndex: "code",
       key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold", }}>
+        <Typography >
           {record.code}
         </Typography>
       ),

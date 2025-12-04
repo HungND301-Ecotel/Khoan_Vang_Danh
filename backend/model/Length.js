@@ -3,7 +3,8 @@ const mongoose = require('mongoose')
 const Length = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Length name is required']
+        required: [true, 'Length name is required'],
+        unique: true
     }
 }, {
     timestamps: true

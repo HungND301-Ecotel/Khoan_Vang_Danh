@@ -29,6 +29,19 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Divider } from "antd";
 
+const validationSchema = yup.object({
+  code: yup.string().required("Mã định mức không được để trống"),
+  hardness: yup.string().required("Độ cứng của đá không được để trống"),
+  rockRatio: yup.string().required("Tỉ lệ đá lẫn trong gương không được để trống"),
+  norms: yup.array().of(
+    yup.object().shape({
+      assignmentCode: yup.string().required("Bắt buộc"),
+      norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
+    })
+  ).min(1, "Chọn mã giao khoán"),
+})
+
+
 export default function AdjustmentNormKDLModal({
   open,
   setOpen,
@@ -71,6 +84,7 @@ export default function AdjustmentNormKDLModal({
         })) || [],
     },
     enableReinitialize: true,
+    validationSchema,
     onSubmit: async (values) => {
       handleSubmit({
         ...values,
@@ -171,6 +185,8 @@ export default function AdjustmentNormKDLModal({
                 }}
                 variant="outlined"
                 size="small"
+                error={formik.touched.code && Boolean(formik.errors.code)}
+                helperText={formik.touched.code && formik.errors.code}
                 sx={{
                   "& .MuiInputBase-root": {
                     height: "36px",
@@ -195,6 +211,8 @@ export default function AdjustmentNormKDLModal({
                 }}
                 variant="outlined"
                 size="small"
+                error={formik.touched.hardness && Boolean(formik.errors.hardness)}
+                helperText={formik.touched.hardness && formik.errors.hardness}
                 sx={{
                   "& .MuiInputBase-root": {
                     height: "36px",
@@ -227,6 +245,8 @@ export default function AdjustmentNormKDLModal({
                 }}
                 variant="outlined"
                 size="small"
+                error={formik.touched.rockRatio && Boolean(formik.errors.rockRatio)}
+                helperText={formik.touched.rockRatio && formik.errors.rockRatio}
                 sx={{
                   "& .MuiInputBase-root": {
                     height: "36px",
@@ -289,6 +309,17 @@ export default function AdjustmentNormKDLModal({
                     placeholder="Chọn..."
                     variant="outlined"
                     size="small"
+                    error={
+                      formik.touched.norms &&
+                      Boolean(formik.errors.norms) &&
+                      typeof formik.errors.norms === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                    }
+                    helperText={
+                      formik.touched.norms &&
+                        typeof formik.errors.norms === 'string'
+                        ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
+                        : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
+                    }
                     sx={{
                       "& .MuiInputBase-root": {
                         minHeight: "36px",
@@ -388,6 +419,15 @@ export default function AdjustmentNormKDLModal({
                       placeholder="Placeholder"
                       variant="outlined"
                       size="small"
+                      error={Boolean(
+                        typeof formik.errors.norms?.[index] === 'object' &&
+                        (formik.errors.norms?.[index] as any)?.norm
+                      )}
+                      helperText={
+                        typeof formik.errors.norms?.[index] === 'object'
+                          ? (formik.errors.norms?.[index] as any)?.norm
+                          : ''
+                      }
                       sx={{
                         "& .MuiInputBase-root": {
                           height: "36px",

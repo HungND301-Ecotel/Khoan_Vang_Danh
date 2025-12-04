@@ -2,7 +2,8 @@ const mongoose = require('mongoose')
 
 const MaterialCostUsed = new mongoose.Schema({
     code: {
-        type: String
+        type: String,
+        unique: true
     },
     productionScope: {
         type: mongoose.Schema.Types.ObjectId,

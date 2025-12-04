@@ -154,7 +154,7 @@ export default function CuttingNorm() {
         dataIndex: "assignmentCode",
         key: "assignmentCode",
         render: (assignmentCode: any) => (
-          <Typography sx={{ color: "black" }}>
+          <Typography>
             {assignmentCode?.code}
           </Typography>
         ),
@@ -167,27 +167,27 @@ export default function CuttingNorm() {
         ),
         dataIndex: "assignmentCode",
         key: "name",
-        render: (assignmentCode: any) => assignmentCode?.name,
+        render: (assignmentCode: any) => (<Typography>{assignmentCode?.name}</Typography>),
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
         dataIndex: "assignmentCode",
         key: "uom",
-        render: (assignmentCode: any) => assignmentCode?.uom?.name,
+        render: (assignmentCode: any) => (<Typography>{assignmentCode?.uom?.name}</Typography>),
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
         dataIndex: "norm",
         key: "norm",
-        render: (norm: number) => (norm ? norm.toLocaleString() : ""),
+        render: (norm: number) => <Typography>{(norm ? norm.toLocaleString() : "")}</Typography>,
       },
     ];
 
     return (
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-            Định mức {record.phase?.name} {record.hardness?.name}
+          <Typography variant="subtitle1">
+            {record.phase?.name} {record.hardness?.name}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Tiết diện lò xén: {record.crossSection?.name || ""} (

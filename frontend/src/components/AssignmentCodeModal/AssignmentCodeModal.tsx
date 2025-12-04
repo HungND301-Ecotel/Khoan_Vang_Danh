@@ -21,6 +21,7 @@ import api from "../../config/api.config";
 import { Divider } from "antd";
 
 const validationSchema = yup.object({
+  code: yup.string().required("Mã giao khoán không được để trống"),
   name: yup.string().required("Tên giao khoán không được để trống"),
 });
 

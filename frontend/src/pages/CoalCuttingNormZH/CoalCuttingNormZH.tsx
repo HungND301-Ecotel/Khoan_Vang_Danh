@@ -152,7 +152,7 @@ export default function CoalCuttingNormZH() {
       dataIndex: "code",
       key: "code",
       render: (_v, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography >{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
@@ -210,7 +210,7 @@ export default function CoalCuttingNormZH() {
         key: "index",
         align: "center" as const,
         width: "5%",
-        render: (_: any, __: any, index: number) => index + 1,
+        render: (_: any, __: any, index: number) => <Typography>{index + 1}</Typography>,
       },
       {
         title: (
@@ -220,6 +220,9 @@ export default function CoalCuttingNormZH() {
         key: "assignmentCode",
         align: "center" as const,
         width: "20%",
+        render: (text: string) => (
+          <Typography>{text}</Typography>
+        ),
       },
       {
         title: (
@@ -231,7 +234,7 @@ export default function CoalCuttingNormZH() {
         key: "name",
         width: "55%",
         render: (text: string) => (
-          <Typography sx={{ color: "black" }}>{text}</Typography>
+          <Typography>{text}</Typography>
         ),
       },
       {
@@ -239,7 +242,7 @@ export default function CoalCuttingNormZH() {
         key: "uom",
         align: "center" as const,
         width: "10%",
-        render: (_: any, record: any) => record.assignmentCode?.uom?.name || "",
+        render: (_: any, record: any) => <Typography>{record.assignmentCode?.uom?.name || ""}</Typography>,
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
@@ -247,7 +250,7 @@ export default function CoalCuttingNormZH() {
         key: "norm",
         align: "center" as const,
         width: "10%",
-        render: (value: number) => (value ? value.toLocaleString() : ""),
+        render: (value: number) => <Typography>{(value ? value.toLocaleString() : "")}</Typography>,
       },
     ];
 
@@ -256,16 +259,16 @@ export default function CoalCuttingNormZH() {
         {/* Header */}
         <Box sx={{ mb: 2, display: "flex", flexDirection: "column", gap: 1 }}>
           <Grid container>
-            <Grid item xs={3}>Độ dày vỉa (m)</Grid>
+            <Grid item xs={3}><Typography>Độ dày vỉa (m)</Typography></Grid>
             <Grid item xs={9}>{thicknessLabel}</Grid>
           </Grid>
           <Grid container>
-            <Grid item xs={3}>Chiều dài</Grid>
-            <Grid item xs={9}>{lengthLabel}</Grid>
+            <Grid item xs={3}><Typography>Chiều dài</Typography></Grid>
+            <Grid item xs={9}><Typography>{lengthLabel}</Typography></Grid>
           </Grid>
           <Grid container>
-            <Grid item xs={3}>Độ cứng</Grid>
-            <Grid item xs={9}>{hardnessLabel}</Grid>
+            <Grid item xs={3}><Typography>Độ cứng</Typography></Grid>
+            <Grid item xs={9}><Typography>{hardnessLabel}</Typography></Grid>
           </Grid>
         </Box>
 

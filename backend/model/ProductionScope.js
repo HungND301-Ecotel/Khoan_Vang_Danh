@@ -2,22 +2,30 @@ const mongoose = require('mongoose')
 
 const ProductionScope = new mongoose.Schema({
     code: {
-        type: String
+        type: String,
+        required: [true, 'code is required'],
+        unique: true
     },
     name: {
-        type: String
+        type: String,
+        required: [true, 'name is required'],
+        unique: true
     },
-    phases: [
-        {
-            phase: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'PhaseGroup'
-            },
-            production: {
-                type: Number
+    phases: {
+        type: [
+            {
+                phase: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'PhaseGroup',
+                    required: [true, 'phase is required'],
+                },
+                // production: {
+                //     type: Number
+                // }
             }
-        }
-    ]
+        ],
+        required: [true, 'phases array is required'],
+    }
 }, {
     timestamps: true
 })

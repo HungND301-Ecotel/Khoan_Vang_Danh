@@ -5,6 +5,7 @@ const Unit = new mongoose.Schema(
     name: {
       type: String,
       required: [true, "Unit name is required"],
+      unique: true
     },
   },
   {

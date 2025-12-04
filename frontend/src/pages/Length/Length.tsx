@@ -187,9 +187,7 @@ export default function Length() {
       title: <Typography sx={{ fontWeight: "bold" }}>Chiều dài lò</Typography>,
       dataIndex: "name",
       key: "name",
-      render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.name}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.name}</Typography>,
       sorter: (a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {
           sensitivity: "base",

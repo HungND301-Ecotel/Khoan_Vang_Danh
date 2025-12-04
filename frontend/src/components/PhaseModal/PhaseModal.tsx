@@ -21,8 +21,9 @@ import api from "../../config/api.config";
 import { Divider } from "antd";
 
 const validationSchema = yup.object({
+  code: yup.string().required("Mã công đoạn không được để trống"),
   name: yup.string().required("Tên công đoạn không được để trống"),
-  phaseGroup: yup.string(),
+  phaseGroup: yup.string().required("Mã nhóm công đoạn không được để trống"),
 });
 
 export default function PhaseModal({

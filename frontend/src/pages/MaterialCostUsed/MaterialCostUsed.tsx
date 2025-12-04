@@ -201,7 +201,7 @@ export default function MaterialCostUsed() {
         ),
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Mã công đoạn</Typography>,
+        title: <Typography >Mã công đoạn</Typography>,
         width: 200,
         dataIndex: "code",
         key: "code",
@@ -211,7 +211,7 @@ export default function MaterialCostUsed() {
       },
       {
         title: (
-          <Typography sx={{ fontWeight: "bold" }}>
+          <Typography >
             Tên công đoạn
           </Typography>
         ),
@@ -222,7 +222,7 @@ export default function MaterialCostUsed() {
         ),
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
+        title: <Typography >ĐVT</Typography>,
         dataIndex: "unit",
         key: "unit",
         align: "center" as const,
@@ -231,7 +231,7 @@ export default function MaterialCostUsed() {
         ),
       },
       {
-        title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
+        title: <Typography >Số lượng</Typography>,
         dataIndex: "production",
         key: "production",
         align: "center" as const,

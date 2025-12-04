@@ -36,18 +36,18 @@ import {
   ThicknessType,
   LengthType,
 } from "../../types";
-
-const validationSchema = yup.object().shape({
-  norms: yup
-    .array()
-    .of(
-      yup.object().shape({
-        assignmentCode: yup.string().required("Bắt buộc"),
-        norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
-      })
-    )
-    .min(1, "Phải có ít nhất 1 định mức"),
-});
+const validationSchema = yup.object({
+  curbSlope: yup.string().required("Độ dốc vỉa không được để trống"),
+  thickness: yup.string().required("Độ dày vỉa không được để trống"),
+  hardness: yup.string().required("Độ cứng không được để trống"),
+  code: yup.string().required("Mã định mức không được để trống"),
+  norms: yup.array().of(
+    yup.object().shape({
+      assignmentCode: yup.string().required("Bắt buộc"),
+      norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
+    })
+  ).min(1, "Chọn mã giao khoán"),
+})
 
 export default function CuttingNormKBModal({
   open,
@@ -361,6 +361,8 @@ export default function CuttingNormKBModal({
                   </InputAdornment>
                 ),
               }}
+              error={formik.touched.thickness && Boolean(formik.errors.thickness)}
+              helperText={formik.touched.thickness && formik.errors.thickness}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -408,6 +410,8 @@ export default function CuttingNormKBModal({
                   </InputAdornment>
                 ),
               }}
+              error={formik.touched.curbSlope && Boolean(formik.errors.curbSlope)}
+              helperText={formik.touched.curbSlope && formik.errors.curbSlope}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -455,6 +459,8 @@ export default function CuttingNormKBModal({
                   </InputAdornment>
                 ),
               }}
+              error={formik.touched.hardness && Boolean(formik.errors.hardness)}
+              helperText={formik.touched.hardness && formik.errors.hardness}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -494,6 +500,8 @@ export default function CuttingNormKBModal({
                 formik.setFieldValue("code", event.target.value)
               }
               variant="outlined"
+              error={formik.touched.code && Boolean(formik.errors.code)}
+              helperText={formik.touched.code && formik.errors.code}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -842,7 +850,19 @@ export default function CuttingNormKBModal({
                 formik.setFieldValue("norms", updatedNorms);
               }}
               renderInput={(params) => (
-                <TextField {...params} variant="outlined" />
+                <TextField {...params}
+                  variant="outlined"
+                  error={
+                    formik.touched.norms &&
+                    Boolean(formik.errors.norms) &&
+                    typeof formik.errors.norms === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                  }
+                  helperText={
+                    formik.touched.norms &&
+                      typeof formik.errors.norms === 'string'
+                      ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
+                      : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
+                  } />
               )}
               sx={{
                 width: "700px",
@@ -977,6 +997,15 @@ export default function CuttingNormKBModal({
                             )
                           }
                           variant="outlined"
+                          error={Boolean(
+                            typeof formik.errors.norms?.[index] === 'object' &&
+                            (formik.errors.norms?.[index] as any)?.norm
+                          )}
+                          helperText={
+                            typeof formik.errors.norms?.[index] === 'object'
+                              ? (formik.errors.norms?.[index] as any)?.norm
+                              : ''
+                          }
                           sx={{
                             "& .MuiInputBase-root": {
                               height: "32px",

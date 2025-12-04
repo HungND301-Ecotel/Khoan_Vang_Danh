@@ -3,7 +3,8 @@ const mongoose = require('mongoose')
 const MirrorRatio = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'MirrorRatio name is required']
+        required: [true, 'MirrorRatio name is required'],
+        unique: true
     }
 }, {
     timestamps: true

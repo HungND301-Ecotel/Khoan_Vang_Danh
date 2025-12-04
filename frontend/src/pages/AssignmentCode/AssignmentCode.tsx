@@ -217,7 +217,7 @@ export default function AssignmentCode() {
       dataIndex: "deviceCode",
       key: "deviceCode",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
+        <Typography >
           {record.deviceCode?.code}
         </Typography>
       ),
@@ -233,7 +233,7 @@ export default function AssignmentCode() {
       dataIndex: "code",
       key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography >{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
@@ -256,7 +256,7 @@ export default function AssignmentCode() {
       dataIndex: "uom",
       key: "uom",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.uom?.name}</Typography>
+        <Typography >{record.uom?.name}</Typography>
       ),
     },
     {
@@ -264,7 +264,7 @@ export default function AssignmentCode() {
       dataIndex: "price",
       key: "price",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
+        <Typography >
           {record.price ? record.price.toLocaleString() : ""}
         </Typography>
       ),

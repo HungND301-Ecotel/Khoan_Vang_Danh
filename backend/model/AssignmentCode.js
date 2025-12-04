@@ -3,11 +3,13 @@ const mongoose = require('mongoose')
 const AssignmentCode = new mongoose.Schema({
     code: {
         type: String,
+        required: [true, 'code is required'],
         unique: true
     },
     name: {
         type: String,
-        required: [true, 'Assignment name is required']
+        required: [true, 'Assignment name is required'],
+        unique: true
     },
     uom: {
         type: mongoose.Schema.Types.ObjectId,

@@ -44,6 +44,7 @@ import Parameter from './pages/Parameter/Parameter';
 import CoalCuttingNorm from './pages/CoalCuttingNorm/CoalCuttingNorm';
 // import Quarterlycontractsettlement from './pages/Quarterlycontractsettlement/Quarterlycontractsettlement';
 import SettlementReportSummary from './pages/SettlementReportSummary/SettlementReportSummary';
+import InitialPlannedCosts from './pages/InitialPlannedCosts/InitialPlannedCosts';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -327,6 +328,14 @@ const App = () => {
           element={
             <PrivateRoute>
               <Setttlementreport />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/initialplannedcosts"
+          element={
+            <PrivateRoute>
+              <InitialPlannedCosts />
             </PrivateRoute>
           }
         />

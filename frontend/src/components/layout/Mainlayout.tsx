@@ -331,7 +331,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           }}
           sx={{
             minWidth: 260,
-            fontSize: "14px",
             padding: "10px 16px",
             "&:hover": {
               backgroundColor: "rgba(25, 118, 210, 0.08)",
@@ -348,7 +347,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           }}
           sx={{
             minWidth: 260,
-            fontSize: "14px",
             padding: "10px 16px",
             "&:hover": {
               backgroundColor: "rgba(25, 118, 210, 0.08)",
@@ -406,6 +404,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         onClose={() => setMenuThongKeEl(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
+        <MenuItem
+          onClick={() => {
+            navigate("/initialplannedcosts");
+            setMenuThongKeEl(null);
+          }}
+        >
+          Chi phí kế hoạch ban đầu
+        </MenuItem>
         <MenuItem
           onClick={() => {
             navigate("/materialcostused");

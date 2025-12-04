@@ -182,7 +182,7 @@ export default function Thickness() {
       dataIndex: "name",
       key: "name",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.name}</Typography>
+        <Typography>{record.name}</Typography>
       ),
       sorter: (a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {

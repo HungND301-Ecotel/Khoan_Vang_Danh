@@ -3,7 +3,8 @@ const mongoose = require('mongoose')
 const ExcavationTech = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'ExcavationTech name is required']
+        required: [true, 'ExcavationTech name is required'],
+        unique: true
     }
 }, {
     timestamps: true

@@ -2,7 +2,8 @@ const mongoose = require('mongoose')
 
 const CoalCuttingNormKB = new mongoose.Schema({
     code: {
-        type: String
+        type: String,
+        unique: true
     },
     curbSlope: {
         type: mongoose.Schema.Types.ObjectId,

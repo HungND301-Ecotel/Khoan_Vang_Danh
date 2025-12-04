@@ -31,6 +31,21 @@ import {
   PhaseGroupType,
   PhaseOutputType,
 } from "../../types";
+import * as yup from 'yup'
+
+const validationSchema = yup.object({
+  phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
+  phase: yup.string().required("Công đoạn không được để trống"),
+  crossSection: yup.string().required("Tiết diện lò xén không được để trống"),
+  hardness: yup.string().required("Độ cứng không được để trống"),
+  code: yup.string().required("Mã định mức không được để trống"),
+  norms: yup.array().of(
+    yup.object().shape({
+      assignmentCode: yup.string().required("Bắt buộc"),
+      norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
+    })
+  ).min(1, "Chọn mã giao khoán"),
+})
 
 export default function CuttingNormModal({
   open,
@@ -121,6 +136,7 @@ export default function CuttingNormModal({
           : []
     },
     enableReinitialize: true,
+    validationSchema,
     onSubmit: async (values) => {
       handleSubmit({
         ...values,
@@ -362,6 +378,8 @@ export default function CuttingNormModal({
                   </InputAdornment>
                 ),
               }}
+              error={formik.touched.phaseGroup && Boolean(formik.errors.phaseGroup)}
+              helperText={formik.touched.phaseGroup && formik.errors.phaseGroup}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -406,7 +424,7 @@ export default function CuttingNormModal({
                 formik.setFieldValue("phase", event.target.value)
               }
               variant="outlined"
-              disabled={!formik.values.phaseGroup}
+              disabled={!formik.values.phase}
               InputProps={{
                 startAdornment: formik.values.phase ? null : (
                   <InputAdornment
@@ -419,6 +437,8 @@ export default function CuttingNormModal({
                   </InputAdornment>
                 ),
               }}
+              error={formik.touched.phase && Boolean(formik.errors.phase)}
+              helperText={formik.touched.phase && formik.errors.phase}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -472,6 +492,8 @@ export default function CuttingNormModal({
                   </InputAdornment>
                 ),
               }}
+              error={formik.touched.crossSection && Boolean(formik.errors.crossSection)}
+              helperText={formik.touched.crossSection && formik.errors.crossSection}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -814,6 +836,8 @@ export default function CuttingNormModal({
                   </InputAdornment>
                 ),
               }}
+              error={formik.touched.hardness && Boolean(formik.errors.hardness)}
+              helperText={formik.touched.hardness && formik.errors.hardness}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -856,6 +880,8 @@ export default function CuttingNormModal({
                 formik.setFieldValue("code", event.target.value)
               }
               variant="outlined"
+              error={formik.touched.code && Boolean(formik.errors.code)}
+              helperText={formik.touched.code && formik.errors.code}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -917,6 +943,17 @@ export default function CuttingNormModal({
                 <TextField
                   {...params}
                   variant="outlined"
+                  error={
+                    formik.touched.norms &&
+                    Boolean(formik.errors.norms) &&
+                    typeof formik.errors.norms === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                  }
+                  helperText={
+                    formik.touched.norms &&
+                      typeof formik.errors.norms === 'string'
+                      ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
+                      : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
+                  }
                   placeholder={
                     selectedAssignmentCodes.length === 0
                       ? "Chọn mã giao khoán"
@@ -1053,6 +1090,15 @@ export default function CuttingNormModal({
                             )
                           }
                           variant="outlined"
+                          error={Boolean(
+                            typeof formik.errors.norms?.[index] === 'object' &&
+                            (formik.errors.norms?.[index] as any)?.norm
+                          )}
+                          helperText={
+                            typeof formik.errors.norms?.[index] === 'object'
+                              ? (formik.errors.norms?.[index] as any)?.norm
+                              : ''
+                          }
                           sx={{
                             "& .MuiInputBase-root": {
                               height: "32px",

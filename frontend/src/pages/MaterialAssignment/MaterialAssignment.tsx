@@ -234,7 +234,7 @@ export default function MaterialAssignment() {
       key: "assignmentCode",
       width: 200,
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
+        <Typography >
           {record.assignmentCode?.code}
         </Typography>
       ),
@@ -251,7 +251,7 @@ export default function MaterialAssignment() {
       key: "code",
       width: 200,
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography >{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
@@ -272,7 +272,7 @@ export default function MaterialAssignment() {
       dataIndex: "uom",
       key: "uom",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.uom?.name}</Typography>
+        <Typography >{record.uom?.name}</Typography>
       ),
     },
     {
@@ -280,7 +280,7 @@ export default function MaterialAssignment() {
       dataIndex: "quantity",
       key: "quantity",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
+        <Typography >
           {record.quantity ? record.quantity.toLocaleString() : ""}
         </Typography>
       ),
@@ -290,7 +290,7 @@ export default function MaterialAssignment() {
       dataIndex: "price",
       key: "price",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
+        <Typography >
           {record.currentPrice ? record.currentPrice.toLocaleString() : ""}
         </Typography>
       ),

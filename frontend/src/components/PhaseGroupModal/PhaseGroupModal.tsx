@@ -18,6 +18,7 @@ import { PhaseGroupType } from "../../types";
 import { Divider } from "antd";
 
 const validationSchema = yup.object({
+  code: yup.string().required("Mã nhóm công đoạn không được để trống"),
   name: yup.string().required("Tên nhóm công đoạn không được để trống"),
 });
 

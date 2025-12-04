@@ -8,7 +8,7 @@ const xlsx = require("xlsx");
 const quarterOfYear = require("dayjs/plugin/quarterOfYear");
 dayjs.extend(quarterOfYear);
 const { paginateQuery } = require("../utils/pagination");
-const recalculateAssignmentCodePrice = require("./recalculateAssignmentCodePrice");
+const { updatePriceAssignmentCode } = require('../utils/recalculateAssignmentCodePrice')
 const { request } = require("express");
 
 exports.create = async (req, res) => {
@@ -24,7 +24,7 @@ exports.create = async (req, res) => {
       priceHistory,
     });
     await newMaterialAssignment.save();
-    await recalculateAssignmentCodePrice(assignmentCode);
+    await updatePriceAssignmentCode(assignmentCode);
     res.status(201).json({ status: "success", message: "Tạo thành công" });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -41,7 +41,7 @@ exports.update = async (req, res) => {
     if (!updateData) {
       return res.status(404).json({ status: "error", message: "Sửa thất bại" });
     }
-    await recalculateAssignmentCodePrice(updateData.assignmentCode);
+    await updatePriceAssignmentCode(updateData.assignmentCode);
     res.status(200).json({ status: "success", message: "Sửa thành công" });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -86,7 +86,7 @@ exports.getGroup = async (req, res) => {
     const result = [];
 
     for (const assignment of pagination.data) {
-      await recalculateAssignmentCodePrice(assignment._id);
+      await updatePriceAssignmentCode(assignment._id);
 
       const materials = await MaterialAssignment.find({
         assignmentCode: assignment._id,
@@ -164,7 +164,7 @@ exports.get = async (req, res) => {
       ),
     ];
     await Promise.all(
-      assignmentIds.map((id) => recalculateAssignmentCodePrice(id))
+      assignmentIds.map((id) => updatePriceAssignmentCode(id))
     );
     const todayStr = new Date().toISOString().split("T")[0];
     pagination.data = pagination.data.map((item) => {
@@ -423,18 +423,18 @@ exports.export = async (req, res) => {
     const formated = (data || []).map((i) =>
       req.query.type === "in"
         ? {
-            code: i?.code || "",
-            name: i?.name || "",
-            uom: i?.uom?.name || "",
-            assignmentCode: i?.assignmentCode?.code || "",
-            quantity: i?.quantity || 0,
-          }
+          code: i?.code || "",
+          name: i?.name || "",
+          uom: i?.uom?.name || "",
+          assignmentCode: i?.assignmentCode?.code || "",
+          quantity: i?.quantity || 0,
+        }
         : {
-            code: i?.code || "",
-            name: i?.name || "",
-            uom: i?.uom?.name || "",
-            quantity: i?.quantity || 0,
-          }
+          code: i?.code || "",
+          name: i?.name || "",
+          uom: i?.uom?.name || "",
+          quantity: i?.quantity || 0,
+        }
     );
 
     const assignmentCodes = await AssignmentCode.find();

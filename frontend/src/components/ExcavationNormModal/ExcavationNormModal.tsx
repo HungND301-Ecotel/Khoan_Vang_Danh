@@ -33,6 +33,24 @@ import {
   StepType,
 } from "../../types";
 
+import * as yup from 'yup'
+
+const validationSchema = yup.object({
+  phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
+  phase: yup.string().required("Công đoạn không được để trống"),
+  excavationTech: yup.string().required("Công nghệ xúc không được để trống"),
+  step: yup.string().required("Bước chống không được để trống"),
+  hardness: yup.string().required("Độ cứng không được để trống"),
+  code: yup.string().required("Mã định mức không được để trống"),
+  norms: yup.array().of(
+    yup.object().shape({
+      assignmentCode: yup.string().required("Bắt buộc"),
+      norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
+    })
+  ).min(1, "Chọn mã giao khoán"),
+})
+
+
 export default function ExcavationNormModal({
   open,
   setOpen,
@@ -164,6 +182,7 @@ export default function ExcavationNormModal({
       // })),
     },
     enableReinitialize: true,
+    validationSchema,
     onSubmit: async (values) => {
       handleSubmit({
         ...values,
@@ -348,6 +367,8 @@ export default function ExcavationNormModal({
                 formik.setFieldValue("phaseGroup", event.target.value);
               }}
               variant="outlined"
+              error={formik.touched.phaseGroup && Boolean(formik.errors.phaseGroup)}
+              helperText={formik.touched.phaseGroup && formik.errors.phaseGroup}
               InputProps={{
                 startAdornment: formik.values.phaseGroup ? null : (
                   <InputAdornment
@@ -395,6 +416,8 @@ export default function ExcavationNormModal({
                 formik.setFieldValue("phase", event.target.value)
               }
               variant="outlined"
+              error={formik.touched.phase && Boolean(formik.errors.phase)}
+              helperText={formik.touched.phase && formik.errors.phase}
               InputProps={{
                 startAdornment: formik.values.phase ? null : (
                   <InputAdornment
@@ -440,6 +463,8 @@ export default function ExcavationNormModal({
                 formik.setFieldValue("excavationTech", event.target.value)
               }
               variant="outlined"
+              error={formik.touched.excavationTech && Boolean(formik.errors.excavationTech)}
+              helperText={formik.touched.excavationTech && formik.errors.excavationTech}
               InputProps={{
                 startAdornment: formik.values.excavationTech ? null : (
                   <InputAdornment
@@ -820,56 +845,58 @@ export default function ExcavationNormModal({
           )}
 
           {/* Chống - only show when checkbox is NOT checked */}
-          {!showAdditionalRows && (
-            <>
-              <Typography
-                sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+          {/* {!showAdditionalRows && ( */}
+          <>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+            >
+              Chống
+            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <TextField
+                select
+                value={formik.values.step || ""}
+                onChange={(event) =>
+                  formik.setFieldValue("step", event.target.value)
+                }
+                variant="outlined"
+                error={formik.touched.step && Boolean(formik.errors.step)}
+                helperText={formik.touched.step && formik.errors.step}
+                InputProps={{
+                  startAdornment: formik.values.step ? null : (
+                    <InputAdornment
+                      position="start"
+                      sx={{ color: "#D9D9D9", ml: "12px" }}
+                    >
+                      Placeholder
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  width: "700px",
+                  "& .MuiInputBase-root": {
+                    height: "32px",
+                    borderRadius: "6px",
+                    px: "12px",
+                    fontSize: "14px",
+                  },
+                  "& .MuiInputBase-input": {
+                    color: formik.values.step ? "inherit" : "transparent",
+                  },
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: formik.values.step ? "inherit" : "#D9D9D9",
+                  },
+                }}
               >
-                Chống
-              </Typography>
-              <Box sx={{ display: "flex", justifyContent: "center" }}>
-                <TextField
-                  select
-                  value={formik.values.step || ""}
-                  onChange={(event) =>
-                    formik.setFieldValue("step", event.target.value)
-                  }
-                  variant="outlined"
-                  InputProps={{
-                    startAdornment: formik.values.step ? null : (
-                      <InputAdornment
-                        position="start"
-                        sx={{ color: "#D9D9D9", ml: "12px" }}
-                      >
-                        Placeholder
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    width: "700px",
-                    "& .MuiInputBase-root": {
-                      height: "32px",
-                      borderRadius: "6px",
-                      px: "12px",
-                      fontSize: "14px",
-                    },
-                    "& .MuiInputBase-input": {
-                      color: formik.values.step ? "inherit" : "transparent",
-                    },
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: formik.values.step ? "inherit" : "#D9D9D9",
-                    },
-                  }}
-                >
-                  {steps.data?.map((step: StepType) => (
-                    <MenuItem key={step._id} value={step._id}>
-                      {step.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
-            </>
-          )}
+                {steps.data?.map((step: StepType) => (
+                  <MenuItem key={step._id} value={step._id}>
+                    {step.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </>
+          {/* )} */}
 
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Mã định mức
@@ -882,6 +909,8 @@ export default function ExcavationNormModal({
                 formik.setFieldValue("code", event.target.value)
               }
               variant="outlined"
+              error={formik.touched.code && Boolean(formik.errors.code)}
+              helperText={formik.touched.code && formik.errors.code}
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -945,6 +974,17 @@ export default function ExcavationNormModal({
                 <TextField
                   {...params}
                   variant="outlined"
+                  error={
+                    formik.touched.norms &&
+                    Boolean(formik.errors.norms) &&
+                    typeof formik.errors.norms === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                  }
+                  helperText={
+                    formik.touched.norms &&
+                      typeof formik.errors.norms === 'string'
+                      ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
+                      : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
+                  }
                   placeholder={
                     selectedAssignmentCodes.length === 0
                       ? "Chọn mã giao khoán"
@@ -1075,6 +1115,15 @@ export default function ExcavationNormModal({
                           onChange={formik.handleChange}
                           variant="outlined"
                           placeholder="Nhập định mức"
+                          error={Boolean(
+                            typeof formik.errors.norms?.[index] === 'object' &&
+                            (formik.errors.norms?.[index] as any)?.norm
+                          )}
+                          helperText={
+                            typeof formik.errors.norms?.[index] === 'object'
+                              ? (formik.errors.norms?.[index] as any)?.norm
+                              : ''
+                          }
                           sx={{
                             "& .MuiInputBase-root": {
                               height: "32px",

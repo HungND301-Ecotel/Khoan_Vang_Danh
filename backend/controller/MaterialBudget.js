@@ -1,6 +1,6 @@
 const MaterialBudget = require('../model/MaterialBudget')
 const MaterialAssignment = require('../model/MaterialAssignment')
-const recalculateAssignmentCodePrice = require('./recalculateAssignmentCodePrice')
+const { updatePriceAssignmentCode } = require('../utils/recalculateAssignmentCodePrice')
 
 exports.create = async (req, res) => {
     try {
@@ -79,7 +79,7 @@ exports.getOne = async (req, res) => {
         for (const norm of adjustmentNorms) {
             const assignment = norm.assignmentCode;
             if (!assignment?._id) continue;
-            await recalculateAssignmentCodePrice(assignment._id);
+            await updatePriceAssignmentCode(assignment._id);
 
             console.log(assignment._id)
 

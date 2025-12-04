@@ -262,7 +262,7 @@ export default function DeviceCode() {
       dataIndex: "code",
       key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography >{record.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
@@ -275,7 +275,7 @@ export default function DeviceCode() {
       width: 50,
       render: (_, record) => (
         <IconButton onClick={() => handleOpen(record)}>
-          <Edit />
+          <Edit />  
         </IconButton>
       ),
     },
