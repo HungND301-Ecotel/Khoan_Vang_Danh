@@ -1,19 +1,25 @@
 const mongoose = require('mongoose')
 
 const MaterialCostUsed = new mongoose.Schema({
-    code: {
-        type: String,
-        unique: true
-    },
     productionScope: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'ProductionScope'
+        ref: 'ProductionScope',
+        required: [true, 'ProductionScope is required'],
+    },
+    startDate: {
+        type: String,
+        required: [true, 'startDate is required'],
+    },
+    endDate: {
+        type: String,
+        required: [true, 'endDate is required'],
     },
     phases: [
         {
             phase: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'PhaseGroup'
+                ref: 'PhaseGroup',
+                required: [true, 'PhaseGroup is required'],
             },
             production: {
                 type: Number
@@ -23,14 +29,30 @@ const MaterialCostUsed = new mongoose.Schema({
             },
             assignmentNormCode: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'AssignmentNorm'
+                ref: 'AssignmentNorm',
+                required: [true, 'AssignmentNorm is required'],
             },
             adjustmentNormCode: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'AdjustmentNorm'
+                ref: 'AdjustmentNorm',
+                required: [true, 'AdjustmentNorm is required'],
             },
+            totalUsedCost: Number,
+            usedCostDetails: [{
+                assignmentCode: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'AssignmentCode'
+                },
+                baseNorm: Number,
+                adjustmentNorm: Number,
+                norm: Number,
+                quantity: Number,
+                price: Number,
+                cost: Number
+            }]
         }
     ],
+    totalUsedCost: Number,
     materials: [
         {
             material: {
@@ -40,6 +62,7 @@ const MaterialCostUsed = new mongoose.Schema({
             quantity: {
                 type: Number
             },
+            price: Number,
             cost: Number
         }
     ]

@@ -1,9 +1,10 @@
 import { Table, Typography } from "antd";
 import React from "react";
-import { Box } from "@mui/material";
+import { Box, Paper } from "@mui/material";
 
 // Giả sử Data type của AssignmentNormTable là object của một Phase trong InitialPlannedCostOutputType
 export default function AssignmentNormTable({ data }: { data: any }) {
+
   const innerColumns = [
     {
       title: <Typography>Mã giao khoán</Typography>,
@@ -29,9 +30,10 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       key: "unit",
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (assignmentCode: any) => {
-        console.log(assignmentCode);
-        return <Typography>{assignmentCode?.uom?.name}</Typography>;
-      },
+        console.log(assignmentCode)
+        return <Typography>{assignmentCode?.uom?.name}</Typography>
+      }
+
     },
     {
       title: <Typography>Định mức gốc</Typography>,
@@ -94,12 +96,29 @@ export default function AssignmentNormTable({ data }: { data: any }) {
   ];
 
   return (
-    <Table
-      columns={innerColumns}
-      dataSource={data.plannedCostDetails || []} // <-- Dùng mảng đã xử lý
-      pagination={false}
-      size="small"
-      rowKey="key"
-    />
-  );
+    <Paper >
+      <Table
+        columns={innerColumns}
+        dataSource={data.initialPlannedCostDetails || []} // <-- Dùng mảng đã xử lý
+        pagination={false}
+        size="small"
+        rowKey="key"
+        onRow={() => ({
+          className: "custom-row2"
+        })}
+        onHeaderRow={() => ({
+          className: "custom-header2"
+        })}
+      />
+      <style>{`
+        .custom-header2 > th {
+          background-color: #cfcacafa !important;
+        }
+        .custom-row2 > td {
+            background-color: #fdfafafa !important;
+          }
+      `}</style >
+    </Paper>
+
+  )
 }

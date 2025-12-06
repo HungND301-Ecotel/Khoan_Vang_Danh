@@ -43,6 +43,7 @@ import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from '../../theme';
 import CustomTable from "../../components/CustomTable/CustomTable";
+import PhaseTable from "./PhaseTable";
 
 export default function MaterialCostUsed() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -55,6 +56,8 @@ export default function MaterialCostUsed() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
+  const [deletedIds, setDeletedIds] = useState<React.Key[]>([]);
+
 
   const queryClient = useQueryClient();
 
@@ -111,19 +114,19 @@ export default function MaterialCostUsed() {
   });
 
   const handleDelete = () => {
-    if (selectedRows.length === 0) {
-      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
+    if (deletedIds.length === 0) {
+      showErrorAlert("Không tìm thấy bản ghi để xóa");
       return;
     }
 
     showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
-        deleteMutation.mutate(selectedRows);
+        deleteMutation(deletedIds);
       }
     });
   };
 
-  const deleteMutation = useMutation({
+  const { mutate: deleteMutation } = useMutation({
     mutationFn: async (ids: React.Key[]) => {
       const deletePromises = ids.map((id) =>
         api.delete(`/materialcostuseds/${id}`).then((res) => res.data)
@@ -144,8 +147,8 @@ export default function MaterialCostUsed() {
   });
 
   const handleSubmit = (values: Partial<MaterialCostUsedInputType>) => {
-    if (selected) {
-      updateMutation.mutate({ ...values, _id: selected._id });
+    if (values._id) {
+      updateMutation.mutate(values);
     } else {
       createMutation.mutate(values);
     }
@@ -186,125 +189,10 @@ export default function MaterialCostUsed() {
         </Box>
       );
     }
-    if (!data.phases) {
+    if (!data.group) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
-    const innerColumns = [
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}></Typography>,
-        width: 200,
-        dataIndex: "index",
-        key: "index",
-        align: "center" as const,
-        render: (text: string, item: any, index: number) => (
-          <Typography>Công đoạn {index + 1}</Typography>
-        ),
-      },
-      {
-        title: <Typography >Mã công đoạn</Typography>,
-        width: 200,
-        dataIndex: "code",
-        key: "code",
-        render: (text: string, item: any) => (
-          <Typography>{item.phase?.code}</Typography>
-        ),
-      },
-      {
-        title: (
-          <Typography >
-            Tên công đoạn
-          </Typography>
-        ),
-        dataIndex: "name",
-        key: "name",
-        render: (text: string, item: any) => (
-          <Typography>{item.phase?.name}</Typography>
-        ),
-      },
-      {
-        title: <Typography >ĐVT</Typography>,
-        dataIndex: "unit",
-        key: "unit",
-        align: "center" as const,
-        render: (value: number) => (
-          <Typography>{value ? value.toLocaleString() : ""}</Typography>
-        ),
-      },
-      {
-        title: <Typography >Số lượng</Typography>,
-        dataIndex: "production",
-        key: "production",
-        align: "center" as const,
-        render: (value: number) => (
-          <Typography>{value ? value.toLocaleString() : ""}</Typography>
-        ),
-      },
-    ];
-
-    return (
-      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-        <Grid container spacing={2} sx={{ backgroundColor: "white", p: 2 }}>
-          <Grid item xs={2}>
-            <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
-              Diện sản xuất:
-            </Typography>
-          </Grid>
-          <Grid item xs={10}>
-            <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
-              {data.productionScope?.name || ""}
-            </Typography>
-          </Grid>
-        </Grid>
-        <Table
-          columns={innerColumns}
-          dataSource={data.phases || []}
-          pagination={false}
-          size="small"
-          rowKey={(item) => item._id}
-        />
-        <Box>
-          <TableMui>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: "bold" }}>Mã giao khoán</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Mã vật tư</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Tên vật tư, tài sản</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>ĐVT</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Số lượng</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Đơn giá bình quân</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Chi phí thực hiện</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody sx={{ backgroundColor: "white" }}>
-              {data.materials.map((m: any) => (
-                <Fragment>
-                  <TableRow>
-                    <TableCell>{m?.assignmentCode?.code}</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell>{m?.assignmentCode?.name}</TableCell>
-                    <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                  {m.materials.map((i: any) => (
-                    <TableRow>
-                      <TableCell></TableCell>
-                      <TableCell>{i?.material?.code}</TableCell>
-                      <TableCell>{i?.material?.name}</TableCell>
-                      <TableCell>{i?.material?.uom?.name}</TableCell>
-                      <TableCell>{i?.quantity}</TableCell>
-                      <TableCell>{i?.material?.currentPrice}</TableCell>
-                      <TableCell>{i?.cost}</TableCell>
-                    </TableRow>
-                  ))}
-                </Fragment>
-              ))}
-            </TableBody>
-          </TableMui>
-        </Box>
-      </Box >
-    );
+    return <PhaseTable data={data} />
   };
 
   const columns: TableProps<MaterialCostUsedOutputType>["columns"] = [
@@ -383,6 +271,11 @@ export default function MaterialCostUsed() {
     selectedRowKeys: selectedRows,
     onChange: (newSelectedRows: React.Key[]) => {
       setSelectedRows(newSelectedRows);
+      const selectedDocuments = materialcostuseds.data.filter((g: MaterialCostUsedOutputType) =>
+        newSelectedRows.some(s => s === g._id))
+      const allSelectedGroups = selectedDocuments.flatMap((g: any) => g.group);
+      const deletedGroupIds = allSelectedGroups.map((groupItem: any) => groupItem._id);
+      setDeletedIds(deletedGroupIds)
     },
   };
 
@@ -600,6 +493,7 @@ export default function MaterialCostUsed() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+        deleteMutation={deleteMutation}
       />
     </Box>
   );

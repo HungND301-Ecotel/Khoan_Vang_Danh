@@ -48,6 +48,7 @@ export interface PhaseType {
   assignmentNormCode: string;
   production: number | undefined;
   adjustmentNormCode: string;
+  unit?: string;
 }
 
 export interface FormValues {
@@ -492,7 +493,6 @@ export interface MaterialCostUsedInputType {
     assignmentNormCode: string;
     adjustmentNormCode: string;
   }[];
-  materialBudgetCode?: string;
   materials: {
     material?: string;
     quantity: number;
@@ -502,22 +502,41 @@ export interface MaterialCostUsedInputType {
 export interface MaterialCostUsedOutputType {
   _id?: string;
   productionScope?: ProductionScopeOutputType;
-  materials: {
-    assignmentCode: AssignmentCodeInputType;
+  startDate: string,
+  endDate: string,
+  group: {
+    _id: string,
+    startDate: string,
+    endDate: string,
+    phases: {
+      key: string,
+      phase: PhaseGroupType;
+      production: number;
+      unit: string;
+      assignmentNormCode: AssignmentNormOutputType;
+      adjustmentNormCode: AssignmentNormOutputType;
+      totalUsedCost: number,
+      usedCostDetails: {
+        assignmentCode: AssignmentCodeOutputType,
+        baseNorm: number,
+        adjustmentNorm: number,
+        norm: number,
+        quantity: number,
+        price: number,
+        cost: number
+      }[],
+    }[];
     materials: {
-      material?: Materials;
-      quantity: number;
-      cost: number;
-    }[]
-  }[];
-  phases: {
-    phase: PhaseOutputType;
-    production: number;
-    unit: string;
-    assignmentNormCode: string;
-    adjustmentNormCode: string;
-  }[];
-  materialBudget?: MaterialBudgetOutputType | null;
+      assignmentCode: AssignmentCodeInputType;
+      materials: {
+        material?: Materials;
+        quantity: number;
+        price: number;
+        cost: number;
+      }[]
+    }[];
+    totalUsedCost: number
+  }[]
 }
 
 //
@@ -551,8 +570,8 @@ export interface InitialPlannedCostOutputType {
       unit: string;
       assignmentNormCode: AssignmentNormOutputType;
       adjustmentNormCode: AssignmentNormOutputType;
-      totalPlannedCost: number,
-      plannedCostDetails: {
+      totalInitialPlannedCost: number,
+      initialPlannedCostDetails: {
         assignmentCode: AssignmentCodeOutputType,
         baseNorm: number,
         adjustmentNorm: number,
@@ -562,6 +581,6 @@ export interface InitialPlannedCostOutputType {
         cost: number
       }[],
     }[];
-    totalPlannedCost: number
+    totalInitialPlannedCost: number
   }[]
 }

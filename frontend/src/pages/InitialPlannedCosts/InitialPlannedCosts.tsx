@@ -41,10 +41,11 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import InitialPlannedCostModal from "../../components/InitialPlannedCostModal/InitialPlannedCostModal";
 import PhaseTable from "./PhaseTable";
 import dayjs from "dayjs";
+import GroupTable from "./GroupTable";
 
 export default function InitialPlannedCosts() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<InitialPlannedCostOutputType | null>(
+  const [selected, setSelected] = useState<any | null>(
     null
   );
   const [open, setOpen] = useState(false);
@@ -53,6 +54,7 @@ export default function InitialPlannedCosts() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
+  const [deletedIds, setDeletedIds] = useState<React.Key[]>([]);
 
   const queryClient = useQueryClient();
 
@@ -114,14 +116,14 @@ export default function InitialPlannedCosts() {
   });
 
   const handleDelete = () => {
-    if (selectedRows.length === 0) {
-      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
+    if (deletedIds.length === 0) {
+      showErrorAlert("không tìm thấy bản ghi để xóa");
       return;
     }
 
     showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
-        handleDeleteMutation(selectedRows);
+        handleDeleteMutation(deletedIds);
       }
     });
   };
@@ -147,6 +149,7 @@ export default function InitialPlannedCosts() {
   });
 
   const handleSubmit = (values: Partial<InitialPlannedCostInputType>) => {
+    console.log("Submitted values:", values);
     if (values._id) {
       updateMutation.mutate(values);
     } else {
@@ -154,9 +157,9 @@ export default function InitialPlannedCosts() {
     }
   };
 
-  const handleOpen = (materialCostUsed?: InitialPlannedCostOutputType) => {
-    if (materialCostUsed) {
-      setSelected(materialCostUsed);
+  const handleOpen = (initialplannedcost?: any) => {
+    if (initialplannedcost) {
+      setSelected(initialplannedcost);
     } else {
       setSelected(null);
     }
@@ -185,7 +188,9 @@ export default function InitialPlannedCosts() {
     if (!data.group) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
-    return <PhaseTable data={data} />;
+    return <Box>
+      <GroupTable data={data.group} handleOpen={handleOpen} productionScope={record.productionScope} handleDeleteMutation={handleDeleteMutation} />
+    </Box>
   };
 
   const columns: TableProps<InitialPlannedCostOutputType>["columns"] = [
@@ -209,13 +214,9 @@ export default function InitialPlannedCosts() {
         <Typography>{record.productionScope?.code}</Typography>
       ),
       sorter: (a, b) =>
-        (a.productionScope?.code ?? "").localeCompare(
-          b.productionScope?.code ?? "",
-          "vi",
-          {
-            sensitivity: "base",
-          }
-        ),
+        (a.productionScope?.code ?? "").localeCompare(b.productionScope?.code ?? "", "vi", {
+          sensitivity: "base",
+        }),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Thời gian</Typography>,
@@ -231,12 +232,12 @@ export default function InitialPlannedCosts() {
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Chi phí</Typography>,
-      dataIndex: "totalPlannedCost",
-      key: "totalPlannedCost",
+      dataIndex: "totalInitialPlannedCost",
+      key: "totalInitialPlannedCost",
       width: 50,
       render: (text: string, item: any) => {
         const total = item.group.reduce(
-          (sum: number, i: any) => sum + i.totalPlannedCost,
+          (sum: number, i: any) => sum + i.totalInitialPlannedCost,
           0
         );
         return <Typography> {total.toLocaleString()}</Typography>;
@@ -264,14 +265,16 @@ export default function InitialPlannedCosts() {
       ),
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
-      dataIndex: "edit",
-      key: "edit",
+      title: <Typography sx={{ fontWeight: "bold" }}>Thêm</Typography>,
+      dataIndex: "add",
+      key: "add",
       width: 50,
       align: "center",
       render: (_, record) => (
         <IconButton
-          onClick={() => handleOpen(record)}
+          onClick={() => handleOpen({
+            productionScope: record.productionScope
+          })}
           sx={{
             color: "#666",
             "&:hover": {
@@ -280,7 +283,7 @@ export default function InitialPlannedCosts() {
             },
           }}
         >
-          <Edit />
+          <Add />
         </IconButton>
       ),
     },
@@ -294,6 +297,12 @@ export default function InitialPlannedCosts() {
     selectedRowKeys: selectedRows,
     onChange: (newSelectedRows: React.Key[]) => {
       setSelectedRows(newSelectedRows);
+
+      const selectedDocuments = initialplannedcosts.data.filter((g: InitialPlannedCostOutputType) =>
+        newSelectedRows.some(s => s === g._id))
+      const allSelectedGroups = selectedDocuments.flatMap((g: any) => g.group);
+      const deletedGroupIds = allSelectedGroups.map((groupItem: any) => groupItem._id);
+      setDeletedIds(deletedGroupIds)
     },
   };
 
@@ -543,7 +552,6 @@ export default function InitialPlannedCosts() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
-        deleteMutation={handleDeleteMutation}
       />
     </Box>
   );

@@ -1,9 +1,11 @@
-const router=require('express').Router()
-const InitialPlannedCostController=require('../controller/InitialPlannedCost')
+const router = require('express').Router()
+const InitialPlannedCostController = require('../controller/InitialPlannedCost')
 
-router.post('/',InitialPlannedCostController.create)
-router.put('/:id',InitialPlannedCostController.update)
-router.delete('/:id',InitialPlannedCostController.delete)
-router.get('/',InitialPlannedCostController.get)
+router.post('/', InitialPlannedCostController.create)
+router.put('/:id', InitialPlannedCostController.update)
+router.delete('/:id', InitialPlannedCostController.delete)
+router.get('/', InitialPlannedCostController.get)
+router.get('/getOne/:productionScope', InitialPlannedCostController.getOne)
 
-module.exports=router
+
+module.exports = router

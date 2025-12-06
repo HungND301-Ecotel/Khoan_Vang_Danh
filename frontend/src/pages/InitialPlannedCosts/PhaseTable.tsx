@@ -1,8 +1,8 @@
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, IconButton, Typography, Table as TableMui, TableHead, TableRow, TableCell, Paper, } from "@mui/material";
 import React, { useState } from "react";
 import { InitialPlannedCostOutputType } from "../../types";
 import { Table, TableProps } from "antd";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { Edit, Visibility, VisibilityOff } from "@mui/icons-material";
 import { showErrorAlert } from "../../components/Alert";
 import AssignmentNormTable from "./AssignmentNormTable";
 import dayjs from "dayjs";
@@ -10,7 +10,7 @@ import dayjs from "dayjs";
 export default function PhaseTable({
   data,
 }: {
-  data: InitialPlannedCostOutputType;
+  data: any[];
 }) {
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -37,12 +37,12 @@ export default function PhaseTable({
     if (!data) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
-    return <AssignmentNormTable data={data} />;
+    return <Box sx={{ p: 2 }}><AssignmentNormTable data={data} /></Box>;
   };
 
   const innerColumns = [
     {
-      title: <Typography></Typography>,
+      title: '',
       width: 120,
       dataIndex: "index",
       key: "index",
@@ -53,7 +53,7 @@ export default function PhaseTable({
     },
     {
       title: <Typography>Mã công đoạn</Typography>,
-      width: 130,
+      width: 150,
       dataIndex: "code",
       key: "code",
       render: (text: string, item: any) => (
@@ -61,7 +61,11 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography>Tên công đoạn</Typography>,
+      title: (
+        <Typography >
+          Tên công đoạn
+        </Typography>
+      ),
       dataIndex: "name",
       key: "name",
       render: (text: string, item: any) => (
@@ -69,7 +73,7 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography>ĐVT</Typography>,
+      title: <Typography >ĐVT</Typography>,
       dataIndex: "unit",
       key: "unit",
       align: "center" as const,
@@ -78,7 +82,7 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography>Sản lượng</Typography>,
+      title: <Typography >Sản lượng</Typography>,
       dataIndex: "production",
       key: "production",
       align: "center" as const,
@@ -87,7 +91,7 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography>Mã định mức giao khoán</Typography>,
+      title: <Typography >Mã định mức giao khoán</Typography>,
       dataIndex: "assignmentNormCode",
       key: "assignmentNormCode",
       align: "center" as const,
@@ -96,7 +100,7 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography>Mã hệ số điều chỉnh định mức</Typography>,
+      title: <Typography >Mã hệ số điều chỉnh định mức</Typography>,
       dataIndex: "adjustmentNormCode",
       key: "adjustmentNormCode",
       align: "center" as const,
@@ -105,23 +109,20 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography>Chi phí</Typography>,
-      dataIndex: "totalPlannedCost",
-      key: "totalPlannedCost",
-
-      align: "left" as const,
+      title: <Typography >Chi phí</Typography>,
+      dataIndex: "totalInitialPlannedCost",
+      key: "totalInitialPlannedCost",
+      align: "center" as const,
       render: (value: number) => (
-        <Box minWidth={190}>
-          <Typography>{value ? value.toLocaleString() : ""}</Typography>
-        </Box>
+        <Typography>{value ? value.toLocaleString() : ""}</Typography>
       ),
     },
     {
       title: <Typography>Xem</Typography>,
       dataIndex: "view",
       key: "view",
-      minWidth: 138,
-      align: "left" as const,
+      width: 80,
+      align: "center" as const,
       render: (_: any, record: any) => (
         <IconButton
           onClick={() => handleView(record)}
@@ -139,51 +140,30 @@ export default function PhaseTable({
     },
   ];
   return (
-    <Box
-      sx={{
-        backgroundColor: "#f5f5f5",
-        p: 2,
-        borderRadius: 1,
-      }}
-    >
-      {data.group.map((g: any) => (
-        <Box>
-          <Box
-            sx={{
-              backgroundColor: "#ccc6c6ff",
-              p: 1,
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-          >
-            <Typography fontWeight="bold">
-              {dayjs(g?.startDate).format("DD/MM/YYYY")} -{" "}
-              {dayjs(g?.endDate).format("DD/MM/YYYY")}
-            </Typography>
-
-            <Box sx={{ width: 250, marginRight: "90px" }}>
-              <Typography fontWeight="bold" align="left">
-                {g.totalPlannedCost ? g.totalPlannedCost.toLocaleString() : ""}
-              </Typography>
-            </Box>
-          </Box>
-          <Table
-            columns={innerColumns}
-            dataSource={g.phases || []}
-            pagination={false}
-            size="small"
-            rowKey={(item) => item.key}
-            expandable={{
-              expandedRowKeys: expandedRow ? [expandedRow] : [],
-              onExpand: (expanded, record) => {
-                setExpandedRow(expanded ? record.key || null : null);
-              },
-              expandedRowRender,
-              showExpandColumn: false,
-            }}
-          />
-        </Box>
-      ))}
-    </Box>
+    <Paper>
+      <Table
+        columns={innerColumns}
+        dataSource={data || []}
+        pagination={false}
+        size="small"
+        rowKey={(item) => item.key}
+        expandable={{
+          expandedRowKeys: expandedRow ? [expandedRow] : [],
+          onExpand: (expanded, record) => {
+            setExpandedRow(expanded ? record.key || null : null);
+          },
+          expandedRowRender,
+          showExpandColumn: false
+        }}
+        onHeaderRow={() => ({
+          className: "custom-header1"
+        })}
+      />
+      <style>{`
+        .custom-header1 > th {
+          background-color: #cfcacafa !important;
+        }
+            `}</style>
+    </Paper>
   );
 }

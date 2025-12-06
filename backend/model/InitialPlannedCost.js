@@ -1,9 +1,6 @@
 const mongoose = require('mongoose')
 
 const InitialPlannedCost = new mongoose.Schema({
-    code: {
-        type: String
-    },
     productionScope: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ProductionScope',
@@ -40,8 +37,8 @@ const InitialPlannedCost = new mongoose.Schema({
                 ref: 'AdjustmentNorm',
                 required: [true, 'AdjustmentNorm is required'],
             },
-            totalPlannedCost: Number,
-            plannedCostDetails: [{
+            totalInitialPlannedCost: Number,
+            initialPlannedCostDetails: [{
                 assignmentCode: {
                     type: mongoose.Schema.Types.ObjectId,
                     ref: 'AssignmentCode'
@@ -55,8 +52,43 @@ const InitialPlannedCost = new mongoose.Schema({
             }]
         }
     ],
-    totalPlannedCost: Number
+    totalInitialPlannedCost: Number
 }, {
     timestamps: true
 })
+
+InitialPlannedCost.pre('save', async function (next) {
+
+    const newStartDate = this.startDate; // Ví dụ: "2025-12-01"
+    const newEndDate = this.endDate;   // Ví dụ: "2025-12-30"
+    const currentScope = this.productionScope;
+
+    // 2. Xây dựng truy vấn để tìm các tài liệu xung đột
+    const conflictQuery = {
+
+        _id: { $ne: this._id },
+        productionScope: currentScope,
+        $and: [
+            // Cũ.startDate <= Mới.endDate (Ngày bắt đầu cũ xảy ra trước/cùng lúc với ngày kết thúc mới)
+            { startDate: { $lte: newEndDate } },
+            // Cũ.endDate >= Mới.startDate (Ngày kết thúc cũ xảy ra sau/cùng lúc với ngày bắt đầu mới)
+            { endDate: { $gte: newStartDate } }
+        ]
+    };
+
+    try {
+        const existingDocument = await mongoose.models.InitialPlannedCost.findOne(conflictQuery);
+
+        // 3. Xử lý kết quả truy vấn
+        if (existingDocument) {
+            // Nếu tìm thấy tài liệu xung đột
+            const error = new Error('Thời gian không hợp lệ.');
+            return next(error);
+        }
+        next();
+    } catch (error) {
+        // Xử lý lỗi trong quá trình truy vấn
+        next(error);
+    }
+});
 module.exports = mongoose.model('InitialPlannedCost', InitialPlannedCost)
