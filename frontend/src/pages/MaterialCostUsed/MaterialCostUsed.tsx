@@ -11,6 +11,7 @@ import {
   Print,
   Search,
   Visibility,
+  VisibilityOff,
 } from "@mui/icons-material";
 import {
   Table as TableMui,
@@ -44,9 +45,11 @@ import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from '../../theme';
 import CustomTable from "../../components/CustomTable/CustomTable";
 import PhaseTable from "./PhaseTable";
+import GroupTable from "./GroupTable";
+import dayjs from "dayjs";
 
 export default function MaterialCostUsed() {
-  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [selected, setSelected] = useState<MaterialCostUsedOutputType | null>(
     null
   );
@@ -154,7 +157,7 @@ export default function MaterialCostUsed() {
     }
   };
 
-  const handleOpen = (materialCostUsed?: MaterialCostUsedOutputType) => {
+  const handleOpen = (materialCostUsed?: any) => {
     if (materialCostUsed) {
       setSelected(materialCostUsed);
     } else {
@@ -163,18 +166,11 @@ export default function MaterialCostUsed() {
     setOpen(true);
   };
 
-  const handleView = (record: MaterialCostUsedOutputType) => {
-    const key = record._id;
-    if (!key) {
-      showErrorAlert("Không tìm thấy ID của bản ghi");
-      return;
-    }
+  const handleView = (initialplannedcost: MaterialCostUsedOutputType) => {
+    const id = initialplannedcost?._id;
+    if (!id) return;
 
-    if (expandedRowKeys.includes(key)) {
-      setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
-    } else {
-      setExpandedRowKeys([...expandedRowKeys, key]);
-    }
+    setExpandedRow((prev) => (prev === id ? null : id));
   };
 
   const expandedRowRender = (record: MaterialCostUsedOutputType) => {
@@ -192,7 +188,9 @@ export default function MaterialCostUsed() {
     if (!data.group) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
-    return <PhaseTable data={data} />
+    return <Box>
+      <GroupTable data={data.group} handleOpen={handleOpen} productionScope={record.productionScope} handleDeleteMutation={deleteMutation} />
+    </Box>
   };
 
   const columns: TableProps<MaterialCostUsedOutputType>["columns"] = [
@@ -220,6 +218,31 @@ export default function MaterialCostUsed() {
         }),
     },
     {
+      title: <Typography sx={{ fontWeight: "bold" }}>Thời gian</Typography>,
+      dataIndex: "time",
+      key: "time",
+      width: 350,
+      render: (text: string, item: any) => (
+        <Typography>
+          {dayjs(item?.startDate).format("DD/MM/YYYY")} -{" "}
+          {dayjs(item?.endDate).format("DD/MM/YYYY")}
+        </Typography>
+      ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Chi phí</Typography>,
+      dataIndex: "totalUsedCost",
+      key: "totalUsedCost",
+      width: 50,
+      render: (text: string, item: any) => {
+        const total = item.group.reduce(
+          (sum: number, i: any) => sum + i.totalUsedCost,
+          0
+        );
+        return <Typography> {total.toLocaleString()}</Typography>;
+      },
+    },
+    {
       title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
       dataIndex: "view",
       key: "view",
@@ -236,19 +259,21 @@ export default function MaterialCostUsed() {
             },
           }}
         >
-          <Visibility />
+          {expandedRow === record?._id ? <Visibility /> : <VisibilityOff />}
         </IconButton>
       ),
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
-      dataIndex: "edit",
-      key: "edit",
-      width: 80,
+      title: <Typography sx={{ fontWeight: "bold" }}>Thêm</Typography>,
+      dataIndex: "add",
+      key: "add",
+      width: 50,
       align: "center",
       render: (_, record) => (
         <IconButton
-          onClick={() => handleOpen(record)}
+          onClick={() => handleOpen({
+            productionScope: record.productionScope
+          })}
           sx={{
             color: "#666",
             "&:hover": {
@@ -257,7 +282,7 @@ export default function MaterialCostUsed() {
             },
           }}
         >
-          <Edit />
+          <Add />
         </IconButton>
       ),
     },
@@ -479,9 +504,10 @@ export default function MaterialCostUsed() {
             searchValue={searchValue}
             handleClearSearch={handleClearSearch}
             expandable={{
-              expandedRowKeys,
-              onExpandedRowsChange: (keys) =>
-                setExpandedRowKeys(keys as React.Key[]),
+              expandedRowKeys: expandedRow ? [expandedRow] : [],
+              onExpand: (expanded, record) => {
+                setExpandedRow(expanded ? record._id || null : null);
+              },
               expandedRowRender,
               showExpandColumn: false,
             }}
@@ -493,7 +519,6 @@ export default function MaterialCostUsed() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
-        deleteMutation={deleteMutation}
       />
     </Box>
   );

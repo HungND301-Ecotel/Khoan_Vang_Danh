@@ -1,26 +1,19 @@
-import {
-  Table as TableMui,
-  Box, IconButton, Typography,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody
-} from "@mui/material";
+import { Box, IconButton, Typography, Table as TableMui, TableHead, TableRow, TableCell, Paper, TableBody, } from "@mui/material";
 import React, { Fragment, useState } from "react";
-import { InitialPlannedCostOutputType, MaterialCostUsedOutputType } from "../../types";
 import { Table, TableProps } from "antd";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { showErrorAlert } from "../../components/Alert";
 import dayjs from "dayjs";
 
 export default function PhaseTable({
   data,
+  materials
 }: {
-  data: MaterialCostUsedOutputType;
+  data: any[];
+  materials: any[];
 }) {
+
   const innerColumns = [
     {
-      title: <Typography></Typography>,
+      title: '',
       width: 120,
       dataIndex: "index",
       key: "index",
@@ -40,7 +33,7 @@ export default function PhaseTable({
     },
     {
       title: (
-        <Typography>
+        <Typography >
           Tên công đoạn
         </Typography>
       ),
@@ -51,7 +44,7 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography>ĐVT</Typography>,
+      title: <Typography >ĐVT</Typography>,
       dataIndex: "unit",
       key: "unit",
       align: "center" as const,
@@ -60,100 +53,73 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography>Sản lượng</Typography>,
+      title: <Typography >Sản lượng</Typography>,
       dataIndex: "production",
       key: "production",
       align: "center" as const,
       render: (value: number) => (
         <Typography>{value ? value.toLocaleString() : ""}</Typography>
       ),
-    },
-    {
-      title: <Typography>Mã định mức giao khoán</Typography>,
-      dataIndex: "assignmentNormCode",
-      key: "assignmentNormCode",
-      align: "center" as const,
-      render: (value: number, item: any) => (
-        <Typography>{item?.assignmentNormCode?.code}</Typography>
-      ),
-    },
-    {
-      title: <Typography>Mã hệ số điều chỉnh định mức</Typography>,
-      dataIndex: "adjustmentNormCode",
-      key: "adjustmentNormCode",
-      align: "center" as const,
-      render: (value: number, item: any) => (
-        <Typography>{item?.adjustmentNormCode?.code}</Typography>
-      ),
-    },
-    {
-      title: <Typography>Chi phí</Typography>,
-      dataIndex: "totalUsedCost",
-      key: "totalUsedCost",
-      align: "center" as const,
-      render: (value: number) => (
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
-      ),
-    },
+    }
   ];
   return (
-    <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
-      {data.group.map((g: any) => (
-        <Box>
-          <Box sx={{ backgroundColor: "#ccc6c6ff", p: 1, display: 'flex', justifyContent: 'space-between' }}>
-            <Typography fontWeight="bold">{dayjs(g?.startDate).format("DD/MM/YYYY")} - {dayjs(g?.endDate).format("DD/MM/YYYY")}</Typography>
-            <Typography>{g.totalUsedCost ? g.totalUsedCost.toLocaleString() : ""}</Typography>
-          </Box>
-          <Table
-            columns={innerColumns}
-            dataSource={g.phases || []}
-            pagination={false}
-            size="small"
-            rowKey={(item) => item.key}
-          />
-          <Box>
-            <TableMui>
-              <TableHead>
+    <Paper sx={{paddingBottom: '10px'}}>
+      <Table
+        columns={innerColumns}
+        dataSource={data || []}
+        pagination={false}
+        size="small"
+        rowKey={(item) => item.key}
+        onHeaderRow={() => ({
+          className: "custom-header1"
+        })}
+      />
+      <Paper sx={{ margin: '20px',}}>
+        <TableMui>
+          <TableHead sx={{ backgroundColor: "#dcd7d7fa" }}>
+            <TableRow>
+              <TableCell >Mã giao khoán</TableCell>
+              <TableCell >Mã vật tư</TableCell>
+              <TableCell >Tên vật tư, tài sản</TableCell>
+              <TableCell >ĐVT</TableCell>
+              <TableCell >Số lượng</TableCell>
+              <TableCell >Đơn giá bình quân</TableCell>
+              <TableCell >Chi phí thực hiện</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody sx={{ backgroundColor: "white" }}>
+            {materials.map((m: any) => (
+              <Fragment>
                 <TableRow>
-                  <TableCell >Mã giao khoán</TableCell>
-                  <TableCell >Mã vật tư</TableCell>
-                  <TableCell >Tên vật tư, tài sản</TableCell>
-                  <TableCell >ĐVT</TableCell>
-                  <TableCell >Số lượng</TableCell>
-                  <TableCell >Đơn giá bình quân</TableCell>
-                  <TableCell >Chi phí thực hiện</TableCell>
+                  <TableCell>{m?.assignmentCode?.code}</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell>{m?.assignmentCode?.name}</TableCell>
+                  <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                  <TableCell>{m.materials.reduce((sum: number, i: any) => sum + (i?.cost || 0), 0).toLocaleString()}</TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody sx={{ backgroundColor: "white" }}>
-                {g.materials.map((m: any) => (
-                  <Fragment>
-                    <TableRow>
-                      <TableCell>{m?.assignmentCode?.code}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell>{m?.assignmentCode?.name}</TableCell>
-                      <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
-                    {m.materials.map((i: any) => (
-                      <TableRow>
-                        <TableCell></TableCell>
-                        <TableCell>{i?.material?.code}</TableCell>
-                        <TableCell>{i?.material?.name}</TableCell>
-                        <TableCell>{i?.material?.uom?.name}</TableCell>
-                        <TableCell>{i?.quantity}</TableCell>
-                        <TableCell>{(i?.price || 0).toLocaleString()}</TableCell>
-                        <TableCell>{(i?.cost || 0).toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </Fragment>
+                {m.materials.map((i: any) => (
+                  <TableRow>
+                    <TableCell></TableCell>
+                    <TableCell>{i?.material?.code}</TableCell>
+                    <TableCell>{i?.material?.name}</TableCell>
+                    <TableCell>{i?.material?.uom?.name}</TableCell>
+                    <TableCell>{i?.quantity}</TableCell>
+                    <TableCell>{(i?.price || 0).toLocaleString()}</TableCell>
+                    <TableCell>{(i?.cost || 0).toLocaleString()}</TableCell>
+                  </TableRow>
                 ))}
-              </TableBody>
-            </TableMui>
-          </Box>
-        </Box>
-      ))}
-    </Box >
+              </Fragment>
+            ))}
+          </TableBody>
+        </TableMui>
+      </Paper>
+      <style>{`
+        .custom-header1 > th {
+          background-color: #cfcacafa !important;
+        }
+            `}</style>
+    </Paper>
   );
 }

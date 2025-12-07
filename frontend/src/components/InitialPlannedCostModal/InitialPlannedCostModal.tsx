@@ -57,7 +57,7 @@ export default function InitialPlannedCostModal({
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
-  handleSubmit: (values: Partial<MaterialCostUsedInputType>) => void;
+  handleSubmit: (values: Partial<InitialPlannedCostInputType>) => void;
   selected: any | null;
 }) {
   const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{ [key: number]: string }>({});

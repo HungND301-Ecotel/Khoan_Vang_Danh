@@ -27,29 +27,6 @@ const MaterialCostUsed = new mongoose.Schema({
             unit: {
                 type: String
             },
-            assignmentNormCode: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'AssignmentNorm',
-                required: [true, 'AssignmentNorm is required'],
-            },
-            adjustmentNormCode: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'AdjustmentNorm',
-                required: [true, 'AdjustmentNorm is required'],
-            },
-            totalUsedCost: Number,
-            usedCostDetails: [{
-                assignmentCode: {
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: 'AssignmentCode'
-                },
-                baseNorm: Number,
-                adjustmentNorm: Number,
-                norm: Number,
-                quantity: Number,
-                price: Number,
-                cost: Number
-            }]
         }
     ],
     totalUsedCost: Number,
@@ -69,4 +46,34 @@ const MaterialCostUsed = new mongoose.Schema({
 }, {
     timestamps: true
 })
+
+MaterialCostUsed.pre('save', async function (next) {
+
+    const newStartDate = this.startDate; // Ví dụ: "2025-12-01"
+    const newEndDate = this.endDate;   // Ví dụ: "2025-12-30"
+    const currentScope = this.productionScope;
+
+    // 2. Xây dựng truy vấn để tìm các tài liệu xung đột
+    const conflictQuery = {
+        _id: { $ne: this._id },
+        productionScope: currentScope,
+        startDate: newStartDate,
+        endDate: newEndDate
+    };
+
+    console.log(conflictQuery)
+    try {
+        const existingDocument = await mongoose.models.MaterialCostUsed.findOne(conflictQuery);
+        // 3. Xử lý kết quả truy vấn
+        if (existingDocument) {
+            // Nếu tìm thấy tài liệu xung đột
+            const error = new Error('Thời gian đã tồn tại');
+            return next(error);
+        }
+        next();
+    } catch (error) {
+        // Xử lý lỗi trong quá trình truy vấn
+        next(error);
+    }
+});
 module.exports = mongoose.model('MaterialCostUsed', MaterialCostUsed)

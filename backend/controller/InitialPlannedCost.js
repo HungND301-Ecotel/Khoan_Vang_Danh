@@ -203,7 +203,10 @@ exports.getOne = async (req, res) => {
         const modelQuery = InitialPlannedCost.find({ productionScope: scopeId })
             .populate({
                 path: 'productionScope',
-                select: 'code name' // Chỉ lấy các trường cần thiết
+                select: 'code name phases',
+                populate: [
+                    { path: 'phases.phase', populate: 'code name' }
+                ]
             })
             .populate('phases.phase', 'code name')
             .populate({

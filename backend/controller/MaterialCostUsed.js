@@ -9,9 +9,6 @@ const { recalculateAssignmentCodePrice, calculatedPhases } = require('../utils/r
 exports.create = async (req, res) => {
     try {
         const { productionScope, phases, startDate, endDate, materials } = req.body
-        const result = await calculatedPhases(phases, startDate, endDate, "used")
-
-        const totalUsedCost = result.reduce((sum, item) => sum + item.totalUsedCost, 0)
 
         const todayStr = new Date().toISOString().split('T')[0];
 
@@ -40,8 +37,9 @@ exports.create = async (req, res) => {
                 };
             })
         );
+        const totalUsedCost= processedMaterials.reduce((sum, item) => sum + item.cost, 0)
 
-        const newMaterialCostUsed = new MaterialCostUsed({ productionScope, startDate, endDate, phases: result, materials: processedMaterials, totalUsedCost })
+        const newMaterialCostUsed = new MaterialCostUsed({ productionScope, startDate, endDate, phases, materials: processedMaterials, totalUsedCost })
         await newMaterialCostUsed.save()
 
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
@@ -53,9 +51,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const result = await calculatedPhases(req.body.phases, req.body.startDate, req.body.endDate, "used")
 
-        const totalUsedCost = result.reduce((sum, item) => sum + item.totalUsedCost, 0)
         const todayStr = new Date().toISOString().split('T')[0];
 
         const processedMaterials = await Promise.all(
@@ -83,9 +79,9 @@ exports.update = async (req, res) => {
                 };
             })
         );
+        const totalUsedCost= processedMaterials.reduce((sum, item) => sum + item.cost, 0)
         const updateData = await MaterialCostUsed.findByIdAndUpdate(req.params.id, {
             ...req.body,
-            phases: result,
             totalUsedCost,
             materials: processedMaterials
         }, { new: true })
@@ -122,28 +118,12 @@ exports.get = async (req, res) => {
         const modelQuery = MaterialCostUsed.find(query)
             .populate({
                 path: 'productionScope',
-                select: 'code name' // Chỉ lấy các trường cần thiết
+                select: 'code name phases',
+                populate: [
+                    { path: 'phases.phase', populate: 'code name' }
+                ]
             })
             .populate('phases.phase', 'code name')
-            .populate({
-                path: 'phases.usedCostDetails.assignmentCode', // Đường dẫn lồng
-                select: 'code name uom', // Chọn các trường bạn muốn hiển thị ở Frontend
-                populate: "uom"
-            })
-            .populate({
-                path: 'phases.assignmentNormCode',
-                select: 'norms code',
-                populate: [
-                    { path: 'norms.assignmentCode', populate: 'uom' }
-                ]
-            })
-            .populate({
-                path: 'phases.adjustmentNormCode',
-                select: 'norms code',
-                populate: [
-                    { path: 'norms.assignmentCode', populate: 'uom' }
-                ]
-            })
             .populate({
                 path: 'materials.material',
                 populate: [
