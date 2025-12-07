@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Fragment, useState } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -11,8 +11,10 @@ import {
   Print,
   Search,
   Visibility,
+  VisibilityOff,
 } from "@mui/icons-material";
 import {
+  Table as TableMui,
   Box,
   Breadcrumbs,
   Button,
@@ -23,8 +25,10 @@ import {
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
-import { MaterialBudgetInputType, Materials } from "../../types";
-import MaterialBudgetModal from "../../components/MaterialBudgetModal/MaterialBudgetModal";
+import {
+  InitialPlannedCostInputType,
+  MaterialBudgetCostType,
+} from "../../types";
 import {
   showConfirmAlert,
   showErrorAlert,
@@ -32,448 +36,160 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
+import CustomTable from "../../components/CustomTable/CustomTable";
+import dayjs from "dayjs";
+import GroupTable from "./GroupTable";
 
 export default function MaterialBudget() {
-  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
-  const [selected, setSelected] = useState<MaterialBudgetInputType | null>(
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [selected, setSelected] = useState<any | null>(
     null
   );
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
+  const [deletedIds, setDeletedIds] = useState<React.Key[]>([]);
 
   const queryClient = useQueryClient();
 
-  const { data: materialbudgets = [] } = useQuery({
-    queryKey: ["materialbudgets", searchValue],
-    queryFn: async () =>
-      api.get(`/materialbudgets?q=${searchValue}`).then((res) => res.data.data),
-  });
-
-  const filteredData = materialbudgets.filter((item: any) =>
-    item.code?.toLowerCase().includes(searchValue.toLowerCase())
-  );
-
-  const createMutation = useMutation({
-    mutationFn: (newMaterialBudget: Partial<MaterialBudgetInputType>) =>
-      api.post("/materialbudgets", newMaterialBudget).then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
-      setOpen(false);
-      showSuccessAlert("Thêm mới thành công");
-    },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || "Lỗi");
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (updateMaterialBudget: Partial<MaterialBudgetInputType>) =>
-      api
-        .put(
-          `/materialbudgets/${updateMaterialBudget._id}`,
-          updateMaterialBudget
-        )
-        .then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
-      setOpen(false);
-      setSelected(null);
-      showSuccessAlert("Sửa thành công");
-    },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || "Lỗi");
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
-    },
-  });
+  const { data: materialbudgets = { totalDocs: 0, data: [] }, isLoading } =
+    useQuery({
+      queryKey: ["materialbudgets", searchValue, page, limit],
+      queryFn: async () => {
+        try {
+          const res = await api.get(
+            `/materialbudgets?q=${searchValue}&page=${page}&limit=${limit}`
+          );
+          return res.data?.data;
+        } catch (error: any) {
+          const errorMessage =
+            error.response?.data?.message || "Lỗi khi tải dữ liệu";
+          showErrorAlert(errorMessage);
+        }
+      },
+    });
 
   const handleDelete = () => {
-    if (selectedRows.length === 0) {
-      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
+    if (deletedIds.length === 0) {
+      showErrorAlert("không tìm thấy bản ghi để xóa");
       return;
     }
 
     showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
-        deleteMutation.mutate(selectedRows);
+        handleDeleteMutation(deletedIds);
       }
     });
   };
 
-  const deleteMutation = useMutation({
+  const { mutate: handleDeleteMutation } = useMutation({
     mutationFn: async (ids: React.Key[]) => {
       const deletePromises = ids.map((id) =>
-        api.delete(`/materialbudgets/${id}`).then((res) => res.data)
+        api.delete(`/initialplannedcosts/${id}`).then((res) => res.data)
       );
       return Promise.all(deletePromises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialbudgets"] });
+      queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
       setSelectedRows([]);
       showSuccessAlert("Xóa thành công");
     },
     onError: (error: any) => {
       const errorMessage =
-        error.response?.data?.message || error.message || "Lỗi không xác định";
+        error.response?.data?.message || error.message || "Lỗi khi xóa";
       console.error(errorMessage);
       showErrorAlert(errorMessage);
     },
   });
 
-  const getOneMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.get(`/materialbudgets/getOne/${id}`).then((res) => res.data.data),
-    onSuccess: (data, id) => {
-      setExpandedData((prev) => ({ ...prev, [id]: data }));
-    },
-    onError: (error: any) => {
-      console.log(error.response.data.message || error.response || "Lỗi");
-      showErrorAlert(error.response.data.message || error.response || "Lỗi");
-    },
-  });
 
-  const handleSubmit = (values: Partial<MaterialBudgetInputType>) => {
-    if (selected) {
-      updateMutation.mutate({ ...values, _id: selected._id });
-    } else {
-      createMutation.mutate(values);
-    }
+
+  const handleView = (materialbudget: MaterialBudgetCostType) => {
+    const id = materialbudget?._id;
+    if (!id) return;
+
+    setExpandedRow((prev) => (prev === id ? null : id));
   };
 
-  const handleOpen = (materialBudget?: MaterialBudgetInputType) => {
-    if (materialBudget) {
-      setSelected(materialBudget);
-    } else {
-      setSelected(null);
-    }
-    setOpen(true);
-  };
-
-  const handleView = (record: MaterialBudgetInputType) => {
-    const key = record._id;
-    if (!key) {
-      showErrorAlert("Không tìm thấy ID của bản ghi");
-      return;
-    }
-    if (expandedRowKeys.includes(key)) {
-      setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
-    } else {
-      setExpandedRowKeys([...expandedRowKeys, key]);
-      if (!expandedData[key] && expandedData[key] !== null) {
-        getOneMutation.mutate(key);
-      }
-    }
-  };
-
-  const expandedRowRender = (record: MaterialBudgetInputType) => {
-    const data = expandedData[record._id || ""];
-
-    // Tạo dữ liệu mới với cấu trúc phẳng để hiển thị từng material riêng biệt
-    const flattenedData: any[] = [];
-
-    data?.assignments?.forEach((assignment: any) => {
-      if (assignment.isHeader) {
-        return;
-      }
-
-      if (assignment.materials && assignment.materials.length > 0) {
-        assignment.materials.forEach(
-          (material: Materials, materialIndex: number) => {
-            flattenedData.push({
-              ...assignment,
-              material: material,
-              isAssignmentHeader: materialIndex === 0,
-              materialIndex: materialIndex,
-            });
-          }
-        );
-      } else {
-        flattenedData.push({
-          ...assignment,
-          material: null,
-          isAssignmentHeader: true,
-        });
-      }
-    });
-
-    const innerColumns = [
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
-        dataIndex: "material",
-        key: "materialCode",
-        width: 120,
-        render: (material: Materials) => {
-          return material ? material.code : "";
-        },
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>
-        ),
-        dataIndex: "code",
-        key: "assignmentCode",
-        width: 120,
-        render: (text: string, row: any) => {
-          return row.isAssignmentHeader ? (
-            <Typography sx={{ color: "black", fontWeight: "bold" }}>
-              {row.code}
-            </Typography>
-          ) : null;
-        },
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold" }}>
-            Tên vật tư, tài sản
-          </Typography>
-        ),
-        dataIndex: "name",
-        key: "name",
-        width: 250,
-        render: (text: string, row: any) => {
-          if (row.isAssignmentHeader) {
-            return (
-              <div>
-                <Typography
-                  sx={{
-                    color: "black",
-                    fontWeight: "bold",
-                    marginBottom: row.material ? 1 : 0,
-                  }}
-                >
-                  {row.name}
-                </Typography>
-                {row.material && (
-                  <Typography sx={{ color: "black" }}>
-                    {row.material.name}
-                  </Typography>
-                )}
-              </div>
-            );
-          } else {
-            return row.material ? (
-              <Typography sx={{ color: "black" }}>
-                {row.material.name}
-              </Typography>
-            ) : null;
-          }
-        },
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
-        dataIndex: "uom",
-        key: "uom",
-        width: 80,
-        align: "center" as const,
-        render: (text: string, row: any) => {
-          if (row.isAssignmentHeader) {
-            return (
-              <div>
-                <Typography
-                  sx={{
-                    color: "black",
-                    fontWeight: "bold",
-                    marginBottom: row.material ? 1 : 0,
-                  }}
-                >
-                  {row.uom}
-                </Typography>
-                {row.material && (
-                  <Typography sx={{ color: "black" }}>
-                    {row.material.uom?.name}
-                  </Typography>
-                )}
-              </div>
-            );
-          } else {
-            return row.material ? (
-              <Typography sx={{ color: "black" }}>
-                {row.material.uom?.name}
-              </Typography>
-            ) : null;
-          }
-        },
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold" }}>Định mức gốc</Typography>
-        ),
-        dataIndex: "assignmentNorm",
-        key: "assignmentNorm",
-        width: 120,
-        align: "center" as const,
-        render: (value: number, row: any) => {
-          return row.isAssignmentHeader ? (
-            <Typography
-              sx={{ color: "black", marginBottom: row.material ? 1 : 0 }}
-            >
-              {value ? value.toLocaleString() : ""}
-            </Typography>
-          ) : null;
-        },
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold" }}>
-            Hệ số điều chỉnh định mức
-          </Typography>
-        ),
-        dataIndex: "adjustmentNorm",
-        key: "adjustmentNorm",
-        width: 150,
-        align: "center" as const,
-        render: (value: number, row: any) => {
-          return row.isAssignmentHeader ? (
-            <Typography sx={{ marginBottom: row.material ? 1 : 0 }}>
-              {value ? value.toLocaleString() : ""}
-            </Typography>
-          ) : null;
-        },
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
-        dataIndex: "totalNorm",
-        key: "totalNorm",
-        width: 100,
-        align: "center" as const,
-        render: (value: number, row: any) => {
-          return row.isAssignmentHeader ? (
-            <Typography sx={{ marginBottom: row.material ? 1 : 0 }}>
-              {value ? value.toLocaleString() : ""}
-            </Typography>
-          ) : null;
-        },
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
-        dataIndex: "quantity",
-        key: "quantity",
-        width: 100,
-        align: "center" as const,
-        render: (value: number, row: any) => {
-          return row.isAssignmentHeader ? (
-            <Typography sx={{ marginBottom: row.material ? 1 : 0 }}>
-              {value ? value.toLocaleString() : ""}
-            </Typography>
-          ) : null;
-        },
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold" }}>
-            Đơn giá bình quân năm
-          </Typography>
-        ),
-        dataIndex: "price",
-        key: "price",
-        width: 150,
-        align: "center" as const,
-        render: (value: number, row: any) => {
-          // Chỉ hiển thị giá của assignment, không hiển thị giá vật tư
-          return row.isAssignmentHeader ? (
-            <Typography sx={{ color: "black", fontWeight: "bold" }}>
-              {value ? value.toLocaleString() : ""}
-            </Typography>
-          ) : null;
-        },
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold" }}>Chi phí kế hoạch</Typography>
-        ),
-        dataIndex: "cost",
-        key: "cost",
-        width: 120,
-        align: "center" as const,
-        render: (value: number, row: any) => {
-          return row.isAssignmentHeader ? (
-            <Typography sx={{ marginBottom: row.material ? 1 : 0 }}>
-              {value ? value.toLocaleString() : ""}
-            </Typography>
-          ) : null;
-        },
-      },
-      {
-        title: <Typography sx={{ fontWeight: "bold" }}>Ghi chú</Typography>,
-        dataIndex: "note",
-        key: "note",
-        width: 100,
-        render: () => "",
-      },
-    ];
-
-    return (
-      <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1, maxWidth: '86vw', }}>
-        <Box sx={{ mb: 2 }}>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Công đoạn: {data?.materialbudget?.phase?.name}
-          </Typography>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Mã định mức giao khoán: {data?.materialbudget?.code}
-          </Typography>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 1 }}>
-            Mã hệ số định mức: {data?.materialbudget?.adjustmentNormCode?.code}
-          </Typography>
-          <Typography sx={{ fontWeight: "bold", fontSize: 16, mb: 2 }}>
-            Sản lượng:{" "}
-            {data?.materialbudget?.production
-              ? data?.materialbudget?.production.toLocaleString()
-              : 0}{" "}
-            {/* (
-            {data?.phaseGroup?.name?.toLowerCase() === "khấu than".toLowerCase()
-              ? "tấn"
-              : "mét"}
-            ) */}
+  const expandedRowRender = (record: MaterialBudgetCostType) => {
+    const key = record._id || "";
+    const data = expandedData[key] || record;
+    if (data === null) {
+      return (
+        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
+          <Typography color="error">
+            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
           </Typography>
         </Box>
-
-        <Table
-          columns={innerColumns}
-          dataSource={flattenedData}
-          pagination={false}
-          size="small"
-          scroll={{ x: "max-content" }}
-          rowKey={(item) =>
-            `${record._id}-${item._id || item.code}-${item.materialIndex || 0}`
-          }
-          bordered
-        />
-      </Box>
-    );
+      );
+    }
+    if (!data.group) {
+      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
+    }
+    return <Box>
+      <GroupTable data={data.group} productionScope={record.productionScope} handleDeleteMutation={handleDeleteMutation} />
+    </Box>
   };
 
-  const columns: TableProps<MaterialBudgetInputType>["columns"] = [
+  const columns: TableProps<MaterialBudgetCostType>["columns"] = [
     {
       title: "",
       dataIndex: "number",
       key: "number",
-      width: 50,
-      render: (value, record, index) => <Typography>{index + 1}</Typography>,
+      width: 60,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: (
-        <Typography sx={{ fontWeight: "bold" }}>
-          Mã định mức giao khoán
-        </Typography>
+        <Typography sx={{ fontWeight: "bold" }}>Mã diện sản xuất </Typography>
       ),
       dataIndex: "code",
       key: "code",
+      width: 300,
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>{record.code}</Typography>
+        <Typography>{record.productionScope?.code}</Typography>
       ),
       sorter: (a, b) =>
-        (a.code ?? "").localeCompare(b.code ?? "", "vi", {
+        (a.productionScope?.code ?? "").localeCompare(b.productionScope?.code ?? "", "vi", {
           sensitivity: "base",
         }),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Thời gian</Typography>,
+      dataIndex: "time",
+      key: "time",
+      width: 350,
+      render: (text: string, item: any) => (
+        <Typography>
+          {dayjs(item?.startDate).format("DD/MM/YYYY")} -{" "}
+          {dayjs(item?.endDate).format("DD/MM/YYYY")}
+        </Typography>
+      ),
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Chi phí</Typography>,
+      dataIndex: "totalBudgetCost",
+      key: "totalBudgetCost",
+      width: 50,
+      render: (text: string, item: any) => {
+        const total = item.group.reduce(
+          (sum: number, i: any) => sum + i.totalBudgetCost,
+          0
+        );
+        return <Typography> {total.toLocaleString()}</Typography>;
+      },
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
       dataIndex: "view",
       key: "view",
-      width: 80,
+      width: 50,
       align: "center",
       render: (_, record) => (
         <IconButton
@@ -486,45 +202,36 @@ export default function MaterialBudget() {
             },
           }}
         >
-          <Visibility />
-        </IconButton>
-      ),
-    },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
-      dataIndex: "edit",
-      key: "edit",
-      width: 80,
-      align: "center",
-      render: (_, record) => (
-        <IconButton
-          onClick={() => handleOpen(record)}
-          sx={{
-            color: "#666",
-            "&:hover": {
-              color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)",
-            },
-          }}
-        >
-          <Edit />
+          {expandedRow === record?._id ? <Visibility /> : <VisibilityOff />}
         </IconButton>
       ),
     },
   ];
 
-  const rowSelection: TableRowSelection<MaterialBudgetInputType> = {
+  const handleClearSearch = () => {
+    setSearchValue("");
+  };
+
+  const rowSelection: TableRowSelection<MaterialBudgetCostType> = {
     selectedRowKeys: selectedRows,
     onChange: (newSelectedRows: React.Key[]) => {
       setSelectedRows(newSelectedRows);
+
+      const selectedDocuments = materialbudgets.data.filter((g: MaterialBudgetCostType) =>
+        newSelectedRows.some(s => s === g._id))
+      const allSelectedGroups = selectedDocuments.flatMap((g: any) => g.group);
+      const deletedGroupIds = allSelectedGroups.map((groupItem: any) => groupItem._id);
+      setDeletedIds(deletedGroupIds)
     },
   };
 
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box
+      sx={{
+        px: 5, // horizontal = 32px
+        py: 1, // vertical = 8px
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Thống kê vận hành</Typography>
         <Typography>Chi phí vật tư kế hoạch </Typography>
@@ -532,18 +239,25 @@ export default function MaterialBudget() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main }}>
+            <Typography
+              variant="h4"
+              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+            >
               Chi phí vật tư kế hoạch
             </Typography>
             <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-              <Box display={"flex"} gap={2}>
+              {/* <Box display={"flex"} gap={2}>
                 <Button
                   variant="contained"
                   endIcon={<Add />}
                   onClick={() => handleOpen()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -560,8 +274,12 @@ export default function MaterialBudget() {
                   onClick={() => handleDelete()}
                   disabled={selectedRows.length === 0}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -572,7 +290,7 @@ export default function MaterialBudget() {
                 >
                   Xóa ({selectedRows.length})
                 </Button>
-              </Box>
+              </Box> */}
               <Box display={"flex"} flex={1} gap={2}>
                 <Button
                   variant="outlined"
@@ -581,10 +299,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -601,8 +322,11 @@ export default function MaterialBudget() {
                   size="small"
                   placeholder="Tìm kiếm"
                   value={searchValue}
-                  sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
                   onChange={(e) => setSearchValue(e.target.value)}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
+                  }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -620,10 +344,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -642,10 +369,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -664,10 +394,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -687,10 +420,13 @@ export default function MaterialBudget() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -705,29 +441,28 @@ export default function MaterialBudget() {
               </Box>
             </Box>
           </Box>
-          <Table<MaterialBudgetInputType>
-            rowKey={(record) => record._id || Math.random().toString()}
+          <CustomTable<MaterialBudgetCostType>
+            data={materialbudgets.data}
+            total={materialbudgets.totalDocs}
+            page={page}
+            limit={limit}
+            columns={columns}
             rowSelection={rowSelection}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setLimit(ps);
+            }}
+            isLoading={isLoading}
+            searchValue={searchValue}
+            handleClearSearch={handleClearSearch}
             expandable={{
-              expandedRowKeys,
-              onExpandedRowsChange: (keys) =>
-                setExpandedRowKeys(keys as React.Key[]),
+              expandedRowKeys: expandedRow ? [expandedRow] : [],
+              onExpand: (expanded, record) => {
+                setExpandedRow(expanded ? record._id || null : null);
+              },
               expandedRowRender,
               showExpandColumn: false,
             }}
-            pagination={{
-              position: ["bottomCenter"],
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              defaultPageSize: 10,
-              showTotal: (total, range) => (
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  Hiển thị {range[0]}-{range[1]} trên {total} mục
-                </div>
-              ),
-            }}
-            columns={columns}
-            dataSource={filteredData}
           />
         </Box>
       </Box>

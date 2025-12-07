@@ -10,6 +10,10 @@ exports.create = async (req, res) => {
     try {
         const { productionScope, phases, startDate, endDate, materials } = req.body
 
+        const result = await calculatedPhases(phases, startDate, endDate, "budget")
+
+        const totalBudgetCost = result.reduce((sum, item) => sum + item.totalBudgetCost, 0)
+
         const todayStr = new Date().toISOString().split('T')[0];
 
         const processedMaterials = await Promise.all(
@@ -37,10 +41,18 @@ exports.create = async (req, res) => {
                 };
             })
         );
-        const totalUsedCost= processedMaterials.reduce((sum, item) => sum + item.cost, 0)
+        const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
 
         const newMaterialCostUsed = new MaterialCostUsed({ productionScope, startDate, endDate, phases, materials: processedMaterials, totalUsedCost })
         await newMaterialCostUsed.save()
+
+        try {
+            const newMaterialBudget = new MaterialBudget({ productionScope, startDate, endDate, phases: result, totalBudgetCost })
+            await newMaterialBudget.save()
+        } catch (error) {
+            console.log(err.stack)
+            res.status(500).json({ status: 'error', message: "Lỗi khi tạo chi phí vật tư kế hoạch" })
+        }
 
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
     } catch (err) {
@@ -51,7 +63,9 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
+        const result = await calculatedPhases(req.body.phases, req.body.startDate, req.body.endDate, "budget")
 
+        const totalBudgetCost = result.reduce((sum, item) => sum + item.totalBudgetCost, 0)
         const todayStr = new Date().toISOString().split('T')[0];
 
         const processedMaterials = await Promise.all(
@@ -79,7 +93,7 @@ exports.update = async (req, res) => {
                 };
             })
         );
-        const totalUsedCost= processedMaterials.reduce((sum, item) => sum + item.cost, 0)
+        const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
         const updateData = await MaterialCostUsed.findByIdAndUpdate(req.params.id, {
             ...req.body,
             totalUsedCost,
@@ -88,6 +102,13 @@ exports.update = async (req, res) => {
         if (!updateData) {
             return res.status(404).json({ status: 'error', message: 'Sửa thất bại' })
         }
+
+        await MaterialBudget.findOneAndUpdate(
+            { productionScope: req.body.productionScope, startDate: req.body.startDate, endDate: req.body.endDate },
+            { phases: result, totalBudgetCost },
+            { new: true }
+        );
+
         res.status(200).json({ status: 'success', message: 'Sửa thành công' })
     } catch (err) {
         console.log(err.stack)
@@ -101,6 +122,9 @@ exports.delete = async (req, res) => {
         if (!deleteData) {
             return res.status(404).json({ status: 'error', message: 'Xóa thất bại' })
         }
+        await MaterialBudget.findOneAndDelete(
+            { productionScope: deleteData.productionScope, startDate: deleteData.startDate, endDate: deleteData.endDate },
+        );
         res.status(200).json({ status: 'success', message: 'Xóa thành công' })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })

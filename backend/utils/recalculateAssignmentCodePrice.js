@@ -124,12 +124,12 @@ const calculatedPhases = async (phases, startDate, endDate, type) => {
             ? "totalInitialPlannedCost"
             : type === "used"
                 ? "totalUsedCost"
-                : ""
+                : "totalBudgetCost"
         const detail = type === "initial"
             ? "initialPlannedCostDetails"
             : type === "used"
                 ? "usedCostDetails"
-                : ""
+                : "budgetCostDetails"
         // 3. Chuẩn bị dữ liệu cho InitialPlannedCost
         calculatedPhases.push({
             ...phaseData,

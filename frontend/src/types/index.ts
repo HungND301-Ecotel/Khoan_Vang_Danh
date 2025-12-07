@@ -492,6 +492,8 @@ export interface MaterialCostUsedInputType {
     phase: string;
     production: number;
     unit: string;
+    assignmentNormCode: string;
+    adjustmentNormCode: string;
   }[];
   materials: {
     material?: string;
@@ -512,6 +514,8 @@ export interface MaterialCostUsedOutputType {
       phase: PhaseGroupType;
       production: number;
       unit: string;
+      assignmentNormCode: string;
+      adjustmentNormCode: string;
     }[];
     materials: {
       assignmentCode: AssignmentCodeInputType;
@@ -569,5 +573,36 @@ export interface InitialPlannedCostOutputType {
       }[],
     }[];
     totalInitialPlannedCost: number
+  }[]
+}
+//
+export interface MaterialBudgetCostType {
+  _id?: string;
+  productionScope?: ProductionScopeOutputType;
+  startDate: string,
+  endDate: string,
+  group: {
+    _id: string,
+    startDate: string,
+    endDate: string,
+    phases: {
+      key: string,
+      phase: PhaseGroupType;
+      production: number;
+      unit: string;
+      assignmentNormCode: AssignmentNormOutputType;
+      adjustmentNormCode: AssignmentNormOutputType;
+      totalBudgetCost: number,
+      budgetCostDetails: {
+        assignmentCode: AssignmentCodeOutputType,
+        baseNorm: number,
+        adjustmentNorm: number,
+        norm: number,
+        quantity: number,
+        price: number,
+        cost: number
+      }[],
+    }[];
+    totalBudgetCost: number
   }[]
 }

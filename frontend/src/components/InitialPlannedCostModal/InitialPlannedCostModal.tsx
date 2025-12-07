@@ -314,7 +314,7 @@ export default function InitialPlannedCostModal({
             </TextField>
           </Box>
 
-          <Box sx={{ mt: 1 }}>
+          {formik.values.productionScope && <Box sx={{ mt: 1 }}>
             <Paper
               elevation={0}
               sx={{
@@ -636,7 +636,7 @@ export default function InitialPlannedCostModal({
               {/* } */}
 
             </Paper>
-          </Box>
+          </Box>}
 
           <Divider
             sx={{

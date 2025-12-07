@@ -28,6 +28,7 @@ import {
   Materials,
   PhaseOutputType,
   PhaseType,
+  InitialPlannedCostOutputType,
 } from "../../types";
 import { CircleX } from "lucide-react";
 import { Add, Delete } from "@mui/icons-material";
@@ -44,8 +45,6 @@ export default function MaterialCostUsedModal({
   handleSubmit: (values: Partial<MaterialCostUsedInputType>) => void;
   selected: any | null;
 }) {
-  const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{ [key: number]: string }>({});
-  console.log(selected)
   const { data: productionscopes = { data: [] } } = useQuery({
     queryKey: ["productionscopes"],
     queryFn: async () =>
@@ -74,7 +73,9 @@ export default function MaterialCostUsedModal({
       phases: (selected?.phases || selected?.productionScope?.phases || []).map((p: any) => ({
         phase: p.phase?._id ? String(p.phase._id) : "",
         production: Number(p.production ?? 0),                 // CHANGED
-        unit: p.phase?.unit ?? (p.phase?.name?.toLowerCase()?.includes('khấu than') ? 'tấn' : 'mét'),                            // CHANGED
+        unit: p.phase?.unit ?? (p.phase?.name?.toLowerCase()?.includes('khấu than') ? 'tấn' : 'mét'),
+        assignmentNormCode: p?.assignmentNormCode,
+        adjustmentNormCode: p?.adjustmentNormCode,
       })),
       selectedMaterials: (materialassignments.data || []).filter((m: Materials) => {
         return selected?.materials?.some((group: any) => // Duyệt qua các nhóm vật liệu bên trong g
@@ -101,7 +102,9 @@ export default function MaterialCostUsedModal({
         phases: (values.phases || []).map((p: any) => ({
           phase: p.phase ?? "",
           production: Number(p.production ?? 0),
-          unit: String(p.unit ?? ""),                         // CHANGED
+          unit: String(p.unit ?? ""),
+          assignmentNormCode: p.assignmentNormCode,
+          adjustmentNormCode: p.adjustmentNormCode,
         })),
         materials: (values.materials || []).map((m: any) => ({
           material: m.material ?? "",
@@ -116,17 +119,24 @@ export default function MaterialCostUsedModal({
 
 
   const { data: initialplannedcost } = useQuery({
-    queryKey: ["initialplannedcosts", formik.values.productionScope, open],
-    queryFn: async () =>
-      api.get(`/initialplannedcosts/getOne/${formik.values.productionScope}`).then((res) => {
-        const group = res.data.data?.group.find((i: any) => {
-          return selected.startDate === i.startDate && selected.endDate === i.endDate
-        })
-        formik.setFieldValue('groupIndexes', group)
-        return res.data.data
-      }),
-    enabled: !!formik.values.productionScope
+    queryKey: ["initialplannedcost", formik.values.productionScope, open],
+    queryFn: async () => {
+      const res = await api.get(`/initialplannedcosts/getOne/${formik.values.productionScope}`);
+      return res.data.data;
+    },
+    enabled: !!formik.values.productionScope,
   });
+  useEffect(() => {
+    if (initialplannedcost && selected) {
+      const group = initialplannedcost?.group?.find((i: any) =>
+        selected.startDate === i.startDate &&
+        selected.endDate === i.endDate
+      );
+      formik.setFieldValue("groupIndexes", group);
+    }
+  }, [initialplannedcost, selected]);
+
+
 
   const handleClose = () => {
     formik.resetForm();
@@ -158,6 +168,8 @@ export default function MaterialCostUsedModal({
         unit:
           g.unit ??
           (g.phase?.name.toLowerCase().includes("khấu than") ? "tấn" : "mét"),
+        assignmentNormCode: g.assignmentNormCode?._id,
+        adjustmentNormCode: g.adjustmentNormCode?._id,
       };
     })
     formik.setFieldValue("startDate", selected.startDate ? new Date(selected.startDate).toISOString().substring(0, 10) : "")
@@ -303,7 +315,6 @@ export default function MaterialCostUsedModal({
               }
               value={formik.values.groupIndexes || null}
               onChange={(event, newValue) => {
-                console.log(newValue)
                 formik.setFieldValue("groupIndexes", newValue);
                 updateGroupsFromSelectedIndexes(newValue);
               }}

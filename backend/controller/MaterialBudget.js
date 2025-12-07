@@ -1,6 +1,7 @@
 const MaterialBudget = require('../model/MaterialBudget')
 const MaterialAssignment = require('../model/MaterialAssignment')
 const { updatePriceAssignmentCode } = require('../utils/recalculateAssignmentCodePrice')
+const ProductionScope = require('../model/ProductionScope')
 
 exports.create = async (req, res) => {
     try {
@@ -39,14 +40,135 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const data = await MaterialBudget.find()
+        let query = {}
 
-        res.status(200).json({ status: 'success', data: data })
+        // 1. Xử lý điều kiện tìm kiếm theo req.query.q
+        if (req.query.q) {
+            // Đảm bảo ProductionScope đã được require/import
+            const productionScopes = await ProductionScope.find({ code: new RegExp(req.query.q, 'i') })
+            const productionScopeIds = productionScopes.map(i => i._id)
+            query.productionScope = { $in: productionScopeIds }
+        }
+
+        // 2. Thực hiện query với Populate
+        // Lấy tất cả dữ liệu liên quan mà không cần nhóm, nhưng giới hạn theo phân trang
+        const modelQuery = MaterialBudget.find(query)
+            .populate({
+                path: 'productionScope',
+                select: 'code name phases',
+                populate: [
+                    { path: 'phases.phase', populate: 'code name' }
+                ]
+            })
+            .populate('phases.phase', 'code name')
+            .populate({
+                path: 'phases.budgetCostDetails.assignmentCode', // Đường dẫn lồng
+                select: 'code name uom', // Chọn các trường bạn muốn hiển thị ở Frontend
+                populate: "uom"
+            })
+            .populate({
+                path: 'phases.assignmentNormCode',
+                select: 'norms code',
+                populate: [
+                    { path: 'norms.assignmentCode', populate: 'uom' }
+                ]
+            })
+            .populate({
+                path: 'phases.adjustmentNormCode',
+                select: 'norms code',
+                populate: [
+                    { path: 'norms.assignmentCode', populate: 'uom' }
+                ]
+            })
+        // Thêm các populate còn thiếu
+
+
+        const allDocs = await modelQuery.lean().exec(); // Dùng .lean() để tăng hiệu suất
+
+        // 3. Xử lý dữ liệu bằng JavaScript để nhóm
+        const groupedMap = new Map();
+
+        for (const doc of allDocs) {
+            const scopeId = doc.productionScope?._id.toString();
+
+            if (!groupedMap.has(scopeId)) {
+                // Khởi tạo tài liệu mới cho productionScope này
+                groupedMap.set(scopeId, {
+                    _id: scopeId,
+                    productionScope: doc.productionScope,
+                    startDate: doc.startDate, // Tạm thời là startDate đầu tiên
+                    endDate: doc.endDate,     // Tạm thời là endDate đầu tiên
+                    group: []
+                });
+            }
+
+            const groupedDoc = groupedMap.get(scopeId);
+
+            // Cập nhật khoảng thời gian tổng
+            // Chuyển sang Date object để so sánh
+            const currentStartDate = new Date(groupedDoc.startDate);
+            const currentEndDate = new Date(groupedDoc.endDate);
+            const docStartDate = new Date(doc.startDate);
+            const docEndDate = new Date(doc.endDate);
+
+            if (docStartDate < currentStartDate) {
+                groupedDoc.startDate = doc.startDate;
+            }
+            if (docEndDate > currentEndDate) {
+                groupedDoc.endDate = doc.endDate;
+            }
+
+            // Thêm dữ liệu vào mảng 'group'
+            groupedDoc.group.push({
+                _id: doc._id,
+                startDate: doc.startDate,   
+                endDate: doc.endDate,
+                totalBudgetCost: doc.totalBudgetCost,
+                phases: doc.phases?.map((phaseItem) => ({
+                    ...phaseItem,
+                    key: `${doc._id.toString()}_${phaseItem.phase._id.toString()}`
+                }))
+            });
+        }
+
+        // Chuyển Map thành mảng
+        const results = Array.from(groupedMap.values());
+
+        // 4. Áp dụng phân trang sau khi nhóm (nếu cần)
+        // Đây là nơi logic phân trang nên được áp dụng, vì lúc này ta đã có các document đã nhóm
+        const totalItems = results.length;
+
+        const hasPaginationParams = req.query.page && req.query.limit;
+
+        let paginatedData;
+        let page;
+        let limit;
+        if (hasPaginationParams) {
+            page = parseInt(req.query.page) || 1;
+            limit = parseInt(req.query.limit) || 10;
+            const startIndex = (page - 1) * limit;
+            const endIndex = page * limit;
+            paginatedData = results.slice(startIndex, endIndex);
+        } else {
+
+            page = 1;
+            limit = totalItems;
+            paginatedData = results; // Lấy toàn bộ mảng results
+        }
+        const totalPages = Math.ceil(totalItems / limit);
+        const pagination = {
+            data: paginatedData,
+            page: page,
+            totalDocs: totalItems,
+            totalPages: totalPages
+        };
+
+        res.status(200).json({ status: 'success', data: pagination })
     } catch (err) {
+        console.log(err.stack)
         res.status(500).json({ status: 'error', message: err.message })
     }
 }
-
 exports.getOne = async (req, res) => {
     try {
         const materialbudget = await MaterialBudget.findById(req.params.id)
