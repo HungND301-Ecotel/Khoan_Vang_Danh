@@ -6,14 +6,7 @@ const MaterialCostUsed = new mongoose.Schema({
         ref: 'ProductionScope',
         required: [true, 'ProductionScope is required'],
     },
-    startDate: {
-        type: String,
-        required: [true, 'startDate is required'],
-    },
-    endDate: {
-        type: String,
-        required: [true, 'endDate is required'],
-    },
+    month: String,
     phases: [
         {
             phase: {
@@ -59,19 +52,16 @@ const MaterialCostUsed = new mongoose.Schema({
 
 MaterialCostUsed.pre('save', async function (next) {
 
-    const newStartDate = this.startDate; // Ví dụ: "2025-12-01"
-    const newEndDate = this.endDate;   // Ví dụ: "2025-12-30"
+   const newMonth= this.month;
     const currentScope = this.productionScope;
 
     // 2. Xây dựng truy vấn để tìm các tài liệu xung đột
     const conflictQuery = {
         _id: { $ne: this._id },
         productionScope: currentScope,
-        startDate: newStartDate,
-        endDate: newEndDate
+        month: newMonth
     };
 
-    console.log(conflictQuery)
     try {
         const existingDocument = await mongoose.models.MaterialCostUsed.findOne(conflictQuery);
         // 3. Xử lý kết quả truy vấn

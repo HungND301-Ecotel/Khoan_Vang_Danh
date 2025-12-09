@@ -33,6 +33,7 @@ import {
 import { CircleX } from "lucide-react";
 import { Add, Delete } from "@mui/icons-material";
 import dayjs from "dayjs";
+import FieldMonthYear from "../../ui/FieldMonth_Year";
 
 export default function MaterialCostUsedModal({
   open,
@@ -68,8 +69,7 @@ export default function MaterialCostUsedModal({
         ? String(selected.productionScope._id)
         : "",
       groupIndexes: null,
-      startDate: selected?.startDate ? new Date(selected.startDate).toISOString().substring(0, 10) : "",
-      endDate: selected?.endDate ? new Date(selected.endDate).toISOString().substring(0, 10) : "",
+      month: selected?.month ? dayjs(selected?.month).format('YYYY-MM') : "",
       phases: (selected?.phases || selected?.productionScope?.phases || []).map((p: any) => ({
         phase: p.phase?._id ? String(p.phase._id) : "",
         production: Number(p.production ?? 0),                 // CHANGED
@@ -97,8 +97,7 @@ export default function MaterialCostUsedModal({
       const payload: Partial<MaterialCostUsedInputType> = {
         _id: selected?._id,
         productionScope: values?.productionScope,
-        startDate: new Date(values.startDate).toISOString().substring(0, 10),
-        endDate: new Date(values.endDate).toISOString().substring(0, 10),
+        month: dayjs(new Date(values.month)).format('YYYY-MM'),
         phases: (values.phases || []).map((p: any) => ({
           phase: p.phase ?? "",
           production: Number(p.production ?? 0),
@@ -129,8 +128,7 @@ export default function MaterialCostUsedModal({
   useEffect(() => {
     if (initialplannedcost && selected) {
       const group = initialplannedcost?.group?.find((i: any) =>
-        selected.startDate === i.startDate &&
-        selected.endDate === i.endDate
+        selected.month === i.month
       );
       formik.setFieldValue("groupIndexes", group);
     }
@@ -172,10 +170,10 @@ export default function MaterialCostUsedModal({
         adjustmentNormCode: g.adjustmentNormCode?._id,
       };
     })
-    formik.setFieldValue("startDate", selected.startDate ? new Date(selected.startDate).toISOString().substring(0, 10) : "")
-    formik.setFieldValue("endDate", selected.endDate ? new Date(selected.endDate).toISOString().substring(0, 10) : "")
+    formik.setFieldValue("month", selected.month ? dayjs(selected.month).format("YYYY-MM") : "")
     formik.setFieldValue("phases", mapped)
   }
+  console.log(formik.values);
 
 
   return (
@@ -303,26 +301,27 @@ export default function MaterialCostUsedModal({
               ))}
             </TextField>
           </Box>
-          {initialplannedcost && <Box>
-            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-              Chọn thời gian
-            </Typography>
-            <Autocomplete
-              fullWidth
-              options={initialplannedcost?.group || []}
-              getOptionLabel={(g: any) =>
-                `${dayjs(g.startDate).format("DD/MM/YYYY")} → ${dayjs(g.endDate).format("DD/MM/YYYY")}`
-              }
-              value={formik.values.groupIndexes || null}
-              onChange={(event, newValue) => {
-                formik.setFieldValue("groupIndexes", newValue);
-                updateGroupsFromSelectedIndexes(newValue);
-              }}
-              renderInput={(params) => (
-                <TextField {...params} label="Chọn thời gian" placeholder="Chọn..." sx={{ background: 'white' }} />
-              )}
-            />
-          </Box>}
+          {initialplannedcost &&
+            <Box>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+                Chọn thời gian
+              </Typography>
+              <Autocomplete
+                fullWidth
+                options={initialplannedcost?.group || []}
+                getOptionLabel={(g: any) =>
+                  `${dayjs(g.month).format("MM/YYYY")}`
+                }
+                value={formik.values.groupIndexes || null}
+                onChange={(event, newValue) => {
+                  formik.setFieldValue("groupIndexes", newValue);
+                  updateGroupsFromSelectedIndexes(newValue);
+                }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Chọn thời gian" placeholder="Chọn..." sx={{ background: 'white' }} />
+                )}
+              />
+            </Box>}
           {formik.values.groupIndexes && <Box sx={{ mt: 1 }}>
             <Paper
               elevation={0}
@@ -335,61 +334,7 @@ export default function MaterialCostUsedModal({
                 position: 'relative'
               }}
             >
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={5}>
-                  <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
-                    Ngày bắt đầu
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    name={`startDate`}
-                    value={formik.values.startDate ? formik.values.startDate.toString().substring(0, 10) : ''}
-                    onChange={(e) =>
-                      formik.setFieldValue(`startDate`, e.target.value)
-                    }
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    error={formik.touched.startDate && Boolean(formik.errors.startDate)}
-                    helperText={formik.touched.startDate && formik.errors.startDate}
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        height: "40px",
-                        borderRadius: "6px",
-                        fontSize: "14px",
-                        background: "white"
-                      },
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={5}>
-                  <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
-                    Ngày kết thúc
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    name={`endDate`}
-                    value={formik.values.endDate ? formik.values.endDate.toString().substring(0, 10) : ''}
-                    onChange={(e) =>
-                      formik.setFieldValue(`endDate`, e.target.value)
-                    }
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    error={formik.touched.endDate && Boolean(formik.errors.endDate)}
-                    helperText={formik.touched.endDate && formik.errors.endDate}
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        height: "40px",
-                        borderRadius: "6px",
-                        fontSize: "14px",
-                        background: "white"
-                      },
-                    }}
-                  />
-                </Grid>
-              </Grid>
+              <FieldMonthYear formik={formik}/>
 
               {/* {visiable.some(i => i === indexParent) && */}
               <FieldArray name="phases">

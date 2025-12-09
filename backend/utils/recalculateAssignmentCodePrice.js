@@ -3,7 +3,24 @@ const MaterialAssignment = require('../model/MaterialAssignment')
 const AssignmentNorm = require('../model/AssignmentNorm')
 const AdjustmentNorm = require('../model/AdjustmentNorm')
 
-const recalculateAssignmentCodePrice = async (assignmentCodeId, startDate, endDate) => {
+const recalculateAssignmentCodePrice = async (assignmentCodeId, startDate, endDate, month) => {
+    if (month) {
+        const [queryYear, queryMonth] = month.split('-').map(Number); // [2025, 12]
+
+        // Đảm bảo tháng có 2 chữ số (VD: 01, 12)
+        const paddedMonth = String(queryMonth).padStart(2, '0');
+
+        // Ngày đầu tiên luôn là '01'
+        startDate = `${queryYear}-${paddedMonth}-01`; // Ví dụ: "2025-12-01"
+
+        const nextMonthDate = new Date(queryYear, queryMonth, 1);
+
+        nextMonthDate.setDate(nextMonthDate.getDate() - 1);
+
+        const lastDay = nextMonthDate.getDate();
+
+        endDate = `${queryYear}-${paddedMonth}-${String(lastDay).padStart(2, '0')}`;
+    }
     const allMaterials = await MaterialAssignment.find({ assignmentCode: assignmentCodeId });
     if (allMaterials.length === 0) {
         return
@@ -41,11 +58,12 @@ const recalculateAssignmentCodePrice = async (assignmentCodeId, startDate, endDa
     return averagePrice
 };
 const updatePriceAssignmentCode = async (assignmentCodeId) => {
-    const result = await recalculateAssignmentCodePrice(assignmentCodeId, null, null)
+    const result = await recalculateAssignmentCodePrice(assignmentCodeId, null, null, null)
     await AssignmentCode.findByIdAndUpdate(assignmentCodeId, { price: result });
 }
 
-const calculatedPhases = async (phases, startDate, endDate, type) => {
+const calculatedPhases = async (phases, month, type) => {
+
     const calculatedPhases = [];
 
     for (const phaseData of phases) {
@@ -99,12 +117,11 @@ const calculatedPhases = async (phases, startDate, endDate, type) => {
             // Giả định: Số lượng = Định mức * Sản lượng/Số lượng của Phase
             // phaseData.production hoặc phaseData.quantity (dùng phaseData.production theo code cũ)
             const phaseQuantity = phaseData.production || 0;
-            const quantity = (norm * phaseQuantity).toFixed(1);
+            const quantity = norm * phaseQuantity;
 
             // C. Tính Đơn giá bình quân (Price)
             // Phải dùng await ở đây!
-            const price = await recalculateAssignmentCodePrice(assignmentId, startDate, endDate);
-
+            const price = await recalculateAssignmentCodePrice(assignmentId, null, null, month);
             // D. Tính Chi phí (Cost)
             const cost = price * quantity || 0;
             total += cost;
@@ -114,10 +131,10 @@ const calculatedPhases = async (phases, startDate, endDate, type) => {
                 assignmentCode: assignmentId,
                 baseNorm: baseNorm,
                 adjustmentNorm: adjustmentNorm,
-                norm: norm,
-                quantity: quantity,
-                price: price, // Đơn giá bình quân
-                cost: cost, // Chi phí kế hoạch chi tiết
+                norm: (norm || 0).toFixed(1),
+                quantity: (quantity || 0).toFixed(0),
+                price: (price || 0).toFixed(0), // Đơn giá bình quân
+                cost: (cost || 0).toFixed(0), // Chi phí kế hoạch chi tiết
             });
         }
         const totalCostKey = type === "initial"

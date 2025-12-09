@@ -162,13 +162,12 @@ export default function MaterialBudget() {
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Thời gian</Typography>,
-      dataIndex: "time",
-      key: "time",
+      dataIndex: "month",
+      key: "month",
       width: 350,
       render: (text: string, item: any) => (
         <Typography>
-          {dayjs(item?.startDate).format("DD/MM/YYYY")} -{" "}
-          {dayjs(item?.endDate).format("DD/MM/YYYY")}
+          {text}
         </Typography>
       ),
     },

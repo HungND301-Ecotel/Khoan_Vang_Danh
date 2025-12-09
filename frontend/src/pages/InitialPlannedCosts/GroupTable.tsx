@@ -50,10 +50,10 @@ export default function GroupTable({
     const innerColumns = [
         {
             title: '',
-            dataIndex: "startDate",
-            key: "startDate",
+            dataIndex: "month",
+            key: "month",
             render: (text: string, item: any, index: number) => (
-                <Typography fontWeight="bold">{dayjs(item?.startDate).format("DD/MM/YYYY")} - {dayjs(item?.endDate).format("DD/MM/YYYY")}</Typography>
+                <Typography fontWeight="bold">{text ? dayjs(text).format("MM/YYYY") : ""}</Typography>
             ),
         },
         {
@@ -118,9 +118,9 @@ export default function GroupTable({
             align: "center" as const,
             render: (_: any, record: any) => (
                 <IconButton
-                    onClick={async() =>{
-                        const isConfirmed=await showConfirmAlert('Bạn có chắc muốn xóa bản ghi này không?. Không thể hoàn tác.')
-                        if(isConfirmed){
+                    onClick={async () => {
+                        const isConfirmed = await showConfirmAlert('Bạn có chắc muốn xóa bản ghi này không?. Không thể hoàn tác.')
+                        if (isConfirmed) {
                             handleDeleteMutation([record._id])
                         }
                     }}

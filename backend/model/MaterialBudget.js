@@ -6,14 +6,7 @@ const MaterialBudget = new mongoose.Schema({
         ref: 'ProductionScope',
         required: [true, 'ProductionScope is required'],
     },
-    startDate: {
-        type: String,
-        required: [true, 'startDate is required'],
-    },
-    endDate: {
-        type: String,
-        required: [true, 'endDate is required'],
-    },
+    month: String,
     phases: [
         {
             phase: {
@@ -59,8 +52,7 @@ const MaterialBudget = new mongoose.Schema({
 
 MaterialBudget.pre('save', async function (next) {
 
-    const newStartDate = this.startDate; // Ví dụ: "2025-12-01"
-    const newEndDate = this.endDate;   // Ví dụ: "2025-12-30"
+    const newMonth = this.month; // Ví dụ: "2025-12"
     const currentScope = this.productionScope;
 
     // 2. Xây dựng truy vấn để tìm các tài liệu xung đột
@@ -68,12 +60,7 @@ MaterialBudget.pre('save', async function (next) {
 
         _id: { $ne: this._id },
         productionScope: currentScope,
-        $and: [
-            // Cũ.startDate <= Mới.endDate (Ngày bắt đầu cũ xảy ra trước/cùng lúc với ngày kết thúc mới)
-            { startDate: { $lte: newEndDate } },
-            // Cũ.endDate >= Mới.startDate (Ngày kết thúc cũ xảy ra sau/cùng lúc với ngày bắt đầu mới)
-            { endDate: { $gte: newStartDate } }
-        ]
+        month: newMonth
     };
 
     try {

@@ -96,8 +96,8 @@ exports.get = async (req, res) => {
                 groupedMap.set(scopeId, {
                     _id: scopeId,
                     productionScope: doc.productionScope,
-                    startDate: doc.startDate, // Tạm thời là startDate đầu tiên
-                    endDate: doc.endDate,     // Tạm thời là endDate đầu tiên
+                    minMonth: null,
+                    maxMonth: null,
                     group: []
                 });
             }
@@ -106,23 +106,19 @@ exports.get = async (req, res) => {
 
             // Cập nhật khoảng thời gian tổng
             // Chuyển sang Date object để so sánh
-            const currentStartDate = new Date(groupedDoc.startDate);
-            const currentEndDate = new Date(groupedDoc.endDate);
-            const docStartDate = new Date(doc.startDate);
-            const docEndDate = new Date(doc.endDate);
+            const currentMonthDate = new Date(doc.month + '-01');
 
-            if (docStartDate < currentStartDate) {
-                groupedDoc.startDate = doc.startDate;
+            if (!groupedDoc.minMonth || currentMonthDate < new Date(groupedDoc.minMonth + '-01')) {
+                groupedDoc.minMonth = doc.month;
             }
-            if (docEndDate > currentEndDate) {
-                groupedDoc.endDate = doc.endDate;
+            if (!groupedDoc.maxMonth || currentMonthDate > new Date(groupedDoc.maxMonth + '-01')) {
+                groupedDoc.maxMonth = doc.month;
             }
 
             // Thêm dữ liệu vào mảng 'group'
             groupedDoc.group.push({
                 _id: doc._id,
-                startDate: doc.startDate,   
-                endDate: doc.endDate,
+                month: doc.month,
                 totalBudgetCost: doc.totalBudgetCost,
                 phases: doc.phases?.map((phaseItem) => ({
                     ...phaseItem,
@@ -132,7 +128,18 @@ exports.get = async (req, res) => {
         }
 
         // Chuyển Map thành mảng
-        const results = Array.from(groupedMap.values());
+        const results = Array.from(groupedMap.values()).map(item => {
+            const formatMonth = (m) => {
+                if (!m) return '';
+                const [y, mm] = m.split('-');
+                return `${mm}/${y}`;
+            };
+
+            return {
+                ...item,
+                month: `${formatMonth(item.minMonth)} -> ${formatMonth(item.maxMonth)}`
+            };
+        });
 
         // 4. Áp dụng phân trang sau khi nhóm (nếu cần)
         // Đây là nơi logic phân trang nên được áp dụng, vì lúc này ta đã có các document đã nhóm
@@ -203,7 +210,6 @@ exports.getOne = async (req, res) => {
             if (!assignment?._id) continue;
             await updatePriceAssignmentCode(assignment._id);
 
-            console.log(assignment._id)
 
 
             const adjustmentNorm = assignmentNorms.find(a => (

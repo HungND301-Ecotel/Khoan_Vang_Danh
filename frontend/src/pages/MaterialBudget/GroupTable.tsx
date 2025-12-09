@@ -48,10 +48,10 @@ export default function GroupTable({
     const innerColumns = [
         {
             title: '',
-            dataIndex: "startDate",
-            key: "startDate",
+            dataIndex: "month",
+            key: "month",
             render: (text: string, item: any, index: number) => (
-                <Typography fontWeight="bold">{dayjs(item?.startDate).format("DD/MM/YYYY")} - {dayjs(item?.endDate).format("DD/MM/YYYY")}</Typography>
+                <Typography fontWeight="bold">{text ? dayjs(text).format("MM/YYYY") : ''}</Typography>
             ),
         },
         {

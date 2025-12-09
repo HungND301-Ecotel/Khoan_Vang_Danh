@@ -6,9 +6,10 @@ const { recalculateAssignmentCodePrice, calculatedPhases } = require('../utils/r
 
 exports.create = async (req, res) => {
     try {
-        const { productionScope, startDate, endDate, phases } = req.body;
+        const { productionScope, month, phases } = req.body;
 
-        const result = await calculatedPhases(phases, startDate, endDate, "initial")
+
+        const result = await calculatedPhases(phases, month, "initial")
 
         const totalInitialPlannedCost = result.reduce((sum, item) => sum + item.totalInitialPlannedCost, 0)
 
@@ -16,8 +17,7 @@ exports.create = async (req, res) => {
         // Tạo đối tượng InitialPlannedCost mới
         const newInitialPlannedCost = new InitialPlannedCost({
             productionScope,
-            startDate,
-            endDate,
+            month,
             phases: result, // Dùng mảng đã tính toán
             totalInitialPlannedCost
         });
@@ -32,7 +32,7 @@ exports.create = async (req, res) => {
 };
 exports.update = async (req, res) => {
     try {
-        const result = await calculatedPhases(req.body.phases, req.body.startDate, req.body.endDate, "initial")
+        const result = await calculatedPhases(req.body.phases, req.body.month, "initial")
 
         const totalInitialPlannedCost = result.reduce((sum, item) => sum + item.totalInitialPlannedCost, 0)
 
@@ -120,8 +120,8 @@ exports.get = async (req, res) => {
                 groupedMap.set(scopeId, {
                     _id: scopeId,
                     productionScope: doc.productionScope,
-                    startDate: doc.startDate, // Tạm thời là startDate đầu tiên
-                    endDate: doc.endDate,     // Tạm thời là endDate đầu tiên
+                    minMonth: null,
+                    maxMonth: null,
                     group: []
                 });
             }
@@ -130,23 +130,19 @@ exports.get = async (req, res) => {
 
             // Cập nhật khoảng thời gian tổng
             // Chuyển sang Date object để so sánh
-            const currentStartDate = new Date(groupedDoc.startDate);
-            const currentEndDate = new Date(groupedDoc.endDate);
-            const docStartDate = new Date(doc.startDate);
-            const docEndDate = new Date(doc.endDate);
+            const currentMonthDate = new Date(doc.month + '-01');
 
-            if (docStartDate < currentStartDate) {
-                groupedDoc.startDate = doc.startDate;
+            if (!groupedDoc.minMonth || currentMonthDate < new Date(groupedDoc.minMonth + '-01')) {
+                groupedDoc.minMonth = doc.month;
             }
-            if (docEndDate > currentEndDate) {
-                groupedDoc.endDate = doc.endDate;
+            if (!groupedDoc.maxMonth || currentMonthDate > new Date(groupedDoc.maxMonth + '-01')) {
+                groupedDoc.maxMonth = doc.month;
             }
 
             // Thêm dữ liệu vào mảng 'group'
             groupedDoc.group.push({
                 _id: doc._id,
-                startDate: doc.startDate,
-                endDate: doc.endDate,
+                month: doc.month,
                 totalInitialPlannedCost: doc.totalInitialPlannedCost,
                 phases: doc.phases.map((phaseItem) => ({
                     ...phaseItem,
@@ -156,8 +152,18 @@ exports.get = async (req, res) => {
         }
 
         // Chuyển Map thành mảng
-        const results = Array.from(groupedMap.values());
+        const results = Array.from(groupedMap.values()).map(item => {
+            const formatMonth = (m) => {
+                if(!m) return '';
+                const [y, mm] = m.split('-');
+                return `${mm}/${y}`;
+            };
 
+            return {
+                ...item,
+                month: `${formatMonth(item.minMonth)} -> ${formatMonth(item.maxMonth)}`
+            };
+        });
         // 4. Áp dụng phân trang sau khi nhóm (nếu cần)
         // Đây là nơi logic phân trang nên được áp dụng, vì lúc này ta đã có các document đã nhóm
         const totalItems = results.length;
@@ -239,32 +245,15 @@ exports.getOne = async (req, res) => {
         let data = {
             _id: scopeId,
             productionScope: allDocs[0]?.productionScope,
-            startDate: allDocs[0]?.startDate, // Tạm thời là startDate đầu tiên
-            endDate: allDocs[0]?.endDate,
             group: []
         }
 
         for (const doc of allDocs) {
 
-            // Cập nhật khoảng thời gian tổng
-            // Chuyển sang Date object để so sánh
-            const currentStartDate = new Date(data.startDate);
-            const currentEndDate = new Date(data.endDate);
-            const docStartDate = new Date(doc.startDate);
-            const docEndDate = new Date(doc.endDate);
-
-            if (docStartDate < currentStartDate) {
-                data.startDate = doc.startDate;
-            }
-            if (docEndDate > currentEndDate) {
-                data.endDate = doc.endDate;
-            }
-
             // Thêm dữ liệu vào mảng 'group'
             data.group.push({
                 _id: doc._id,
-                startDate: doc.startDate,
-                endDate: doc.endDate,
+                month: doc.month,
                 totalInitialPlannedCost: doc.totalInitialPlannedCost,
                 phases: doc.phases.map((phaseItem) => ({
                     ...phaseItem,

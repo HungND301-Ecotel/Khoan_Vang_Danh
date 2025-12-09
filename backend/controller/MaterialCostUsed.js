@@ -5,16 +5,35 @@ const ProductionScope = require('../model/ProductionScope')
 const { paginateQuery } = require('../utils/pagination')
 const { recalculateAssignmentCodePrice, calculatedPhases } = require('../utils/recalculateAssignmentCodePrice')
 
+const getDate = (month) => {
+    let startDate = null;
+    let endDate = null;
+    const [queryYear, queryMonth] = month.split('-').map(Number); // [2025, 12]
+
+    // Đảm bảo tháng có 2 chữ số (VD: 01, 12)
+    const paddedMonth = String(queryMonth).padStart(2, '0');
+
+    // Ngày đầu tiên luôn là '01'
+    startDate = `${queryYear}-${paddedMonth}-01`; // Ví dụ: "2025-12-01"
+
+    const nextMonthDate = new Date(queryYear, queryMonth, 1);
+
+    nextMonthDate.setDate(nextMonthDate.getDate() - 1);
+
+    const lastDay = nextMonthDate.getDate();
+
+    endDate = `${queryYear}-${paddedMonth}-${String(lastDay).padStart(2, '0')}`;
+    return { startDate, endDate };
+}
 
 exports.create = async (req, res) => {
     try {
-        const { productionScope, phases, startDate, endDate, materials } = req.body
+        const { productionScope, phases, month, materials } = req.body
+        const { startDate, endDate } = getDate(month);
 
-        const result = await calculatedPhases(phases, startDate, endDate, "budget")
+        const result = await calculatedPhases(phases, month, "budget")
 
-        const totalBudgetCost = result.reduce((sum, item) => sum + item.totalBudgetCost, 0)
-
-        const todayStr = new Date().toISOString().split('T')[0];
+        const totalBudgetCost = result.reduce((sum, item) => sum + (item?.totalBudgetCost || 0), 0)
 
         const processedMaterials = await Promise.all(
             materials.map(async (doc) => {
@@ -32,25 +51,27 @@ exports.create = async (req, res) => {
                         );
                     }
                 }
+                const result = await recalculateAssignmentCodePrice(material?.assignmentCode, null, null, month);
 
+                const price = material.assignmentCode ? result : (matched ? matched.price : 0);
                 return {
                     material: doc.material,
                     quantity: Number(doc.quantity),
-                    price: matched?.price || 0,
-                    cost: (matched?.price || 0) * Number(doc.quantity || 0)
+                    price: price || 0,
+                    cost: (price || 0) * Number(doc.quantity || 0)
                 };
             })
         );
         const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
 
-        const newMaterialCostUsed = new MaterialCostUsed({ productionScope, startDate, endDate, phases, materials: processedMaterials, totalUsedCost })
+        const newMaterialCostUsed = new MaterialCostUsed({ productionScope, month, phases, materials: processedMaterials, totalUsedCost })
         await newMaterialCostUsed.save()
 
         try {
-            const newMaterialBudget = new MaterialBudget({ productionScope, startDate, endDate, phases: result, totalBudgetCost })
+            const newMaterialBudget = new MaterialBudget({ productionScope, month, phases: result, totalBudgetCost })
             await newMaterialBudget.save()
         } catch (error) {
-            console.log(err.stack)
+            console.log(error.stack)
             res.status(500).json({ status: 'error', message: "Lỗi khi tạo chi phí vật tư kế hoạch" })
         }
 
@@ -63,10 +84,10 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const result = await calculatedPhases(req.body.phases, req.body.startDate, req.body.endDate, "budget")
+        const result = await calculatedPhases(req.body.phases, req.body.month, "budget")
+        const { startDate, endDate } = getDate(req.body.month);
 
         const totalBudgetCost = result.reduce((sum, item) => sum + item.totalBudgetCost, 0)
-        const todayStr = new Date().toISOString().split('T')[0];
 
         const processedMaterials = await Promise.all(
             req.body.materials.map(async (doc) => {
@@ -74,9 +95,9 @@ exports.update = async (req, res) => {
                 let matched = null;
 
                 if (material && Array.isArray(material.priceHistory)) {
-                    if (req.body.startDate && req.body.endDate) {
+                    if (startDate && endDate) {
                         matched = material.priceHistory.find(priceItem =>
-                            req.body.startDate >= priceItem.startDate && req.body.endDate <= priceItem.endDate
+                            startDate >= priceItem.startDate && endDate <= priceItem.endDate
                         );
                     } else {
                         matched = material.priceHistory.find(priceItem =>
@@ -84,12 +105,14 @@ exports.update = async (req, res) => {
                         );
                     }
                 }
+                const result = await recalculateAssignmentCodePrice(material?.assignmentCode, null, null, req.body.month);
 
+                const price = material.assignmentCode ? result : (matched ? matched.price : 0);
                 return {
                     material: doc.material,
                     quantity: Number(doc.quantity),
-                    price: matched.price,
-                    cost: (matched.price || 0) * Number(doc.quantity || 0)
+                    price: price || 0,
+                    cost: (price || 0) * Number(doc.quantity || 0)
                 };
             })
         );
@@ -104,7 +127,7 @@ exports.update = async (req, res) => {
         }
 
         await MaterialBudget.findOneAndUpdate(
-            { productionScope: req.body.productionScope, startDate: req.body.startDate, endDate: req.body.endDate },
+            { productionScope: req.body.productionScope, month: req.body.month },
             { phases: result, totalBudgetCost },
             { new: true }
         );
@@ -123,7 +146,7 @@ exports.delete = async (req, res) => {
             return res.status(404).json({ status: 'error', message: 'Xóa thất bại' })
         }
         await MaterialBudget.findOneAndDelete(
-            { productionScope: deleteData.productionScope, startDate: deleteData.startDate, endDate: deleteData.endDate },
+            { productionScope: deleteData.productionScope, month: deleteData.month },
         );
         res.status(200).json({ status: 'success', message: 'Xóa thành công' })
     } catch (err) {
@@ -171,26 +194,21 @@ exports.get = async (req, res) => {
                 groupedMap.set(scopeId, {
                     _id: scopeId,
                     productionScope: doc.productionScope,
-                    startDate: doc.startDate, // Tạm thời là startDate đầu tiên
-                    endDate: doc.endDate,     // Tạm thời là endDate đầu tiên
+                    minMonth: null,
+                    maxMonth: null,
                     group: []
                 });
             }
 
             const groupedDoc = groupedMap.get(scopeId);
 
-            // Cập nhật khoảng thời gian tổng
-            // Chuyển sang Date object để so sánh
-            const currentStartDate = new Date(groupedDoc.startDate);
-            const currentEndDate = new Date(groupedDoc.endDate);
-            const docStartDate = new Date(doc.startDate);
-            const docEndDate = new Date(doc.endDate);
+            const currentMonthDate = new Date(doc.month + '-01');
 
-            if (docStartDate < currentStartDate) {
-                groupedDoc.startDate = doc.startDate;
+            if (!groupedDoc.minMonth || currentMonthDate < new Date(groupedDoc.minMonth + '-01')) {
+                groupedDoc.minMonth = doc.month;
             }
-            if (docEndDate > currentEndDate) {
-                groupedDoc.endDate = doc.endDate;
+            if (!groupedDoc.maxMonth || currentMonthDate > new Date(groupedDoc.maxMonth + '-01')) {
+                groupedDoc.maxMonth = doc.month;
             }
 
             const groupMaterialMap = {};
@@ -198,24 +216,49 @@ exports.get = async (req, res) => {
                 const material = mat.material;
 
                 const assignmentCode = material?.assignmentCode?.code || "";
-
-                if (!groupMaterialMap[assignmentCode]) {
-                    groupMaterialMap[assignmentCode] = {
+                const price = material?.assignmentCode ? mat.price : '';
+                const compoundKey = material?.assignmentCode ? `${assignmentCode}_${price}` : '';
+                if (!groupMaterialMap[compoundKey]) {
+                    groupMaterialMap[compoundKey] = {
                         assignmentCode: material?.assignmentCode,
+                        price: price,
                         materials: []
                     };
                 }
-                groupMaterialMap[assignmentCode].materials.push({
+                groupMaterialMap[compoundKey].materials.push({
                     ...mat,
                     material
                 });
             })
             const materials = Object.values(groupMaterialMap);
+            materials.sort((a, b) => {
+                const codeA = a.assignmentCode?.code || 'NO_ASSIGNMENTCODE';
+                const codeB = b.assignmentCode?.code || 'NO_ASSIGNMENTCODE';
+
+                // 1. Đẩy nhóm không có Mã giao khoán xuống cuối
+                if (codeA === 'NO_ASSIGNMENTCODE' && codeB !== 'NO_ASSIGNMENTCODE') {
+                    return 1; // A lớn hơn B -> A đi sau
+                }
+                if (codeA !== 'NO_ASSIGNMENTCODE' && codeB === 'NO_ASSIGNMENTCODE') {
+                    return -1; // A nhỏ hơn B -> A đi trước
+                }
+
+                // 2. Sắp xếp Alphabetical (A-Z) cho các nhóm có Mã giao khoán
+                // Hoặc nếu cả hai đều là 'NO_ASSIGNMENTCODE' (sắp xếp giữa các nhóm rỗng)
+                if (codeA < codeB) {
+                    return -1;
+                }
+                if (codeA > codeB) {
+                    return 1;
+                }
+
+                return 0; // Giữ nguyên thứ tự nếu bằng nhau
+            });
+
             // Thêm dữ liệu vào mảng 'group'
             groupedDoc.group.push({
                 _id: doc._id,
-                startDate: doc.startDate,
-                endDate: doc.endDate,
+                month: doc.month,
                 totalUsedCost: doc.totalUsedCost,
                 phases: doc.phases,
                 materials: materials
@@ -223,7 +266,18 @@ exports.get = async (req, res) => {
         }
 
         // Chuyển Map thành mảng
-        const results = Array.from(groupedMap.values());
+        const results = Array.from(groupedMap.values()).map(item => {
+            const formatMonth = (m) => {
+                if (!m) return '';
+                const [y, mm] = m.split('-');
+                return `${mm}/${y}`;
+            };
+
+            return {
+                ...item,
+                month: `${formatMonth(item.minMonth)} -> ${formatMonth(item.maxMonth)}`
+            };
+        });
 
         // 4. Áp dụng phân trang sau khi nhóm (nếu cần)
         // Đây là nơi logic phân trang nên được áp dụng, vì lúc này ta đã có các document đã nhóm

@@ -486,8 +486,7 @@ export interface MaterialBudgetOutputType {
 export interface MaterialCostUsedInputType {
   _id?: string;
   productionScope?: string;
-  startDate: string,
-  endDate: string,
+  month: string,
   phases: {
     phase: string;
     production: number;
@@ -504,12 +503,10 @@ export interface MaterialCostUsedInputType {
 export interface MaterialCostUsedOutputType {
   _id?: string;
   productionScope?: ProductionScopeOutputType;
-  startDate: string,
-  endDate: string,
+  month: string,
   group: {
     _id: string,
-    startDate: string,
-    endDate: string,
+    month: string,
     phases: {
       phase: PhaseGroupType;
       production: number;
@@ -519,6 +516,7 @@ export interface MaterialCostUsedOutputType {
     }[];
     materials: {
       assignmentCode: AssignmentCodeInputType;
+      price: number,
       materials: {
         material?: Materials;
         quantity: number;
@@ -534,8 +532,7 @@ export interface MaterialCostUsedOutputType {
 export interface InitialPlannedCostInputType {
   _id?: string;
   productionScope?: string;
-  startDate: string,
-  endDate: string,
+  month: string,
   phases: {
     phase: string;
     production: number;
@@ -548,12 +545,10 @@ export interface InitialPlannedCostInputType {
 export interface InitialPlannedCostOutputType {
   _id?: string;
   productionScope?: ProductionScopeOutputType;
-  startDate: string,
-  endDate: string,
+  month: string,
   group: {
     _id: string,
-    startDate: string,
-    endDate: string,
+    month: string,
     phases: {
       key: string,
       phase: PhaseGroupType;
@@ -579,12 +574,10 @@ export interface InitialPlannedCostOutputType {
 export interface MaterialBudgetCostType {
   _id?: string;
   productionScope?: ProductionScopeOutputType;
-  startDate: string,
-  endDate: string,
+  month: string,
   group: {
     _id: string,
-    startDate: string,
-    endDate: string,
+    month: string,
     phases: {
       key: string,
       phase: PhaseGroupType;

@@ -63,7 +63,7 @@ export default function PhaseTable({
     }
   ];
   return (
-    <Paper sx={{paddingBottom: '10px'}}>
+    <Paper sx={{ paddingBottom: '10px' }}>
       <Table
         columns={innerColumns}
         dataSource={data || []}
@@ -74,7 +74,7 @@ export default function PhaseTable({
           className: "custom-header1"
         })}
       />
-      <Paper sx={{ margin: '20px',}}>
+      <Paper sx={{ margin: '20px', }}>
         <TableMui>
           <TableHead sx={{ backgroundColor: "#dcd7d7fa" }}>
             <TableRow>
@@ -95,8 +95,8 @@ export default function PhaseTable({
                   <TableCell></TableCell>
                   <TableCell>{m?.assignmentCode?.name}</TableCell>
                   <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
-                  <TableCell></TableCell>
-                  <TableCell></TableCell>
+                  <TableCell>{m.materials.reduce((sum: number, i: any) => sum + (i?.quantity || 0), 0)}</TableCell>
+                  <TableCell>{m?.price?.toLocaleString()}</TableCell>
                   <TableCell>{m.materials.reduce((sum: number, i: any) => sum + (i?.cost || 0), 0).toLocaleString()}</TableCell>
                 </TableRow>
                 {m.materials.map((i: any) => (
@@ -106,7 +106,7 @@ export default function PhaseTable({
                     <TableCell>{i?.material?.name}</TableCell>
                     <TableCell>{i?.material?.uom?.name}</TableCell>
                     <TableCell>{i?.quantity}</TableCell>
-                    <TableCell>{(i?.price || 0).toLocaleString()}</TableCell>
+                    <TableCell>{m?.assignmentCode ? '' : (i?.price || 0).toLocaleString()}</TableCell>
                     <TableCell>{(i?.cost || 0).toLocaleString()}</TableCell>
                   </TableRow>
                 ))}

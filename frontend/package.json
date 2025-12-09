@@ -9,7 +9,7 @@
     "@mui/icons-material": "^5.15.10",
     "@mui/material": "^5.15.10",
     "@mui/x-data-grid": "^5.17.24",
-    "@mui/x-date-pickers": "^8.19.0",
+    "@mui/x-date-pickers": "^5.0.17",
     "@tanstack/react-query": "^5.81.5",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",

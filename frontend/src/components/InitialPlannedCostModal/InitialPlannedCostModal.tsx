@@ -33,11 +33,12 @@ import {
 } from "../../types";
 import { Add, Delete, Visibility, VisibilityOff } from "@mui/icons-material";
 import * as yup from 'yup'
+import FieldMonthYear from "../../ui/FieldMonth_Year";
+import dayjs from "dayjs";
 
 const validationSchema = yup.object({
   productionScope: yup.string().required("Diện sản xuất không được để trống"),
-  startDate: yup.string().required("Bắt buộc"),
-  endDate: yup.string().required("Bắt buộc"),
+  month: yup.date().required("Bắt buộc"),
 
   phases: yup.array().of(
     yup.object().shape({
@@ -61,6 +62,7 @@ export default function InitialPlannedCostModal({
   selected: any | null;
 }) {
   const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{ [key: number]: string }>({});
+  const [selectedMonth, setSelectedMonth] = useState<dayjs.Dayjs | null>(null);
 
   const { data: productionscopes = { data: [] } } = useQuery({
     queryKey: ["productionscopes"],
@@ -91,8 +93,7 @@ export default function InitialPlannedCostModal({
       productionScope: selected?.productionScope?._id
         ? String(selected.productionScope._id)
         : "",
-      startDate: (selected?.startDate ? new Date(selected.startDate) : new Date()).toISOString().substring(0, 10),
-      endDate: (selected?.endDate ? new Date(selected.endDate) : new Date()).toISOString().substring(0, 10),
+      month: dayjs(selected?.month || new Date()).format('YYYY-MM'),
       phases: (selected?.phases || selected?.productionScope?.phases || []).map((p: any) => ({
         phase: p.phase?._id ? String(p.phase._id) : "",
         production: Number(p.production ?? 0),                 // CHANGED
@@ -108,8 +109,7 @@ export default function InitialPlannedCostModal({
       const payload: Partial<InitialPlannedCostInputType> = {
         _id: values?._id || '',
         productionScope: values?.productionScope,
-        startDate: new Date(values.startDate).toISOString().substring(0, 10),
-        endDate: new Date(values.endDate).toISOString().substring(0, 10),
+        month: dayjs(new Date(values.month)).format('YYYY-MM'),
         phases: (values.phases || []).map((p: any) => ({
           phase: p.phase ?? "",
           production: Number(p.production ?? 0),
@@ -124,8 +124,6 @@ export default function InitialPlannedCostModal({
 
     },
   });
-
-
 
   const handleClose = () => {
     formik.resetForm();
@@ -326,61 +324,7 @@ export default function InitialPlannedCostModal({
                 position: 'relative'
               }}
             >
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={5}>
-                  <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
-                    Ngày bắt đầu
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    name={`startDate`}
-                    value={formik.values.startDate ? formik.values.startDate.toString().substring(0, 10) : ''}
-                    onChange={(e) =>
-                      formik.setFieldValue(`startDate`, e.target.value)
-                    }
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    error={formik.touched.startDate && Boolean(formik.errors.startDate)}
-                    helperText={formik.touched.startDate && formik.errors.startDate}
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        height: "40px",
-                        borderRadius: "6px",
-                        fontSize: "14px",
-                        background: "white"
-                      },
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={5}>
-                  <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
-                    Ngày kết thúc
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    type="date"
-                    name={`endDate`}
-                    value={formik.values.endDate ? formik.values.endDate.toString().substring(0, 10) : ''}
-                    onChange={(e) =>
-                      formik.setFieldValue(`endDate`, e.target.value)
-                    }
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    error={formik.touched.endDate && Boolean(formik.errors.endDate)}
-                    helperText={formik.touched.endDate && formik.errors.endDate}
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        height: "40px",
-                        borderRadius: "6px",
-                        fontSize: "14px",
-                        background: "white"
-                      },
-                    }}
-                  />
-                </Grid>
-              </Grid>
+              <FieldMonthYear formik={formik}/>
 
               {/* {visiable.some(i => i === indexParent) && */}
               <FieldArray name="phases">

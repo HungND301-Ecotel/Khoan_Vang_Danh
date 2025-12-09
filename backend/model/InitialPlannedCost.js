@@ -6,13 +6,9 @@ const InitialPlannedCost = new mongoose.Schema({
         ref: 'ProductionScope',
         required: [true, 'ProductionScope is required'],
     },
-    startDate: {
+    month: {
         type: String,
-        required: [true, 'startDate is required'],
-    },
-    endDate: {
-        type: String,
-        required: [true, 'endDate is required'],
+        required: [true, 'month is required'],
     },
     phases: [
         {
@@ -59,21 +55,14 @@ const InitialPlannedCost = new mongoose.Schema({
 
 InitialPlannedCost.pre('save', async function (next) {
 
-    const newStartDate = this.startDate; // Ví dụ: "2025-12-01"
-    const newEndDate = this.endDate;   // Ví dụ: "2025-12-30"
+    const newMonth = this.month; // Ví dụ: "2025-12-01"
     const currentScope = this.productionScope;
 
     // 2. Xây dựng truy vấn để tìm các tài liệu xung đột
     const conflictQuery = {
-
         _id: { $ne: this._id },
         productionScope: currentScope,
-        $and: [
-            // Cũ.startDate <= Mới.endDate (Ngày bắt đầu cũ xảy ra trước/cùng lúc với ngày kết thúc mới)
-            { startDate: { $lte: newEndDate } },
-            // Cũ.endDate >= Mới.startDate (Ngày kết thúc cũ xảy ra sau/cùng lúc với ngày bắt đầu mới)
-            { endDate: { $gte: newStartDate } }
-        ]
+        month: newMonth
     };
 
     try {
@@ -82,7 +71,7 @@ InitialPlannedCost.pre('save', async function (next) {
         // 3. Xử lý kết quả truy vấn
         if (existingDocument) {
             // Nếu tìm thấy tài liệu xung đột
-            const error = new Error('Thời gian không hợp lệ.');
+            const error = new Error('Thời gian tạo đã tồn tại.');
             return next(error);
         }
         next();
