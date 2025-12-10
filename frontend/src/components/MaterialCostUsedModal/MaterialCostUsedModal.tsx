@@ -77,13 +77,23 @@ export default function MaterialCostUsedModal({
         assignmentNormCode: p?.assignmentNormCode,
         adjustmentNormCode: p?.adjustmentNormCode,
       })),
-      selectedMaterials: (materialassignments.data || []).filter((m: Materials) => {
-        return selected?.materials?.some((group: any) => // Duyệt qua các nhóm vật liệu bên trong g
-          group.materials.some((i: any) => // Duyệt qua các vật liệu thực tế bên trong nhóm đó
-            i.material?._id === m._id // Kiểm tra xem ID của vật liệu (m._id) có khớp không
-          )
-        ) || false // Nếu không tìm thấy, loại bỏ (false)
-      }),
+      selectedMaterials: (() => {
+        // 1. Tạo Map tra cứu (để lấy thông tin đầy đủ của vật liệu)
+        const materialLookup = new Map(
+          (materialassignments.data || []).map((m: Materials) => [m._id, m])
+        );
+
+        // 2. Duyệt qua các lựa chọn và ánh xạ thành mảng vật liệu, bao gồm cả trùng lặp
+        return (selected?.materials || [])
+          .flatMap((group: any) => {
+            return (group.materials || [])
+              .map((i: any) => {
+                const materialId = i.material?._id;
+                return materialLookup.get(materialId);
+              })
+              .filter(Boolean); // Loại bỏ vật liệu không hợp lệ (không tìm thấy trong Map)
+          });
+      })(),
       materials:
         selected?.materials?.flatMap((group: any) =>
           group.materials.map((mat: any) => ({
@@ -173,8 +183,8 @@ export default function MaterialCostUsedModal({
     formik.setFieldValue("month", selected.month ? dayjs(selected.month).format("YYYY-MM") : "")
     formik.setFieldValue("phases", mapped)
   }
-  console.log(formik.values);
 
+  const [select, setSelect] = useState<number[]>([])
 
   return (
     <Dialog
@@ -334,7 +344,7 @@ export default function MaterialCostUsedModal({
                 position: 'relative'
               }}
             >
-              <FieldMonthYear formik={formik}/>
+              <FieldMonthYear formik={formik} />
 
               {/* {visiable.some(i => i === indexParent) && */}
               <FieldArray name="phases">
@@ -524,18 +534,15 @@ export default function MaterialCostUsedModal({
                 <Autocomplete
                   multiple
                   fullWidth
-                  options={materialassignments.data.filter(
-                    (opt: Materials) =>
-                      !formik.values.selectedMaterials?.some((selected: Materials) => selected._id === opt._id)
-                  )}
+                  options={materialassignments.data}
                   getOptionLabel={(option: Materials) => option.code || ""}
                   value={formik.values.selectedMaterials}
-                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  isOptionEqualToValue={(option, value) => false}
                   onChange={(event, newValue) => {
                     // setSelectedMaterials(newValue);
-                    const updated = newValue.map((item) => {
+                    const updated = newValue.map((item, i) => {
                       const existing = (formik.values.materials || []).find(
-                        (n: any) => n.material === item._id
+                        (n: any, index: number) => n.material === item._id && i === index
                       );
                       return {
                         material: item._id,
@@ -719,19 +726,19 @@ export default function MaterialCostUsedModal({
                         {/* Nút X */}
                         <IconButton
                           onClick={() => {
-                            const materialToRemove = materialassignments.data.find(
-                              (ac: Materials) =>
-                                ac._id === formik.values.materials[index].material
+                            // const materialToRemove = materialassignments.data.find(
+                            //   (ac: Materials) =>
+                            //     ac._id === formik.values.materials[index].material
+                            // );
+                            // if (materialToRemove) {
+                            const updatedSelectedMaterials = formik.values.selectedMaterials.filter(
+                              (s: any, i: number) => i !== index
                             );
-                            if (materialToRemove) {
-                              const updatedSelectedMaterials = formik.values.selectedMaterials.filter(
-                                (s: any, i: number) => s._id !== materialToRemove._id
-                              );
-                              formik.setFieldValue(`selectedMaterials`, updatedSelectedMaterials);
-                            }
+                            formik.setFieldValue(`selectedMaterials`, updatedSelectedMaterials);
+                            // }
 
                             const updatedMaterials = formik.values.materials.filter(
-                              (s: any, i: number) => s.material !== materialToRemove._id
+                              (s: any, i: number) => i !== index
                             );
                             formik.setFieldValue(`materials`, updatedMaterials);
                           }}

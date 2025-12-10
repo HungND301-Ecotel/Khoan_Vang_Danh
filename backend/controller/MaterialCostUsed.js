@@ -84,6 +84,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
+        console.log(req.body.phases)
         const result = await calculatedPhases(req.body.phases, req.body.month, "budget")
         const { startDate, endDate } = getDate(req.body.month);
 

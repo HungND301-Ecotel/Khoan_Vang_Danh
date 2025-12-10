@@ -253,7 +253,7 @@ export default function SettlementReport() {
           <TableRow>
             <TableCell
               align="center"
-              colSpan={7}
+              colSpan={8}
               sx={{
                 border: "1px solid #ddd",
                 fontWeight: "bold",
@@ -279,7 +279,7 @@ export default function SettlementReport() {
           <TableRow>
             <TableCell
               align="center"
-              colSpan={7}
+              colSpan={8}
               sx={{
                 border: "1px solid #ddd",
                 fontWeight: "bold",
@@ -299,13 +299,13 @@ export default function SettlementReport() {
                 p: 0.5,
               }}
             >
-              Khấu than
+              {phasegroups?.data?.find((phase: PhaseOutputType) => phase._id === selectedPhase)?.name || ''}
             </TableCell>
           </TableRow>
           <TableRow>
             <TableCell
               align="center"
-              colSpan={7}
+              colSpan={8}
               sx={{
                 border: "1px solid #ddd",
                 fontWeight: "bold",
@@ -382,6 +382,21 @@ export default function SettlementReport() {
               }}
             >
               Mã vật tư, tài sản
+            </TableCell>
+            <TableCell
+              align="center"
+              rowSpan={2}
+              sx={{
+                border: "1px solid #ddd",
+                fontWeight: "bold",
+                fontSize: "14px",
+                p: 0.5,
+                minWidth: 60,
+                whiteSpace: "normal",
+                wordWrap: "break-word",
+              }}
+            >
+              Trùng mã vật tư
             </TableCell>
             <TableCell
               align="center"
@@ -696,25 +711,25 @@ export default function SettlementReport() {
             >
               1
             </TableCell>
-            {Array.from({ length: 19 }).map((_, index) => (
+            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
                 key={index}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 3 ? "bold" : "normal",
+                  fontWeight: index <= 4 ? "bold" : "normal",
                   fontSize: "14px",
                   p: 0.5,
                   bgcolor:
-                    index >= 6 && index <= 12
+                    index >= 7 && index <= 13
                       ? "#F3D01640"
-                      : index >= 13 && index <= 16
+                      : index >= 14 && index <= 17
                         ? "#4CAF503D"
-                        : index >= 17 && index <= 18
+                        : index >= 18 && index <= 19
                           ? "#FF620040"
                           : "white",
                 }}
               >
-                {index === 3 ? "Chỉ tiêu hiện vật" : ""}
+                {index === 4 ? "Chỉ tiêu hiện vật" : ""}
               </TableCell>
             ))}
           </TableRow>
@@ -730,25 +745,25 @@ export default function SettlementReport() {
             >
               2
             </TableCell>
-            {Array.from({ length: 19 }).map((_, index) => (
+            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
                 key={index}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 3 ? "bold" : "normal",
+                  fontWeight: index <= 4 ? "bold" : "normal",
                   fontSize: "14px",
                   p: 0.5,
                   bgcolor:
-                    index >= 6 && index <= 12
+                    index >= 7 && index <= 13
                       ? "#F3D01640"
-                      : index >= 13 && index <= 16
+                      : index >= 14 && index <= 17
                         ? "#4CAF503D"
-                        : index >= 17 && index <= 18
+                        : index >= 18 && index <= 19
                           ? "#FF620040"
                           : "white",
                 }}
               >
-                {index === 3 ? "Than nguyên khai" : ""}
+                {index === 4 ? "Than nguyên khai" : ""}
               </TableCell>
             ))}
           </TableRow>
@@ -764,25 +779,25 @@ export default function SettlementReport() {
             >
               3
             </TableCell>
-            {Array.from({ length: 19 }).map((_, index) => (
+            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
                 key={index}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 3 ? "bold" : "normal",
+                  fontWeight: index <= 4 ? "bold" : "normal",
                   fontSize: "14px",
                   p: 0.5,
                   bgcolor:
-                    index >= 6 && index <= 12
+                    index >= 7 && index <= 13
                       ? "#F3D01640"
-                      : index >= 13 && index <= 16
+                      : index >= 14 && index <= 17
                         ? "#4CAF503D"
-                        : index >= 17 && index <= 18
+                        : index >= 18 && index <= 19
                           ? "#FF620040"
                           : "white",
                 }}
               >
-                {index === 3 ? "Mét lò đào" : ""}
+                {index === 4 ? "Mét lò đào" : ""}
               </TableCell>
             ))}
           </TableRow>
@@ -798,25 +813,25 @@ export default function SettlementReport() {
             >
               4
             </TableCell>
-            {Array.from({ length: 19 }).map((_, index) => (
+            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
                 key={index}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 3 ? "bold" : "normal",
+                  fontWeight: index <= 4 ? "bold" : "normal",
                   fontSize: "14px",
                   p: 0.5,
                   bgcolor:
-                    index >= 6 && index <= 12
+                    index >= 7 && index <= 13
                       ? "#F3D01640"
-                      : index >= 13 && index <= 16
+                      : index >= 14 && index <= 17
                         ? "#4CAF503D"
-                        : index >= 17 && index <= 18
+                        : index >= 18 && index <= 19
                           ? "#FF620040"
                           : "white",
                 }}
               >
-                {index === 3 ? "Mét lò xén" : ""}
+                {index === 4 ? "Mét lò xén" : ""}
               </TableCell>
             ))}
           </TableRow>
@@ -832,25 +847,25 @@ export default function SettlementReport() {
             >
               5
             </TableCell>
-            {Array.from({ length: 19 }).map((_, index) => (
+            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
                 key={index}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 3 ? "bold" : "normal",
+                  fontWeight: index <= 4 ? "bold" : "normal",
                   fontSize: "14px",
                   p: 0.5,
                   bgcolor:
-                    index >= 6 && index <= 12
+                    index >= 7 && index <= 13
                       ? "#F3D01640"
-                      : index >= 13 && index <= 16
+                      : index >= 14 && index <= 17
                         ? "#4CAF503D"
-                        : index >= 17 && index <= 18
+                        : index >= 18 && index <= 19
                           ? "#FF620040"
                           : "white",
                 }}
               >
-                {index === 3 ? "Tỉ lệ đá lẫn trong gương (Ckep)" : ""}
+                {index === 4 ? "Tỉ lệ đá lẫn trong gương (Ckep)" : ""}
               </TableCell>
             ))}
           </TableRow>
@@ -866,25 +881,25 @@ export default function SettlementReport() {
             >
               6
             </TableCell>
-            {Array.from({ length: 19 }).map((_, index) => (
+            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
                 key={index}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 3 ? "bold" : "normal",
+                  fontWeight: index <= 4 ? "bold" : "normal",
                   fontSize: "14px",
                   p: 0.5,
                   bgcolor:
-                    index >= 6 && index <= 12
+                    index >= 7 && index <= 13
                       ? "#F3D01640"
-                      : index >= 13 && index <= 16
+                      : index >= 14 && index <= 17
                         ? "#4CAF503D"
-                        : index >= 17 && index <= 18
+                        : index >= 18 && index <= 19
                           ? "#FF620040"
                           : "white",
                 }}
               >
-                {index === 3 ? "Các chỉ tiêu vật tư" : ""}
+                {index === 4 ? "Các chỉ tiêu vật tư" : ""}
               </TableCell>
             ))}
           </TableRow>
@@ -900,25 +915,25 @@ export default function SettlementReport() {
             >
               7
             </TableCell>
-            {Array.from({ length: 19 }).map((_, index) => (
+            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
                 key={index}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 3 ? "bold" : "normal",
+                  fontWeight: index <= 4 ? "bold" : "normal",
                   fontSize: "14px",
                   p: 0.5,
                   bgcolor:
-                    index >= 6 && index <= 12
+                    index >= 7 && index <= 13
                       ? "#F3D01640"
-                      : index >= 13 && index <= 16
+                      : index >= 14 && index <= 17
                         ? "#4CAF503D"
-                        : index >= 17 && index <= 18
+                        : index >= 18 && index <= 19
                           ? "#FF620040"
                           : "white",
                 }}
               >
-                {index === 3 ? "Vật tư có định mức" : ""}
+                {index === 4 ? "Vật tư có định mức" : ""}
               </TableCell>
             ))}
           </TableRow>
@@ -934,25 +949,25 @@ export default function SettlementReport() {
             >
               8
             </TableCell>
-            {Array.from({ length: 19 }).map((_, index) => (
+            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
                 key={index}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 3 ? "bold" : "normal",
+                  fontWeight: index <= 4 ? "bold" : "normal",
                   fontSize: "14px",
                   p: 0.5,
                   bgcolor:
-                    index >= 6 && index <= 12
+                    index >= 7 && index <= 13
                       ? "#F3D01640"
-                      : index >= 13 && index <= 16
+                      : index >= 14 && index <= 17
                         ? "#4CAF503D"
-                        : index >= 17 && index <= 18
+                        : index >= 18 && index <= 19
                           ? "#FF620040"
                           : "white",
                 }}
               >
-                {index === 3 ? "Vật tư chủ yếu" : ""}
+                {index === 4 ? "Vật tư chủ yếu" : ""}
               </TableCell>
             ))}
           </TableRow>
@@ -990,7 +1005,6 @@ export default function SettlementReport() {
                       p: 0.5,
                     }}
                   >
-                    {assignment?.assignmentCode?.deviceCode?.code}
                   </TableCell>
                   <TableCell
                     align="center"
@@ -998,6 +1012,16 @@ export default function SettlementReport() {
                       border: "1px solid #ddd",
                       fontWeight: "bold",
                       color: "black",
+                      fontSize: "14px",
+                      p: 0.5,
+                    }}
+                  >
+                    {assignment?.assignmentCode?.deviceCode?.code}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
                       fontSize: "14px",
                       p: 0.5,
                     }}
@@ -1012,11 +1036,13 @@ export default function SettlementReport() {
                       p: 0.5,
                     }}
                   >
-                    {assignment?.assignmentCode?.name}
+                    {assignment?.assignmentCode?.name || 'Vật tư không có định mức'}
                   </TableCell>
                   <TableCell
+                    align="center"
                     sx={{
                       border: "1px solid #ddd",
+                      fontWeight: "normal",
                       fontSize: "14px",
                       p: 0.5,
                     }}
@@ -1113,7 +1139,18 @@ export default function SettlementReport() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode?.device}
+                      {(assignment?.materialUseds || []).filter((mat: any) => mat.material?._id === materialUsed?.material?._id)?.length || 1}
+                    </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontWeight: "bold",
+                        color: "black",
+                        fontSize: "14px",
+                        p: 0.5,
+                      }}
+                    >
                     </TableCell>
                     <TableCell
                       align="center"
@@ -1136,6 +1173,7 @@ export default function SettlementReport() {
                       {materialUsed?.material?.name}
                     </TableCell>
                     <TableCell
+                      align="center"
                       sx={{
                         border: "1px solid #ddd",
                         fontSize: "14px",
@@ -1212,6 +1250,6 @@ export default function SettlementReport() {
           )}
         </TableBody>
       </Table>
-    </Paper>
+    </Paper >
   );
 }
