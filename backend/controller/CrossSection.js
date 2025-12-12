@@ -66,7 +66,10 @@ exports.get = async (req, res) => {
 
 const columnMapping = {
   "Tiết diện lò xén": "name",
-  ĐVT: "uom", // map theo tên trong bảng Unit
+  ĐVT: "uom",
+  id: "_id",
+  _id: "_id",
+  uom: "ignored", // Thêm key cột ẩn cho dropdown
 };
 
 exports.import = async (req, res) => {
@@ -79,93 +82,151 @@ exports.import = async (req, res) => {
 
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const worksheet = workbook.Sheets[sheetName]; // Lấy header
 
-    // Lấy header
-    const headers = xlsx.utils.sheet_to_json(worksheet, {
+    let headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
     })[0];
-    const mappedHeaders = headers.map((h) => columnMapping[h] || h);
+    headers = headers.map((h) => String(h).trim()); // Làm sạch header // 1. Kiểm tra Header không hợp lệ
 
-    // Parse data
-    const data = xlsx.utils.sheet_to_json(worksheet, {
+    const allowedHeaders = Object.keys(columnMapping);
+    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
+
+    if (invalidHeaders.length > 0) {
+      return res.status(400).json({
+        status: "error",
+        message: `File không hợp lệ. Các cột sau không được phép: ${invalidHeaders.join(
+          ", "
+        )}`,
+      });
+    }
+    const mappedHeaders = headers.map((h) => columnMapping[h] || h); // Parse data
+
+    const rawData = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
-    });
-    const dataImport = data.filter((row) => row.name);
-    console.log(dataImport);
-    console.log("data:", data);
+    }); // Lặp qua rawData để "fill down" giá trị name
+
+    let lastName = null;
+    const dataImport = rawData
+      .map((row) => {
+        // Loại bỏ cột ignored
+        if (row.ignored !== undefined) delete row.ignored;
+
+        const hasName = row.name && String(row.name).trim() !== ""; // Chuẩn hóa name và uom (trim)
+        if (row.name) row.name = String(row.name).trim();
+        if (row.uom) row.uom = String(row.uom).trim();
+
+        if (hasName) {
+          lastName = row.name;
+          return row;
+        } // Nếu dòng không có name nhưng có uom, thì đây là dòng mới của uom. // Ta sẽ gán name là lastName (từ dòng trên).
+
+        if (!hasName && lastName) {
+          row.name = lastName;
+          return row;
+        }
+
+        return row;
+      })
+      .filter((row) => row.name || row._id); // Lọc chỉ giữ các dòng có name hoặc _id
 
     if (dataImport.length === 0) {
       return res.status(400).json({
         status: "error",
         message: "Không tìm thấy dữ liệu hợp lệ trong file.",
       });
-    }
+    } // Lấy các unit từ DB
 
-    // Lấy các unit từ DB
     const uniqueUnits = [
       ...new Set(dataImport.map((d) => d.uom).filter(Boolean)),
     ];
+
     const existingUnits = await Unit.find({
       name: { $in: uniqueUnits },
     }).lean();
-    const unitMap = new Map(existingUnits.map((u) => [u.name.trim(), u._id]));
 
-    const operations = [];
-    const invalidRows = [];
+    const unitMap = new Map(existingUnits.map((d) => [d.name.trim(), d._id])); // Tạo unit mới nếu chưa có
 
-    for (const item of dataImport) {
-      const { name, uom, ...rest } = item;
-      const updateData = { name, ...rest };
-
-      if (uom) {
-        const unitId = unitMap.get(uom.trim());
-        if (!unitId) {
-          invalidRows.push({ item, error: `Đơn vị tính không hợp lệ: ${uom}` });
-          continue; // vẫn bỏ qua dòng nhưng không gửi response
-        } else {
-          updateData.uom = unitId;
-        }
+    for (const u of uniqueUnits) {
+      if (!unitMap.has(u)) {
+        const newUnit = await Unit.create({ name: u });
+        unitMap.set(u, newUnit._id);
       }
-
-      operations.push({
-        updateOne: {
-          filter: { name },
-          update: { $set: updateData },
-          upsert: true,
-        },
-      });
     }
 
-    console.log("updateData:", operations);
+    const operations = dataImport.map((item) => {
+      let { _id, name, uom, ...updateData } = item;
 
-    // Cuối cùng chỉ gửi 1 response
-    let bulkResult = null;
+      let finalName = name ? String(name).trim() : null;
+      let finalUom = uom ? String(uom).trim() : null; // CLEANUP _id
+
+      if (_id) {
+        _id = String(_id).replace(/"/g, "").trim();
+        if (_id.length !== 24) _id = null;
+      }
+
+      let finalUpdateData = { ...updateData }; // Map unit name sang unitId (Chỉ gán nếu tồn tại trong map)
+
+      if (finalUom && unitMap.has(finalUom)) {
+        finalUpdateData.uom = unitMap.get(finalUom);
+      }
+
+      const $setFields = {
+        ...(finalName ? { name: finalName } : {}),
+        ...finalUpdateData, // Chứa uom đã map và các trường khác
+      }; // ------- CASE 1: Có _id → update hoặc delete -------
+
+      if (_id) {
+        const hasData =
+          Object.values(finalUpdateData).some(
+            (v) => v !== undefined && v !== null && String(v).trim() !== ""
+          ) ||
+          (finalName && finalName !== "");
+
+        if (!hasData) return { deleteOne: { filter: { _id } } };
+
+        return {
+          updateOne: {
+            filter: { _id },
+            update: { $set: $setFields },
+            upsert: true,
+          },
+        };
+      } // ------- CASE 2: Không có _id nhưng có name → upsert theo name -------
+
+      if (finalName) {
+        return {
+          updateOne: {
+            filter: { name: finalName },
+            update: { $set: $setFields },
+            upsert: true,
+          },
+        };
+      } // ------- CASE 3: Insert mới (dòng gốc) -------
+
+      return { insertOne: { document: item } };
+    });
+
     if (operations.length > 0) {
-      bulkResult = await CrossSection.bulkWrite(operations);
+      await CrossSection.bulkWrite(operations);
     }
 
     res.status(200).json({
       status: "success",
       message: "Import dữ liệu hoàn tất.",
-      summary: {
-        totalProcessed: dataImport.length,
-        insertedCount: bulkResult ? bulkResult.upsertedCount : 0,
-        updatedCount: bulkResult ? bulkResult.modifiedCount : 0,
-        invalidCount: invalidRows.length,
-      },
-      invalidRows,
+      totalProcessed: dataImport.length,
     });
   } catch (err) {
+    console.log(err.stack);
     res.status(500).json({
       status: "error",
-      message: err.message,
+      message: "Tải thất bại",
+      error: err.message,
       stack: err.stack,
     });
-    console.log(err.stack);
   }
 };
 
@@ -176,11 +237,13 @@ exports.export = async (req, res) => {
     const columns = [
       { header: "Tiết diện lò xén", key: "name", width: 30 },
       { header: "ĐVT", key: "uom", width: 20 },
+      { header: "_id", key: "_id", width: 20 }, // Thêm cột _id
     ];
 
     const formatted = data.map((i) => ({
       name: i?.name || "",
       uom: i?.uom?.name || "",
+      _id: i?._id || "", // Thêm _id
     }));
 
     const units = await Unit.find();
@@ -189,24 +252,26 @@ exports.export = async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("cross_section");
 
-    // 1️⃣ Thêm dữ liệu chính
     worksheet.columns = columns;
-    worksheet.addRows(formatted);
+    worksheet.addRows(formatted); // Ẩn cột id
+    const idCol = worksheet.columns.findIndex((c) => c && c.key === "_id") + 1;
+    if (idCol > 0) worksheet.getColumn(idCol).hidden = true;
 
-    const MAX = Math.max(worksheet.rowCount + 100, 1000);
+    const MAX = Math.max(worksheet.rowCount + 100, 1000); // Cột ẩn cho dropdown
 
-    // 2️⃣ Thêm dropdown cho cột B
     worksheet.getColumn("X").values = ["uom", ...unitList];
-    worksheet.getColumn("X").hidden = true;
+    worksheet.getColumn("X").hidden = true; // Áp dụng data validation cho cột ĐVT (cột B)
 
-    const validations = [
-      {
-        range: `B2:B${MAX}`,
-        formula: `=$X$2:$X$${unitList.length + 1}`,
-      },
-    ];
+    const uomColLetter = worksheet.getColumn(2).letter; // Cột B là cột thứ 2
+    worksheet.dataValidations.add(`${uomColLetter}2:${uomColLetter}${MAX}`, {
+      type: "list",
+      allowBlank: true,
+      formulae: [`=$X$2:$X$${unitList.length + 1}`],
+    }); // Cột cần mở khóa chỉnh sửa
 
-    const buffer = await configExport(workbook, worksheet, validations, MAX);
+    const editableKeys = ["name", "uom"];
+
+    const buffer = await configExport(workbook, worksheet, editableKeys, MAX);
 
     res.setHeader(
       "Content-Type",
@@ -218,8 +283,11 @@ exports.export = async (req, res) => {
     );
     res.send(buffer);
   } catch (err) {
-    res
-      .status(500)
-      .json({ status: "error", message: err.message, stack: err.stack });
+    res.status(500).json({
+      status: "error",
+      message: "Tải thất bại",
+      error: err.message,
+      stack: err.stack,
+    });
   }
 };

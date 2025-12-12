@@ -19,7 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import UnitModal from "../../components/UnitModal/UnitModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UnitType } from "../../types";
@@ -29,7 +29,7 @@ import {
   showErrorAlert,
   showSuccessAlert,
 } from "../../components/Alert";
-import { Table, TableProps } from "antd";
+import { TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import UnitService from "../../service/UnitService";
@@ -73,8 +73,8 @@ export default function Unit() {
     },
   });
 
-  const [progress, setProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
+  const [, setProgress] = useState(0);
+  const [, setIsUploading] = useState(false);
   const importFile = useMutation({
     mutationFn: (formData: FormData) =>
       UnitService.importFile(formData, setProgress),
@@ -172,9 +172,7 @@ export default function Unit() {
       title: <Typography sx={{ fontWeight: "bold" }}>Đơn vị tính</Typography>,
       dataIndex: "name",
       key: "name",
-      render: (_, record) => (
-        <Typography>{record.name}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.name}</Typography>,
       sorter: (a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {
           sensitivity: "base",

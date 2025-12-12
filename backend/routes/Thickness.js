@@ -1,9 +1,13 @@
-const router = require('express').Router()
-const rhicknessController = require('../controller/Thickness')
+const router = require("express").Router();
+const thicknessController = require("../controller/Thickness");
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/', rhicknessController.create)
-router.put('/:id', rhicknessController.update)
-router.delete('/:id', rhicknessController.delete)
-router.get('/', rhicknessController.get)
+router.post("/", thicknessController.create);
+router.put("/:id", thicknessController.update);
+router.delete("/:id", thicknessController.delete);
+router.get("/", thicknessController.get);
+router.post("/exportFile", thicknessController.export);
+router.post("/importFile", upload.single("file"), thicknessController.import);
 
-module.exports = router
+module.exports = router;

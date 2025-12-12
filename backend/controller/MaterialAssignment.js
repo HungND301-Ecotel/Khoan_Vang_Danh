@@ -8,7 +8,9 @@ const xlsx = require("xlsx");
 const quarterOfYear = require("dayjs/plugin/quarterOfYear");
 dayjs.extend(quarterOfYear);
 const { paginateQuery } = require("../utils/pagination");
-const { updatePriceAssignmentCode } = require('../utils/recalculateAssignmentCodePrice')
+const {
+  updatePriceAssignmentCode,
+} = require("../utils/recalculateAssignmentCodePrice");
 const { request } = require("express");
 
 exports.create = async (req, res) => {
@@ -163,9 +165,7 @@ exports.get = async (req, res) => {
           .filter(Boolean)
       ),
     ];
-    await Promise.all(
-      assignmentIds.map((id) => updatePriceAssignmentCode(id))
-    );
+    await Promise.all(assignmentIds.map((id) => updatePriceAssignmentCode(id)));
     const todayStr = new Date().toISOString().split("T")[0];
     pagination.data = pagination.data.map((item) => {
       let currentPrice = null;
@@ -280,12 +280,16 @@ const columnMapping = {
   "Tên vật tư": "name",
   ĐVT: "uom",
   "Mã giao khoán": "assignmentCode",
-  "Số lượng": "quantity",
+  "Số lượng": "quantity", // Bổ sung keys cho logic Update/Delete
+  id: "_id",
+  _id: "_id", // Bổ sung keys cho các cột ẩn (dropdown lists)
+  assignmentCodes: "ignored",
+  units: "ignored",
 };
 
 exports.import = async (req, res) => {
   try {
-    const user = req.user;
+    // const user = req.user;
     if (!req.file) {
       return res
         .status(400)
@@ -296,31 +300,49 @@ exports.import = async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
 
-    const headers = xlsx.utils.sheet_to_json(worksheet, {
+    let headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
     })[0];
+    headers = headers.map((h) => String(h).trim()); // Làm sạch header // 1. Kiểm tra Header không hợp lệ
+
+    const allowedHeaders = Object.keys(columnMapping);
+    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
+
+    if (invalidHeaders.length > 0) {
+      return res.status(400).json({
+        status: "error",
+        message: `File không hợp lệ. Các cột sau không được phép: ${invalidHeaders.join(
+          ", "
+        )}`,
+      });
+    }
+
     const mappedHeaders = headers.map(
       (header) => columnMapping[header] || header
     );
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
-    });
-    const dataImport = data.filter((row) => row.code && row.name);
+    }); // Lọc bản ghi hợp lệ: có _id HOẶC (có code VÀ có name)
+
+    const dataImport = data.filter((row) => row._id || (row.code && row.name));
 
     if (dataImport.length === 0) {
       return res.status(400).json({
         status: "error",
         message: "Không tìm thấy dữ liệu hợp lệ trong file.",
       });
-    }
+    } // Lấy danh sách codes/units để tìm kiếm
+
     const uniqueAssignmentCodes = [
-      ...new Set(dataImport.map((d) => d.assignmentCode).filter(Boolean)),
+      ...new Set(
+        dataImport.map((d) => String(d.assignmentCode).trim()).filter(Boolean)
+      ),
     ];
     const uniqueUnits = [
-      ...new Set(dataImport.map((d) => d.uom).filter(Boolean)),
+      ...new Set(dataImport.map((d) => String(d.uom).trim()).filter(Boolean)),
     ];
 
     const [existingAssignmentCodes, existingUnits] = await Promise.all([
@@ -337,38 +359,110 @@ exports.import = async (req, res) => {
     const invalidRows = [];
 
     for (const item of dataImport) {
-      const { assignmentCode, uom, ...updateData } = item;
+      // Loại bỏ cột ignored
+      if (item.ignored !== undefined) delete item.ignored;
+
+      let { _id, code, name, assignmentCode, uom, quantity, ...updateData } =
+        item;
+
+      // --- CLEANUP _id ---
+      if (_id) {
+        _id = String(_id).replace(/"/g, "").trim();
+        if (_id.length !== 24) _id = null;
+      } // --- Xử lý Tham chiếu và Dữ liệu ---
+
+      let finalUpdateData = { ...updateData };
+      let isItemValid = true; // 1. Xử lý assignmentCode
+
       if (assignmentCode) {
-        const assignmentCodeId = assignmentCodeMap.get(assignmentCode);
+        const trimmedAssignmentCode = String(assignmentCode).trim();
+        const assignmentCodeId = assignmentCodeMap.get(trimmedAssignmentCode);
         if (!assignmentCodeId) {
           invalidRows.push({
             item,
             error: `Mã giao khoán không hợp lệ: ${assignmentCode}`,
           });
+          isItemValid = false;
           continue;
         }
-        updateData.assignmentCode = assignmentCodeId;
-      }
+        finalUpdateData.assignmentCode = assignmentCodeId;
+      } // 2. Xử lý uom
 
       if (uom) {
-        const unitId = unitMap.get(uom);
+        const trimmedUom = String(uom).trim();
+        const unitId = unitMap.get(trimmedUom);
         if (!unitId) {
           invalidRows.push({ item, error: `Đơn vị tính không hợp lệ: ${uom}` });
+          isItemValid = false;
           continue;
         }
-        updateData.uom = unitId;
+        finalUpdateData.uom = unitId;
+      } else {
+        finalUpdateData.uom = null;
       }
 
-      operations.push({
-        updateOne: {
-          filter: {
-            code: item.code,
-            name: item.name,
+      // 3. Xử lý Quantity (chuyển sang dạng số, nếu cần)
+      if (quantity !== undefined && quantity !== null) {
+        const numericQuantity = parseFloat(quantity);
+        if (!isNaN(numericQuantity)) {
+          finalUpdateData.quantity = numericQuantity;
+        } else {
+          finalUpdateData.quantity = 0;
+        }
+      }
+
+      if (!isItemValid) continue;
+
+      // ------- CASE 1: Có _id → update hoặc delete -------
+      if (_id) {
+        const hasData =
+          Object.values(finalUpdateData).some(
+            (v) => v !== undefined && v !== null && String(v).trim() !== ""
+          ) ||
+          (code && String(code).trim() !== "") ||
+          (name && String(name).trim() !== "");
+
+        if (!hasData) {
+          operations.push({ deleteOne: { filter: { _id } } });
+          continue;
+        }
+
+        operations.push({
+          updateOne: {
+            filter: { _id },
+            update: {
+              $set: {
+                ...(code ? { code: String(code).trim() } : {}),
+                ...(name ? { name: String(name).trim() } : {}),
+                ...finalUpdateData, // Bao gồm FKs và quantity
+              },
+            },
+            upsert: true,
           },
-          update: { $set: updateData },
-          upsert: true,
-        },
-      });
+        });
+        continue;
+      }
+
+      // ------- CASE 2: Không có _id nhưng có code và name → upsert theo cặp (code, name) -------
+      if (code && name) {
+        operations.push({
+          updateOne: {
+            filter: {
+              code: String(code).trim(),
+              name: String(name).trim(),
+            },
+            update: {
+              $set: {
+                code: String(code).trim(),
+                name: String(name).trim(),
+                ...finalUpdateData, // Bao gồm FKs và quantity
+              },
+            },
+            upsert: true,
+          },
+        });
+        continue;
+      }
     }
 
     let bulkResult = null;
@@ -399,7 +493,9 @@ exports.import = async (req, res) => {
 exports.export = async (req, res) => {
   try {
     let query = {};
-    if (req.query.type === "in") {
+    const typeIn = req.query.type === "in";
+
+    if (typeIn) {
       query.assignmentCode = { $ne: null, $exists: true };
     } else if (req.query.type === "out") {
       query.assignmentCode = { $exists: false };
@@ -412,30 +508,23 @@ exports.export = async (req, res) => {
       { header: "Mã vật tư", key: "code", width: 20 },
       { header: "Tên vật tư", key: "name", width: 30 },
       { header: "ĐVT", key: "uom", width: 10 },
-      req.query.type === "in" && {
+      typeIn && {
         header: "Mã giao khoán",
         key: "assignmentCode",
         width: 20,
       },
       { header: "Số lượng", key: "quantity", width: 15 },
+      { header: "_id", key: "_id", width: 20 }, // Thêm cột _id
     ].filter(Boolean);
 
-    const formated = (data || []).map((i) =>
-      req.query.type === "in"
-        ? {
-          code: i?.code || "",
-          name: i?.name || "",
-          uom: i?.uom?.name || "",
-          assignmentCode: i?.assignmentCode?.code || "",
-          quantity: i?.quantity || 0,
-        }
-        : {
-          code: i?.code || "",
-          name: i?.name || "",
-          uom: i?.uom?.name || "",
-          quantity: i?.quantity || 0,
-        }
-    );
+    const formated = (data || []).map((i) => ({
+      code: i?.code || "",
+      name: i?.name || "",
+      uom: i?.uom?.name || "",
+      ...(typeIn ? { assignmentCode: i?.assignmentCode?.code || "" } : {}),
+      quantity: i?.quantity || 0,
+      _id: i?._id || "", // Thêm _id
+    }));
 
     const assignmentCodes = await AssignmentCode.find();
     const units = await Unit.find();
@@ -451,28 +540,62 @@ exports.export = async (req, res) => {
     worksheet.columns = columns;
     worksheet.addRows(formated);
 
-    const MAX = Math.max(worksheet.rowCount + 100, 1000);
+    const MAX = Math.max(worksheet.rowCount + 100, 1000); // Ẩn cột id
 
-    worksheet.getColumn("X").values = [
-      "assignmentCodes",
-      ...assignmentCodeList,
-    ];
+    const idCol = worksheet.columns.findIndex((c) => c && c.key === "_id") + 1;
+    if (idCol > 0) worksheet.getColumn(idCol).hidden = true;
+
+    const editableKeys = ["code", "name", "uom", "quantity"];
+    // --- KHỐI LOGIC DROP DOWN BẮT ĐẦU ---
+    // Cột ĐVT luôn được thêm vào cột Y
+    const uomColIndex = columns.findIndex((c) => c && c.key === "uom"); // Cột ĐVT
+    const uomColLetter = worksheet.getColumn(uomColIndex + 1).letter;
+
     worksheet.getColumn("Y").values = ["units", ...unitList];
-    worksheet.getColumn("X").hidden = true;
     worksheet.getColumn("Y").hidden = true;
 
-    const validations = [
-      {
-        range: `D2:D${MAX}`,
-        formula: `=$X$2:$X$${assignmentCodeList.length + 1}`,
-      },
-      { range: `C2:C${MAX}`, formula: `=$Y$2:$Y$${unitList.length + 1}` },
-    ];
+    // Áp dụng Data Validation cho cột ĐVT (luôn luôn)
+    worksheet.dataValidations.add(`${uomColLetter}2:${uomColLetter}${MAX}`, {
+      type: "list",
+      allowBlank: true,
+      formulae: [`=$Y$2:$Y$${unitList.length + 1}`],
+    });
+
+    // Logic cho type="in" (Xử lý cột Mã giao khoán)
+    if (typeIn) {
+      const assignmentColIndex = columns.findIndex(
+        (c) => c && c.key === "assignmentCode"
+      );
+      const assignmentColLetter = worksheet.getColumn(
+        assignmentColIndex + 1
+      ).letter;
+
+      // Thêm cột X cho Mã giao khoán
+      worksheet.getColumn("X").values = [
+        "assignmentCodes",
+        ...assignmentCodeList,
+      ];
+      worksheet.getColumn("X").hidden = true;
+
+      // Áp dụng Data Validation cho Mã giao khoán
+      worksheet.dataValidations.add(
+        `${assignmentColLetter}2:${assignmentColLetter}${MAX}`,
+        {
+          type: "list",
+          allowBlank: true,
+          formulae: [`=$X$2:$X$${assignmentCodeList.length + 1}`],
+        }
+      );
+
+      editableKeys.push("assignmentCode"); // Cho phép sửa cột này
+    }
+
+    // --- KHỐI LOGIC DROP DOWN KẾT THÚC ---
 
     const buffer = await configExport(
       workbook,
       worksheet,
-      req.query.type === "in" ? validations : [],
+      editableKeys, // Truyền đúng editableKeys
       MAX
     );
 

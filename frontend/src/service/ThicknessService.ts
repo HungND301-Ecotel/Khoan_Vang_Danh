@@ -1,28 +1,28 @@
 import api from "../config/api.config";
-import { DeviceCodeType } from "../types";
+import { ThicknessType } from "../types";
 
-const DeviceCodeService = {
-  getAll: async (params?: Record<string, any>): Promise<DeviceCodeType[]> => {
-    const res = await api.get("/devicecodes", { params });
+const ThicknessService = {
+  getAll: async (params?: Record<string, any>): Promise<ThicknessType[]> => {
+    const res = await api.get("/thickness", { params });
     return res.data.data;
   },
-  create: async (data: Partial<DeviceCodeType>): Promise<any> => {
-    const res = await api.post("/devicecodes", data);
+  create: async (data: Partial<ThicknessType>): Promise<any> => {
+    const res = await api.post("/thickness", data);
     return res.data;
   },
-  update: async (data: Partial<DeviceCodeType>): Promise<any> => {
-    const res = await api.put(`/devicecodes/${data?._id}`, data);
+  update: async (data: Partial<ThicknessType>): Promise<any> => {
+    const res = await api.put(`/thickness/${data?._id}`, data);
     return res.data;
   },
   delete: async (ids: string[]): Promise<any> => {
-    const res = await api.delete(`/devicecodes`, { data: { ids } });
+    const res = await api.delete(`/thickness`, { data: { ids } });
     return res.data.message;
   },
   importFile: async (
     formData: FormData,
     onProgress?: (percent: number) => void
   ) => {
-    const res = await api.post("/devicecodes/importFile", formData, {
+    const res = await api.post("/thickness/importFile", formData, {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (e) => {
         if (!onProgress) return;
@@ -35,21 +35,17 @@ const DeviceCodeService = {
   },
   exportFile: async () => {
     const res = await api.post(
-      "/devicecodes/exportFile",
+      "/thickness/exportFile",
       {},
-      {
-        responseType: "blob",
-      }
+      { responseType: "blob" }
     );
     const blob = new Blob([res.data], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `*.xlsx`);
-
+    link.setAttribute("download", "thickness.xlsx");
     document.body.appendChild(link);
     link.click();
     link.parentNode?.removeChild(link);
@@ -57,4 +53,4 @@ const DeviceCodeService = {
   },
 };
 
-export default DeviceCodeService;
+export default ThicknessService;

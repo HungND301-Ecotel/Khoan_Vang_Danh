@@ -68,6 +68,9 @@ const columnMapping = {
   "Mã công đoạn": "code",
   "Tên công đoạn": "name",
   "Nhóm công đoạn": "group",
+  id: "_id",
+  _id: "_id",
+  groups: "ignored", // **Bổ sung key này để cho phép cột groups**
 };
 
 exports.import = async (req, res) => {
@@ -80,37 +83,46 @@ exports.import = async (req, res) => {
 
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const worksheet = workbook.Sheets[sheetName]; // Lấy header từ row đầu tiên
 
-    // Lấy header từ row đầu tiên
-    const headers = xlsx.utils.sheet_to_json(worksheet, {
+    let headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
     })[0];
 
-    // Map header → key trong DB
+    headers = headers.map((h) => String(h).trim()); // 1. Kiểm tra Header không hợp lệ
+
+    const allowedHeaders = Object.keys(columnMapping);
+    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
+
+    if (invalidHeaders.length > 0) {
+      return res.status(400).json({
+        status: "error",
+        message: `File không hợp lệ. Các cột sau không được phép: ${invalidHeaders.join(
+          ", "
+        )}`,
+      });
+    } // Map header → key trong DB
+
     const mappedHeaders = headers.map(
       (header) => columnMapping[header] || header
-    );
+    ); // Parse dữ liệu
 
-    // Parse dữ liệu
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
-    });
+    }); // Lọc bản ghi hợp lệ
 
-    // Lọc bản ghi hợp lệ
-    const dataImport = data.filter((row) => row.code || row.name);
+    const dataImport = data.filter((row) => row._id || row.code || row.name);
 
     if (dataImport.length === 0) {
       return res.status(400).json({
         status: "error",
         message: "Không tìm thấy dữ liệu hợp lệ trong file.",
       });
-    }
+    } // Lấy danh sách group trước để map
 
-    // Lấy danh sách group trước để map
     const groups = await PhaseGroup.find().lean();
     const groupMap = {};
     groups.forEach((g) => {
@@ -118,28 +130,68 @@ exports.import = async (req, res) => {
     });
 
     const operations = dataImport.map((item) => {
-      const { code, group, ...updateData } = item;
+      // Loại bỏ key 'ignored' khỏi item nếu có
+      if (item.ignored !== undefined) delete item.ignored;
+      let { _id, code, name, group, ...updateData } = item; // --- CLEANUP _id ---
 
-      // Map tên group -> ObjectId
-      if (group && groupMap[group.trim()]) {
-        updateData.phaseGroup = groupMap[group.trim()];
-      } else {
-        updateData.phaseGroup = null; // hoặc bỏ nếu muốn giữ nguyên
-      }
+      if (_id) {
+        _id = String(_id).replace(/"/g, "").trim();
+        if (_id.length !== 24) _id = null;
+      } // Map tên group -> ObjectId và thêm vào updateData
+
+      if (group && groupMap[String(group).trim()]) {
+        updateData.phaseGroup = groupMap[String(group).trim()];
+      } else if (group === null || String(group).trim() === "") {
+        updateData.phaseGroup = null;
+      } // ------- CASE 1: Có _id → update hoặc delete -------
+
+      if (_id) {
+        const hasData =
+          Object.values(updateData).some(
+            (v) => v !== undefined && v !== null && String(v).trim() !== ""
+          ) ||
+          (code && String(code).trim() !== "") ||
+          (name && String(name).trim() !== "");
+
+        if (!hasData) return { deleteOne: { filter: { _id } } };
+
+        return {
+          updateOne: {
+            filter: { _id },
+            update: {
+              $set: {
+                ...(code ? { code: String(code).trim() } : {}),
+                ...(name ? { name: String(name).trim() } : {}),
+                ...updateData,
+              },
+            },
+            upsert: true,
+          },
+        };
+      } // ------- CASE 2: Không có _id nhưng có code → upsert theo code -------
 
       if (code) {
         return {
           updateOne: {
-            filter: { code: code },
-            update: { $set: updateData },
+            filter: { code: String(code).trim() },
+            update: {
+              $set: {
+                code: String(code).trim(),
+                ...(name ? { name: String(name).trim() } : {}),
+                ...updateData,
+              },
+            },
             upsert: true,
           },
         };
-      }
+      } // ------- CASE 3: Insert mới (Không có _id, không có code) -------
 
       return {
         insertOne: {
-          document: updateData,
+          document: {
+            ...item,
+            ...updateData,
+          },
         },
       };
     });
@@ -167,45 +219,47 @@ exports.export = async (req, res) => {
     const columns = [
       { header: "Mã công đoạn", key: "code", width: 20 },
       { header: "Tên công đoạn", key: "name", width: 30 },
-      { header: "Nhóm công đoạn", key: "group", width: 20 }, // dropdown
+      { header: "Nhóm công đoạn", key: "group", width: 20 },
+      { header: "_id", key: "_id", width: 20 },
     ];
 
-    // Format để gán vào file Excel (group là tên)
     const formated = (data || []).map((i) => ({
       code: i?.code || "",
       name: i?.name || "",
-      group: i?.phaseGroup?.name || "", // tên để show
+      group: i?.phaseGroup?.name || "",
+      _id: i?._id || "",
     }));
 
-    // Lấy danh sách nhóm công đoạn
     const groups = await PhaseGroup.find();
-
     const groupList = [...new Set(groups.map((p) => p.name).filter(Boolean))];
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("cong_doan_san_xuat");
 
-    // 1. Thêm dữ liệu chính
     worksheet.columns = columns;
     worksheet.addRows(formated);
 
     const MAX = Math.max(worksheet.rowCount + 100, 1000);
 
-    // 2. Danh sách dropdown
-    // - Nhét vào cột X
+    const idCol = worksheet.columns.findIndex((c) => c && c.key === "_id") + 1;
+    if (idCol > 0) worksheet.getColumn(idCol).hidden = true;
+
+    // **ĐIỀU CHỈNH: Đặt header cột ẩn là null hoặc chuỗi rỗng để tránh xung đột**
+    // Tuy nhiên, vì code phía dưới vẫn tham chiếu đến $X$2, chúng ta cần giữ nguyên cấu trúc
+    // và chỉ cần thêm "groups" vào columnMapping (đã làm ở trên).
+    // Giữ nguyên dòng này:
     worksheet.getColumn("X").values = ["groups", ...groupList];
     worksheet.getColumn("X").hidden = true;
 
-    // 3. Ràng buộc dropdown cho cột "Nhóm công đoạn"
-    // => cột C (vì C là cột thứ 3)
-    const validations = [
-      {
-        range: `C2:C${MAX}`, // cột Nhóm công đoạn
-        formula: `=$X$2:$X$${groupList.length + 1}`, // dropdown từ X2 → X(n)
-      },
-    ];
+    worksheet.dataValidations.add(`C2:C${MAX}`, {
+      type: "list",
+      allowBlank: true,
+      formulae: [`=$X$2:$X$${groupList.length + 1}`],
+    });
 
-    const buffer = await configExport(workbook, worksheet, validations, MAX);
+    const editableKeys = ["code", "name", "group"];
+
+    const buffer = await configExport(workbook, worksheet, editableKeys, MAX);
 
     res.setHeader(
       "Content-Type",
@@ -217,6 +271,7 @@ exports.export = async (req, res) => {
     );
     res.send(buffer);
   } catch (err) {
+    console.log(err.stack);
     res
       .status(500)
       .send({ status: "error", message: err.message, stack: err.stack });

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -14,7 +14,6 @@ import {
 } from "@mui/icons-material";
 import {
   Box,
-  Breadcrumbs,
   Button,
   IconButton,
   InputAdornment,
@@ -26,9 +25,6 @@ import {
   TextField,
   Typography,
   CircularProgress,
-  Skeleton,
-  Card,
-  CardContent,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -41,7 +37,7 @@ import {
 } from "../../components/Alert";
 import { Table as AntTable, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function AdjustmentNormKDL() {
@@ -52,24 +48,29 @@ export default function AdjustmentNormKDL() {
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
 
   // Fetch all data without search parameter to handle filtering locally
-  const { data: adjustmentnorms = { totalDocs: 0, data: [] }, isLoading, isFetching } = useQuery({
+  const {
+    data: adjustmentnorms = { totalDocs: 0, data: [] },
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: ["adjustmentnorms", searchValue, page, limit],
     queryFn: async () => {
       try {
-        const response = await api.get(`/adjustmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=CKĐL`);
+        const response = await api.get(
+          `/adjustmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=CKĐL`
+        );
         return response.data.data;
       } catch (error) {
         showErrorAlert("Không thể tải dữ liệu");
       }
     },
   });
-
 
   const createMutation = useMutation({
     mutationFn: (newExcavationNorm: Partial<AdjustmentNormInputType>) =>
@@ -164,7 +165,6 @@ export default function AdjustmentNormKDL() {
     setSearchValue("");
   };
 
-
   const expandedRowRender = (record: AdjustmentNormOutputType) => (
     <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
       <TableContainer>
@@ -235,7 +235,9 @@ export default function AdjustmentNormKDL() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: (
@@ -245,9 +247,7 @@ export default function AdjustmentNormKDL() {
       ),
       dataIndex: "code",
       key: "code",
-      render: (_, record) => (
-        <Typography >{record.code}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.code}</Typography>,
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
@@ -310,7 +310,6 @@ export default function AdjustmentNormKDL() {
     },
   };
 
-
   return (
     <Box>
       <Box mt={3}>
@@ -322,8 +321,12 @@ export default function AdjustmentNormKDL() {
                   variant="contained"
                   endIcon={<Add />}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -340,8 +343,12 @@ export default function AdjustmentNormKDL() {
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                    "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.main,
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.dark,
+                    },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
                     fontWeight: 500,
@@ -353,7 +360,9 @@ export default function AdjustmentNormKDL() {
                     selectedRows.length === 0 || deleteMutation.isPending
                   }
                 >
-                  {deleteMutation.isPending ? "Đang xóa..." : `Xóa (${selectedRows.length})`}
+                  {deleteMutation.isPending
+                    ? "Đang xóa..."
+                    : `Xóa (${selectedRows.length})`}
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>
@@ -364,10 +373,13 @@ export default function AdjustmentNormKDL() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -386,10 +398,11 @@ export default function AdjustmentNormKDL() {
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   sx={{
-                    backgroundColor: (theme) => custom_theme.palette.table_filter_box.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_filter_box.main,
                     "& .MuiInputBase-root": {
                       fontSize: "14px",
-                    }
+                    },
                   }}
                   InputProps={{
                     endAdornment: (
@@ -421,10 +434,13 @@ export default function AdjustmentNormKDL() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -443,10 +459,13 @@ export default function AdjustmentNormKDL() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -465,10 +484,13 @@ export default function AdjustmentNormKDL() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -488,10 +510,13 @@ export default function AdjustmentNormKDL() {
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.main,
                     "&:hover": {
-                      backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
-                      boxShadow: custom_theme.customShadows.tableFunctionalHover,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.dark,
+                      boxShadow:
+                        custom_theme.customShadows.tableFunctionalHover,
                     },
                     fontFamily: "Roboto, sans-serif",
                     fontSize: 14,
@@ -509,16 +534,19 @@ export default function AdjustmentNormKDL() {
 
           {/* Enhanced Search Results Info with Loading State */}
           {searchValue && (
-            <Box sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}>
+            <Box
+              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
+            >
               <Typography variant="body2" color="primary">
                 {isLoading && searchValue ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
                     <CircularProgress size={16} sx={{ mr: 1 }} />
                     Đang tìm kiếm "{searchValue}"...
                   </Box>
                 ) : (
                   <>
-                    Tìm thấy {adjustmentnorms.totalDocs} kết quả cho "{searchValue}"
+                    Tìm thấy {adjustmentnorms.totalDocs} kết quả cho "
+                    {searchValue}"
                     {adjustmentnorms.totalDocs > 0 && (
                       <Button
                         size="small"

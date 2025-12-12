@@ -1,9 +1,17 @@
-const router = require('express').Router()
-const ProductionScopeController = require('../controller/ProductionScope')
+const router = require("express").Router();
+const productionScopeController = require("../controller/ProductionScope");
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/', ProductionScopeController.create)
-router.put('/:id', ProductionScopeController.update)
-router.delete('/:id', ProductionScopeController.delete)
-router.get('/', ProductionScopeController.get)
+router.post("/", productionScopeController.create);
+router.put("/:id", productionScopeController.update);
+router.delete("/:id", productionScopeController.delete);
+router.get("/", productionScopeController.get);
+router.post("/exportFile", productionScopeController.export);
+router.post(
+  "/importFile",
+  upload.single("file"),
+  productionScopeController.import
+);
 
-module.exports = router
+module.exports = router;

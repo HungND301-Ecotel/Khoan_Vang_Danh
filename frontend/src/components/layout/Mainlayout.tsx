@@ -1,39 +1,28 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
   Box,
   CssBaseline,
-  IconButton,
   Typography,
   Button,
-  Badge,
   Menu,
   MenuItem,
   ListItemIcon,
 } from "@mui/material";
 import {
   BadgeRussianRuble,
-  Bell,
   Boxes,
   ChevronDown,
-  ChevronRight,
   CircleUserRound,
   ClipboardList,
   FileChartColumn,
-  Settings,
 } from "lucide-react";
 import {
-  ListAlt,
-  Calculate,
-  Equalizer,
-  Settings as SettingsIcon,
   Logout as LogoutIcon,
-  Notifications,
   VpnKeyOutlined,
   Person2,
-  ArrowDropDown,
 } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
 import { useAtom } from "jotai";

@@ -70,6 +70,8 @@ exports.get = async (req, res) => {
 const columnMapping = {
   "Mã nhóm công đoạn": "code",
   "Tên nhóm công đoạn": "name",
+  id: "_id", // Bổ sung ánh xạ id
+  _id: "_id", // Bổ sung ánh xạ _id
 };
 
 exports.import = async (req, res) => {
@@ -82,50 +84,97 @@ exports.import = async (req, res) => {
 
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const worksheet = workbook.Sheets[sheetName]; // Lấy header
 
-    // Lấy header
     const headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
-    })[0];
+    })[0]; // 1. Kiểm tra Header không hợp lệ
 
-    // Map header → key trong DB
+    const allowedHeaders = Object.keys(columnMapping);
+    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
+
+    if (invalidHeaders.length > 0) {
+      return res.status(400).json({
+        status: "error",
+        message: `File không hợp lệ. Các cột sau không được phép: ${invalidHeaders.join(
+          ", "
+        )}`,
+      });
+    } // Map header → key trong DB
+
     const mappedHeaders = headers.map(
       (header) => columnMapping[header] || header
-    );
+    ); // Parse dữ liệu
 
-    // Parse dữ liệu
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
-    });
+    }); // Lọc bản ghi hợp lệ (có _id, code, hoặc name)
 
-    // Lọc bản ghi hợp lệ
-    const dataImport = data.filter((row) => row.code || row.name);
+    const dataImport = data.filter((row) => row._id || row.code || row.name);
 
     if (dataImport.length === 0) {
       return res.status(400).json({
         status: "error",
         message: "Không tìm thấy dữ liệu hợp lệ trong file.",
       });
-    }
+    } // Tạo các operation bulk
 
-    // Tạo các operation bulk
     const operations = dataImport.map((item) => {
-      const { code, ...updateData } = item;
+      let { _id, code, name, ...updateData } = item; // Cần destructure _id, code, name // --- CLEANUP _id ---
+
+      if (_id) {
+        _id = String(_id).replace(/"/g, "").trim();
+        if (_id.length !== 24) _id = null;
+      } // ------- CASE 1: Có _id → update hoặc delete -------
+
+      if (_id) {
+        // Kiểm tra xem dòng có dữ liệu thực sự hay không
+        const hasData =
+          Object.values(updateData).some(
+            (v) => v !== undefined && v !== null && String(v).trim() !== ""
+          ) ||
+          (code && String(code).trim() !== "") ||
+          (name && String(name).trim() !== ""); // Nếu không có dữ liệu ⇒ delete
+
+        if (!hasData) return { deleteOne: { filter: { _id } } }; // Nếu có dữ liệu ⇒ update/upsert
+
+        return {
+          updateOne: {
+            filter: { _id },
+            update: {
+              $set: {
+                ...(code ? { code: String(code).trim() } : {}),
+                ...(name ? { name: String(name).trim() } : {}),
+                ...updateData,
+              },
+            },
+            upsert: true,
+          },
+        };
+      } // ------- CASE 2: Không có _id nhưng có code → upsert theo code -------
 
       if (code) {
         return {
           updateOne: {
-            filter: { code: code },
-            update: { $set: updateData },
+            filter: { code: String(code).trim() },
+            update: {
+              $set: {
+                code: String(code).trim(),
+                ...(name ? { name: String(name).trim() } : {}),
+                ...updateData,
+              },
+            },
             upsert: true,
           },
         };
       }
 
+      // ------- CASE 3: Chỉ có name hoặc không có gì (Insert) -------
+      // Do đã lọc dataImport.filter((row) => row._id || row.code || row.name);
+      // và đã xử lý Case 1 và Case 2, còn lại là insert mới
       return {
         insertOne: {
           document: item,
@@ -156,22 +205,31 @@ exports.export = async (req, res) => {
     const columns = [
       { header: "Mã nhóm công đoạn", key: "code", width: 10 },
       { header: "Tên nhóm công đoạn", key: "name", width: 20 },
+      { header: "_id", key: "_id", width: 20 }, // Thêm cột _id
     ];
 
     const formated = (data || []).map((p) => ({
       code: p?.code || "",
       name: p?.name || "",
+      _id: p?._id || "", // Thêm _id vào dữ liệu export
     }));
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("cong_doan_san_xuat");
+    const worksheet = workbook.addWorksheet("cong_doan_san_xuat"); // 🧩 1️⃣ Thêm dữ liệu chính TRƯỚC
 
-    // 🧩 1️⃣ Thêm dữ liệu chính TRƯỚC
     worksheet.columns = columns;
-    worksheet.addRows(formated);
+    worksheet.addRows(formated); // Ẩn cột id (giống code mẫu)
+
+    const idCol = worksheet.columns.findIndex((c) => c && c.key === "_id") + 1;
+    if (idCol > 0) worksheet.getColumn(idCol).hidden = true;
 
     const MAX = Math.max(worksheet.rowCount + 100, 1000);
 
-    const buffer = await configExport(workbook, worksheet, [], MAX);
+    const buffer = await configExport(
+      workbook,
+      worksheet,
+      ["code", "name"],
+      MAX
+    ); // Truyền keys vào configExport
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

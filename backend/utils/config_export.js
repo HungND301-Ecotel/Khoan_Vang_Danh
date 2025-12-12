@@ -1,64 +1,96 @@
+// async function configExport(workbook, worksheet, validations = [], MAX) {
+//   worksheet.eachRow((row, rowNumber) => {
+//     row.eachCell((cell) => {
+//       cell.font = { size: rowNumber === 1 ? 9 : 8, bold: rowNumber === 1 };
+//       cell.alignment = { vertical: "middle", wrapText: rowNumber === 1 };
+//     });
+//   });
 
+//   for (const v of validations) {
+//     worksheet.dataValidations.add(v.range, {
+//       type: "list",
+//       allowBlank: true,
+//       formulae: [v.formula],
+//       showErrorMessage: true,
+//       errorTitle: "Giá trị không hợp lệ",
+//       error: "Giá trị bạn chọn không nằm trong danh sách cho phép!",
+//     });
+//   }
 
-async function configExport(workbook, worksheet, validations = [], MAX) {
+//   // worksheet.getRow(1).eachCell({ includeEmpty: true }, (cell) => {
+//   //     cell.protection = { locked: true };
+//   // });
+//   // for (let r = 1; r <= MAX; r++) {
+//   //     worksheet.getCell(`A${r}`).protection = { locked: true };
+//   // }
 
-    worksheet.eachRow((row, rowNumber) => {
-        row.eachCell(cell => {
-            cell.font = { size: (rowNumber === 1) ? 9 : 8, bold: (rowNumber === 1) };
-            cell.alignment = { vertical: 'middle', wrapText: (rowNumber === 1) };
-        });
+//   // const editableCols = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+//   // for (let r = 2; r <= MAX; r++) {
+//   //     for (const col of editableCols) {
+//   //         worksheet.getCell(`${col}${r}`).protection = { locked: false };
+//   //     }
+//   // }
+
+//   // // 4) Khóa các cột ẩn (nguồn dropdown) X/Y/Z để tránh sửa danh mục
+//   // for (const col of ['X', 'Y', 'Z']) {
+//   //     for (let r = 1; r <= MAX; r++) {
+//   //         worksheet.getCell(`${col}${r}`).protection = { locked: true };
+//   //     }
+//   // }
+
+//   // // 3) Bật bảo vệ sheet
+//   // await worksheet.protect('ktv-protect', {
+//   //     selectLockedCells: true,
+//   //     selectUnlockedCells: true,
+//   //     formatCells: false,
+//   //     formatColumns: false,
+//   //     formatRows: false,
+//   //     insertRows: true,   // cho phép thêm dòng mới nếu cần
+//   //     deleteRows: false,
+//   //     insertColumns: false,
+//   //     deleteColumns: false,
+//   // });
+
+//   const buffer = await workbook.xlsx.writeBuffer();
+
+//   return buffer;
+// }
+
+// module.exports = {
+//   configExport,
+// };
+
+async function configExport(
+  workbook,
+  worksheet,
+  editableKeys = [],
+  MAX = 1000
+) {
+  worksheet.protect("123456", {
+    selectLockedCells: true,
+    selectUnlockedCells: true,
+  });
+
+  // Mặc định: tất cả đều locked
+  worksheet.eachRow((row, rowNum) => {
+    row.eachCell((cell) => {
+      cell.protection = { locked: true };
     });
+  });
 
-    for (const v of validations) {
-        worksheet.dataValidations.add(v.range, {
-            type: 'list',
-            allowBlank: true,
-            formulae: [v.formula],
-            showErrorMessage: true,
-            errorTitle: 'Giá trị không hợp lệ',
-            error: 'Giá trị bạn chọn không nằm trong danh sách cho phép!',
-        });
+  // Tìm cột bằng key (ExcelJS cho phép)
+  editableKeys.forEach((key) => {
+    const col = worksheet.getColumn(key);
+    if (!col) return;
+
+    for (let r = 2; r <= MAX; r++) {
+      const cell = worksheet.getCell(`${col.letter}${r}`);
+      cell.protection = { locked: false };
     }
+  });
 
-    // worksheet.getRow(1).eachCell({ includeEmpty: true }, (cell) => {
-    //     cell.protection = { locked: true };
-    // });
-    // for (let r = 1; r <= MAX; r++) {
-    //     worksheet.getCell(`A${r}`).protection = { locked: true };
-    // }
-
-    // const editableCols = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
-    // for (let r = 2; r <= MAX; r++) {
-    //     for (const col of editableCols) {
-    //         worksheet.getCell(`${col}${r}`).protection = { locked: false };
-    //     }
-    // }
-
-    // // 4) Khóa các cột ẩn (nguồn dropdown) X/Y/Z để tránh sửa danh mục
-    // for (const col of ['X', 'Y', 'Z']) {
-    //     for (let r = 1; r <= MAX; r++) {
-    //         worksheet.getCell(`${col}${r}`).protection = { locked: true };
-    //     }
-    // }
-
-    // // 3) Bật bảo vệ sheet
-    // await worksheet.protect('ktv-protect', {
-    //     selectLockedCells: true,
-    //     selectUnlockedCells: true,
-    //     formatCells: false,
-    //     formatColumns: false,
-    //     formatRows: false,
-    //     insertRows: true,   // cho phép thêm dòng mới nếu cần
-    //     deleteRows: false,
-    //     insertColumns: false,
-    //     deleteColumns: false,
-    // });
-
-    const buffer = await workbook.xlsx.writeBuffer();
-
-    return buffer
+  const buffer = await workbook.xlsx.writeBuffer();
+  return buffer;
 }
 
-module.exports = {
-    configExport
-} 
+module.exports = { configExport };

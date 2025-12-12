@@ -18,7 +18,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import api from "../../config/api.config";
@@ -31,7 +31,7 @@ import {
   PhaseGroupType,
   PhaseOutputType,
 } from "../../types";
-import * as yup from 'yup'
+import * as yup from "yup";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -39,13 +39,16 @@ const validationSchema = yup.object({
   crossSection: yup.string().required("Tiết diện lò xén không được để trống"),
   hardness: yup.string().required("Độ cứng không được để trống"),
   code: yup.string().required("Mã định mức không được để trống"),
-  norms: yup.array().of(
-    yup.object().shape({
-      assignmentCode: yup.string().required("Bắt buộc"),
-      norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
-    })
-  ).min(1, "Chọn mã giao khoán"),
-})
+  norms: yup
+    .array()
+    .of(
+      yup.object().shape({
+        assignmentCode: yup.string().required("Bắt buộc"),
+        norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
+      })
+    )
+    .min(1, "Chọn mã giao khoán"),
+});
 
 export default function CuttingNormModal({
   open,
@@ -130,10 +133,10 @@ export default function CuttingNormModal({
       norms:
         selected?.norms && selected.norms.length > 0
           ? selected.norms.map((item) => ({
-            assignmentCode: item.assignmentCode?._id ?? '',
-            norm: item.norm,
-          }))
-          : []
+              assignmentCode: item.assignmentCode?._id ?? "",
+              norm: item.norm,
+            }))
+          : [],
     },
     enableReinitialize: true,
     validationSchema,
@@ -147,13 +150,12 @@ export default function CuttingNormModal({
           | "coal_kb"
           | "coal_zh"
           | "coal_zry",
-        norms:
-          values?.norms
-            ?.filter((item) => item.assignmentCode && item.norm)
-            .map((item) => ({
-              assignmentCode: item.assignmentCode,
-              norm: item?.norm,
-            }))
+        norms: values?.norms
+          ?.filter((item) => item.assignmentCode && item.norm)
+          .map((item) => ({
+            assignmentCode: item.assignmentCode,
+            norm: item?.norm,
+          })),
       });
     },
   });
@@ -263,7 +265,7 @@ export default function CuttingNormModal({
 
   const handleClose = () => {
     formik.resetForm();
-    setSelectedAssignmentCodes([])
+    setSelectedAssignmentCodes([]);
     setShowAdditionalRows(false);
     setUpperLimitFirstNorm(null);
     setLowerLimitFirstNorm(null);
@@ -378,7 +380,9 @@ export default function CuttingNormModal({
                   </InputAdornment>
                 ),
               }}
-              error={formik.touched.phaseGroup && Boolean(formik.errors.phaseGroup)}
+              error={
+                formik.touched.phaseGroup && Boolean(formik.errors.phaseGroup)
+              }
               helperText={formik.touched.phaseGroup && formik.errors.phaseGroup}
               sx={{
                 width: "700px",
@@ -402,8 +406,8 @@ export default function CuttingNormModal({
                 },
               }}
             >
-              {phasegroups
-                ?.data.filter((group: PhaseGroupType | null) => group)
+              {phasegroups?.data
+                .filter((group: PhaseGroupType | null) => group)
                 .map((group: PhaseGroupType) => (
                   <MenuItem key={group._id} value={group._id}>
                     {group.name}
@@ -492,8 +496,13 @@ export default function CuttingNormModal({
                   </InputAdornment>
                 ),
               }}
-              error={formik.touched.crossSection && Boolean(formik.errors.crossSection)}
-              helperText={formik.touched.crossSection && formik.errors.crossSection}
+              error={
+                formik.touched.crossSection &&
+                Boolean(formik.errors.crossSection)
+              }
+              helperText={
+                formik.touched.crossSection && formik.errors.crossSection
+              }
               sx={{
                 width: "700px",
                 "& .MuiInputBase-root": {
@@ -516,11 +525,13 @@ export default function CuttingNormModal({
                 },
               }}
             >
-              {crosssections?.data.map((crosssection: CrossSectionInputType) => (
-                <MenuItem key={crosssection._id} value={crosssection._id}>
-                  {crosssection.name}
-                </MenuItem>
-              ))}
+              {crosssections?.data.map(
+                (crosssection: CrossSectionInputType) => (
+                  <MenuItem key={crosssection._id} value={crosssection._id}>
+                    {crosssection.name}
+                  </MenuItem>
+                )
+              )}
             </TextField>
           </Box>
 
@@ -946,11 +957,11 @@ export default function CuttingNormModal({
                   error={
                     formik.touched.norms &&
                     Boolean(formik.errors.norms) &&
-                    typeof formik.errors.norms === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                    typeof formik.errors.norms === "string" // CHỈ BÁO LỖI NẾU LÀ CHUỖI
                   }
                   helperText={
                     formik.touched.norms &&
-                      typeof formik.errors.norms === 'string'
+                    typeof formik.errors.norms === "string"
                       ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
                       : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
                   }
@@ -1091,13 +1102,13 @@ export default function CuttingNormModal({
                           }
                           variant="outlined"
                           error={Boolean(
-                            typeof formik.errors.norms?.[index] === 'object' &&
-                            (formik.errors.norms?.[index] as any)?.norm
+                            typeof formik.errors.norms?.[index] === "object" &&
+                              (formik.errors.norms?.[index] as any)?.norm
                           )}
                           helperText={
-                            typeof formik.errors.norms?.[index] === 'object'
+                            typeof formik.errors.norms?.[index] === "object"
                               ? (formik.errors.norms?.[index] as any)?.norm
-                              : ''
+                              : ""
                           }
                           sx={{
                             "& .MuiInputBase-root": {
