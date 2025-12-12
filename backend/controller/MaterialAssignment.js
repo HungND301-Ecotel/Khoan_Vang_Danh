@@ -275,6 +275,56 @@ exports.getFilter = async (req, res) => {
   }
 };
 
+exports.getCount = async (req, res) => {
+  try {
+    const counts = await MaterialAssignment.aggregate([
+      {
+        $facet: {
+          // 1. Đếm số lượng Material có mã giao khoán (maGiaoKhoan is NOT null/undefined)
+          withAssignment: [
+            {
+              // Lọc các bản ghi có maGiaoKhoan khác null
+              $match: { assignmentCode: { $ne: null } } // Giả sử null/undefined là "không có"
+            },
+            {
+              // Đếm số lượng kết quả
+              $count: "count"
+            }
+          ],
+
+          // 2. Đếm số lượng Material KHÔNG có mã giao khoán (maGiaoKhoan IS null/undefined)
+          withoutAssignment: [
+            {
+              // Lọc các bản ghi có maGiaoKhoan là null (hoặc không tồn tại)
+              $match: { assignmentCode: null }
+            },
+            {
+              // Đếm số lượng kết quả
+              $count: "count"
+            }
+          ]
+        }
+      }
+    ]);
+
+    // Xử lý kết quả trả về từ $facet
+    const result = {
+      // Lấy giá trị count (nếu có), nếu mảng rỗng thì là 0
+      countWithAssignment: counts[0].withAssignment[0]?.count || 0,
+      countWithoutAssignment: counts[0].withoutAssignment[0]?.count || 0
+    };
+
+    res.status(200).json({
+      status: "success",
+      data: result
+    });
+
+  } catch (err) {
+    console.error(err.stack); // Dùng console.error thay vì console.log cho lỗi
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
 const columnMapping = {
   "Mã vật tư": "code",
   "Tên vật tư": "name",

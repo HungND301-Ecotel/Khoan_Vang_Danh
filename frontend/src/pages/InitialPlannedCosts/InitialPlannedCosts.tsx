@@ -149,7 +149,6 @@ export default function InitialPlannedCosts() {
   });
 
   const handleSubmit = (values: Partial<InitialPlannedCostInputType>) => {
-    console.log("Submitted values:", values);
     if (values._id) {
       updateMutation.mutate(values);
     } else {

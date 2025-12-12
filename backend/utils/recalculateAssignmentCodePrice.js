@@ -131,10 +131,10 @@ const calculatedPhases = async (phases, month, type) => {
                 assignmentCode: assignmentId,
                 baseNorm: baseNorm,
                 adjustmentNorm: adjustmentNorm,
-                norm: (norm || 0).toFixed(1),
-                quantity: (quantity || 0).toFixed(0),
-                price: (price || 0).toFixed(0), // Đơn giá bình quân
-                cost: (cost || 0).toFixed(0), // Chi phí kế hoạch chi tiết
+                norm: norm || 0,
+                quantity: quantity || 0,
+                price: price || 0, // Đơn giá bình quân
+                cost: cost || 0, // Chi phí kế hoạch chi tiết
             });
         }
         const totalCostKey = type === "initial"

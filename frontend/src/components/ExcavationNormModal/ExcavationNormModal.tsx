@@ -139,7 +139,7 @@ export default function ExcavationNormModal({
       x2 !== x1
     ) {
       const interpolated = y1 + ((x - x1) * (y2 - y1)) / (x2 - x1);
-      formik.setFieldValue("interpolatedNorm", Number(interpolated.toFixed(2)));
+      formik.setFieldValue("interpolatedNorm", Number(interpolated));
     } else {
       formik.setFieldValue("interpolatedNorm", "");
     }
@@ -276,7 +276,7 @@ export default function ExcavationNormModal({
         if (item.norm != null && !isNaN(Number(item.norm))) {
           return {
             ...item,
-            norm: Number((Number(item.norm) * ratio).toFixed(3)),
+            norm: Number((Number(item.norm) * ratio)),
           };
         }
         return item; // Nếu chưa có giá trị "Định mức" thì giữ nguyên

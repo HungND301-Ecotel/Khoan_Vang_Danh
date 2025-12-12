@@ -1,40 +1,54 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
   Box,
   CssBaseline,
+  IconButton,
   Typography,
   Button,
+  Badge,
   Menu,
   MenuItem,
   ListItemIcon,
 } from "@mui/material";
 import {
   BadgeRussianRuble,
+  Bell,
   Boxes,
   ChevronDown,
+  ChevronRight,
   CircleUserRound,
   ClipboardList,
   FileChartColumn,
+  Settings,
 } from "lucide-react";
 import {
+  ListAlt,
+  Calculate,
+  Equalizer,
+  Settings as SettingsIcon,
   Logout as LogoutIcon,
+  Notifications,
   VpnKeyOutlined,
   Person2,
+  ArrowDropDown,
 } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
 import { useAtom } from "jotai";
-import { userAtom } from "../../atoms/userAtoms";
-import api from "../../config/api.config";
-import { PhaseOutputType } from "../../types";
-import { MainLayoutProps } from "../../types";
+import { userAtom } from "../atoms/userAtoms";
+import api from "../config/api.config";
+import { PhaseOutputType } from "../types";
+import { MainLayoutProps } from "../types";
+import Profile from "../components/Profile/Profile";
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useAtom(userAtom);
+
+  const [openProfile, setOpenProfile] = useState(false)
 
   const [menuDanhMucEl, setMenuDanhMucEl] = useState<HTMLElement | null>(null);
   const [menuDonGiaEl, setMenuDonGiaEl] = useState<HTMLElement | null>(null);
@@ -442,7 +456,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <Typography>{user?.fullName}</Typography>
           <Typography>Kế toán</Typography>
         </Box>
-        <MenuItem>
+        <MenuItem onClick={() => setOpenProfile(true)}>
           <ListItemIcon>
             <Person2 fontSize="small" />
           </ListItemIcon>
@@ -465,6 +479,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           Đăng xuất
         </MenuItem>
       </Menu>
+      <Profile open={openProfile} setOpen={setOpenProfile} />
     </Box>
   );
 };

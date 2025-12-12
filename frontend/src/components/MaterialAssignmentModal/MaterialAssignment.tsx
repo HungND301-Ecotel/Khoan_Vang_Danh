@@ -47,9 +47,6 @@ export default function MaterialAssignmentModal({
   handleSubmit: (values: Partial<MaterialAssignmentInputType>) => void;
   selectedMaterialAssignment: Materials | null;
 }) {
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
-  const [searchValue, setSearchValue] = useState('')
 
   const { data: assignmentCodes = {
     data: []

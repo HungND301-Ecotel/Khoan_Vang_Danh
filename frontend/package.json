@@ -8,6 +8,8 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.10",
     "@mui/material": "^5.15.10",
+    "@mui/x-charts": "^7.0.0",
+    "@mui/x-charts-premium": "^8.21.0",
     "@mui/x-data-grid": "^5.17.24",
     "@mui/x-date-pickers": "^5.0.17",
     "@tanstack/react-query": "^5.81.5",

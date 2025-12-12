@@ -5,7 +5,7 @@ import Login from './pages/Auth/Login';
 import api from './config/api.config';
 import { userAtom } from './atoms/userAtoms';
 import { useAtom } from 'jotai'
-import MainLayout from './components/layout/Mainlayout';
+import MainLayout from './layout/Mainlayout';
 import Dashboard from './pages/Dashboard/Dashboard';
 import AssignmentCode from './pages/AssignmentCode/AssignmentCode';
 

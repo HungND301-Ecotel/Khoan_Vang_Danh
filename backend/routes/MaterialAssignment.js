@@ -9,6 +9,7 @@ router.delete("/:id", materialAssignmentController.delete);
 router.get("/", materialAssignmentController.get);
 router.get("/group", materialAssignmentController.getGroup);
 router.get("/getFilter", materialAssignmentController.getFilter);
+router.get("/getCount", materialAssignmentController.getCount);
 router.post("/exportFile", materialAssignmentController.export);
 router.post(
   "/importFile",

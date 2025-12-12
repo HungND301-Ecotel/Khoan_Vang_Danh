@@ -238,7 +238,7 @@ export default function CuttingNormKBModal({
       x2 !== x1
     ) {
       const interpolated = y1 + ((x - x1) * (y2 - y1)) / (x2 - x1);
-      const rounded = Number(interpolated.toFixed(2));
+      const rounded = Number(interpolated);
       formik.setFieldValue("interpolatedNorm", rounded);
     } else {
       formik.setFieldValue("interpolatedNorm", "");

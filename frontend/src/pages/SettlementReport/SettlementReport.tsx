@@ -36,6 +36,9 @@ import {
 import custom_theme from "../../theme";
 import FieldMonthYear from "../../ui/FieldMonth_Year";
 import dayjs from "dayjs";
+import { showErrorAlert } from "../../components/Alert";
+import { parseAxiosError } from "../../utils/handleApiError";
+import SettlementService from "../../service/SettlementRepotr";
 
 export default function SettlementReport() {
   const [selectedMonth, setSelectedMonth] = useState<string>(dayjs(new Date()).format('YYYY-MM'));
@@ -44,27 +47,27 @@ export default function SettlementReport() {
 
   const queryClient = useQueryClient();
 
-  const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const years = [];
+  // const currentYear = new Date().getFullYear();
+  // const [selectedYear, setSelectedYear] = useState(currentYear);
+  // const years = [];
 
-  for (let i = 0; i < 20; i++) {
-    years.push(currentYear - i);
-  }
+  // for (let i = 0; i < 20; i++) {
+  //   years.push(currentYear - i);
+  // }
 
   const { data: phasegroups = { data: [] } } = useQuery({
     queryKey: ["phasegroups"],
     queryFn: () => api.get("/phasegroups").then((res) => res.data.data),
   });
-  const { data: contractsettlements = [] } = useQuery({
-    queryKey: ["contractsettlements", selectedMonth, selectedYear, selectedPhase, selectedProductionScope],
+  const { data: contractsettlements = { data: [], info: {} }, isLoading } = useQuery({
+    queryKey: ["contractsettlements", selectedMonth, selectedPhase, selectedProductionScope],
     queryFn: () =>
       api
         .get(
-          `/contractsettlements/getMonth?month=${selectedMonth}&year=${selectedYear}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`
+          `/contractsettlements/getMonth?month=${selectedMonth}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`
         )
         .then((res) => res.data.data),
-    enabled: !!selectedMonth && !!selectedYear && !!selectedPhase && !!selectedProductionScope,
+    enabled: !!selectedMonth,
   });
 
   const { data: productionscopes = [] } = useQuery({
@@ -72,9 +75,24 @@ export default function SettlementReport() {
     queryFn: () => api.get("/productionscopes").then((res) => res.data.data),
   });
 
+  const exportExcel = useMutation({
+    mutationFn: () => SettlementService.exportFile({
+      month: selectedMonth,
+      phase: selectedPhase,
+      productionScope: selectedProductionScope
+    }),
+    onSuccess: () => { },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
+    },
+  });
+
+  const isShow = (selectedPhase && selectedProductionScope)
+
   return (
 
-    <Paper sx={{ width: 'calc(100vw - 148px)', overflowX: "auto", p: 2 }}>
+    <Paper sx={{ width: 'calc(100vw - 148px)', p: 2 }}>
       <Box sx={{ mb: 2 }}>
         <Box display={"flex"} gap={4} mt={2} sx={{
           justifyContent: { md: "space-between", xs: "flex-start" },
@@ -162,7 +180,7 @@ export default function SettlementReport() {
               variant="outlined"
               color="inherit"
               startIcon={<FileDownload />}
-              // onClick={handleExport}
+              onClick={() => exportExcel.mutate()}
               sx={{
                 border: "none",
                 boxShadow: custom_theme.customShadows.tableFunctional,
@@ -248,899 +266,678 @@ export default function SettlementReport() {
           </Box>
         </Box>
       </Box>
-      <Table sx={{ tableLayout: "auto", width: '100%', }} size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell
-              align="center"
-              colSpan={8}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                p: 0.5,
-              }}
-            ></TableCell>
+      <Box sx={{ overflowX: "auto", }}>
+        <Table sx={{ tableLayout: "auto", width: '100%', }} size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell
+                align="center"
+                colSpan={8}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "0.75rem",
+                  p: 0.5,
+                }}
+              ></TableCell>
 
-            <TableCell
-              align="center"
-              colSpan={13}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "0.75rem",
-                p: 0.5,
-              }}
-            >
-              Quyết toán giao khoán tháng {selectedMonth ? dayjs(selectedMonth).format('MM') : ''}
-            </TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell
-              align="center"
-              colSpan={8}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                p: 0.5,
-              }}
-            ></TableCell>
+              <TableCell
+                align="center"
+                colSpan={isShow ? 13 : 10}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "0.75rem",
+                  p: 0.5,
+                }}
+              >
+                Quyết toán giao khoán tháng {selectedMonth ? dayjs(selectedMonth).format('MM') : ''}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell
+                align="center"
+                colSpan={8}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "0.75rem",
+                  p: 0.5,
+                }}
+              ></TableCell>
 
-            <TableCell
-              align="center"
-              colSpan={13}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "0.75rem",
-                p: 0.5,
-              }}
-            >
-              {phasegroups?.data?.find((phase: PhaseOutputType) => phase._id === selectedPhase)?.name || ''}
-            </TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell
-              align="center"
-              colSpan={8}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "0.75rem",
-                p: 0.5,
-              }}
-            ></TableCell>
+              <TableCell
+                align="center"
+                colSpan={isShow ? 13 : 10}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "0.75rem",
+                  p: 0.5,
+                }}
+              >
+                {(contractsettlements.info?.phases || []).map((i: any) => i?.name).join(', ')}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell
+                align="center"
+                colSpan={8}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "0.75rem",
+                  p: 0.5,
+                }}
+              ></TableCell>
 
-            <TableCell
-              align="center"
-              colSpan={7}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "0.75rem",
-                p: 0.5,
-              }}
-            >
-              Kế hoạch
-            </TableCell>
-            <TableCell
-              align="center"
-              colSpan={4}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#4CAF503D",
-                fontSize: "0.75rem",
-                p: 0.5,
-              }}
-            >
-              Thực hiện
-            </TableCell>
-            <TableCell
-              align="center"
-              colSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#FF620040",
-                fontSize: "0.75rem",
-                p: 0.5,
-              }}
-            >
-              So sánh lãi(+); lỗ(-)
-            </TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 42,
-              }}
-            >
-              STT
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.8,
-                minWidth: 117,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Mã vật tư, tài sản
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 60,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Trùng mã vật tư
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 60,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Mã thiết bị
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 55,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Mã giao khoán
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.8,
-                minWidth: 143,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Tên vật tư, tài sản
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 43,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              ĐVT
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 64,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Đơn giá khoán
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 48,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Định mức gốc
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 85,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Hệ số điều chỉnh định mức
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 45,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Định mức
-            </TableCell>
-            <TableCell
-              align="center"
-              colSpan={3}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "14px",
-                p: 0.5,
-              }}
-            >
-              Số lượng
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 54,
-              }}
-            >
-              Giá trị
-            </TableCell>
-            <TableCell
-              align="center"
-              colSpan={3}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#4CAF503D",
-                fontSize: "14px",
-                p: 0.5,
-              }}
-            >
-              Số lượng
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#4CAF503D",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 54,
-              }}
-            >
-              Giá trị
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#FF620040",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 52,
-              }}
-            >
-              Số lượng
-            </TableCell>
-            <TableCell
-              align="center"
-              rowSpan={2}
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#FF620040",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 54,
-              }}
-            >
-              Giá trị
-            </TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell
-              align="center"
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 48,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Tổng
-            </TableCell>
-            <TableCell
-              align="center"
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 56,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Trong khoán
-            </TableCell>
-            <TableCell
-              align="center"
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#F3D01640",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 57,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Ngoài khoán
-            </TableCell>
-            <TableCell
-              align="center"
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#4CAF503D",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 48,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Tổng
-            </TableCell>
-            <TableCell
-              align="center"
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#4CAF503D",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 55,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Trong khoán
-            </TableCell>
-            <TableCell
-              align="center"
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                bgcolor: "#4CAF503D",
-                fontSize: "14px",
-                p: 0.5,
-                minWidth: 55,
-                whiteSpace: "normal",
-                wordWrap: "break-word",
-              }}
-            >
-              Ngoài khoán
-            </TableCell>
-          </TableRow>
-        </TableHead>
+              <TableCell
+                align="center"
+                colSpan={isShow ? 13 : 10}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "0.75rem",
+                  p: 0.5,
+                }}
+              >
+                {(contractsettlements.info?.productionScopes || []).map((i: any) => i?.code).join(', ')}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell
+                align="center"
+                colSpan={8}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "0.75rem",
+                  p: 0.5,
+                }}
+              ></TableCell>
 
-        <TableBody>
-          <TableRow>
-            <TableCell
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                textAlign: "center",
-              }}
-            >
-              1
-            </TableCell>
-            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
-                key={index}
+                align="center"
+                colSpan={isShow ? 7 : 4}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 4 ? "bold" : "normal",
-                  fontSize: "14px",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "0.75rem",
                   p: 0.5,
-                  bgcolor:
-                    index >= 7 && index <= 13
-                      ? "#F3D01640"
-                      : index >= 14 && index <= 17
-                        ? "#4CAF503D"
-                        : index >= 18 && index <= 19
-                          ? "#FF620040"
-                          : "white",
                 }}
               >
-                {index === 4 ? "Chỉ tiêu hiện vật" : ""}
+                Kế hoạch
               </TableCell>
-            ))}
-          </TableRow>
-          <TableRow>
-            <TableCell
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                textAlign: "center",
-              }}
-            >
-              2
-            </TableCell>
-            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
-                key={index}
+                align="center"
+                colSpan={4}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 4 ? "bold" : "normal",
-                  fontSize: "14px",
+                  fontWeight: "bold",
+                  bgcolor: "#4CAF503D",
+                  fontSize: "0.75rem",
                   p: 0.5,
-                  bgcolor:
-                    index >= 7 && index <= 13
-                      ? "#F3D01640"
-                      : index >= 14 && index <= 17
-                        ? "#4CAF503D"
-                        : index >= 18 && index <= 19
-                          ? "#FF620040"
-                          : "white",
                 }}
               >
-                {index === 4 ? "Than nguyên khai" : ""}
+                Thực hiện
               </TableCell>
-            ))}
-          </TableRow>
-          <TableRow>
-            <TableCell
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                textAlign: "center",
-              }}
-            >
-              3
-            </TableCell>
-            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
-                key={index}
+                align="center"
+                colSpan={2}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 4 ? "bold" : "normal",
-                  fontSize: "14px",
+                  fontWeight: "bold",
+                  bgcolor: "#FF620040",
+                  fontSize: "0.75rem",
                   p: 0.5,
-                  bgcolor:
-                    index >= 7 && index <= 13
-                      ? "#F3D01640"
-                      : index >= 14 && index <= 17
-                        ? "#4CAF503D"
-                        : index >= 18 && index <= 19
-                          ? "#FF620040"
-                          : "white",
                 }}
               >
-                {index === 4 ? "Mét lò đào" : ""}
+                So sánh lãi(+); lỗ(-)
               </TableCell>
-            ))}
-          </TableRow>
-          <TableRow>
-            <TableCell
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                textAlign: "center",
-              }}
-            >
-              4
-            </TableCell>
-            {Array.from({ length: 20 }).map((_, index) => (
+            </TableRow>
+            <TableRow>
               <TableCell
-                key={index}
+                align="center"
+                rowSpan={2}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 4 ? "bold" : "normal",
+                  fontWeight: "bold",
                   fontSize: "14px",
                   p: 0.5,
-                  bgcolor:
-                    index >= 7 && index <= 13
-                      ? "#F3D01640"
-                      : index >= 14 && index <= 17
-                        ? "#4CAF503D"
-                        : index >= 18 && index <= 19
-                          ? "#FF620040"
-                          : "white",
+                  minWidth: 42,
                 }}
               >
-                {index === 4 ? "Mét lò xén" : ""}
+                STT
               </TableCell>
-            ))}
-          </TableRow>
-          <TableRow>
-            <TableCell
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                textAlign: "center",
-              }}
-            >
-              5
-            </TableCell>
-            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
-                key={index}
+                align="center"
+                rowSpan={2}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 4 ? "bold" : "normal",
+                  fontWeight: "bold",
                   fontSize: "14px",
-                  p: 0.5,
-                  bgcolor:
-                    index >= 7 && index <= 13
-                      ? "#F3D01640"
-                      : index >= 14 && index <= 17
-                        ? "#4CAF503D"
-                        : index >= 18 && index <= 19
-                          ? "#FF620040"
-                          : "white",
+                  p: 0.8,
+                  minWidth: 117,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
                 }}
               >
-                {index === 4 ? "Tỉ lệ đá lẫn trong gương (Ckep)" : ""}
+                Mã vật tư, tài sản
               </TableCell>
-            ))}
-          </TableRow>
-          <TableRow>
-            <TableCell
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                textAlign: "center",
-              }}
-            >
-              6
-            </TableCell>
-            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
-                key={index}
+                align="center"
+                rowSpan={2}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 4 ? "bold" : "normal",
+                  fontWeight: "bold",
                   fontSize: "14px",
                   p: 0.5,
-                  bgcolor:
-                    index >= 7 && index <= 13
-                      ? "#F3D01640"
-                      : index >= 14 && index <= 17
-                        ? "#4CAF503D"
-                        : index >= 18 && index <= 19
-                          ? "#FF620040"
-                          : "white",
+                  minWidth: 60,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
                 }}
               >
-                {index === 4 ? "Các chỉ tiêu vật tư" : ""}
+                Trùng mã vật tư
               </TableCell>
-            ))}
-          </TableRow>
-          <TableRow>
-            <TableCell
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                textAlign: "center",
-              }}
-            >
-              7
-            </TableCell>
-            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
-                key={index}
+                align="center"
+                rowSpan={2}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 4 ? "bold" : "normal",
+                  fontWeight: "bold",
                   fontSize: "14px",
                   p: 0.5,
-                  bgcolor:
-                    index >= 7 && index <= 13
-                      ? "#F3D01640"
-                      : index >= 14 && index <= 17
-                        ? "#4CAF503D"
-                        : index >= 18 && index <= 19
-                          ? "#FF620040"
-                          : "white",
+                  minWidth: 60,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
                 }}
               >
-                {index === 4 ? "Vật tư có định mức" : ""}
+                Mã thiết bị
               </TableCell>
-            ))}
-          </TableRow>
-          <TableRow>
-            <TableCell
-              sx={{
-                border: "1px solid #ddd",
-                fontWeight: "bold",
-                fontSize: "14px",
-                p: 0.5,
-                textAlign: "center",
-              }}
-            >
-              8
-            </TableCell>
-            {Array.from({ length: 20 }).map((_, index) => (
               <TableCell
-                key={index}
+                align="center"
+                rowSpan={2}
                 sx={{
                   border: "1px solid #ddd",
-                  fontWeight: index <= 4 ? "bold" : "normal",
+                  fontWeight: "bold",
                   fontSize: "14px",
                   p: 0.5,
-                  bgcolor:
-                    index >= 7 && index <= 13
-                      ? "#F3D01640"
-                      : index >= 14 && index <= 17
-                        ? "#4CAF503D"
-                        : index >= 18 && index <= 19
-                          ? "#FF620040"
-                          : "white",
+                  minWidth: 55,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
                 }}
               >
-                {index === 4 ? "Vật tư chủ yếu" : ""}
+                Mã giao khoán
               </TableCell>
-            ))}
-          </TableRow>
-          {contractsettlements.map(
-            (assignment: any, index: number) => (
-              <Fragment key={assignment?.assignmentCode?._id}>
-                <TableRow>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {index + 9}
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  ></TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      color: "black",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      color: "black",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {assignment?.assignmentCode?.deviceCode?.code}
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {assignment?.assignmentCode?.code}
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {assignment?.assignmentCode?.name || 'Vật tư không có định mức'}
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "normal",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {assignment?.assignmentCode?.uom?.name}
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "normal",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {assignment?.assignmentCode ? (assignment?.price || 0).toLocaleString() : ''}
-                  </TableCell>
-                  {Array.from({ length: 13 }).map((_, index) => (
-                    <TableCell
-                      key={index}
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "normal",
-                        fontSize: "14px",
-                        p: 0.5,
-                        bgcolor:
-                          index >= 0 && index <= 6
-                            ? "#F3D01640"
-                            : index >= 7 && index <= 10
-                              ? "#4CAF503D"
-                              : index >= 11 && index <= 12
-                                ? "#FF620040"
-                                : "white",
-                      }}
-                    >
-                      {index === 0
-                        ? assignment?.assignmentCode ? assignment?.baseNorm : ''
-                        : index === 1
-                          ? assignment?.assignmentCode ? assignment?.adjustmentNorm : ''
-                          : index === 2
-                            ? assignment?.assignmentCode ? assignment?.norm : ''
-                            : index === 3
-                              ? assignment?.assignmentCode ? assignment?.plan_Quantity : ''
-                              : index === 4
-                                ? ""
-                                : index === 5
-                                  ? ""
-                                  : index === 6
-                                    ? assignment?.assignmentCode ? (assignment?.plan_Cost || 0).toLocaleString() : ''
-                                    : index === 7
-                                      ? assignment?.assignmentCode ? assignment?.used_Quantity?.toLocaleString() : ''
-                                      : index === 8
-                                        ? ""
-                                        : index === 9
-                                          ? ""
-                                          : index === 10
-                                            ? assignment?.assignmentCode ? assignment?.used_Cost?.toLocaleString() : ''
-                                            : index === 11
-                                              ? assignment?.assignmentCode ? (assignment?.varianceQuantity || 0).toLocaleString() : ''
-                                              : index === 12
-                                                ? assignment?.assignmentCode ? (assignment?.varianceCost || 0).toLocaleString() : ''
-                                                : ""
-                      }
-                    </TableCell>
-                  ))}
-                </TableRow>
-                {assignment?.materialUseds.map((materialUsed: any, i: number) => (
-                  <TableRow key={materialUsed?._id}>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontSize: "14px",
-                        p: 0.5,
-                      }}
-                    >
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontSize: "14px",
-                        p: 0.5,
-                      }}
-                    >{materialUsed?.material?.code}</TableCell>
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  p: 0.8,
+                  minWidth: 143,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Tên vật tư, tài sản
+              </TableCell>
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 43,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                ĐVT
+              </TableCell>
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 64,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Đơn giá khoán
+              </TableCell>
+              {isShow && <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 48,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Định mức gốc
+              </TableCell>}
+              {isShow && <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 85,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Hệ số điều chỉnh định mức
+              </TableCell>}
+              {isShow && <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 45,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Định mức
+              </TableCell>}
+              <TableCell
+                align="center"
+                colSpan={3}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "14px",
+                  p: 0.5,
+                }}
+              >
+                Số lượng
+              </TableCell>
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 54,
+                }}
+              >
+                Giá trị
+              </TableCell>
+              <TableCell
+                align="center"
+                colSpan={3}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#4CAF503D",
+                  fontSize: "14px",
+                  p: 0.5,
+                }}
+              >
+                Số lượng
+              </TableCell>
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#4CAF503D",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 54,
+                }}
+              >
+                Giá trị
+              </TableCell>
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#FF620040",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 52,
+                }}
+              >
+                Số lượng
+              </TableCell>
+              <TableCell
+                align="center"
+                rowSpan={2}
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#FF620040",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 54,
+                }}
+              >
+                Giá trị
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell
+                align="center"
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 48,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Tổng
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 56,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Trong khoán
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#F3D01640",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 57,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Ngoài khoán
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#4CAF503D",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 48,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Tổng
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#4CAF503D",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 55,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Trong khoán
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  bgcolor: "#4CAF503D",
+                  fontSize: "14px",
+                  p: 0.5,
+                  minWidth: 55,
+                  whiteSpace: "normal",
+                  wordWrap: "break-word",
+                }}
+              >
+                Ngoài khoán
+              </TableCell>
+            </TableRow>
+          </TableHead>
+
+          <TableBody>
+            <TableRow>
+              <TableCell
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  p: 0.5,
+                  textAlign: "center",
+                }}
+              >
+                1
+              </TableCell>
+              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
+                <TableCell
+                  key={index}
+                  sx={{
+                    border: "1px solid #ddd",
+                    fontWeight: index <= 4 ? "bold" : "normal",
+                    fontSize: "14px",
+                    p: 0.5,
+                    bgcolor:
+                      index >= 7 && index <= (isShow ? 13 : 10)
+                        ? "#F3D01640"
+                        : index >= (isShow ? 14 : 11) && index <= (isShow ? 17 : 14)
+                          ? "#4CAF503D"
+                          : index >= (isShow ? 18 : 15) && index <= (isShow ? 19 : 16)
+                            ? "#FF620040"
+                            : "white",
+                  }}
+                >
+                  {index === 4 ? "Than nguyên khai" : index === 8 ? (contractsettlements?.info.totalCoal ? Number(contractsettlements?.info.totalCoal.toFixed(1)).toLocaleString() : '') : ''}
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  p: 0.5,
+                  textAlign: "center",
+                }}
+              >
+                2
+              </TableCell>
+              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
+                <TableCell
+                  key={index}
+                  sx={{
+                    border: "1px solid #ddd",
+                    fontWeight: index <= 4 ? "bold" : "normal",
+                    fontSize: "14px",
+                    p: 0.5,
+                    bgcolor:
+                      index >= 7 && index <= (isShow ? 13 : 10)
+                        ? "#F3D01640"
+                        : index >= (isShow ? 14 : 11) && index <= (isShow ? 17 : 14)
+                          ? "#4CAF503D"
+                          : index >= (isShow ? 18 : 15) && index <= (isShow ? 19 : 16)
+                            ? "#FF620040"
+                            : "white",
+                  }}
+                >
+                  {index === 4 ? "Mét lò đào" : index === 8 ? (contractsettlements?.info.totalExcavation ? Number(contractsettlements?.info.totalExcavation.toFixed(1)).toLocaleString() : '') : ''}
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  p: 0.5,
+                  textAlign: "center",
+                }}
+              >
+                3
+              </TableCell>
+              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
+                <TableCell
+                  key={index}
+                  sx={{
+                    border: "1px solid #ddd",
+                    fontWeight: index <= 4 ? "bold" : "normal",
+                    fontSize: "14px",
+                    p: 0.5,
+                    bgcolor:
+                      index >= 7 && index <= (isShow ? 13 : 10)
+                        ? "#F3D01640"
+                        : index >= (isShow ? 14 : 11) && index <= (isShow ? 17 : 14)
+                          ? "#4CAF503D"
+                          : index >= (isShow ? 18 : 15) && index <= (isShow ? 19 : 16)
+                            ? "#FF620040"
+                            : "white",
+                  }}
+                >
+                  {index === 4 ? "Mét lò xén" : index === 8 ? (contractsettlements?.info.totalCutting ? Number(contractsettlements?.info.totalCutting.toFixed(1)).toLocaleString() : '') : ''}
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  p: 0.5,
+                  textAlign: "center",
+                }}
+              >
+                4
+              </TableCell>
+              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
+                <TableCell
+                  key={index}
+                  sx={{
+                    border: "1px solid #ddd",
+                    fontWeight: index <= 4 ? "bold" : "normal",
+                    fontSize: "14px",
+                    p: 0.5,
+                    bgcolor:
+                      index >= 7 && index <= (isShow ? 13 : 10)
+                        ? "#F3D01640"
+                        : index >= (isShow ? 14 : 11) && index <= (isShow ? 17 : 14)
+                          ? "#4CAF503D"
+                          : index >= (isShow ? 18 : 15) && index <= (isShow ? 19 : 16)
+                            ? "#FF620040"
+                            : "white",
+                  }}
+                >
+                  {index === 4 ? "Tỉ lệ đá lẫn trong gương (Ckep)" : index === 8 ? contractsettlements.info?.rockRatio : ''}
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell
+                sx={{
+                  border: "1px solid #ddd",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  p: 0.5,
+                  textAlign: "center",
+                }}
+              >
+                5
+              </TableCell>
+              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
+                <TableCell
+                  key={index}
+                  sx={{
+                    border: "1px solid #ddd",
+                    fontWeight: index <= 4 ? "bold" : "normal",
+                    fontSize: "14px",
+                    p: 0.5,
+                    bgcolor:
+                      index >= 7 && index <= (isShow ? 13 : 10)
+                        ? "#F3D01640"
+                        : index >= (isShow ? 14 : 11) && index <= (isShow ? 17 : 14)
+                          ? "#4CAF503D"
+                          : index >= (isShow ? 18 : 15) && index <= (isShow ? 19 : 16)
+                            ? "#FF620040"
+                            : "white",
+                  }}
+                >
+                  {index === 4 ? "Vật tư có định mức" : ''}
+                </TableCell>
+              ))}
+            </TableRow>
+            {contractsettlements.data.map(
+              (assignment: any, index: number) => (
+                <Fragment key={assignment?.assignmentCode?._id}>
+                  <TableRow>
                     <TableCell
                       align="center"
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
-                        color: "black",
                         fontSize: "14px",
                         p: 0.5,
                       }}
                     >
-                      {(assignment?.materialUseds || []).filter((mat: any) => mat.material?._id === materialUsed?.material?._id)?.length || 1}
+                      {index + 6}
                     </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontWeight: "bold",
+                        fontSize: "14px",
+                        p: 0.5,
+                      }}
+                    ></TableCell>
                     <TableCell
                       align="center"
                       sx={{
@@ -1162,25 +959,27 @@ export default function SettlementReport() {
                         p: 0.5,
                       }}
                     >
+                      {assignment?.assignmentCode?.deviceCode?.code}
                     </TableCell>
                     <TableCell
                       sx={{
                         border: "1px solid #ddd",
+                        fontWeight: "bold",
                         fontSize: "14px",
                         p: 0.5,
                       }}
                     >
-                      {materialUsed?.material?.name}
+                      {assignment?.assignmentCode?.code}
                     </TableCell>
                     <TableCell
-                      align="center"
                       sx={{
                         border: "1px solid #ddd",
+                        fontWeight: "bold",
                         fontSize: "14px",
                         p: 0.5,
                       }}
                     >
-                      {materialUsed?.material?.uom?.name}
+                      {assignment?.assignmentCode?.name || 'Vật tư không có định mức'}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -1191,65 +990,268 @@ export default function SettlementReport() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode ? '' : (materialUsed?.price || 0)?.toLocaleString()}
+                      {assignment?.assignmentCode?.uom?.name}
                     </TableCell>
-                    {
-                      Array.from({ length: 13 }).map((_, index) => (
-                        <TableCell
-                          key={index}
-                          align="center"
-                          sx={{
-                            border: "1px solid #ddd",
-                            fontWeight: "normal",
-                            fontSize: "14px",
-                            p: 0.5,
-                            bgcolor:
-                              index >= 0 && index <= 6
-                                ? "#F3D01640"
-                                : index >= 7 && index <= 10
-                                  ? "#4CAF503D"
-                                  : index >= 11 && index <= 12
-                                    ? "#FF620040"
-                                    : "white",
-                          }}
-                        >
-                          {index === 0
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontWeight: "normal",
+                        fontSize: "14px",
+                        p: 0.5,
+                      }}
+                    >
+                      {assignment?.assignmentCode ? (assignment?.price ? (Number(assignment?.price.toFixed(0))).toLocaleString() : '') : ''}
+                    </TableCell>
+                    {isShow && <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontWeight: "normal",
+                        fontSize: "14px",
+                        p: 0.5,
+                        bgcolor: "#F3D01640"
+                      }}
+                    >
+                      {assignment?.assignmentCode ? (assignment?.baseNorm ? (Number(assignment?.baseNorm.toFixed(3))).toLocaleString() : '') : ''}
+                    </TableCell>}
+                    {isShow && <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontWeight: "normal",
+                        fontSize: "14px",
+                        p: 0.5,
+                        bgcolor: "#F3D01640"
+                      }}
+                    >
+                      {assignment?.assignmentCode ? (assignment?.adjustmentNorm ? (Number(assignment?.adjustmentNorm.toFixed(3))).toLocaleString() : '') : ''}
+                    </TableCell>}
+                    {isShow && <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontWeight: "normal",
+                        fontSize: "14px",
+                        p: 0.5,
+                        bgcolor: "#F3D01640"
+                      }}
+                    >
+                      {assignment?.assignmentCode ? (assignment?.norm ? (Number(assignment?.norm.toFixed(3))).toLocaleString() : '') : ''}
+                    </TableCell>}
+                    {Array.from({ length: 10 }).map((_, index) => (
+                      <TableCell
+                        key={index}
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontWeight: "normal",
+                          fontSize: "14px",
+                          p: 0.5,
+                          bgcolor:
+                            index >= 0 && index <= 3
+                              ? "#F3D01640"
+                              : index >= 4 && index <= 7
+                                ? "#4CAF503D"
+                                : index >= 8 && index <= 9
+                                  ? "#FF620040"
+                                  : "white",
+                        }}
+                      >
+                        {index === 0
+                          ? assignment?.assignmentCode ? (Number(assignment?.plan_Quantity.toFixed(1))).toLocaleString() : ''
+                          : index === 1
                             ? ""
-                            : index === 1
+                            : index === 2
                               ? ""
-                              : index === 2
-                                ? ""
-                                : index === 3
-                                  ? ""
-                                  : index === 4
+                              : index === 3
+                                ? assignment?.assignmentCode ? (assignment?.plan_Cost ? (Number(assignment?.plan_Cost.toFixed(0))).toLocaleString() : "") : ''
+                                : index === 4
+                                  ? assignment?.assignmentCode ? (assignment?.used_Quantity ? (Number(assignment?.used_Quantity.toFixed(1))).toLocaleString() : '') : ''
+                                  : index === 5
                                     ? ""
-                                    : index === 5
+                                    : index === 6
                                       ? ""
-                                      : index === 6
-                                        ? ""
-                                        : index === 7
-                                          ? (materialUsed?.quantity || 0)?.toLocaleString()
-                                          : index === 8
-                                            ? ''
-                                            : index === 9
-                                              ? ""
-                                              : index === 10
-                                                ? assignment?.assignmentCode ? '' : (materialUsed?.cost || 0)?.toLocaleString()
-                                                : index === 11
-                                                  ? ''
-                                                  : index === 12
-                                                    ? ""
-                                                    : ""
-                          }
-                        </TableCell>
-                      ))
-                    }
-                  </TableRow>))}
-              </Fragment>
-            )
-          )}
-        </TableBody>
-      </Table>
+                                      : index === 7
+                                        ? assignment?.assignmentCode ? (assignment?.used_Cost ? (Number(assignment?.used_Cost.toFixed(0))).toLocaleString() : '') : ''
+                                        : index === 8
+                                          ? assignment?.assignmentCode ? (assignment?.varianceQuantity ? (Number(assignment?.varianceQuantity.toFixed(1))).toLocaleString() : '') : ''
+                                          : index === 9
+                                            ? assignment?.assignmentCode ? (assignment?.varianceCost ? (Number(assignment?.varianceCost.toFixed(0))).toLocaleString() : '') : ''
+                                            : ""
+                        }
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {assignment?.materialUseds.map((materialUsed: any, i: number) => (
+                    <TableRow key={materialUsed?._id}>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontSize: "14px",
+                          p: 0.5,
+                        }}
+                      >
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontSize: "14px",
+                          p: 0.5,
+                        }}
+                      >{materialUsed?.material?.code}</TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontWeight: "bold",
+                          color: "black",
+                          fontSize: "14px",
+                          p: 0.5,
+                        }}
+                      >
+                        {(assignment?.materialUseds || []).filter((mat: any) => mat.material?._id === materialUsed?.material?._id)?.length || 1}
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontWeight: "bold",
+                          color: "black",
+                          fontSize: "14px",
+                          p: 0.5,
+                        }}
+                      >
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontWeight: "bold",
+                          color: "black",
+                          fontSize: "14px",
+                          p: 0.5,
+                        }}
+                      >
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontSize: "14px",
+                          p: 0.5,
+                        }}
+                      >
+                        {materialUsed?.material?.name}
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontSize: "14px",
+                          p: 0.5,
+                        }}
+                      >
+                        {materialUsed?.material?.uom?.name}
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontWeight: "normal",
+                          fontSize: "14px",
+                          p: 0.5,
+                        }}
+                      >
+                        {assignment?.assignmentCode ? '' : (materialUsed?.price ? (Number(materialUsed?.price.toFixed(0)))?.toLocaleString() : '')}
+                      </TableCell>
+                      {isShow && <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontWeight: "normal",
+                          fontSize: "14px",
+                          p: 0.5,
+                          bgcolor: "#F3D01640"
+                        }}
+                      >
+
+                      </TableCell>}
+                      {isShow && <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontWeight: "normal",
+                          fontSize: "14px",
+                          p: 0.5,
+                          bgcolor: "#F3D01640"
+                        }}
+                      >
+                      </TableCell>}
+                      {isShow && <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontWeight: "normal",
+                          fontSize: "14px",
+                          p: 0.5,
+                          bgcolor: "#F3D01640"
+                        }}
+                      >
+                      </TableCell>}
+                      {
+                        Array.from({ length: 10 }).map((_, index) => (
+                          <TableCell
+                            key={index}
+                            align="center"
+                            sx={{
+                              border: "1px solid #ddd",
+                              fontWeight: "normal",
+                              fontSize: "14px",
+                              p: 0.5,
+                              bgcolor:
+                                index >= 0 && index <= 3
+                                  ? "#F3D01640"
+                                  : index >= 4 && index <= 7
+                                    ? "#4CAF503D"
+                                    : index >= 8 && index <= 9
+                                      ? "#FF620040"
+                                      : "white",
+                            }}
+                          >
+                            {index === 0
+                              ? ''
+                              : index === 1
+                                ? ""
+                                : index === 2
+                                  ? ""
+                                  : index === 3
+                                    ? ""
+                                    : index === 4
+                                      ? (materialUsed?.quantity ? Number(materialUsed?.quantity.toFixed(1))?.toLocaleString() : '')
+                                      : index === 5
+                                        ? ''
+                                        : index === 6
+                                          ? ""
+                                          : index === 7
+                                            ? assignment?.assignmentCode ? '' : (materialUsed?.cost ? Number(materialUsed?.cost.toFixed(0))?.toLocaleString() : '')
+                                            : index === 8
+                                              ? ''
+                                              : index === 9
+                                                ? ""
+                                                : ""
+                            }
+                          </TableCell>
+                        ))
+                      }
+                    </TableRow>))}
+                </Fragment>
+              )
+            )}
+          </TableBody>
+        </Table>
+      </Box>
     </Paper >
   );
 }

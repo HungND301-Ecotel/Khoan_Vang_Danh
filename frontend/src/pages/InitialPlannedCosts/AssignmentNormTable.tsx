@@ -30,7 +30,6 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       key: "unit",
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (assignmentCode: any) => {
-        console.log(assignmentCode)
         return <Typography>{assignmentCode?.uom?.name}</Typography>
       }
 
