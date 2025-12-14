@@ -28,7 +28,7 @@ const xLabels = chartData.map(item => item.month);
 export default function CostProfitChart() {
     const [selectedYear, setSelectedYear] = useState('')
     return (
-        <Paper elevation={3} sx={{ padding: 2, margin: 'auto' }}>
+        <Paper elevation={3} sx={{ padding: 2, margin: 'auto', borderRadius: '12px' }}>
             <Box display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
                 <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 2 }}>
                     Biểu đồ chi phí thực hiện, kế hoạch và lỗ/ lãi theo tháng

@@ -64,142 +64,162 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        let query = {}
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        let matchQuery = {};
 
         // 1. Xử lý điều kiện tìm kiếm theo req.query.q
         if (req.query.q) {
-            // Đảm bảo ProductionScope đã được require/import
-            const productionScopes = await ProductionScope.find({ code: new RegExp(req.query.q, 'i') })
-            const productionScopeIds = productionScopes.map(i => i._id)
-            query.productionScope = { $in: productionScopeIds }
+            // Lọc các ProductionScope khớp với mã tìm kiếm
+            const productionScopes = await ProductionScope.find({ code: new RegExp(req.query.q, 'i') }).select('_id');
+            const productionScopeIds = productionScopes.map(i => i._id);
+            // Chỉ match những InitialPlannedCost có productionScope nằm trong kết quả tìm kiếm
+            matchQuery.productionScope = { $in: productionScopeIds };
         }
 
-        // 2. Thực hiện query với Populate
-        // Lấy tất cả dữ liệu liên quan mà không cần nhóm, nhưng giới hạn theo phân trang
-        const modelQuery = InitialPlannedCost.find(query)
-            .populate({
-                path: 'productionScope',
-                select: 'code name phases',
-                populate: [
-                    { path: 'phases.phase', populate: 'code name' }
-                ]
-            })
-            .populate('phases.phase', 'code name')
-            .populate({
-                path: 'phases.initialPlannedCostDetails.assignmentCode', // Đường dẫn lồng
-                select: 'code name uom', // Chọn các trường bạn muốn hiển thị ở Frontend
-                populate: "uom"
-            })
-            .populate({
-                path: 'phases.assignmentNormCode',
+        const pipeline = [
+            // 1. Match: Lọc InitialPlannedCost theo tìm kiếm (nếu có)
+            { $match: matchQuery },
+
+            // 2. Group: Nhóm các chi phí theo productionScope để tạo ra các document duy nhất
+            {
+                $group: {
+                    _id: "$productionScope", // Nhóm theo ProductionScope ID
+                    minMonth: { $min: "$month" },
+                    maxMonth: { $max: "$month" },
+                    // Gom tất cả các document chi phí hàng tháng vào mảng 'group'
+                    group: {
+                        $push: {
+                            _id: "$_id",
+                            month: "$month",
+                            totalInitialPlannedCost: "$totalInitialPlannedCost",
+                            // Tạo trường 'key' cho phases
+                            phases: {
+                                $map: {
+                                    input: "$phases",
+                                    as: "phaseItem",
+                                    in: {
+                                        $mergeObjects: [
+                                            "$$phaseItem",
+                                            {
+                                                key: {
+                                                    $concat: [
+                                                        { $toString: "$_id" },
+                                                        "_",
+                                                        { $toString: "$$phaseItem.phase" }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                }
+            },
+
+            // 3. Populate (Lookup): Lấy thông tin chi tiết của productionScope
+            {
+                $lookup: {
+                    from: 'productionscopes',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'productionScope',
+                }
+            },
+            { $unwind: '$productionScope' },
+
+            // 4. Facet: Đếm tổng và Phân trang trên các document đã nhóm
+            {
+                $facet: {
+                    totalDocs: [{ $count: "count" }], // Đếm tổng số lượng ProductionScope (sau khi nhóm)
+                    paginatedData: [
+                        { $skip: skip },
+                        { $limit: limit },
+                    ]
+                }
+            }
+        ];
+
+        const aggregationResult = await InitialPlannedCost.aggregate(pipeline).exec();
+
+        const data = aggregationResult[0].paginatedData;
+        const totalItems = aggregationResult[0].totalDocs[0]?.count || 0;
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // 5. Xử lý sau aggregation (Populate các trường lồng sâu trong mảng 'group')
+        // Sử dụng Mongoose.populate() và khai báo Model tường minh
+        const populatedData = await InitialPlannedCost.populate(data, [
+            {
+                path: 'group.phases.initialPlannedCostDetails.assignmentCode',
+                select: 'code name uom',
+                model: 'AssignmentCode',
+                populate: {
+                    path: 'uom',
+                    select: 'code name',
+                },
+            },
+            {
+                path: 'group.phases.phase',
+                select: 'code name', // Chọn các trường bạn muốn lấy
+                model: 'PhaseGroup', // <--- THÊM KHAI BÁO MODEL TƯỜNG MINH
+            },
+            {
+                path: 'group.phases.assignmentNormCode',
                 select: 'norms code',
-                populate: [
-                    { path: 'norms.assignmentCode', populate: 'uom' }
-                ]
-            })
-            .populate({
-                path: 'phases.adjustmentNormCode',
+                model: 'AssignmentNorm',
+                populate: {
+                    path: 'norms.assignmentCode',
+                    model: 'AssignmentCode',
+                    populate: { path: 'uom' }
+                }
+            },
+            {
+                path: 'group.phases.adjustmentNormCode',
                 select: 'norms code',
-                populate: [
-                    { path: 'norms.assignmentCode', populate: 'uom' }
-                ]
-            })
-        // Thêm các populate còn thiếu
+                model: 'AdjustmentNorm',
+                populate: {
+                    path: 'norms.assignmentCode',
+                    model: 'AssignmentCode',
+                    populate: { path: 'uom' }
+                }
+            },
+            // Bạn có thể muốn populate `productionScope.phases.phase` nếu cần hiển thị tên phase chi tiết
+        ]);
 
-
-        const allDocs = await modelQuery.lean().exec(); // Dùng .lean() để tăng hiệu suất
-
-        // 3. Xử lý dữ liệu bằng JavaScript để nhóm
-        const groupedMap = new Map();
-
-        for (const doc of allDocs) {
-            const scopeId = doc.productionScope._id.toString();
-
-            if (!groupedMap.has(scopeId)) {
-                // Khởi tạo tài liệu mới cho productionScope này
-                groupedMap.set(scopeId, {
-                    _id: scopeId,
-                    productionScope: doc.productionScope,
-                    minMonth: null,
-                    maxMonth: null,
-                    group: []
-                });
-            }
-
-            const groupedDoc = groupedMap.get(scopeId);
-
-            // Cập nhật khoảng thời gian tổng
-            // Chuyển sang Date object để so sánh
-            const currentMonthDate = new Date(doc.month + '-01');
-
-            if (!groupedDoc.minMonth || currentMonthDate < new Date(groupedDoc.minMonth + '-01')) {
-                groupedDoc.minMonth = doc.month;
-            }
-            if (!groupedDoc.maxMonth || currentMonthDate > new Date(groupedDoc.maxMonth + '-01')) {
-                groupedDoc.maxMonth = doc.month;
-            }
-
-            // Thêm dữ liệu vào mảng 'group'
-            groupedDoc.group.push({
-                _id: doc._id,
-                month: doc.month,
-                totalInitialPlannedCost: doc.totalInitialPlannedCost,
-                phases: doc.phases.map((phaseItem) => ({
-                    ...phaseItem,
-                    key: `${doc._id.toString()}_${phaseItem.phase._id.toString()}`
-                }))
-            });
-        }
-
-        // Chuyển Map thành mảng
-        const results = Array.from(groupedMap.values()).map(item => {
+        // 6. Định dạng lại kết quả cho Response
+        const results = populatedData.map(item => {
             const formatMonth = (m) => {
-                if(!m) return '';
+                if (!m) return '';
                 const [y, mm] = m.split('-');
                 return `${mm}/${y}`;
             };
 
             return {
-                ...item,
-                month: `${formatMonth(item.minMonth)} -> ${formatMonth(item.maxMonth)}`
+                _id: item._id,
+                productionScope: item.productionScope,
+                month: `${formatMonth(item.minMonth)} -> ${formatMonth(item.maxMonth)}`,
+                group: item.group,
             };
         });
-        // 4. Áp dụng phân trang sau khi nhóm (nếu cần)
-        // Đây là nơi logic phân trang nên được áp dụng, vì lúc này ta đã có các document đã nhóm
-        const totalItems = results.length;
 
-        const hasPaginationParams = req.query.page && req.query.limit;
-
-        let paginatedData;
-        let page;
-        let limit;
-        if (hasPaginationParams) {
-            page = parseInt(req.query.page) || 1;
-            limit = parseInt(req.query.limit) || 10;
-            const startIndex = (page - 1) * limit;
-            const endIndex = page * limit;
-            paginatedData = results.slice(startIndex, endIndex);
-        } else {
-
-            page = 1;
-            limit = totalItems;
-            paginatedData = results; // Lấy toàn bộ mảng results
-        }
-        const totalPages = Math.ceil(totalItems / limit);
         const pagination = {
-            data: paginatedData,
+            data: results,
             page: page,
             totalDocs: totalItems,
             totalPages: totalPages
         };
 
-        res.status(200).json({ status: 'success', data: pagination })
-    } catch (err) {
-        console.log(err.stack)
-        res.status(500).json({ status: 'error', message: err.message })
-    }
-}
+        res.status(200).json({ status: 'success', data: pagination });
 
+    } catch (err) {
+        console.error(err.stack);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
 exports.getOne = async (req, res) => {
     try {
 

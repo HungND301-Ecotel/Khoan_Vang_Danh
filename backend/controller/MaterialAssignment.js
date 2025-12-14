@@ -302,6 +302,12 @@ exports.getCount = async (req, res) => {
               // Đếm số lượng kết quả
               $count: "count"
             }
+          ],
+          totalCount: [
+            {
+              // Đếm tất cả các bản ghi đi vào $facet
+              $count: "count"
+            }
           ]
         }
       }
@@ -311,7 +317,8 @@ exports.getCount = async (req, res) => {
     const result = {
       // Lấy giá trị count (nếu có), nếu mảng rỗng thì là 0
       countWithAssignment: counts[0].withAssignment[0]?.count || 0,
-      countWithoutAssignment: counts[0].withoutAssignment[0]?.count || 0
+      countWithoutAssignment: counts[0].withoutAssignment[0]?.count || 0,
+      totalCount: counts[0].totalCount[0]?.count || 0,
     };
 
     res.status(200).json({

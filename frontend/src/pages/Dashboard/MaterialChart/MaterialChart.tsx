@@ -1,4 +1,4 @@
-import { Paper, Typography } from '@mui/material'
+import { Box, Paper, Typography } from '@mui/material'
 import React from 'react'
 import { PieChart } from '@mui/x-charts';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ export default function MaterialChart() {
         data: materialAssignments = {
             countWithAssignment: 0,
             countWithoutAssignment: 0,
+            totalCount: 0
         },
     } = useQuery({
         queryKey: ["materialAssignments"],
@@ -24,30 +25,34 @@ export default function MaterialChart() {
         },
     });
     return (
-        <Paper elevation={3} sx={{ padding: 2,}}>
+        <Paper elevation={3} sx={{ padding: 3, borderRadius: '12px', height: 200 }}>
             {/* Tiêu đề chính của component */}
-            <Typography variant="h6" gutterBottom>
-                Vật tư giao khoán
-            </Typography>
+            <Box display="flex" justifyContent={"space-between"}>
+                <Typography variant="h6" gutterBottom>
+                    Vật tư, tài sản
+                </Typography>
+                <Typography variant="h5" fontWeight={700} gutterBottom>
+                    {materialAssignments.totalCount}
+                </Typography>
+            </Box>
 
             <PieChart
                 series={[
                     {
                         data: [
-                            { id: 0, value: materialAssignments.countWithAssignment, label: 'Trong khoán' },
-                            { id: 1, value: materialAssignments.countWithoutAssignment, label: 'Ngoài khoán' },
+                            { id: 0, value: materialAssignments.countWithAssignment, label: `Trong khoán (${materialAssignments.countWithAssignment})` },
+                            { id: 1, value: materialAssignments.countWithoutAssignment, label: `Ngoài khoán (${materialAssignments.countWithoutAssignment})` },
                         ],
                         // Đảm bảo highlightScope dùng 'faded' theo phiên bản mới nhất
                         highlightScope: { faded: 'global', highlighted: 'item' },
-                        innerRadius: 30,
-                        outerRadius: 80, // Giảm outerRadius một chút để chừa chỗ cho legend
+                        innerRadius: 20,
+                        outerRadius: 50, // Giảm outerRadius một chút để chừa chỗ cho legend
                         paddingAngle: 0,
                         cornerRadius: 5,
                     },
                 ]}
                 // Tăng kích thước của biểu đồ để dễ nhìn hơn
-                width={350}
-                height={200}
+                height={100}
 
                 // Cấu hình Legend (Chú thích)
                 // Đặt Legend ở bên phải, căn giữa theo chiều dọc
@@ -60,7 +65,7 @@ export default function MaterialChart() {
                         labelStyle: {
                             fontSize: 14,
                         },
-                        padding: 10, // Thêm padding cho legend
+                        padding: 5, // Thêm padding cho legend
                     },
                 }}
             />
