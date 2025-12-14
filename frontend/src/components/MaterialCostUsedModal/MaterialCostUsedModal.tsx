@@ -31,9 +31,11 @@ import {
   InitialPlannedCostOutputType,
 } from "../../types";
 import { CircleX } from "lucide-react";
-import { Add, Delete } from "@mui/icons-material";
+import { Add, CloudUpload, Delete } from "@mui/icons-material";
 import dayjs from "dayjs";
 import FieldMonthYear from "../../ui/FieldMonth_Year";
+import SimpleImportModal from "../ReadExcel/ReadExcelModal";
+import { readExcelFile } from "../../utils/readExcel";
 
 export default function MaterialCostUsedModal({
   open,
@@ -46,6 +48,8 @@ export default function MaterialCostUsedModal({
   handleSubmit: (values: Partial<MaterialCostUsedInputType>) => void;
   selected: any | null;
 }) {
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
   const { data: productionscopes = { data: [] } } = useQuery({
     queryKey: ["productionscopes"],
     queryFn: async () =>
@@ -184,7 +188,33 @@ export default function MaterialCostUsedModal({
     formik.setFieldValue("phases", mapped)
   }
 
-  const [select, setSelect] = useState<number[]>([])
+  const handleImportData = (excelData: { code: string; norm: number }[]) => {
+    // 1. Chuẩn hóa dữ liệu từ Excel: Lọc các mã giao khoán (code) có tồn tại
+    const validMaterial: any[] = [];
+    const newSelected: any[] = [];
+
+    excelData.forEach(item => {
+      const matchingmaterial = materialassignments.data.find(
+        (ac: any) => ac.code === item.code
+      );
+
+      if (matchingmaterial) {
+        // Chỉ thêm nếu mã có tồn tại trong hệ thống
+        validMaterial.push({
+          material: matchingmaterial._id,
+          quantity: item.norm,
+        });
+        newSelected.push(matchingmaterial);
+      }
+    });
+
+    // 2. Cập nhật State và Formik
+    formik.setFieldValue(`materials`, validMaterial);
+    formik.setFieldValue(`selectedMaterials`, newSelected);
+
+    // Đóng modal import sau khi hoàn tất
+    setIsImportModalOpen(false);
+  };
 
   return (
     <Dialog
@@ -527,9 +557,31 @@ export default function MaterialCostUsedModal({
               </FieldArray>
 
               {/* Chọn vật tư */}
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}>
-                Vật tư, tài sản
-              </Typography>
+              <Box display="flex" alignItems={"center"} justifyContent={"space-between"}>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Vật tư, tài sản
+                </Typography>
+                <Button
+                  size="small"
+                  onClick={() => setIsImportModalOpen(true)}
+                  startIcon={<CloudUpload />}
+                  variant="outlined" // Sử dụng outlined hoặc text để tránh quá nổi bật
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '12px',
+                    padding: '4px 8px',
+                    minWidth: 'auto',
+                    borderColor: '#1976d2', // Màu primary của MUI
+                    color: '#1976d2',
+                    '&:hover': {
+                      backgroundColor: '#e3f2fd', // Light blue background on hover
+                      borderColor: '#1976d2',
+                    }
+                  }}
+                >
+                  Tải lên
+                </Button>
+              </Box>
               <Box sx={{ display: "flex", justifyContent: "center" }}>
                 <Autocomplete
                   multiple
@@ -808,6 +860,13 @@ export default function MaterialCostUsedModal({
           {selected ? "Cập nhật" : "Xác nhận"}
         </Button>
       </DialogActions>
+      <SimpleImportModal
+        open={isImportModalOpen}
+        setOpen={setIsImportModalOpen}
+        onImport={handleImportData}
+        readExcelFile={readExcelFile}
+        type="material"
+      />
     </Dialog>
   );
 }

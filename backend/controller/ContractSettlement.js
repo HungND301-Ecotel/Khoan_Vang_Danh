@@ -539,6 +539,7 @@ exports.getExcel = async (req, res) => {
 
                 // Cột B: Mã vật tư
                 setCellHeader(worksheet, `B${currentRow}`, matUsed.material?.code, false, "left")
+                setCellHeader(worksheet, `C${currentRow}`, (group?.materialUseds || []).filter((mat) => mat.material?._id === matUsed?.material?._id)?.length || 1, false, "center")
 
                 // Cột F: Tên vật tư (tên chi tiết)
                 setCellHeader(worksheet, `F${currentRow}`, matUsed.material?.name, false, "left")

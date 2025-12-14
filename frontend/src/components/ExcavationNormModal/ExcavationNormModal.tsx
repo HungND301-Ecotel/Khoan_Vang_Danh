@@ -34,6 +34,9 @@ import {
 } from "../../types";
 
 import * as yup from 'yup'
+import { CloudUpload } from "@mui/icons-material";
+import SimpleImportModal from "../ReadExcel/ReadExcelModal";
+import { readExcelFile } from "../../utils/readExcel";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -66,6 +69,7 @@ export default function ExcavationNormModal({
   hasExistingRecords: boolean;
   existingNorms: AssignmentNormOutputType[];
 }) {
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [phaseGroup, setPhaseGroup] = useState<string | null>(null);
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<
     AssignmentCodeOutputType[]
@@ -293,6 +297,34 @@ export default function ExcavationNormModal({
     setUpperLimitFirstNorm(null);
     setLowerLimitFirstNorm(null);
     setOpen(false);
+  };
+
+  const handleImportData = (excelData: { code: string; norm: number }[]) => {
+    // 1. Chuẩn hóa dữ liệu từ Excel: Lọc các mã giao khoán (code) có tồn tại
+    const validNorms: any[] = [];
+    const newSelectedCodes: AssignmentCodeOutputType[] = [];
+
+    excelData.forEach(item => {
+      const matchingAssignmentCode = assignmentcodes.data.find(
+        (ac: AssignmentCodeOutputType) => ac.code === item.code
+      );
+
+      if (matchingAssignmentCode) {
+        // Chỉ thêm nếu mã có tồn tại trong hệ thống
+        validNorms.push({
+          assignmentCode: matchingAssignmentCode._id,
+          norm: item.norm,
+        });
+        newSelectedCodes.push(matchingAssignmentCode);
+      }
+    });
+
+    // 2. Cập nhật State và Formik
+    setSelectedAssignmentCodes(newSelectedCodes);
+    formik.setFieldValue("norms", validNorms);
+
+    // Đóng modal import sau khi hoàn tất
+    setIsImportModalOpen(false);
   };
 
   return (
@@ -936,11 +968,31 @@ export default function ExcavationNormModal({
               borderWidth: "1px",
             }}
           />
-          <Typography
-            sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: "12px" }}
-          >
-            Mã giao khoán
-          </Typography>
+          <Box display="flex" alignItems={"center"} justifyContent={"space-between"}>
+            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+              Mã giao khoán
+            </Typography>
+            <Button
+              size="small"
+              onClick={() => setIsImportModalOpen(true)}
+              startIcon={<CloudUpload />}
+              variant="outlined" // Sử dụng outlined hoặc text để tránh quá nổi bật
+              sx={{
+                textTransform: 'none',
+                fontSize: '12px',
+                padding: '4px 8px',
+                minWidth: 'auto',
+                borderColor: '#1976d2', // Màu primary của MUI
+                color: '#1976d2',
+                '&:hover': {
+                  backgroundColor: '#e3f2fd', // Light blue background on hover
+                  borderColor: '#1976d2',
+                }
+              }}
+            >
+              Tải lên
+            </Button>
+          </Box>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Autocomplete
               multiple
@@ -1192,6 +1244,12 @@ export default function ExcavationNormModal({
           {selected ? "Cập nhật" : "Xác nhận"}
         </Button>
       </DialogActions>
+      <SimpleImportModal
+        open={isImportModalOpen}
+        setOpen={setIsImportModalOpen}
+        onImport={handleImportData}
+        readExcelFile={readExcelFile}
+      />
     </Dialog>
   );
 }
