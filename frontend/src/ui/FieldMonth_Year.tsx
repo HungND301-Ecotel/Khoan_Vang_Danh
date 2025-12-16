@@ -22,6 +22,8 @@ export default function FieldMonthYear({
     ? formik.values[fieldName]
     : selectedMonth;
 
+  console.log(value)
+
   const setValue = (val: string) => {
     if (formik && fieldName) {
       formik.setFieldValue(fieldName, val);

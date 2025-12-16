@@ -211,7 +211,7 @@ export default function MaterialAssignment() {
 
   const exportExcel = useMutation({
     mutationFn: MaterialAssignmentService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -262,6 +262,9 @@ export default function MaterialAssignment() {
       title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
       dataIndex: "name",
       key: "name",
+      render: (value, record) => (
+        <Typography >{value}</Typography>
+      ),
       sorter: (a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {
           sensitivity: "base",

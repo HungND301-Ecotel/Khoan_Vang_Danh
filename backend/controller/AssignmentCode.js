@@ -95,6 +95,16 @@ exports.get = async (req, res) => {
   }
 };
 
+exports.getCount = async (req, res) => {
+  try {
+    
+
+    res.status(200).json({ status: "success", data: pagination });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
 const columnMapping = {
   "Thiết bị": "deviceCode",
   "Mã giao khoán": "code",

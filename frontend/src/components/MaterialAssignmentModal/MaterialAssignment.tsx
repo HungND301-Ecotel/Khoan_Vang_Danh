@@ -352,7 +352,7 @@ export default function MaterialAssignmentModal({
                             <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
                               Chọn tháng
                             </Typography>
-                            {/* <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+                            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
                               <DatePicker
                                 label="Chọn tháng"
                                 inputFormat="MM/YYYY" // v5 vẫn hỗ trợ
@@ -376,8 +376,8 @@ export default function MaterialAssignmentModal({
                                   />
                                 )}
                               />
-                            </LocalizationProvider> */}
-                            <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.month`} />
+                            </LocalizationProvider>
+                            {/* <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.month`} /> */}
                           </Grid>
 
                           <Grid item xs={3}>
