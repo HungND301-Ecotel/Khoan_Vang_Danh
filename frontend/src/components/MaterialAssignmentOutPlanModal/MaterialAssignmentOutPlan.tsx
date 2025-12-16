@@ -29,6 +29,8 @@ import { Divider } from "antd";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
 import FieldMonthYear from "../../ui/FieldMonth_Year";
+import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
@@ -336,7 +338,32 @@ export default function MaterialAssignmentOutPlanModal({
                             <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
                               Chọn tháng
                             </Typography>
-                            <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.month`} />
+                            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+                              <DatePicker
+                                label="Chọn tháng"
+                                inputFormat="MM/YYYY" // v5 vẫn hỗ trợ
+                                views={["year", "month"]}
+                                openTo="month"
+                                value={
+                                  formik.values.priceHistory[index].month || ''
+                                }
+                                onChange={(value) => {
+                                  formik.setFieldValue(
+                                    `priceHistory[${index}].month`,
+                                    value ? dayjs(value).format("YYYY-MM") : ""
+                                  );
+                                }}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    fullWidth
+                                    size="small"
+                                    sx={{ backgroundColor: "#fff" }}
+                                  />
+                                )}
+                              />
+                            </LocalizationProvider>
+                            {/* <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.month`} /> */}
                           </Grid>
 
                           <Grid item xs={3}>
