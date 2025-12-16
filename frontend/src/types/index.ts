@@ -84,6 +84,7 @@ export interface Materials {
   quantity?: number;
   priceHistory: {
     price: number;
+    month: string;
     startDate: Date;
     endDate: Date;
   }[];
@@ -107,6 +108,7 @@ export interface MaterialAssignmentInputType {
   assignmentCode?: string;
   priceHistory: {
     price?: number;
+    month?: string;
     startDate?: string;
     endDate?: string;
   }[];

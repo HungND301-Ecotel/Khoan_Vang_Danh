@@ -45,6 +45,11 @@ import CoalCuttingNorm from './pages/CoalCuttingNorm/CoalCuttingNorm';
 // import Quarterlycontractsettlement from './pages/Quarterlycontractsettlement/Quarterlycontractsettlement';
 import SettlementReportSummary from './pages/SettlementReportSummary/SettlementReportSummary';
 import InitialPlannedCosts from './pages/InitialPlannedCosts/InitialPlannedCosts';
+import TechnologyKPIReport from './pages/Report/TechnologyKPIReport';
+import CostReport from './pages/Report/CostReport';
+import MaterialConsumptionReport from './pages/Report/MaterialConsumptionReport';
+import SettlementReport from './pages/Report/SettlementReport';
+import ProductionPhaseReport from './pages/Report/ProductionPhaseReport';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -336,6 +341,46 @@ const App = () => {
           element={
             <PrivateRoute>
               <InitialPlannedCosts />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/report/technologykpireport"
+          element={
+            <PrivateRoute>
+              <TechnologyKPIReport />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/report/costreport"
+          element={
+            <PrivateRoute>
+              <CostReport />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/report/materialconsumptionreport"
+          element={
+            <PrivateRoute>
+              <MaterialConsumptionReport />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/report/settlementreport"
+          element={
+            <PrivateRoute>
+              <SettlementReport />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/report/productionphasereport"
+          element={
+            <PrivateRoute>
+              <ProductionPhaseReport />
             </PrivateRoute>
           }
         />

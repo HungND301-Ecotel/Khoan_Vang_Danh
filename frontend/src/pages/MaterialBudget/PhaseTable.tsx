@@ -87,7 +87,7 @@ export default function PhaseTable({
       key: "production",
       align: "center" as const,
       render: (value: number) => (
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
       ),
     },
     {
@@ -114,7 +114,7 @@ export default function PhaseTable({
       key: "totalBudgetCost",
       align: "center" as const,
       render: (value: number) => (
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        <Typography>{value ? (Number(value.toFixed(0))).toLocaleString() : ""}</Typography>
       ),
     },
     {

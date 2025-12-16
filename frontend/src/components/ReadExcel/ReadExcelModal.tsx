@@ -10,7 +10,8 @@ import {
     Table,
     TableBody,
     TableRow,
-    TableCell, // Thêm Paper cho vùng kéo thả
+    TableCell,
+    TableHead, // Thêm Paper cho vùng kéo thả
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile"; // Icon tải lên
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline"; // Icon thành công
@@ -86,6 +87,30 @@ export default function SimpleImportModal({ open, setOpen, onImport, readExcelFi
 
     const isFileSelected = !!file;
 
+
+    const handleExport = () => {
+        const dataToExport = [{
+            // Giữ nguyên các khóa, nhưng Excel sẽ chỉ thấy các giá trị
+            'code': type === "material" ? 'Mã vật tư (vd: GL01206VNMM)' : `Mã giao khoán (vd: KT12)`,
+            'value': type === "material" ? "Số lượng (vd: 10)" : "Định mức (vd: 1.25)",
+        }];
+
+        // SỬA ĐỔI: Thêm tùy chọn { skipHeader: true }
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport, { skipHeader: true });
+
+        const columnWidths = [
+            { wch: 30 },
+            { wch: 20 }
+        ];
+
+        // Gán định nghĩa chiều rộng vào thuộc tính !cols của worksheet
+        worksheet['!cols'] = columnWidths;
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Mẫu");
+        XLSX.writeFile(workbook, "file_mau.xlsx");
+    };
+
     return (
         <Dialog
             open={open}
@@ -105,23 +130,30 @@ export default function SimpleImportModal({ open, setOpen, onImport, readExcelFi
                     Tải lên file định dạng **.xlsx, .xls, hoặc .csv**. File của bạn cần có cấu trúc như sau:
                 </Typography>
 
-                <Box sx={{ mb: 3, border: '1px solid #ddd', p: 1, borderRadius: '4px', bgcolor: '#fafafa' }}>
-                    <Typography variant="caption" color="text.primary" sx={{ display: 'block', mb: 0.5 }}>
-                        **Quy ước Cấu trúc File**
-                    </Typography>
+                <Paper variant="outlined" sx={{ mb: 2, p: 1, borderRadius: '4px', bgcolor: '#fafafa' }}>
+                    <Box display="flex" justifyContent={"space-between"}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1, p: 0.5 }}>
+                            📝 Quy ước Cấu trúc File
+                        </Typography>
+                        <Button onClick={handleExport}>Tải file mẫu</Button>
+                    </Box>
                     <Table size="small">
-                        <TableBody>
-                            <TableRow sx={{ '& td': { border: 'none', p: 0.5, fontSize: '12px', bgcolor: '#fff' } }}>
-                                <TableCell sx={{ fontWeight: 'bold', width: '30%', borderRight: '1px solid #ddd' }}>Cột A</TableCell>
-                                <TableCell>{type === "material" ? 'Mã vật tư (vd: GL01206VNMM)' : `Mã giao khoán (vd: KT12)`}</TableCell>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{ border: '1px solid #ddd' }}>Cột A</TableCell>
+                                <TableCell sx={{ border: '1px solid #ddd' }}>Cột B</TableCell>
                             </TableRow>
-                            <TableRow sx={{ '& td': { border: 'none', p: 0.5, fontSize: '12px', bgcolor: '#fff' } }}>
-                                <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>Cột B</TableCell>
-                                <TableCell>{type === "material" ? "Số lượng (vd: 10)" : "Định mức (vd: 1.25)"}</TableCell>
+                        </TableHead>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell sx={{ border: '1px solid #ddd' }}>
+                                    {type === "material" ? 'Mã vật tư (vd: GL01206VNMM)' : `Mã giao khoán (vd: KT12)`}
+                                </TableCell>
+                                <TableCell sx={{ border: '1px solid #ddd' }}>{type === "material" ? "Số lượng (vd: 10)" : "Định mức (vd: 1.25)"}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
-                </Box>
+                </Paper>
 
                 {/* Vùng Tải Lên (Dropzone/Input) */}
                 <Paper

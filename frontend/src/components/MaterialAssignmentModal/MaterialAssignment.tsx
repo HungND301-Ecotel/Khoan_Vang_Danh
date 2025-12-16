@@ -28,11 +28,14 @@ import api from "../../config/api.config";
 import { Divider } from "antd";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
+import FieldMonthYear from "../../ui/FieldMonth_Year";
+import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
-  assignmentCode:yup.string().required("Mã giao khoán không được để trống"),
-  code:yup.string().required("Mã vật tư không được để trống"),
+  assignmentCode: yup.string().required("Mã giao khoán không được để trống"),
+  code: yup.string().required("Mã vật tư không được để trống"),
   name: yup.string().required("Tên vật tư giao khoán không được để trống"),
 });
 
@@ -77,12 +80,14 @@ export default function MaterialAssignmentModal({
         selectedMaterialAssignment && Array.isArray(selectedMaterialAssignment.priceHistory)
           ? selectedMaterialAssignment.priceHistory.map((item) => ({
             price: item.price,
+            month: item.month ? dayjs(item.month).format("YYYY-MM") : '',
             startDate: new Date(item.startDate).toISOString().substring(0, 10),
             endDate: new Date(item.endDate).toISOString().substring(0, 10),
           }))
           : [
             {
               price: 0,
+              month: dayjs(new Date()).format("YYYY-MM"),
               startDate: new Date().toISOString().substring(0, 10),
               endDate: new Date().toISOString().substring(0, 10),
             },
@@ -99,6 +104,7 @@ export default function MaterialAssignmentModal({
         priceHistory: values.priceHistory.map((item) => ({
           ...item,
           price: Number(item.price),
+          month: dayjs(new Date(item.month)).format("YYYY-MM"),
           startDate: item.startDate,
           endDate: item.endDate,
         })),
@@ -295,7 +301,7 @@ export default function MaterialAssignmentModal({
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                       {formik.values.priceHistory.map((item, index) => (
                         <Grid container spacing={2} key={index} alignItems="center">
-                          <Grid item xs={4}>
+                          {/* <Grid item xs={4}>
                             <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
                               Ngày bắt đầu
                             </Typography>
@@ -341,6 +347,37 @@ export default function MaterialAssignmentModal({
                                 },
                               }}
                             />
+                          </Grid> */}
+                          <Grid item xs={8}>
+                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                              Chọn tháng
+                            </Typography>
+                            {/* <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
+                              <DatePicker
+                                label="Chọn tháng"
+                                inputFormat="MM/YYYY" // v5 vẫn hỗ trợ
+                                views={["year", "month"]}
+                                openTo="month"
+                                value={
+                                  formik.values.priceHistory[index].month || ''
+                                }
+                                onChange={(value) => {
+                                  formik.setFieldValue(
+                                    `priceHistory[${index}].month`,
+                                    value ? dayjs(value).format("YYYY-MM") : ""
+                                  );
+                                }}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    fullWidth
+                                    size="small"
+                                    sx={{ backgroundColor: "#fff" }}
+                                  />
+                                )}
+                              />
+                            </LocalizationProvider> */}
+                            <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.month`} />
                           </Grid>
 
                           <Grid item xs={3}>
@@ -389,6 +426,7 @@ export default function MaterialAssignmentModal({
                           onClick={() =>
                             push({
                               price: 0,
+                              month: dayjs(new Date()).format("YYYY-MM"),
                               startDate: new Date().toISOString().substring(0, 10),
                               endDate: new Date().toISOString().substring(0, 10),
                             })

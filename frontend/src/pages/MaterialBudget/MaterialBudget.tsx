@@ -181,7 +181,7 @@ export default function MaterialBudget() {
           (sum: number, i: any) => sum + i.totalBudgetCost,
           0
         );
-        return <Typography> {total.toLocaleString()}</Typography>;
+        return <Typography> {total ? (Number(total.toFixed(0))).toLocaleString() : ""}</Typography>;
       },
     },
     {

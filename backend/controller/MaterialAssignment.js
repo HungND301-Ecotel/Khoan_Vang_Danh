@@ -96,16 +96,14 @@ exports.getGroup = async (req, res) => {
         .populate("assignmentCode")
         .populate("uom");
 
-      const todayStr = new Date().toISOString().split("T")[0];
-
+      const today = new Date();
+      const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
       const materialsWithPrice = materials.map((item) => {
         let currentPrice = null;
 
         if (Array.isArray(item.priceHistory)) {
           const matched = item.priceHistory.find((priceItem) => {
-            return (
-              todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
-            );
+            return priceItem.month === currentYearMonth;
           });
 
           if (matched) currentPrice = matched.price;
@@ -116,6 +114,25 @@ exports.getGroup = async (req, res) => {
           currentPrice,
         };
       });
+      // const todayStr = new Date().toISOString().split("T")[0];
+      // const materialsWithPrice = materials.map((item) => {
+      //   let currentPrice = null;
+
+      //   if (Array.isArray(item.priceHistory)) {
+      //     const matched = item.priceHistory.find((priceItem) => {
+      //       return (
+      //         todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
+      //       );
+      //     });
+
+      //     if (matched) currentPrice = matched.price;
+      //   }
+
+      //   return {
+      //     ...item.toObject(),
+      //     currentPrice,
+      //   };
+      // });
 
       result.push({
         _id: assignment._id,
@@ -166,15 +183,33 @@ exports.get = async (req, res) => {
       ),
     ];
     await Promise.all(assignmentIds.map((id) => updatePriceAssignmentCode(id)));
-    const todayStr = new Date().toISOString().split("T")[0];
+    // const todayStr = new Date().toISOString().split("T")[0];
+    // pagination.data = pagination.data.map((item) => {
+    //   let currentPrice = null;
+
+    //   if (Array.isArray(item.priceHistory)) {
+    //     const matched = item.priceHistory.find((priceItem) => {
+    //       return (
+    //         todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
+    //       );
+    //     });
+
+    //     if (matched) currentPrice = matched.price;
+    //   }
+
+    //   return {
+    //     ...item.toObject(),
+    //     currentPrice,
+    //   };
+    // });
+    const today = new Date();
+    const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
     pagination.data = pagination.data.map((item) => {
       let currentPrice = null;
 
       if (Array.isArray(item.priceHistory)) {
         const matched = item.priceHistory.find((priceItem) => {
-          return (
-            todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
-          );
+          return priceItem.month === currentYearMonth;
         });
 
         if (matched) currentPrice = matched.price;

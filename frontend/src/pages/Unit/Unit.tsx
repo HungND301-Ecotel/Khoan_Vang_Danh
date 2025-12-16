@@ -95,7 +95,7 @@ export default function Unit() {
 
   const exportExcel = useMutation({
     mutationFn: UnitService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -340,6 +340,7 @@ export default function Unit() {
                   color="inherit"
                   startIcon={<FileUpload />}
                   onClick={handleUploadClick}
+                  disabled={importFile.isPending}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
@@ -359,12 +360,13 @@ export default function Unit() {
                     px: 3,
                   }}
                 >
-                  Tải lên
+                  {importFile.isPending ? 'Đang tải lên ...' : 'Tải lên'}
                 </Button>
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  disabled={exportExcel.isPending}
                   onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
@@ -385,7 +387,7 @@ export default function Unit() {
                     px: 3,
                   }}
                 >
-                  Xuất file
+                  {exportExcel.isPending ? 'Đang xuất file...' : 'Xuất file'}
                 </Button>
                 <Button
                   variant="outlined"

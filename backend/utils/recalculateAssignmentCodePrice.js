@@ -4,29 +4,32 @@ const AssignmentNorm = require('../model/AssignmentNorm')
 const AdjustmentNorm = require('../model/AdjustmentNorm')
 
 const recalculateAssignmentCodePrice = async (assignmentCodeId, startDate, endDate, month) => {
-    if (month) {
-        const [queryYear, queryMonth] = month.split('-').map(Number); // [2025, 12]
+    // if (month) {
+    //     const [queryYear, queryMonth] = month.split('-').map(Number); // [2025, 12]
 
-        // Đảm bảo tháng có 2 chữ số (VD: 01, 12)
-        const paddedMonth = String(queryMonth).padStart(2, '0');
+    //     // Đảm bảo tháng có 2 chữ số (VD: 01, 12)
+    //     const paddedMonth = String(queryMonth).padStart(2, '0');
 
-        // Ngày đầu tiên luôn là '01'
-        startDate = `${queryYear}-${paddedMonth}-01`; // Ví dụ: "2025-12-01"
+    //     // Ngày đầu tiên luôn là '01'
+    //     startDate = `${queryYear}-${paddedMonth}-01`; // Ví dụ: "2025-12-01"
 
-        const nextMonthDate = new Date(queryYear, queryMonth, 1);
+    //     const nextMonthDate = new Date(queryYear, queryMonth, 1);
 
-        nextMonthDate.setDate(nextMonthDate.getDate() - 1);
+    //     nextMonthDate.setDate(nextMonthDate.getDate() - 1);
 
-        const lastDay = nextMonthDate.getDate();
+    //     const lastDay = nextMonthDate.getDate();
 
-        endDate = `${queryYear}-${paddedMonth}-${String(lastDay).padStart(2, '0')}`;
-    }
+    //     endDate = `${queryYear}-${paddedMonth}-${String(lastDay).padStart(2, '0')}`;
+    // }
     const allMaterials = await MaterialAssignment.find({ assignmentCode: assignmentCodeId });
     if (allMaterials.length === 0) {
         return
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    // const todayStr = new Date().toISOString().split('T')[0];
+
+     const today = new Date();
+      const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
 
     let totalQty = 0;
     let totalValue = 0;
@@ -34,14 +37,25 @@ const recalculateAssignmentCodePrice = async (assignmentCodeId, startDate, endDa
     for (const material of allMaterials) {
         let matchedPrice = null;
 
-        if (Array.isArray(material.priceHistory)) {
-            if (startDate && endDate) {
+        // if (Array.isArray(material.priceHistory)) {
+        //     if (startDate && endDate) {
+        //         matchedPrice = material.priceHistory.find(priceItem => {
+        //             return startDate >= priceItem.startDate && endDate <= priceItem.endDate;
+        //         });
+        //     } else {
+        //         matchedPrice = material.priceHistory.find(priceItem => {
+        //             return todayStr >= priceItem.startDate && todayStr <= priceItem.endDate;
+        //         });
+        //     }
+        // }
+         if (Array.isArray(material.priceHistory)) {
+            if (month) {
                 matchedPrice = material.priceHistory.find(priceItem => {
-                    return startDate >= priceItem.startDate && endDate <= priceItem.endDate;
+                    return priceItem.month === month;
                 });
             } else {
                 matchedPrice = material.priceHistory.find(priceItem => {
-                    return todayStr >= priceItem.startDate && todayStr <= priceItem.endDate;
+                    return priceItem.month === currentYearMonth;
                 });
             }
         }

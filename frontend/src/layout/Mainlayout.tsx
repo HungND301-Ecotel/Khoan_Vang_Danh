@@ -15,25 +15,18 @@ import {
 } from "@mui/material";
 import {
   BadgeRussianRuble,
-  Bell,
   Boxes,
   ChevronDown,
-  ChevronRight,
   CircleUserRound,
   ClipboardList,
   FileChartColumn,
-  Settings,
+  LineChart
 } from "lucide-react";
 import {
-  ListAlt,
-  Calculate,
-  Equalizer,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
-  Notifications,
   VpnKeyOutlined,
   Person2,
-  ArrowDropDown,
 } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
 import { useAtom } from "jotai";
@@ -42,6 +35,7 @@ import api from "../config/api.config";
 import { PhaseOutputType } from "../types";
 import { MainLayoutProps } from "../types";
 import Profile from "../components/Profile/Profile";
+import ChangePass from "../components/ChangePass/ChangePass";
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
@@ -49,11 +43,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [user, setUser] = useAtom(userAtom);
 
   const [openProfile, setOpenProfile] = useState(false)
+  const [openChangePass, setOpenChangePass] = useState(false)
+
 
   const [menuDanhMucEl, setMenuDanhMucEl] = useState<HTMLElement | null>(null);
   const [menuDonGiaEl, setMenuDonGiaEl] = useState<HTMLElement | null>(null);
   const [menuThongKeEl, setMenuThongKeEl] = useState<HTMLElement | null>(null);
   const [menuSettingsEl, setMenuSettingsEl] = useState<HTMLElement | null>(
+    null
+  );
+  const [menuReport, setMenuReport] = useState<HTMLElement | null>(
     null
   );
   const [materialSubMenuEl, setMaterialSubMenuEl] =
@@ -140,6 +139,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               onClick={(e) => setMenuThongKeEl(e.currentTarget)}
             >
               THỐNG KÊ VẬN HÀNH
+            </Button>
+            <Button
+              startIcon={<LineChart strokeWidth="1" style={{ color: "#f35816ff" }} />}
+              sx={{ color: "black" }}
+              onClick={(e) => setMenuReport(e.currentTarget)}
+            >
+              Báo cáo
             </Button>
           </Box>
           <Box
@@ -441,6 +447,56 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
       </Menu>
 
+      {/* bao cao */}
+      <Menu
+        anchorEl={menuReport}
+        open={Boolean(menuReport)}
+        onClose={() => setMenuReport(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <MenuItem
+          onClick={() => {
+            navigate("/report/technologykpireport");
+            setMenuReport(null);
+          }}
+        >
+          B/c thực hiện các chỉ tiêu công nghệ
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/report/costreport");
+            setMenuReport(null);
+          }}
+        >
+          B/c thực hiện kế hoạch điều hành chi phí theo yếu tố
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/report/materialconsumptionreport");
+            setMenuReport(null);
+          }}
+        >
+          B/c thực hiện định mức vật tư theo phân xưởng
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            navigate("/report/settlementreport");
+            setMenuReport(null);
+          }}
+        >
+          B/c biên bản tổng hợp quyết toán giao khoán
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/report/productionphasereport");
+            setMenuReport(null);
+          }}
+        >
+          B/c công đoạn sản xuất
+        </MenuItem>
+      </Menu>
+
       <Menu
         anchorEl={menuSettingsEl}
         open={Boolean(menuSettingsEl)}
@@ -456,7 +512,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <Typography>{user?.fullName}</Typography>
           <Typography>Kế toán</Typography>
         </Box>
-        <MenuItem onClick={() => setOpenProfile(true)}>
+        <MenuItem onClick={() => {
+          setOpenProfile(true)
+          setMenuSettingsEl(null)
+        }}>
           <ListItemIcon>
             <Person2 fontSize="small" />
           </ListItemIcon>
@@ -464,7 +523,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            setMenuSettingsEl(null);
+            setOpenChangePass(true);
+            setMenuSettingsEl(null)
           }}
         >
           <ListItemIcon>
@@ -480,6 +540,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
       </Menu>
       <Profile open={openProfile} setOpen={setOpenProfile} />
+      <ChangePass open={openChangePass} setOpen={setOpenChangePass} />
     </Box>
   );
 };

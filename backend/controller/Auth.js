@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../model/User');
 
+
 exports.register = async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -93,5 +94,32 @@ exports.login = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: 'error', message: error.message, stack: error.stack })
 
+    }
+}
+
+exports.changePass = async (req, res) => {
+    try {
+        const { oldPass, newPass } = req.body.data
+        const user = await User.findById(req.params.id)
+        if (!user) {
+            res.status(404).json({ status: 'error', message: "Không tìm thấy người dùng." })
+        }  
+
+        const checkPass = await bcrypt.compare(oldPass, user.password)
+
+        if (!checkPass) {
+            res.status(400).json({ status: 'error', message: "Mật khẩu cũ không chính xác" })
+        }
+        const genSalt = await bcrypt.genSalt(10)
+        const hashPass = await bcrypt.hash(newPass, genSalt)
+
+        user.password = hashPass
+        await user.save()
+
+        res.status(200).json({ status: 'success', message: 'Đổi mật khẩu thành công' })
+
+    } catch (error) {
+        console.log(error.stack)
+        res.status(500).json({ status: 'error', message: error.message, stack: error.stack })
     }
 }

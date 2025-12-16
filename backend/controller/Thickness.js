@@ -16,7 +16,7 @@ exports.create = async (req, res) => {
 };
 
 const columnMapping = {
-  "Đơn vị tính": "name",
+  "Độ dày vỉa": "name",
   id: "_id",
   _id: "_id",
 };
@@ -110,7 +110,7 @@ exports.import = async (req, res) => {
       return { insertOne: { document: item } };
     });
 
-    await Unit.bulkWrite(operations);
+    await Thickness.bulkWrite(operations);
 
     res.status(200).json({
       status: "success",
@@ -126,10 +126,10 @@ exports.import = async (req, res) => {
 
 exports.export = async (req, res) => {
   try {
-    const data = await Unit.find();
+    const data = await Thickness.find();
 
     const columns = [
-      { header: "Đơn vị tính", key: "name", width: 30 },
+      { header: "Độ dày vỉa", key: "name", width: 30 },
       { header: "_id", key: "_id", width: 20 },
     ];
 
@@ -156,7 +156,7 @@ exports.export = async (req, res) => {
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
-    res.setHeader("Content-Disposition", "attachment; filename=" + `unit.xlsx`);
+    res.setHeader("Content-Disposition", "attachment; filename=" + `thickness.xlsx`);
 
     res.send(buffer);
   } catch (err) {

@@ -32,6 +32,7 @@ const MaterialBudgetRouter = require('./routes/MaterialBudget')
 const MaterialCostUsedRouter = require('./routes/MaterialCostUsed')
 const InitialPlannedCostRouter = require('./routes/InitialPlannedCost')
 const ContractSettlementRouter = require('./routes/ContractSettlement')
+const UserRouter = require('./routes/User')
 
 const AuthRouter = require('./routes/Auth')
 
@@ -99,6 +100,8 @@ app.use('/api/materialbudgets', MaterialBudgetRouter)
 app.use('/api/materialcostuseds', MaterialCostUsedRouter)
 app.use('/api/initialplannedcosts', InitialPlannedCostRouter)
 app.use('/api/contractsettlements', ContractSettlementRouter)
+app.use('/api/users', UserRouter)
+
 
 
 

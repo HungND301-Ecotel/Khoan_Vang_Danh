@@ -69,8 +69,8 @@ export default function Materialunitprice() {
       price: assignment.price,
 
       // Children
-      children: assignment.materials.map((m, idx) => ({
-        key: `${assignment._id}-${idx}`,
+      children: (assignment.materials || []).map((m, idx) => ({
+        key: `${assignment?._id}-${idx}`,
         number: '',
         materialCode: m.code,
         assignmentCode: '',
@@ -124,13 +124,13 @@ export default function Materialunitprice() {
       title: <Typography fontWeight="bold">Số lượng</Typography>,
       dataIndex: "quantity",
       align: "center",
-      render: v => <Typography>{v}</Typography>
+      render: v => <Typography>{v ? (Number(v.toFixed(0))).toLocaleString() : ""}</Typography>
     },
     {
       title: <Typography fontWeight="bold">Đơn giá bình quân năm</Typography>,
       dataIndex: "price",
       align: "center",
-      render: v => <Typography>{v?.toLocaleString()}</Typography>
+      render: v => <Typography>{v ? (Number(v.toFixed(0))).toLocaleString() : ""}</Typography>
     }
   ];
 

@@ -128,7 +128,7 @@ export default function InitialPlannedCosts() {
     });
   };
 
-  const { mutate: handleDeleteMutation } = useMutation({
+  const { mutate: handleDeleteMutation, isPending: isDeletePending } = useMutation({
     mutationFn: async (ids: React.Key[]) => {
       const deletePromises = ids.map((id) =>
         api.delete(`/initialplannedcosts/${id}`).then((res) => res.data)
@@ -238,7 +238,7 @@ export default function InitialPlannedCosts() {
           (sum: number, i: any) => sum + i.totalInitialPlannedCost,
           0
         );
-        return <Typography> {total.toLocaleString()}</Typography>;
+        return <Typography> {total ? (Number(total.toFixed(0))).toLocaleString() : ""}</Typography>;
       },
     },
     {
@@ -351,7 +351,7 @@ export default function InitialPlannedCosts() {
                   variant="contained"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
-                  disabled={selectedRows.length === 0}
+                  disabled={selectedRows.length === 0 || isDeletePending}
                   sx={{
                     backgroundColor: (theme) =>
                       custom_theme.palette.table_delete_button.main,
@@ -367,7 +367,7 @@ export default function InitialPlannedCosts() {
                     px: 3,
                   }}
                 >
-                  Xóa ({selectedRows.length})
+                  {isDeletePending ? 'Đang xóa' : 'Xóa'} ({selectedRows.length})
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>

@@ -374,7 +374,7 @@ export default function MaterialCostUsedModal({
                 position: 'relative'
               }}
             >
-              <FieldMonthYear formik={formik} />
+              <FieldMonthYear formik={formik} fieldName="month"/>
 
               {/* {visiable.some(i => i === indexParent) && */}
               <FieldArray name="phases">

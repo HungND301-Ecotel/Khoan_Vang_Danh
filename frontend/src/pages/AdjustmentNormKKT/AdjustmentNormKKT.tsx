@@ -272,7 +272,7 @@ export default function AdjustmentNormKKT() {
                   {item.assignmentCode?.uom?.name || ""}
                 </TableCell>
                 <TableCell align="center" sx={{ width: "10%" }}>
-                  {item.norm ? item.norm.toLocaleString() : ""}
+                  {item.norm ? (Number(item.norm.toFixed(3))).toLocaleString() : ""}
                 </TableCell>
               </TableRow>
             ))}

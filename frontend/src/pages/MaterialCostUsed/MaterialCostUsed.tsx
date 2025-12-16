@@ -129,7 +129,7 @@ export default function MaterialCostUsed() {
     });
   };
 
-  const { mutate: deleteMutation } = useMutation({
+  const { mutate: deleteMutation, isPending: isDeletePending } = useMutation({
     mutationFn: async (ids: React.Key[]) => {
       const deletePromises = ids.map((id) =>
         api.delete(`/materialcostuseds/${id}`).then((res) => res.data)
@@ -238,7 +238,7 @@ export default function MaterialCostUsed() {
           (sum: number, i: any) => sum + i.totalUsedCost,
           0
         );
-        return <Typography> {total.toLocaleString()}</Typography>;
+        return <Typography> {total ? (Number(total.toFixed(0))).toLocaleString() : ""}</Typography>;
       },
     },
     {
@@ -341,7 +341,7 @@ export default function MaterialCostUsed() {
                   variant="contained"
                   endIcon={<Delete />}
                   onClick={() => handleDelete()}
-                  disabled={selectedRows.length === 0}
+                  disabled={selectedRows.length === 0 || isDeletePending}
                   sx={{
                     backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
                     "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
@@ -353,7 +353,7 @@ export default function MaterialCostUsed() {
                     px: 3,
                   }}
                 >
-                  Xóa ({selectedRows.length})
+                  {isDeletePending ? 'Đang xóa' : 'Xóa'} ({selectedRows.length})
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>

@@ -165,7 +165,10 @@ exports.get = async (req, res) => {
 
         // 1. Xử lý điều kiện tìm kiếm theo req.query.q
         if (req.query.q) {
-            scopeMatchQuery.code = new RegExp(req.query.q, 'i');
+            const productionScopes = await ProductionScope.find({ code: new RegExp(req.query.q, 'i') }).select('_id');
+            const productionScopeIds = productionScopes.map(i => i._id);
+            // Chỉ match những InitialPlannedCost có productionScope nằm trong kết quả tìm kiếm
+            scopeMatchQuery.productionScope = { $in: productionScopeIds };
         }
 
         // --- BƯỚC 1: Lấy các ProductionScope (có dữ liệu trong MaterialCostUsed) cần hiển thị ---

@@ -28,10 +28,11 @@ import api from "../../config/api.config";
 import { Divider } from "antd";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
+import FieldMonthYear from "../../ui/FieldMonth_Year";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
-  code:yup.string().required("Mã vật tư giao khoán không được để trống"),
+  code: yup.string().required("Mã vật tư giao khoán không được để trống"),
   name: yup.string().required("Tên vật tư giao khoán không được để trống"),
 });
 
@@ -76,6 +77,7 @@ export default function MaterialAssignmentOutPlanModal({
           Array.isArray(selectedMaterialAssignment.priceHistory)
           ? selectedMaterialAssignment.priceHistory.map((item) => ({
             price: item.price,
+            month: item.month ? dayjs(item.month).format("YYYY-MM") : '',
             startDate: new Date(item.startDate)
               .toISOString()
               .substring(0, 10),
@@ -84,6 +86,7 @@ export default function MaterialAssignmentOutPlanModal({
           : [
             {
               price: 0,
+              month: dayjs(new Date()).format("YYYY-MM"),
               startDate: new Date().toISOString().substring(0, 10),
               endDate: new Date().toISOString().substring(0, 10),
             },
@@ -96,6 +99,7 @@ export default function MaterialAssignmentOutPlanModal({
         ...values,
         priceHistory: values.priceHistory.map((item) => ({
           ...item,
+          month: dayjs(new Date(item.month)).format("YYYY-MM"),
           startDate: item.startDate,
           endDate: item.endDate,
         })),
@@ -281,7 +285,7 @@ export default function MaterialAssignmentOutPlanModal({
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                       {formik.values.priceHistory.map((item, index) => (
                         <Grid container spacing={2} key={index} alignItems="center">
-                          <Grid item xs={4}>
+                          {/* <Grid item xs={4}>
                             <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
                               Ngày bắt đầu
                             </Typography>
@@ -327,6 +331,12 @@ export default function MaterialAssignmentOutPlanModal({
                                 },
                               }}
                             />
+                          </Grid> */}
+                          <Grid item xs={8}>
+                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                              Chọn tháng
+                            </Typography>
+                            <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.month`} />
                           </Grid>
 
                           <Grid item xs={3}>

@@ -250,7 +250,7 @@ export default function CoalCuttingNormZH() {
         key: "norm",
         align: "center" as const,
         width: "10%",
-        render: (value: number) => <Typography>{(value ? value.toLocaleString() : "")}</Typography>,
+        render: (value: number) => <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>,
       },
     ];
 

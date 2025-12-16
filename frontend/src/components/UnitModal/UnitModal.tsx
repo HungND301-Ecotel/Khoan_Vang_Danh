@@ -58,6 +58,7 @@ export default function UnitModal({
           height: "740px",
           p: "40px",
           position: "relative",
+          borderRadius: '12px'
         },
       }}
     >
@@ -80,14 +81,14 @@ export default function UnitModal({
           <Typography>Danh mục</Typography>
           <Typography>Đơn vị tính</Typography>
         </Breadcrumbs>
-          <Divider
-            style={{
-              margin: "10px 0",
-              borderBlockWidth: 1,
-              opacity: "30%",
-              borderColor: "#6592B7",
-            }}
-          />
+        <Divider
+          style={{
+            margin: "10px 0",
+            borderBlockWidth: 1,
+            opacity: "30%",
+            borderColor: "#6592B7",
+          }}
+        />
 
         <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
           {selectedUnit ? "Chỉnh sửa đơn vị tính" : "Tạo mới đơn vị tính"}

@@ -180,7 +180,7 @@ export default function Hardness() {
       setProgress(0); // Reset tiến trình khi bắt đầu
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
+      queryClient.invalidateQueries({ queryKey: ["hardness"] });
       setIsUploading(false);
       showSuccessAlert("Import thành công!");
     },

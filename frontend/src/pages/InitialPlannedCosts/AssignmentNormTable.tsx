@@ -40,7 +40,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       key: "baseNorm",
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
       ),
     },
     {
@@ -49,7 +49,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       key: "adjustmentNorm",
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
       ),
     },
     {
@@ -58,7 +58,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       key: "norm",
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        <Typography>{value ? (Number(value.toFixed(0))).toLocaleString() : ""}</Typography>
       ),
     },
     // Thêm các cột còn lại dựa trên dữ liệu 'phase' cha
@@ -69,7 +69,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
         // Số lượng cho định mức này là 1? Cần xem lại logic nghiệp vụ
-        <Typography>{value}</Typography>
+        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
       ),
     },
     {
@@ -79,7 +79,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
         // Cột này cần dữ liệu từ đâu đó (có thể là data.unitPrice?)
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        <Typography>{value ? (Number(value.toFixed(0))).toLocaleString() : ""}</Typography>
       ),
     },
     {
@@ -89,7 +89,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
         // Cột này cần dữ liệu từ đâu đó (có thể là data.unitPrice?)
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        <Typography>{value ? (Number(value.toFixed(0))).toLocaleString() : ""}</Typography>
       ),
     },
   ];

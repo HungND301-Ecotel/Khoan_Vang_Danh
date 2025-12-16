@@ -58,7 +58,7 @@ export default function PhaseTable({
       key: "production",
       align: "center" as const,
       render: (value: number) => (
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
+        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
       ),
     }
   ];
@@ -96,8 +96,8 @@ export default function PhaseTable({
                   <TableCell>{m?.assignmentCode?.name}</TableCell>
                   <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
                   <TableCell>{m.materials.reduce((sum: number, i: any) => sum + (i?.quantity || 0), 0)}</TableCell>
-                  <TableCell>{m?.price?.toLocaleString()}</TableCell>
-                  <TableCell>{m.materials.reduce((sum: number, i: any) => sum + (i?.cost || 0), 0).toLocaleString()}</TableCell>
+                  <TableCell>{m.price ? (Number(m.price.toFixed(0))).toLocaleString() : ""}</TableCell>
+                  <TableCell>{(Number(m.materials.reduce((sum: number, i: any) => sum + (i?.cost || 0), 0).toFixed(0))).toLocaleString()}</TableCell>
                 </TableRow>
                 {m.materials.map((i: any) => (
                   <TableRow>
@@ -106,8 +106,8 @@ export default function PhaseTable({
                     <TableCell>{i?.material?.name}</TableCell>
                     <TableCell>{i?.material?.uom?.name}</TableCell>
                     <TableCell>{i?.quantity}</TableCell>
-                    <TableCell>{m?.assignmentCode ? '' : (i?.price || 0).toLocaleString()}</TableCell>
-                    <TableCell>{(i?.cost || 0).toLocaleString()}</TableCell>
+                    <TableCell>{m?.assignmentCode ? '' : (Number(i?.price || 0).toFixed(0)).toLocaleString()}</TableCell>
+                    <TableCell>{i.cost ? (Number(i.cost.toFixed(0))).toLocaleString() : ""}</TableCell>
                   </TableRow>
                 ))}
               </Fragment>

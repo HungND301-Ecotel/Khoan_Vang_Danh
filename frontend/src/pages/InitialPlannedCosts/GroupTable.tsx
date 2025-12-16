@@ -62,7 +62,7 @@ export default function GroupTable({
             dataIndex: "code",
             key: "code",
             render: (text: string, item: any) => (
-                <Typography sx={{ fontWeight: "bold" }}>{item.totalInitialPlannedCost ? item.totalInitialPlannedCost.toLocaleString() : ""}</Typography>
+                <Typography sx={{ fontWeight: "bold" }}>{item.totalInitialPlannedCost ? (Number(item.totalInitialPlannedCost.toFixed(0))).toLocaleString() : ""}</Typography>
             ),
         },
         {
