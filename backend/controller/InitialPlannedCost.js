@@ -165,7 +165,7 @@ exports.get = async (req, res) => {
             {
                 path: 'group.phases.phase',
                 select: 'code name', // Chọn các trường bạn muốn lấy
-                model: 'PhaseGroup', // <--- THÊM KHAI BÁO MODEL TƯỜNG MINH
+                model: 'Phase', // <--- THÊM KHAI BÁO MODEL TƯỜNG MINH
             },
             {
                 path: 'group.phases.assignmentNormCode',

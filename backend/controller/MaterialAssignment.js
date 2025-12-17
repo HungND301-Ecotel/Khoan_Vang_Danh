@@ -10,9 +10,9 @@ dayjs.extend(quarterOfYear);
 const { paginateQuery } = require("../utils/pagination");
 const {
   updatePriceAssignmentCode,
+  recalculateAssignmentCodePrice
 } = require("../utils/recalculateAssignmentCodePrice");
-
-const monthToNumber = (month) => month ? Number(month.replace('-', '')) : ''
+const { monthToNumber } = require('../utils/helpers')
 
 exports.create = async (req, res) => {
   try {
@@ -110,9 +110,22 @@ exports.getGroup = async (req, res) => {
         let currentPrice = null;
 
         if (Array.isArray(item.priceHistory)) {
-          const matched = item.priceHistory.find((priceItem) => {
-            return priceItem.month === currentYearMonth;
-          });
+          let matched = null
+          if (req.query.month) {
+            matched = item.priceHistory.find((priceItem) => {
+              const start = monthToNumber(priceItem.startMonth)
+              const end = monthToNumber(priceItem.endMonth)
+              const check = monthToNumber(req.query.month)
+              return start <= check && check <= end
+            });
+          } else {
+            matched = item.priceHistory.find((priceItem) => {
+              const start = monthToNumber(priceItem.startMonth)
+              const end = monthToNumber(priceItem.endMonth)
+              const month = monthToNumber(currentYearMonth)
+              return start <= month && month <= end
+            });
+          }
 
           if (matched) currentPrice = matched.price;
         }
@@ -128,15 +141,58 @@ exports.getGroup = async (req, res) => {
         name: assignment.name,
         code: assignment.code,
         uom: assignment.uom?.name,
-        price: assignment.price,
+        price: await recalculateAssignmentCodePrice(assignment._id, null, null, req.query.month || currentYearMonth),
         device: assignment.deviceCode?.code,
         materials: materialsWithPrice,
       });
     }
+    const unassignedMaterials = await MaterialAssignment.find({
+      $or: [
+        { assignmentCode: null },
+        { assignmentCode: { $exists: false } }
+      ]
+    }).populate("uom");
+    if (unassignedMaterials.length > 0) {
+      result.push({
+        _id: "unassigned",
+        name: "Vật tư không có định mức",
+        code: "",
+        uom: "",
+        price: null,
+        device: "",
+        materials: unassignedMaterials.map(item => {
+          let currentPrice = null;
+
+          if (Array.isArray(item.priceHistory)) {
+            const today = new Date();
+            const currentYearMonth = req.query.month ||
+              `${today.getFullYear()}-${(today.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")}`;
+
+            const matched = item.priceHistory.find(priceItem => {
+              const start = monthToNumber(priceItem.startMonth);
+              const end = monthToNumber(priceItem.endMonth);
+              const month = monthToNumber(currentYearMonth);
+              return start <= month && month <= end;
+            });
+
+            if (matched) currentPrice = matched.price;
+          }
+
+          return {
+            ...item.toObject(),
+            currentPrice,
+          };
+        })
+      });
+    }
+
     pagination.data = result;
 
     res.status(200).json({ status: "success", data: pagination });
   } catch (err) {
+    console.log(err.stack)
     res.status(500).json({ status: "error", message: err.message });
   }
 };
@@ -190,7 +246,6 @@ exports.get = async (req, res) => {
         currentPrice,
       }
     })
-
 
     res.status(200).json({ status: "success", data: pagination });
   } catch (err) {

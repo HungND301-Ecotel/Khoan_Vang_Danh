@@ -4,7 +4,7 @@ const MaterialBudget = require('../model/MaterialBudget')
 const ProductionScope = require('../model/ProductionScope')
 const { paginateQuery } = require('../utils/pagination')
 const { recalculateAssignmentCodePrice, calculatedPhases } = require('../utils/recalculateAssignmentCodePrice')
-const monthToNumber = require('../utils/helpers')
+const { monthToNumber } = require('../utils/helpers')
 
 exports.create = async (req, res) => {
     try {

@@ -154,11 +154,8 @@ export interface PhaseOutputType {
 export interface PhaseInputType {
   name?: string;
   _id?: string;
-  phaseGroup: string;
-  phase: string;
-  assignmentNormCode: string;
-  production?: number;
-  adjustmentNormCode: string;
+  code?: string;
+  phaseGroup?: string
 }
 //
 export interface CurbSlopeType {

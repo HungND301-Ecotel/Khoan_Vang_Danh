@@ -1,1 +1,6 @@
-export const monthToNumber = (month) => month ? Number(month.replace('-', '')) : ''
+const monthToNumber = (month) => month ? Number(month.replace('-', '')) : ''
+
+
+module.exports = {
+    monthToNumber
+}

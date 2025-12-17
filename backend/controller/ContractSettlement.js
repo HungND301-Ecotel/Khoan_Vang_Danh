@@ -441,7 +441,7 @@ exports.getExcel = async (req, res) => {
         if (isQuarter) {
             setMergeCellHeader(worksheet, 'I3:U4', "Bảng tổng hợp")
         } else {
-            setMergeCellHeader(worksheet, 'I3:U3', (info.phases || []).map(i => i.name).join(', '))
+            setMergeCellHeader(worksheet, 'I3:U3', (info.phases || []).map(i => i.code).join(', '))
             setMergeCellHeader(worksheet, 'I4:U4', (info.productionScopes || []).map(i => i.code).join(', '))
         }
 

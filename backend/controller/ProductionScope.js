@@ -201,7 +201,10 @@ exports.get = async (req, res) => {
         { name: new RegExp(req.query.q, "i") },
       ];
     }
-    const modelQuery = ProductionScope.find(query).populate("phases.phase");
+    const modelQuery = ProductionScope.find(query).populate({
+      path: "phases.phase",
+      populate: 'phaseGroup',
+    });
     const pagination = await paginateQuery(
       ProductionScope,
       modelQuery,

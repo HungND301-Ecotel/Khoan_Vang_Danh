@@ -209,7 +209,7 @@ export default function ProductionScopeModal({
                         (selected) => selected._id === opt._id
                       )
                   )}
-                  getOptionLabel={(option: PhaseInputType) => option.name || ""}
+                  getOptionLabel={(option: PhaseInputType) => option.code || ""}
                   value={selectedPhases}
                   onChange={(event, newValue) => {
                     setSelectedPhases(newValue);
@@ -428,39 +428,39 @@ export default function ProductionScopeModal({
                 )}
               </FieldArray>
 
-              <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
-                <Button
-                  onClick={handleClose}
-                  sx={{
-                    backgroundColor: "#DFE2EA",
-                    borderRadius: "8px",
-                    height: "32px",
-                    minWidth: "91px",
-                    fontSize: "14px",
-                    textTransform: "none",
-                  }}
-                >
-                  Hủy
-                </Button>
-                <Button
-                  onClick={() => formik.submitForm()}
-                  variant="contained"
-                  sx={{
-                    backgroundColor: "#007BFF",
-                    borderRadius: "8px",
-                    height: "32px",
-                    minWidth: "91px",
-                    fontSize: "14px",
-                    textTransform: "none",
-                  }}
-                >
-                  {selected ? "Cập nhật" : "Xác nhận"}
-                </Button>
-              </DialogActions>
             </Box>
           </Box>
         </FormikProvider>
       </DialogContent>
+      <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
+        <Button
+          onClick={handleClose}
+          sx={{
+            backgroundColor: "#DFE2EA",
+            borderRadius: "8px",
+            height: "32px",
+            minWidth: "91px",
+            fontSize: "14px",
+            textTransform: "none",
+          }}
+        >
+          Hủy
+        </Button>
+        <Button
+          onClick={() => formik.submitForm()}
+          variant="contained"
+          sx={{
+            backgroundColor: "#007BFF",
+            borderRadius: "8px",
+            height: "32px",
+            minWidth: "91px",
+            fontSize: "14px",
+            textTransform: "none",
+          }}
+        >
+          {selected ? "Cập nhật" : "Xác nhận"}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

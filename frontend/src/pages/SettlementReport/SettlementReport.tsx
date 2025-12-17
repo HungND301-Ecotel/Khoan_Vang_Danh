@@ -47,17 +47,9 @@ export default function SettlementReport() {
 
   const queryClient = useQueryClient();
 
-  // const currentYear = new Date().getFullYear();
-  // const [selectedYear, setSelectedYear] = useState(currentYear);
-  // const years = [];
-
-  // for (let i = 0; i < 20; i++) {
-  //   years.push(currentYear - i);
-  // }
-
-  const { data: phasegroups = { data: [] } } = useQuery({
-    queryKey: ["phasegroups"],
-    queryFn: () => api.get("/phasegroups").then((res) => res.data.data),
+  const { data: phases = { data: [] } } = useQuery({
+    queryKey: ["phases"],
+    queryFn: () => api.get("/phases").then((res) => res.data.data),
   });
   const { data: contractsettlements = { data: [], info: {} }, isLoading } = useQuery({
     queryKey: ["contractsettlements", selectedMonth, selectedPhase, selectedProductionScope],
@@ -134,9 +126,9 @@ export default function SettlementReport() {
                   select
                   variant="outlined"
                 >
-                  {phasegroups?.data?.map((item: PhaseOutputType) => (
+                  {phases?.data?.map((item: PhaseOutputType) => (
                     <MenuItem key={item._id} value={item._id}>
-                      {item.name}
+                      {item.code}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -318,7 +310,7 @@ export default function SettlementReport() {
                   p: 0.5,
                 }}
               >
-                {(contractsettlements.info?.phases || []).map((i: any) => i?.name).join(', ')}
+                {(contractsettlements.info?.phases || []).map((i: any) => i?.code).join(', ')}
               </TableCell>
             </TableRow>
             <TableRow>

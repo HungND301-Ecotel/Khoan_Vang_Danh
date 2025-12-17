@@ -40,6 +40,7 @@ import {
 } from "@mui/icons-material";
 import custom_theme from '../../theme';
 import CustomTable from "../../components/CustomTable/CustomTable";
+import FieldMonthYear from "../../ui/FieldMonth_Year";
 
 export default function Materialunitprice() {
   const queryClient = useQueryClient();
@@ -47,40 +48,45 @@ export default function Materialunitprice() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
+  const [selectedMonth, setSelectedMonth] = useState('')
 
   const { data: materialAssignments = { totalDocs: 0, data: [] }, isLoading } = useQuery({
-    queryKey: ["materialAssignments", searchValue, page, limit],
+    queryKey: ["materialAssignments", searchValue, page, limit, selectedMonth],
     queryFn: () =>
-      api.get(`/materialassignments/group?q=${searchValue}&page=${page}&limit=${limit}`).then((res) => {
+      api.get(`/materialassignments/group?q=${searchValue}&month=${selectedMonth}&page=${page}&limit=${limit}`).then((res) => {
         return res.data.data;
       }),
   });
 
   const treeData = useMemo(() => {
-    return materialAssignments.data.map((assignment: MaterialAssignmentOutputType, i: number) => ({
-
-      // Header (parent row)
+    return materialAssignments.data.map((assignment: any, i: number) => ({
       key: assignment._id,
       _id: assignment._id,
-      number: (page - 1) * limit + i + 1,
-      materialCode: '',
-      assignmentCode: assignment.code,
+      number: assignment._id === "unassigned"
+        ? ""
+        : (page - 1) * limit + i + 1,
+
+      materialCode: "",
+      assignmentCode: assignment._id === "unassigned"
+        ? "—"
+        : assignment.code,
+
       name: assignment.name,
       price: assignment.price,
 
-      // Children
-      children: (assignment.materials || []).map((m, idx) => ({
-        key: `${assignment?._id}-${idx}`,
-        number: '',
+      children: (assignment.materials || []).map((m:any, idx: number) => ({
+        key: `${assignment._id}-${idx}`,
+        number: "",
         materialCode: m.code,
-        assignmentCode: '',
+        assignmentCode: "",
         name: m.name,
         uom: m.uom?.name,
         quantity: m.quantity,
         price: m.currentPrice,
       }))
     }));
-  }, [materialAssignments.data]);
+  }, [materialAssignments.data, page, limit]);
+
 
   const columns: TableProps<any>["columns"] = [
     {
@@ -202,6 +208,7 @@ export default function Materialunitprice() {
                   ),
                 }}
               />
+              <FieldMonthYear selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} />
             </Box>
 
             <Box display={"flex"} gap={2}>

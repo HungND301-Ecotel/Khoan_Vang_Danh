@@ -78,9 +78,9 @@ export default function InitialPlannedCostModal({
     queryFn: async () =>
       api.get("/productionscopes").then((res) => res.data.data),
   });
-  const { data: phaseGroups = { data: [] } } = useQuery({
-    queryKey: ["phaseGroups"],
-    queryFn: async () => api.get("/phaseGroups").then((res) => res.data.data),
+  const { data: phases = { data: [] } } = useQuery({
+    queryKey: ["phases"],
+    queryFn: async () => api.get("/phases").then((res) => res.data.data),
   });
 
   const { data: assignmentnorms = { data: [] } } = useQuery({
@@ -285,12 +285,14 @@ export default function InitialPlannedCostModal({
                   (ps: ProductionScopeOutputType) => ps._id === scopeId
                 );
 
+                console.log(scope)
+
                 // nếu scope có mảng phases thì map ra
                 if (scope && Array.isArray(scope.phases)) {
                   const mappedPhases = scope.phases.map((ph: any) => ({
                     phase: ph.phase?._id ?? "",
                     production: 0, // CHANGED
-                    unit: ph.phase?.name.toLowerCase().includes("khấu than")
+                    unit: ph.phase?.phaseGroup?.name.toLowerCase().includes("khấu than")
                       ? "tấn"
                       : "mét", // CHANGED
                     assignmentNormCode: "",
@@ -364,7 +366,7 @@ export default function InitialPlannedCostModal({
                       }}
                     >
                       {formik.values.phases.map((item: any, index: number) => {
-                        const phase = phaseGroups.data.find(
+                        const phase = phases.data.find(
                           (pg: PhaseOutputType) => pg._id === item.phase
                         );
 

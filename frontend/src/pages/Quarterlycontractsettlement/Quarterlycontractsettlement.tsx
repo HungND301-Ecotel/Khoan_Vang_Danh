@@ -63,10 +63,6 @@ export default function Quarterlycontractsettlement() {
     { value: 4, label: "Quý 4" },
   ];
 
-  const { data: phasegroups = { data: [] } } = useQuery({
-    queryKey: ["phasegroups"],
-    queryFn: () => api.get("/phasegroups").then((res) => res.data.data),
-  });
   const { data: contractsettlements = { data: [], info: {} } } = useQuery({
     queryKey: ["contractsettlements", selectedQuarter, selectedYear],
     queryFn: () =>

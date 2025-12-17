@@ -14,8 +14,8 @@ const InitialPlannedCost = new mongoose.Schema({
         {
             phase: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'PhaseGroup',
-                required: [true, 'PhaseGroup is required'],
+                ref: 'Phase',
+                required: [true, 'Phase is required'],
             },
             production: {
                 type: Number
