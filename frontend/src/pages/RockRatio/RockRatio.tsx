@@ -24,7 +24,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import RockRatioModal from "../../components/RockRatioModal/RockRatioModal";
+import RockRatioModal from "./RockRatioModal/RockRatioModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RockRatioType } from "../../types";
 import api from "../../config/api.config";
@@ -121,7 +121,7 @@ export default function RockRatio() {
   });
   const exportExcel = useMutation({
     mutationFn: RockRatioService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

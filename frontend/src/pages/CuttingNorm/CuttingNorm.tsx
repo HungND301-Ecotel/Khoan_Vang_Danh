@@ -24,7 +24,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import { AssignmentNormInputType, AssignmentNormOutputType } from "../../types";
-import CuttingNormModal from "../../components/CuttingNormModal/CuttingNormModal";
+import CuttingNormModal from "./CuttingNormModal/CuttingNormModal";
 import {
   showConfirmAlert,
   showErrorAlert,

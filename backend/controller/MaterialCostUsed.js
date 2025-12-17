@@ -4,32 +4,11 @@ const MaterialBudget = require('../model/MaterialBudget')
 const ProductionScope = require('../model/ProductionScope')
 const { paginateQuery } = require('../utils/pagination')
 const { recalculateAssignmentCodePrice, calculatedPhases } = require('../utils/recalculateAssignmentCodePrice')
-
-const getDate = (month) => {
-    let startDate = null;
-    let endDate = null;
-    const [queryYear, queryMonth] = month.split('-').map(Number); // [2025, 12]
-
-    // Đảm bảo tháng có 2 chữ số (VD: 01, 12)
-    const paddedMonth = String(queryMonth).padStart(2, '0');
-
-    // Ngày đầu tiên luôn là '01'
-    startDate = `${queryYear}-${paddedMonth}-01`; // Ví dụ: "2025-12-01"
-
-    const nextMonthDate = new Date(queryYear, queryMonth, 1);
-
-    nextMonthDate.setDate(nextMonthDate.getDate() - 1);
-
-    const lastDay = nextMonthDate.getDate();
-
-    endDate = `${queryYear}-${paddedMonth}-${String(lastDay).padStart(2, '0')}`;
-    return { startDate, endDate };
-}
+const monthToNumber = require('../utils/helpers')
 
 exports.create = async (req, res) => {
     try {
         const { productionScope, phases, month, materials } = req.body
-        const { startDate, endDate } = getDate(month);
 
         const result = await calculatedPhases(phases, month, "budget")
 
@@ -41,15 +20,12 @@ exports.create = async (req, res) => {
                 let matched = null;
 
                 if (material && Array.isArray(material.priceHistory)) {
-                    if (startDate && endDate) {
-                        matched = material.priceHistory.find(priceItem =>
-                            startDate >= priceItem.startDate && endDate <= priceItem.endDate
-                        );
-                    } else {
-                        matched = material.priceHistory.find(priceItem =>
-                            todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
-                        );
-                    }
+                    matched = material.priceHistory.find(priceItem => {
+                        const start = monthToNumber(priceItem.startMonth)
+                        const end = monthToNumber(priceItem.endMonth)
+                        const checkMonth = monthToNumber(month)
+                        return start <= checkMonth && checkMonth <= end
+                    });
                 }
                 const result = await recalculateAssignmentCodePrice(material?.assignmentCode, null, null, month);
 
@@ -84,9 +60,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        console.log(req.body.phases)
         const result = await calculatedPhases(req.body.phases, req.body.month, "budget")
-        const { startDate, endDate } = getDate(req.body.month);
 
         const totalBudgetCost = result.reduce((sum, item) => sum + item.totalBudgetCost, 0)
 
@@ -96,15 +70,12 @@ exports.update = async (req, res) => {
                 let matched = null;
 
                 if (material && Array.isArray(material.priceHistory)) {
-                    if (startDate && endDate) {
-                        matched = material.priceHistory.find(priceItem =>
-                            startDate >= priceItem.startDate && endDate <= priceItem.endDate
-                        );
-                    } else {
-                        matched = material.priceHistory.find(priceItem =>
-                            todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
-                        );
-                    }
+                    matched = material.priceHistory.find(priceItem => {
+                        const start = monthToNumber(priceItem.startMonth)
+                        const end = monthToNumber(priceItem.endMonth)
+                        const checkMonth = monthToNumber(req.body.month)
+                        return start <= checkMonth && checkMonth <= end
+                    });
                 }
                 const result = await recalculateAssignmentCodePrice(material?.assignmentCode, null, null, req.body.month);
 

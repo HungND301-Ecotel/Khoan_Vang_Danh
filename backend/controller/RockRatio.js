@@ -7,6 +7,10 @@ const xlsx = require("xlsx");
 exports.create = async (req, res) => {
   try {
     const { name } = req.body;
+    const exitRockratio = await RockRatio.countDocuments({ name: name })
+    if (exitRockratio > 0) {
+      return res.status(409).json({ status: 'error', message: `Tỉ lệ đá lẫn trog gương '${name}' đã tồn tại` })
+    }
     const newRockRatio = new RockRatio({ name });
     await newRockRatio.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

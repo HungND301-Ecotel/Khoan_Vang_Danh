@@ -20,7 +20,7 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useRef, useState } from "react";
-import DeviceCodeModal from "../../components/DeviceCodeModal/DeviceCodeModal";
+import DeviceCodeModal from "./DeviceCodeModal/DeviceCodeModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DeviceCodeType } from "../../types";
 import api from "../../config/api.config";
@@ -78,7 +78,7 @@ export default function DeviceCode() {
 
   const exportExcel = useMutation({
     mutationFn: DeviceCodeService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -191,15 +191,15 @@ export default function DeviceCode() {
                 </thead>
                 <tbody>
                   ${devicecodes
-                    .map(
-                      (devicecode: DeviceCodeType, index: number) => `
+            .map(
+              (devicecode: DeviceCodeType, index: number) => `
                     <tr>
                       <td>${index + 1}</td>
                       <td>${devicecode.code || ""}</td>
                     </tr>
                   `
-                    )
-                    .join("")}
+            )
+            .join("")}
                 </tbody>
               </table>
             </body>
@@ -275,7 +275,7 @@ export default function DeviceCode() {
       width: 50,
       render: (_, record) => (
         <IconButton onClick={() => handleOpen(record)}>
-          <Edit />  
+          <Edit />
         </IconButton>
       ),
     },

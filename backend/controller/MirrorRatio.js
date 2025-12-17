@@ -7,6 +7,10 @@ const { paginateQuery } = require("../utils/pagination");
 exports.create = async (req, res) => {
   try {
     const { name } = req.body;
+    const exitmirrorRatio = await MirrorRatio.countDocuments({ name: name })
+    if (exitmirrorRatio > 0) {
+      return res.status(409).json({ status: 'error', message: `Tỉ lệ gương than mềm '${name}' đã tồn tại` })
+    }
     const newMirrorRatio = new MirrorRatio({ name });
     await newMirrorRatio.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

@@ -24,7 +24,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import MirrorRatioModal from "../../components/MirrorRatioModal/MirrorRatioModal";
+import MirrorRatioModal from "./MirrorRatioModal/MirrorRatioModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MirrorRatioType } from "../../types";
 import api from "../../config/api.config";
@@ -89,7 +89,7 @@ export default function MirrorRatio() {
   });
   const exportExcel = useMutation({
     mutationFn: MirrorRatioService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

@@ -24,7 +24,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import CurbSlopeModal from "../../components/CurbSlopeModal/CurbSlopeModal";
+import CurbSlopeModal from "./CurbSlopeModal/CurbSlopeModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CurbSlopeType } from "../../types";
 import api from "../../config/api.config";
@@ -122,7 +122,7 @@ export default function CurbSlope() {
 
   const exportExcel = useMutation({
     mutationFn: CurbSlopeService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

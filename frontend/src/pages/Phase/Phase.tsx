@@ -20,7 +20,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import PhaseModal from "../../components/PhaseModal/PhaseModal";
+import PhaseModal from "./PhaseModal/PhaseModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PhaseOutputType, PhaseInputType } from "../../types";
 import api from "../../config/api.config";
@@ -111,7 +111,7 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
 
   const exportExcel = useMutation({
     mutationFn: PhaseService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

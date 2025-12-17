@@ -3,6 +3,8 @@ const MaterialAssignment = require('../model/MaterialAssignment')
 const { updatePriceAssignmentCode } = require('../utils/recalculateAssignmentCodePrice')
 const ProductionScope = require('../model/ProductionScope')
 
+const monthToNumber = (month) => month ? Number(month.replace('-', '')) : ''
+
 exports.create = async (req, res) => {
     try {
         const { code, phaseGroup, phase, assignmentNormCode, adjustmentNormCode, production } = req.body
@@ -203,7 +205,12 @@ exports.getOne = async (req, res) => {
 
         const assignmentNorms = materialbudget.assignmentNormCode?.norms || [];
         const adjustmentNorms = materialbudget.adjustmentNormCode?.norms || [];
-        const todayStr = new Date().toISOString().split('T')[0];
+        const today = new Date()
+        const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1)
+            .toString()
+            .padStart(2, '0')}`
+
+        const currentMonthNum = monthToNumber(currentYearMonth)
 
         const result = [];
 
@@ -226,7 +233,9 @@ exports.getOne = async (req, res) => {
 
                 if (Array.isArray(item.priceHistory)) {
                     const matched = item.priceHistory.find(priceItem => {
-                        return todayStr >= priceItem.startDate && todayStr <= priceItem.endDate;
+                        const start = monthToNumber(priceItem.startMonth)
+                        const end = monthToNumber(priceItem.endMonth)
+                        return start <= currentMonthNum && currentMonthNum <= end
                     });
 
                     if (matched) currentPrice = matched.price;

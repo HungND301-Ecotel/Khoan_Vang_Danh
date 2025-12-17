@@ -7,6 +7,10 @@ const { configExport } = require("../utils/config_export");
 exports.create = async (req, res) => {
   try {
     const { code, name, phases } = req.body;
+    const exitData = await ProductionScope.countDocuments({ code: code })
+    if (exitData > 0) {
+      return res.status(409).json({ status: 'error', message: `Mã diện sản xuất '${code}' đã tồn tại` })
+    }
     const newProductionScope = new ProductionScope({ code, name, phases });
     await newProductionScope.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

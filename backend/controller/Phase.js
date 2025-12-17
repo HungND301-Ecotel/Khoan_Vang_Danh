@@ -8,6 +8,10 @@ const { paginateQuery } = require("../utils/pagination");
 exports.create = async (req, res) => {
   try {
     const { code, name, phaseGroup } = req.body;
+    const exitPhase = await Phase.countDocuments({ code: code })
+    if (exitPhase > 0) {
+      return res.status(409).json({ status: 'error', message: `Mã công đoạn '${code}' đã tồn tại` })
+    }
     const newPhase = new Phase({ code, name, phaseGroup });
     await newPhase.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

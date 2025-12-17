@@ -27,7 +27,7 @@ import {
   Visibility,
   Search,
 } from "@mui/icons-material";
-import CoalCuttingNormKBModal from "../../components/CoalCuttingNormKBModal/CoalCuttingNormKBModal";
+import CoalCuttingNormKBModal from "./CoalCuttingNormKBModal/CoalCuttingNormKBModal";
 import {
   showConfirmAlert,
   showErrorAlert,

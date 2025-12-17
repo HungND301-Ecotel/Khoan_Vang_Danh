@@ -18,6 +18,10 @@ exports.create = async (req, res) => {
       thickness,
       norms,
     } = req.body;
+    const exitData = await AssignmentNorm.countDocuments({ code: code })
+    if (exitData > 0) {
+      return res.status(409).json({ status: 'error', message: `Mã định mức '${code}' đã tồn tại` })
+    }
     const newAssignmentNorm = new AssignmentNorm({
       code,
       phaseGroup,

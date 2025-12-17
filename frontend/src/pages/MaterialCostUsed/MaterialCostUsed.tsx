@@ -34,7 +34,7 @@ import {
   MaterialCostUsedInputType,
   MaterialCostUsedOutputType,
 } from "../../types";
-import MaterialCostUsedModal from "../../components/MaterialCostUsedModal/MaterialCostUsedModal";
+import MaterialCostUsedModal from "./MaterialCostUsedModal/MaterialCostUsedModal";
 import {
   showConfirmAlert,
   showErrorAlert,

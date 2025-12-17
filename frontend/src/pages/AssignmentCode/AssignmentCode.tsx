@@ -31,7 +31,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import AssignmentCodeModal from "../../components/AssignmentCodeModal/AssignmentCodeModal";
+import AssignmentCodeModal from "./AssignmentCodeModal/AssignmentCodeModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AssignmentCodeInputType, AssignmentCodeOutputType } from "../../types";
 import api from "../../config/api.config";

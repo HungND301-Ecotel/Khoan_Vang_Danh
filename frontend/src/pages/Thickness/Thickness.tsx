@@ -24,7 +24,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import ThicknessModal from "../../components/ThicknessModal/ThicknessModal";
+import ThicknessModal from "./ThicknessModal/ThicknessModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ThicknessType } from "../../types";
 import api from "../../config/api.config";
@@ -124,7 +124,7 @@ export default function Thickness() {
 
   const exportExcel = useMutation({
     mutationFn: ThicknessService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

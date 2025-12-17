@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const dayjs = require('dayjs')
 
 const MaterialAssignment = new mongoose.Schema({
     code: {
@@ -24,88 +25,87 @@ const MaterialAssignment = new mongoose.Schema({
     },
     priceHistory: [{
         price: Number,
-        month: String,
-        startDate: String,
-        endDate: String
+        startMonth: String,
+        endMonth: String,
     }],
 }, {
     timestamps: true
 })
+const monthToNumber = (month) => {
+    if (!month) return null
+    return Number(month.replace('-', ''))
+}
 
-MaterialAssignment.pre('save', async function (next) {
-    const priceHistory = this.priceHistory;
+const normalizeItem = (item) => {
+    // nếu là mongoose subdocument
+    if (item && typeof item.toObject === 'function') {
+        return item.toObject()
+    }
+    return item
+}
 
+const validatePriceHistory = (priceHistory) => {
+    if (!Array.isArray(priceHistory)) return
+
+    const normalized = priceHistory.map(item => {
+        const obj = normalizeItem(item)
+        return {
+            ...obj,
+            _start: monthToNumber(obj.startMonth),
+            _end: monthToNumber(obj.endMonth),
+        }
+    })
+
+    // 1️⃣ start <= end
+    for (const item of normalized) {
+        if (item._start > item._end) {
+            throw new Error(
+                `Khoảng thời gian không hợp lệ: ${item.startMonth} > ${item.endMonth}`
+            )
+        }
+    }
+
+    // 2️⃣ sort
+    normalized.sort((a, b) => a._start - b._start)
+
+    // 3️⃣ overlap
+    for (let i = 0; i < normalized.length - 1; i++) {
+        if (normalized[i + 1]._start <= normalized[i]._end) {
+            throw new Error(
+                `Khoảng thời gian bị trùng hoặc chồng chéo: 
+                ${normalized[i].startMonth}->${normalized[i].endMonth}
+                và
+                ${normalized[i + 1].startMonth}->${normalized[i + 1].endMonth}`
+            )
+        }
+    }
+}
+
+MaterialAssignment.pre('save', function (next) {
     try {
-        if (priceHistory && priceHistory.length > 0) {
-            // 1. Kiểm tra trùng lặp trong dữ liệu gửi lên (data mới)
-            const monthSet = new Set();
-            for (const item of priceHistory) {
-                if (item.month) {
-                    if (monthSet.has(item.month)) {
-                        // Trùng lặp trong dữ liệu mới
-                        return next(new Error(`Tháng ${item.month} đã được thêm vào nhiều lần trong lịch sử đơn giá.`));
-                    }
-                    monthSet.add(item.month);
-                }
-            }
+        validatePriceHistory(this.priceHistory)
+        next()
+    } catch (err) {
+        next(err)
+    }
+})
 
-            // 2. Kiểm tra trùng lặp với dữ liệu đã tồn tại trong database (nếu là update)
-            // Chỉ cần thực hiện bước này nếu tài liệu đã tồn tại (là update, không phải create mới)
-            if (this.isModified('priceHistory') && !this.isNew) {
-                // Lấy tài liệu gốc từ database
-                const existingDoc = await mongoose.models.MaterialAssignment.findById(this._id);
+MaterialAssignment.pre('findOneAndUpdate', function (next) {
+    try {
+        const update = this.getUpdate()
 
-                if (existingDoc) {
-                    const existingMonths = existingDoc.priceHistory.map(item => item.month);
+        const priceHistory =
+            update?.priceHistory ||
+            update?.$set?.priceHistory
 
-                    // So sánh các tháng mới được thêm/sửa với các tháng đã tồn tại
-                    for (const newItem of priceHistory) {
-                        if (newItem.month) {
-                            // Kiểm tra xem tháng mới có bị trùng với tháng đã có trong DB hay không
-                            // (Trừ trường hợp chính mục đó đang được sửa)
-                            const isDuplicate = existingMonths.some(existingMonth =>
-                                existingMonth === newItem.month &&
-                                // Logic phức tạp hơn nếu cần check ID, nhưng ở đây ta chỉ cần check tháng
-                                !this.priceHistory.some(oldItem => oldItem.month === existingMonth)
-                            );
-
-                            if (isDuplicate) {
-                                // Trùng lặp với dữ liệu đã tồn tại
-                                return next(new Error(`Tháng ${newItem.month} đã tồn tại trong lịch sử đơn giá của vật tư này.`));
-                            }
-                        }
-                    }
-                }
-            }
+        if (priceHistory) {
+            validatePriceHistory(priceHistory)
         }
 
-        next();
-    } catch (error) {
-        // Xử lý lỗi trong quá trình truy vấn
-        next(error);
+        next()
+    } catch (err) {
+        next(err)
     }
-});
+})
 
-MaterialAssignment.pre('findOneAndUpdate', async function (next) {
-    // 'this' là đối tượng Query. Cần dùng this.getUpdate() để lấy dữ liệu cập nhật
-    const update = this.getUpdate();
-
-    // Kiểm tra xem priceHistory có được cập nhật hay không
-    if (update.priceHistory) {
-        const priceHistory = update.priceHistory;
-
-        // --- LOGIC KIỂM TRA TRÙNG LẶP (Tương tự như trong pre('save')) ---
-        const monthSet = new Set();
-        for (const item of priceHistory) {
-            if (item.month) {
-                if (monthSet.has(item.month)) {
-                    return next(new Error(`Tháng ${item.month} bị lặp lại.`));
-                }
-                monthSet.add(item.month);
-            }
-        }
-    }
-
-    next();
-});
 module.exports = mongoose.model('MaterialAssignment', MaterialAssignment)

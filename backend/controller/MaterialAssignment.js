@@ -11,12 +11,18 @@ const { paginateQuery } = require("../utils/pagination");
 const {
   updatePriceAssignmentCode,
 } = require("../utils/recalculateAssignmentCodePrice");
-const { request } = require("express");
+
+const monthToNumber = (month) => month ? Number(month.replace('-', '')) : ''
 
 exports.create = async (req, res) => {
   try {
     const { code, name, assignmentCode, uom, quantity, priceHistory } =
       req.body;
+
+    const exitMaterial = await MaterialAssignment.countDocuments({ code: code })
+    if (exitMaterial > 0) {
+      return res.status(409).json({ status: 'error', message: `Vật tư, tài sản '${name}' đã tồn tại` })
+    }
     const newMaterialAssignment = new MaterialAssignment({
       code,
       name,
@@ -58,6 +64,9 @@ exports.delete = async (req, res) => {
     if (!deleteData) {
       return res.status(404).json({ status: "error", message: "Xóa thất bại" });
     }
+    if (deleteData?.assignmentCode) {
+      await updatePriceAssignmentCode(deleteData?.assignmentCode);
+    }
     res.status(200).json({ status: "success", message: "Xóa thành công" });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -88,7 +97,6 @@ exports.getGroup = async (req, res) => {
     const result = [];
 
     for (const assignment of pagination.data) {
-      await updatePriceAssignmentCode(assignment._id);
 
       const materials = await MaterialAssignment.find({
         assignmentCode: assignment._id,
@@ -114,25 +122,6 @@ exports.getGroup = async (req, res) => {
           currentPrice,
         };
       });
-      // const todayStr = new Date().toISOString().split("T")[0];
-      // const materialsWithPrice = materials.map((item) => {
-      //   let currentPrice = null;
-
-      //   if (Array.isArray(item.priceHistory)) {
-      //     const matched = item.priceHistory.find((priceItem) => {
-      //       return (
-      //         todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
-      //       );
-      //     });
-
-      //     if (matched) currentPrice = matched.price;
-      //   }
-
-      //   return {
-      //     ...item.toObject(),
-      //     currentPrice,
-      //   };
-      // });
 
       result.push({
         _id: assignment._id,
@@ -175,51 +164,33 @@ exports.get = async (req, res) => {
       query,
       req.query
     );
-    const assignmentIds = [
-      ...new Set(
-        pagination.data
-          .map((m) => m.assignmentCode?._id?.toString())
-          .filter(Boolean)
-      ),
-    ];
-    await Promise.all(assignmentIds.map((id) => updatePriceAssignmentCode(id)));
-    // const todayStr = new Date().toISOString().split("T")[0];
-    // pagination.data = pagination.data.map((item) => {
-    //   let currentPrice = null;
 
-    //   if (Array.isArray(item.priceHistory)) {
-    //     const matched = item.priceHistory.find((priceItem) => {
-    //       return (
-    //         todayStr >= priceItem.startDate && todayStr <= priceItem.endDate
-    //       );
-    //     });
+    const today = new Date()
+    const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}`
 
-    //     if (matched) currentPrice = matched.price;
-    //   }
+    const currentMonthNum = monthToNumber(currentYearMonth)
 
-    //   return {
-    //     ...item.toObject(),
-    //     currentPrice,
-    //   };
-    // });
-    const today = new Date();
-    const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
     pagination.data = pagination.data.map((item) => {
-      let currentPrice = null;
+      let currentPrice = null
 
       if (Array.isArray(item.priceHistory)) {
         const matched = item.priceHistory.find((priceItem) => {
-          return priceItem.month === currentYearMonth;
-        });
+          const start = monthToNumber(priceItem.startMonth)
+          const end = monthToNumber(priceItem.endMonth)
+          return start <= currentMonthNum && currentMonthNum <= end
+        })
 
-        if (matched) currentPrice = matched.price;
+        if (matched) currentPrice = matched.price
       }
 
       return {
         ...item.toObject(),
         currentPrice,
-      };
-    });
+      }
+    })
+
 
     res.status(200).json({ status: "success", data: pagination });
   } catch (err) {
@@ -228,87 +199,6 @@ exports.get = async (req, res) => {
   }
 };
 
-exports.getFilter = async (req, res) => {
-  try {
-    const { month, quarter, year } = req.query;
-    let startDate, endDate;
-
-    if (month && year) {
-      startDate = dayjs(`${year}-${month}-01`)
-        .startOf("month")
-        .format("YYYY-MM-DD");
-      endDate = dayjs(startDate).endOf("month").format("YYYY-MM-DD");
-    } else if (quarter && year) {
-      startDate = dayjs()
-        .year(year)
-        .quarter(quarter)
-        .startOf("quarter")
-        .format("YYYY-MM-DD");
-      endDate = dayjs(startDate).endOf("quarter").format("YYYY-MM-DD");
-    } else {
-      return res.status(400).json({
-        status: "error",
-        message: "Thiếu month/year hoặc quarter/year trong query.",
-      });
-    }
-    const assignments = await AssignmentCode.find()
-      .populate("deviceCode")
-      .populate({
-        path: "uom",
-      });
-
-    const result = [];
-
-    for (const assignment of assignments) {
-      const materials = await MaterialAssignment.find({
-        assignmentCode: assignment._id,
-      })
-        .populate("assignmentCode")
-        .populate("uom");
-      let totalQty = 0;
-      let totalValue = 0;
-      const materialsWithPrice = materials.map((item) => {
-        let currentPrice = null;
-
-        if (Array.isArray(item.priceHistory)) {
-          const matched = item.priceHistory.find((priceItem) => {
-            return (
-              priceItem.startDate <= endDate && priceItem.endDate >= startDate
-            );
-          });
-
-          if (matched) {
-            currentPrice = matched.price;
-          }
-        }
-        const qty = item.quantity || 0;
-        totalQty += qty;
-        totalValue += qty * currentPrice;
-        return {
-          ...item.toObject(),
-          currentPrice,
-        };
-      });
-
-      const averagePrice =
-        totalQty > 0 ? Math.round(totalValue / totalQty) : null;
-
-      result.push({
-        _id: assignment._id,
-        name: assignment.name,
-        code: assignment.code,
-        uom: assignment.uom?.name,
-        price: averagePrice,
-        device: assignment.deviceCode?.code,
-        materials: materialsWithPrice,
-      });
-    }
-
-    res.status(200).json({ status: "success", data: result });
-  } catch (err) {
-    res.status(500).json({ status: "error", message: err.message });
-  }
-};
 
 exports.getCount = async (req, res) => {
   try {

@@ -24,7 +24,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import ExcavationTechModal from "../../components/ExcavationTechModal/ExcavationTechModal";
+import ExcavationTechModal from "./ExcavationTechModal/ExcavationTechModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExcavationTechType } from "../../types";
 import api from "../../config/api.config";
@@ -96,7 +96,7 @@ export default function ExcavationTech() {
 
   const exportExcel = useMutation({
     mutationFn: ExcavationTechService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

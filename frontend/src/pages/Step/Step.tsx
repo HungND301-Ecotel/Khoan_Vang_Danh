@@ -24,7 +24,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import StepModal from "../../components/StepModal/StepModal";
+import StepModal from "./StepModal/StepModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StepType } from "../../types";
 import api from "../../config/api.config";
@@ -156,7 +156,7 @@ export default function Step() {
 
   const exportExcel = useMutation({
     mutationFn: StepService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

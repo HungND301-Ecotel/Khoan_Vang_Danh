@@ -38,7 +38,7 @@ import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
-import InitialPlannedCostModal from "../../components/InitialPlannedCostModal/InitialPlannedCostModal";
+import InitialPlannedCostModal from "./InitialPlannedCostModal/InitialPlannedCostModal";
 import PhaseTable from "./PhaseTable";
 import dayjs from "dayjs";
 import GroupTable from "./GroupTable";

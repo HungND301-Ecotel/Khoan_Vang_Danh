@@ -4,7 +4,7 @@ import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/vi";
-import { useField } from "formik";
+import { getIn, useField } from "formik";
 
 export default function FieldMonthYear({
   formik,
@@ -19,10 +19,8 @@ export default function FieldMonthYear({
 }) {
 
   const value = formik && fieldName
-    ? formik.values[fieldName]
+    ? getIn(formik.values, fieldName)
     : selectedMonth;
-
-  console.log(value)
 
   const setValue = (val: string) => {
     if (formik && fieldName) {

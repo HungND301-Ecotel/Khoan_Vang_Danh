@@ -7,6 +7,10 @@ const { paginateQuery } = require("../utils/pagination");
 exports.create = async (req, res) => {
   try {
     const { code } = req.body;
+    const exitDevice = await DeviceCode.countDocuments({ code: code })
+    if (exitDevice > 0) {
+      return res.status(409).json({ status: 'error', message: `Mã thiết bị '${code}' đã tồn tại` })
+    }
     const newDeviceCode = new DeviceCode({ code });
     await newDeviceCode.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

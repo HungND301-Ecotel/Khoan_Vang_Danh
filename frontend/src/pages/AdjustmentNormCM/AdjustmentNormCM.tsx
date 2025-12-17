@@ -29,7 +29,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import { AdjustmentNormInputType, AdjustmentNormOutputType } from "../../types";
-import AdjustmentNormCMModal from "../../components/AdjustmentNormCMModal/AdjustmentNormCMModal";
+import AdjustmentNormCMModal from "./AdjustmentNormCMModal/AdjustmentNormCMModal";
 import {
   showConfirmAlert,
   showErrorAlert,

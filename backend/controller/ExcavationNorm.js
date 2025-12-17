@@ -1,9 +1,13 @@
 const ExcavationNorm = require('../model/ExcavationNorm')
-const {paginateQuery}=require('../utils/pagination')
+const { paginateQuery } = require('../utils/pagination')
 
 exports.create = async (req, res) => {
     try {
         const { code, phaseGroup, phase, excavationTech, hardness, step, norms } = req.body
+        const exitData = await ExcavationNorm.countDocuments({ code: code })
+        if (exitData > 0) {
+            return res.status(409).json({ status: 'error', message: `Mã định mức đào lò '${code}' đã tồn tại` })
+        }
         const newExcavationNorm = new ExcavationNorm({ code, phaseGroup, phase, excavationTech, hardness, step, norms })
         await newExcavationNorm.save()
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })

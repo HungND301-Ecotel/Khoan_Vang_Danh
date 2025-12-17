@@ -4,6 +4,10 @@ const { paginateQuery } = require('../utils/pagination')
 exports.create = async (req, res) => {
     try {
         const { code, mirrorRatio, hardness, rockRatio, type, norms } = req.body
+        const exitAdjustment = await AdjustmentNorm.countDocuments({ code: code })
+        if (exitAdjustment > 0) {
+            return res.status(409).json({ status: 'error', message: `Mã hệ số điều chỉnh định mức '${code}' đã tồn tại` })
+        }
         const newAdjustmentNorm = new AdjustmentNorm({ code, hardness, mirrorRatio, rockRatio, type, norms })
         await newAdjustmentNorm.save()
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })

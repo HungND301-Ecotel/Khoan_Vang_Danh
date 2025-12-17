@@ -4,6 +4,10 @@ const CuttingNorm = require('../model/CuttingNorm')
 exports.create = async (req, res) => {
     try {
         const { code, phaseGroup, phase, hardness, crossSection, norms } = req.body
+        const exitData = await CuttingNorm.countDocuments({ code: code })
+        if (exitData > 0) {
+            return res.status(409).json({ status: 'error', message: `Mã định mức xén lò '${code}' đã tồn tại` })
+        }
         const newCuttingNorm = new CuttingNorm({ code, phaseGroup, phase, hardness, crossSection, norms })
         await newCuttingNorm.save()
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })

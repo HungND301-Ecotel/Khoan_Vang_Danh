@@ -3,24 +3,10 @@ const MaterialAssignment = require('../model/MaterialAssignment')
 const AssignmentNorm = require('../model/AssignmentNorm')
 const AdjustmentNorm = require('../model/AdjustmentNorm')
 
+const monthToNumber = (month) => month ? Number(month.replace('-', '')) : ''
+
 const recalculateAssignmentCodePrice = async (assignmentCodeId, startDate, endDate, month) => {
-    // if (month) {
-    //     const [queryYear, queryMonth] = month.split('-').map(Number); // [2025, 12]
 
-    //     // Đảm bảo tháng có 2 chữ số (VD: 01, 12)
-    //     const paddedMonth = String(queryMonth).padStart(2, '0');
-
-    //     // Ngày đầu tiên luôn là '01'
-    //     startDate = `${queryYear}-${paddedMonth}-01`; // Ví dụ: "2025-12-01"
-
-    //     const nextMonthDate = new Date(queryYear, queryMonth, 1);
-
-    //     nextMonthDate.setDate(nextMonthDate.getDate() - 1);
-
-    //     const lastDay = nextMonthDate.getDate();
-
-    //     endDate = `${queryYear}-${paddedMonth}-${String(lastDay).padStart(2, '0')}`;
-    // }
     const allMaterials = await MaterialAssignment.find({ assignmentCode: assignmentCodeId });
     if (allMaterials.length === 0) {
         return
@@ -28,8 +14,12 @@ const recalculateAssignmentCodePrice = async (assignmentCodeId, startDate, endDa
 
     // const todayStr = new Date().toISOString().split('T')[0];
 
-     const today = new Date();
-      const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+    const today = new Date()
+    const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}`
+
+    const currentMonthNum = monthToNumber(currentYearMonth)
 
     let totalQty = 0;
     let totalValue = 0;
@@ -37,25 +27,19 @@ const recalculateAssignmentCodePrice = async (assignmentCodeId, startDate, endDa
     for (const material of allMaterials) {
         let matchedPrice = null;
 
-        // if (Array.isArray(material.priceHistory)) {
-        //     if (startDate && endDate) {
-        //         matchedPrice = material.priceHistory.find(priceItem => {
-        //             return startDate >= priceItem.startDate && endDate <= priceItem.endDate;
-        //         });
-        //     } else {
-        //         matchedPrice = material.priceHistory.find(priceItem => {
-        //             return todayStr >= priceItem.startDate && todayStr <= priceItem.endDate;
-        //         });
-        //     }
-        // }
-         if (Array.isArray(material.priceHistory)) {
+        if (Array.isArray(material.priceHistory)) {
             if (month) {
                 matchedPrice = material.priceHistory.find(priceItem => {
-                    return priceItem.month === month;
+                    const start = monthToNumber(priceItem.startMonth)
+                    const end = monthToNumber(priceItem.endMonth)
+                    const checkMonth = monthToNumber(month)
+                    return start <= checkMonth && checkMonth <= end
                 });
             } else {
                 matchedPrice = material.priceHistory.find(priceItem => {
-                    return priceItem.month === currentYearMonth;
+                    const start = monthToNumber(priceItem.startMonth)
+                    const end = monthToNumber(priceItem.endMonth)
+                    return start <= currentMonthNum && currentMonthNum <= end
                 });
             }
         }

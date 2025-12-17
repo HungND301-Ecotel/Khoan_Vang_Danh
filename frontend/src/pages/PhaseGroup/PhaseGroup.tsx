@@ -22,7 +22,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import PhaseGroupModal from "../../components/PhaseGroupModal/PhaseGroupModal";
+import PhaseGroupModal from "./PhaseGroupModal/PhaseGroupModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PhaseGroupType } from "../../types";
 import api from "../../config/api.config";
@@ -94,7 +94,7 @@ export default function PhaseGroup({
 
   const exportExcel = useMutation({
     mutationFn: PhaseGroupService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

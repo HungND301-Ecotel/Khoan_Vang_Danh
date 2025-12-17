@@ -12,6 +12,10 @@ const { paginateQuery } = require("../utils/pagination");
 exports.create = async (req, res) => {
   try {
     const { code, name, uom, price, deviceCode } = req.body;
+    const exitAssignment = await AssignmentCode.countDocuments({ code: code })
+    if (exitAssignment > 0) {
+      return res.status(409).json({ status: 'error', message: `Mã giao khoán '${code}' đã tồn tại` })
+    }
     const newAssignmentCode = new AssignmentCode({
       code,
       name,
@@ -97,7 +101,7 @@ exports.get = async (req, res) => {
 
 exports.getCount = async (req, res) => {
   try {
-    
+
 
     res.status(200).json({ status: "success", data: pagination });
   } catch (err) {

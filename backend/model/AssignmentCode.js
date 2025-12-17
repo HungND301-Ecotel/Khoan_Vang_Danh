@@ -21,7 +21,7 @@ const AssignmentCode = new mongoose.Schema({
     },
     price: {
         type: Number
-    }
+    },
 }, {
     timestamps: true
 })

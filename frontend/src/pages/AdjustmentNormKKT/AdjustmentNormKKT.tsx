@@ -29,7 +29,7 @@ import {
   Mail,
   Search,
 } from "@mui/icons-material";
-import AdjustmentNormKCTModal from "../../components/AdjustmentNormKKTModal/AdjustmentNormKKTModal";
+import AdjustmentNormKCTModal from "./AdjustmentNormKKTModal/AdjustmentNormKKTModal";
 import {
   showConfirmAlert,
   showErrorAlert,
@@ -127,6 +127,7 @@ export default function AdjustmentNormKKT() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       showSuccessAlert("Xóa thành công");
+      setSelectedItems([])
     },
     onError: (error: any) => {
       console.log(error.response.data.message || error.response || "Lỗi");

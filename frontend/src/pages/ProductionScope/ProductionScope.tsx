@@ -31,7 +31,7 @@ import {
   ProductionScopeInputType,
   ProductionScopeOutputType,
 } from "../../types";
-import ProductionScopeModal from "../../components/ProductionScopeModal/ProductionScopeModal";
+import ProductionScopeModal from "./ProductionScopeModal/ProductionScopeModal";
 import {
   showConfirmAlert,
   showErrorAlert,
@@ -134,7 +134,7 @@ export default function ProductScope() {
 
   const exportExcel = useMutation({
     mutationFn: ProductionScopeService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

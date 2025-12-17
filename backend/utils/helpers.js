@@ -1,0 +1,1 @@
+export const monthToNumber = (month) => month ? Number(month.replace('-', '')) : ''

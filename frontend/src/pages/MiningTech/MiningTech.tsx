@@ -24,7 +24,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import MiningTechModal from "../../components/MiningTechModal/MiningTechModal";
+import MiningTechModal from "./MiningTechModal/MiningTechModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MiningtechType } from "../../types";
 import api from "../../config/api.config";
@@ -108,7 +108,7 @@ export default function MiningTech() {
 
   const exportExcel = useMutation({
     mutationFn: MiningTechService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

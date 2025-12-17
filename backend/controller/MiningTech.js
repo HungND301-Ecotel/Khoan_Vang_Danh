@@ -7,6 +7,10 @@ const { paginateQuery } = require("../utils/pagination");
 exports.create = async (req, res) => {
   try {
     const { code, name } = req.body;
+    const exitData = await MiningTech.countDocuments({ code: code })
+    if (exitData > 0) {
+      return res.status(409).json({ status: 'error', message: `Mã công nghệ khai thác '${code}' đã tồn tại` })
+    }
     const newMiningTech = new MiningTech({ code, name });
     await newMiningTech.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

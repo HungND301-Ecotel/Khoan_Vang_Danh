@@ -24,7 +24,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import { AssignmentNormInputType, AssignmentNormOutputType } from "../../types";
-import ExcavationNormModal from "../../components/ExcavationNormModal/ExcavationNormModal";
+import ExcavationNormModal from "./ExcavationNormModal/ExcavationNormModal";
 import {
   showConfirmAlert,
   showErrorAlert,

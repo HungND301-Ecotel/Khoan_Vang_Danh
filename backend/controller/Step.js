@@ -7,6 +7,10 @@ const { paginateQuery } = require("../utils/pagination");
 exports.create = async (req, res) => {
   try {
     const { name } = req.body;
+    const exitData = await Step.countDocuments({ name: name })
+    if (exitData > 0) {
+      return res.status(409).json({ status: 'error', message: `Chống '${name}' đã tồn tại` })
+    }
     const newStep = new Step({ name });
     await newStep.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

@@ -20,7 +20,7 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useRef, useState } from "react";
-import UnitModal from "../../components/UnitModal/UnitModal";
+import UnitModal from "./UnitModal/UnitModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UnitType } from "../../types";
 import api from "../../config/api.config";

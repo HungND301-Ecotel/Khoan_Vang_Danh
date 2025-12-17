@@ -7,6 +7,11 @@ const { paginateQuery } = require("../utils/pagination");
 exports.create = async (req, res) => {
   try {
     const { name } = req.body;
+    const exitUnit = await Unit.countDocuments({ name: name })
+    if (exitUnit > 0) {
+      return res.status(409).json({ status: 'error', message: `Đơn vị tính '${name}' đã tồn tại` })
+    }
+
     const newUnit = new Unit({ name });
     await newUnit.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

@@ -24,7 +24,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import LengthModal from "../../components/LengthModal/LengthModal";
+import LengthModal from "./LengthModal/LengthModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LengthType } from "../../types";
 import api from "../../config/api.config";
@@ -123,7 +123,7 @@ export default function Length() {
 
   const exportExcel = useMutation({
     mutationFn: LengthService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -156,8 +156,8 @@ export default function Length() {
               );
               showErrorAlert(
                 error.response?.data?.message ||
-                  error.response ||
-                  "Lỗi khi xóa nhiều bản ghi"
+                error.response ||
+                "Lỗi khi xóa nhiều bản ghi"
               );
             });
         }

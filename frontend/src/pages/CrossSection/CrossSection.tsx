@@ -20,7 +20,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import React, { useState, useRef } from "react";
-import CrossSectionModal from "../../components/CrossSectionModal/CrossSectionModal";
+import CrossSectionModal from "./CrossSectionModal/CrossSectionModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CrossSectionOutputType, CrossSectionInputType } from "../../types";
 import api from "../../config/api.config";
@@ -120,7 +120,7 @@ export default function CrossSection() {
 
   const exportExcel = useMutation({
     mutationFn: CrossSectionService.exportFile,
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

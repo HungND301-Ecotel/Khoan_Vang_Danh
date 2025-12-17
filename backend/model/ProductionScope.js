@@ -16,7 +16,7 @@ const ProductionScope = new mongoose.Schema({
             {
                 phase: {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref: 'PhaseGroup',
+                    ref: 'Phase',
                     required: [true, 'phase is required'],
                 },
                 // production: {

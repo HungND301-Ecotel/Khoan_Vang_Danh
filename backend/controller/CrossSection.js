@@ -8,6 +8,10 @@ const { configExport } = require("../utils/config_export");
 exports.create = async (req, res) => {
   try {
     const { name, uom } = req.body;
+    const exitData = await CrossSection.countDocuments({ name: name })
+    if (exitData > 0) {
+      return res.status(409).json({ status: 'error', message: `Công nghệ xúc '${name}' đã tồn tại` })
+    }
     const newCrossSection = new CrossSection({ name, uom });
     await newCrossSection.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

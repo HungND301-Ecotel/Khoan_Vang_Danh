@@ -27,7 +27,7 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useState, useRef } from "react";
-import MaterialAssignmentOutPlanModal from "../../components/MaterialAssignmentOutPlanModal/MaterialAssignmentOutPlan";
+import MaterialAssignmentOutPlanModal from "./MaterialAssignmentOutPlanModal/MaterialAssignmentOutPlan";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MaterialAssignmentInputType, Materials } from "../../types";
 import api from "../../config/api.config";
@@ -204,7 +204,7 @@ export default function MaterialAssignment() {
 
   const exportExcel = useMutation({
     mutationFn: () => MaterialAssignmentService.exportFile("out"),
-    onSuccess: () => {},
+    onSuccess: () => { },
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

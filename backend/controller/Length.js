@@ -7,6 +7,10 @@ const { paginateQuery } = require("../utils/pagination");
 exports.create = async (req, res) => {
   try {
     const { name } = req.body;
+    const exitData = await Length.countDocuments({ name: name })
+    if (exitData > 0) {
+      return res.status(409).json({ status: 'error', message: `Độ dài lò '${name}' đã tồn tại` })
+    }
     const newLength = new Length({ name });
     await newLength.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });

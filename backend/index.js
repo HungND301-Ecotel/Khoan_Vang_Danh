@@ -36,6 +36,8 @@ const UserRouter = require('./routes/User')
 
 const AuthRouter = require('./routes/Auth')
 
+require('./utils/cron')
+
 
 
 

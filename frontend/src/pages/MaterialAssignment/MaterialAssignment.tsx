@@ -24,7 +24,7 @@ import {
   CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import MaterialAssignmentModal from "../../components/MaterialAssignmentModal/MaterialAssignment";
+import MaterialAssignmentModal from "./MaterialAssignmentModal/MaterialAssignment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   MaterialAssignmentInputType,
