@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -39,6 +39,9 @@ import { Table as AntTable, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import AdjustmentNormService from "../../service/AdjustmentNormService";
+import { parseAxiosError } from "../../utils/handleApiError";
+import { AdjustmentNormType } from "../../enum";
 
 export default function AdjustmentNormCM() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -105,6 +108,36 @@ export default function AdjustmentNormCM() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      AdjustmentNormService.importFile(formData),
+    onMutate: () => {
+      // setIsUploading(true);
+      // setProgress(0);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
+      // setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      // setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
+    },
+  });
+
+  const exportExcel = useMutation({
+    mutationFn: () => AdjustmentNormService.exportFile(AdjustmentNormType.CM),
+    onSuccess: () => { },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
+    },
+  });
+
 
   const handleDelete = () => {
     if (selectedRows.length === 0) {
@@ -418,6 +451,7 @@ export default function AdjustmentNormCM() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
@@ -443,6 +477,7 @@ export default function AdjustmentNormCM() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
@@ -578,6 +613,21 @@ export default function AdjustmentNormCM() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx, .xls"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            importFile.mutate(formData);
+          }
+          e.target.value = "";
+        }}
       />
     </Box>
   );

@@ -3,7 +3,13 @@ const PhaseType = {
     CUTTING: "Xén lò",
     COAL: "Khấu than",
 }
+const AdjustmentType = {
+    CM: "CM",
+    CKKT: "CKKT",
+    CKĐL: "CKĐL",
+}
 
 module.exports = {
-    PhaseType
+    PhaseType,
+    AdjustmentType
 }

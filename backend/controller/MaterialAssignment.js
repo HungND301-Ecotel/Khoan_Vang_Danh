@@ -318,11 +318,76 @@ const columnMapping = {
   ĐVT: "uom",
   "Mã giao khoán": "assignmentCode",
   "Số lượng": "quantity", // Bổ sung keys cho logic Update/Delete
+  "Đơn giá": "price", // Bổ sung keys cho logic Update/Delete
   id: "_id",
   _id: "_id", // Bổ sung keys cho các cột ẩn (dropdown lists)
   assignmentCodes: "ignored",
   units: "ignored",
 };
+const parsePriceRanges = (value) => {
+  if (!value || typeof value !== "string") return [];
+
+  const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+  const parsed = value
+    .split(",")
+    .map(v => v.trim())
+    .filter(Boolean)
+    .map(item => {
+      const [range, price] = item.split("=");
+      if (!range || price === undefined) return null;
+
+      const [startMonth, endMonth] = range.split("~");
+      const numericPrice = Number(price);
+
+      // ❌ format sai
+      if (
+        !MONTH_REGEX.test(startMonth) ||
+        !MONTH_REGEX.test(endMonth) ||
+        isNaN(numericPrice)
+      ) return null;
+
+      // ❌ start > end
+      if (startMonth > endMonth) return null;
+
+      return {
+        startMonth,
+        endMonth,
+        price: numericPrice,
+        _start: monthToNumber(startMonth),
+        _end: monthToNumber(endMonth),
+      };
+    })
+    .filter(Boolean);
+
+  if (parsed.length === 0) return [];
+
+  // sort theo tháng bắt đầu
+  parsed.sort((a, b) => a._start - b._start);
+
+  // ❌ Loại bỏ khoảng bị trùng / đè / bọc
+  const result = [];
+  for (const item of parsed) {
+    const last = result[result.length - 1];
+
+    if (!last) {
+      result.push(item);
+      continue;
+    }
+
+    // Nếu overlap → bỏ item hiện tại
+    if (item._start <= last._end) {
+      continue;
+    }
+
+    result.push(item);
+  }
+
+  // cleanup field tạm
+  return result.map(({ _start, _end, ...rest }) => rest);
+};
+
+
 
 exports.import = async (req, res) => {
   try {
@@ -409,6 +474,11 @@ exports.import = async (req, res) => {
       } // --- Xử lý Tham chiếu và Dữ liệu ---
 
       let finalUpdateData = { ...updateData };
+
+      if (item.price) {
+        finalUpdateData.priceHistory = parsePriceRanges(item.price);
+      }
+
       let isItemValid = true; // 1. Xử lý assignmentCode
 
       if (assignmentCode) {
@@ -551,8 +621,14 @@ exports.export = async (req, res) => {
         width: 20,
       },
       { header: "Số lượng", key: "quantity", width: 15 },
+      { header: "Đơn giá", key: "price", width: 100 },
       { header: "_id", key: "_id", width: 20 }, // Thêm cột _id
     ].filter(Boolean);
+
+    const formatPriceRanges = (prices = []) =>
+      prices
+        .map(p => `${p.startMonth}~${p.endMonth}=${p.price}`)
+        .join(",");
 
     const formated = (data || []).map((i) => ({
       code: i?.code || "",
@@ -560,6 +636,7 @@ exports.export = async (req, res) => {
       uom: i?.uom?.name || "",
       ...(typeIn ? { assignmentCode: i?.assignmentCode?.code || "" } : {}),
       quantity: i?.quantity || 0,
+      price: formatPriceRanges(i?.priceHistory || []),
       _id: i?._id || "", // Thêm _id
     }));
 
@@ -582,7 +659,7 @@ exports.export = async (req, res) => {
     const idCol = worksheet.columns.findIndex((c) => c && c.key === "_id") + 1;
     if (idCol > 0) worksheet.getColumn(idCol).hidden = true;
 
-    const editableKeys = ["code", "name", "uom", "quantity"];
+    const editableKeys = ["code", "name", "uom", "quantity", "price"];
     // --- KHỐI LOGIC DROP DOWN BẮT ĐẦU ---
     // Cột ĐVT luôn được thêm vào cột Y
     const uomColIndex = columns.findIndex((c) => c && c.key === "uom"); // Cột ĐVT

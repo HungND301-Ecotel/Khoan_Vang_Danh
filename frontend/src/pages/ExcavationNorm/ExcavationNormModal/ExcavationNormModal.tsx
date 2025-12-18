@@ -109,6 +109,10 @@ export default function ExcavationNormModal({
     queryKey: ["steps"],
     queryFn: async () => api.get(`/steps`).then((res) => res.data.data),
   });
+  const { data: hardness = { data: [] } } = useQuery({
+    queryKey: ["hardness"],
+    queryFn: async () => api.get(`/hardness`).then((res) => res.data.data),
+  });
 
 
   const { data: excavationtechs = { data: [] } } = useQuery({
@@ -158,7 +162,7 @@ export default function ExcavationNormModal({
       phaseGroup: phaseGroup || "",
       phase: selected?.phase?._id || "",
       step: selected?.step?._id || "",
-      // hardness: selected?.hardness?._id || "",
+      hardness: selected?.hardness?._id || "",
       code: selected?.code || "",
       excavationTech: selected?.excavationTech?._id || "",
       type: "excavation",
@@ -186,7 +190,7 @@ export default function ExcavationNormModal({
     onSubmit: async (values) => {
       handleSubmit({
         ...values,
-        // hardness: values.hardness || undefined,
+        hardness: values.hardness || undefined,
         type: values.type as
           | "excavation"
           | "cutting"
@@ -586,6 +590,60 @@ export default function ExcavationNormModal({
           </>
           {/* )} */}
 
+          {/* Độ cứng */}
+          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+            Độ cứng
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <TextField
+              select
+              value={formik.values.hardness || ""}
+              onChange={(event) =>
+                formik.setFieldValue("hardness", event.target.value)
+              }
+              variant="outlined"
+              InputProps={{
+                startAdornment: formik.values.hardness ? null : (
+                  <InputAdornment
+                    position="start"
+                    sx={{ color: "#D9D9D9", ml: "12px" }}
+                  >
+                    Chọn độ cứng
+                  </InputAdornment>
+                ),
+              }}
+              error={formik.touched.hardness && Boolean(formik.errors.hardness)}
+              helperText={formik.touched.hardness && formik.errors.hardness}
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor: formik.values.hardness
+                    ? "#F2F2F2"
+                    : "#FFFFFF",
+                },
+                "& .MuiInputBase-input": {
+                  color: formik.values.hardness ? "inherit" : "transparent",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+                "& .MuiSelect-select": {
+                  padding: "6px 12px",
+                },
+              }}
+            >
+              {hardness?.data.map((item: HardnessType) => (
+                <MenuItem key={item._id} value={item._id}>
+                  {item.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Mã định mức
           </Typography>
@@ -961,7 +1019,7 @@ export default function ExcavationNormModal({
               borderWidth: "1px",
             }}
           />
-          
+
           <Box display="flex" alignItems={"center"} justifyContent={"space-between"}>
             <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
               Mã giao khoán
@@ -998,7 +1056,7 @@ export default function ExcavationNormModal({
                   )
               )}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
-                `${option.code}`  
+                `${option.code}`
               }
               value={selectedAssignmentCodes}
               onChange={(event, newValue) => {

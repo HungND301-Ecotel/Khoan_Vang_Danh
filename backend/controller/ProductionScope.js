@@ -1,4 +1,5 @@
 const ProductionScope = require("../model/ProductionScope");
+const Phase = require('../model/Phase')
 const { paginateQuery } = require("../utils/pagination");
 const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
@@ -24,6 +25,8 @@ const columnMapping = {
   Code: "code",
   Tên: "name",
   Name: "name",
+  "Công đoạn": "phase",
+  Phase: "phase",
   id: "_id",
   _id: "_id",
 };
@@ -56,8 +59,35 @@ exports.import = async (req, res) => {
         message: "Không tìm thấy dữ liệu hợp lệ trong file.",
       });
 
+    const phases = await Phase.find().lean();
+    const phaseMap = {};
+    phases.forEach((g) => {
+      if (g.code) phaseMap[g.code.trim()] = g._id;
+    });
+
     const operations = dataImport.map((item) => {
-      let { _id, code, name, ...updateData } = item;
+      let { _id, code, name, phase, ...updateData } = item;
+      let phaseIds = [];
+      if (phase) {
+        try {
+          // Nếu phase là chuỗi dạng '["XLT","DLD"]', parse nó thành mảng
+          let phaseCodes = [];
+          if (typeof phase === 'string' && phase.startsWith('[')) {
+            phaseCodes = JSON.parse(phase.replace(/'/g, '"')); // Đảm bảo đúng định dạng JSON
+          } else if (Array.isArray(phase)) {
+            phaseCodes = phase;
+          } else {
+            phaseCodes = [String(phase).trim()];
+          }
+          // Chuyển đổi mã code thành _id từ phaseMap
+          phaseIds = phaseCodes
+            .map(p => phaseMap[String(p).trim()])
+            .filter(id => id); // Loại bỏ các giá trị null/undefined nếu không tìm thấy mã
+        } catch (e) {
+          console.error("Lỗi parse phase:", phase, e.message);
+          phaseIds = [];
+        }
+      }
 
       // CLEANUP _id
       if (_id) {
@@ -81,6 +111,7 @@ exports.import = async (req, res) => {
               $set: {
                 ...(code ? { code } : {}),
                 ...(name ? { name } : {}),
+                ...(phaseIds.length > 0 ? { phases: phaseIds.map(i => ({ phase: i })) } : {}),
                 ...updateData,
               },
             },
@@ -93,7 +124,7 @@ exports.import = async (req, res) => {
           updateOne: {
             filter: { code },
             update: {
-              $set: { ...(name ? { name } : {}), ...(code ? { code } : {}) },
+              $set: { ...(name ? { name } : {}), ...(code ? { code } : {}), ...(phaseIds.length > 0 ? { phases: phaseIds.map(i => ({ phase: i })) } : {}) },
             },
             upsert: true,
           },
@@ -102,11 +133,17 @@ exports.import = async (req, res) => {
         return {
           updateOne: {
             filter: { name },
-            update: { $set: { name } },
+            update: { $set: { name, ...(phaseIds.length > 0 ? { phases: phaseIds.map(i => ({ phase: i })) } : {}) } },
             upsert: true,
           },
         };
-      return { insertOne: { document: item } };
+      const updateFields = {
+        ...(code ? { code: String(code).trim() } : {}),
+        ...(name ? { name: String(name).trim() } : {}),
+        ...(phaseIds.length > 0 ? { phases: phaseIds.map(i => ({ phase: i })) } : {}), // Thêm mảng ID công đoạn vào đây
+        ...updateData,
+      };
+      return { insertOne: { document: updateFields } };
     });
 
     await ProductionScope.bulkWrite(operations);
@@ -124,15 +161,17 @@ exports.import = async (req, res) => {
 
 exports.export = async (req, res) => {
   try {
-    const data = await ProductionScope.find();
+    const data = await ProductionScope.find().populate('phases.phase', 'code');
     const columns = [
       { header: "Mã", key: "code", width: 20 },
       { header: "Tên", key: "name", width: 30 },
+      { header: "Công đoạn", key: "phase", width: 30 },
       { header: "_id", key: "_id", width: 20 },
     ];
     const formated = (data || []).map((d) => ({
       code: d?.code || "",
       name: d?.name || "",
+      phase: d?.phases.map(i => i.phase?.code) || "",
       _id: d?._id || "",
     }));
     const workbook = new ExcelJS.Workbook();
@@ -145,7 +184,7 @@ exports.export = async (req, res) => {
     const buffer = await configExport(
       workbook,
       worksheet,
-      ["code", "name"],
+      ["code", "name", 'phase'],
       MAX
     );
     res.setHeader(

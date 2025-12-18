@@ -371,7 +371,7 @@ exports.export = async (req, res) => {
       formulae: [`=$Y$2:$Y$${unitList.length + 1}`],
     }); // 🔑 Cột cần mở khóa chỉnh sửa
 
-    const editableKeys = ["deviceCode", "code", "name", "uom", "price"];
+    const editableKeys = ["deviceCode", "code", "name", "uom"];
 
     const buffer = await configExport(workbook, worksheet, editableKeys, MAX);
 

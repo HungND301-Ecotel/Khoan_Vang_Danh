@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -39,6 +39,9 @@ import { Table as AntTable, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import AdjustmentNormService from "../../service/AdjustmentNormService";
+import { AdjustmentNormType } from "../../enum";
+import { parseAxiosError } from "../../utils/handleApiError";
 
 export default function AdjustmentNormKDL() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -107,6 +110,35 @@ export default function AdjustmentNormKDL() {
         error.response?.data?.message || error.message || "Lỗi không xác định";
       console.error(errorMessage);
       showErrorAlert(errorMessage);
+    },
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const importFile = useMutation({
+    mutationFn: (formData: FormData) =>
+      AdjustmentNormService.importFile(formData),
+    onMutate: () => {
+      // setIsUploading(true);
+      // setProgress(0);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
+      // setIsUploading(false);
+      showSuccessAlert("Import thành công!");
+    },
+    onError: (error: any) => {
+      // setIsUploading(false);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import");
+    },
+  });
+
+  const exportExcel = useMutation({
+    mutationFn: () => AdjustmentNormService.exportFile(AdjustmentNormType.CKĐL),
+    onSuccess: () => { },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
     },
   });
 
@@ -431,6 +463,7 @@ export default function AdjustmentNormKDL() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleUploadClick}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
@@ -456,6 +489,7 @@ export default function AdjustmentNormKDL() {
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={() => exportExcel.mutate()}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
@@ -591,6 +625,21 @@ export default function AdjustmentNormKDL() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx, .xls"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            importFile.mutate(formData);
+          }
+          e.target.value = "";
+        }}
       />
     </Box>
   );
