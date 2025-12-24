@@ -9,10 +9,12 @@
 REGISTRY=ecoteldev
 RELEASE_VERSION=release
 STAGING_VERSION=staging
+TAG_VERSION=$(shell git describe --tags --abbrev=0)
 
 ## Get current branch & commit ID to save to .info file 
 current_branch:=`git branch --show-current`
-commit_id:=`git rev-parse HEAD`
+commit_id:=`git rev-parse --short=7 HEAD`
+
 
 # Local build for development
 up: clean build
@@ -27,9 +29,11 @@ build:
 
 # Staging
 staging:
-	@echo "REGISTRY=${REGISTRY}\nVERSION=${STAGING_VERSION}" > .env
+	@echo "REGISTRY=${REGISTRY}\nVERSION=${STAGING_VERSION}-${TAG_VERSION}-${commit_id}" > .env
 	@echo "Docker compose build from a file..."
-	docker compose -f docker-compose-build.yaml build --parallel
+	docker compose -f docker-compose-build.yaml build \
+		--parallel \
+		--build-arg NGINX_CONF=nginx_staging.conf
 	@echo "Docker login with github secrets"
 	echo "$$DOCKER_HUB_ACCESS_TOKEN" | docker login -u "$$DOCKER_HUB_USERNAME" --password-stdin
 	@echo "Docker compose push to a DockerHub image repository for staging"
@@ -37,9 +41,11 @@ staging:
 
 # Docker compose build & publishing to Dockerhub for release
 release:
-	@echo "REGISTRY=${REGISTRY}\nVERSION=${RELEASE_VERSION}" > .env
+	@echo "REGISTRY=${REGISTRY}\nVERSION=${RELEASE_VERSION}-${TAG_VERSION}-${commit_id}" > .env
 	@echo "Docker compose build from a file..."
-	docker compose -f docker-compose-build.yaml build --parallel
+	docker compose -f docker-compose-build.yaml build \
+		--parallel \
+		--build-arg NGINX_CONF=nginx_release.conf
 	@echo "Docker login with github secrets"
 	echo "$$DOCKER_HUB_ACCESS_TOKEN" | docker login -u "$$DOCKER_HUB_USERNAME" --password-stdin
 	@echo "Docker compose push to a DockerHub image repository for release"
