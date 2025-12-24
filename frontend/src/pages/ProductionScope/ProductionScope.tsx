@@ -43,6 +43,8 @@ import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import ProductionScopeService from "../../service/ProductionScopeService";
 import { parseAxiosError } from "../../utils/handleApiError";
+import { ShowAlertImport } from "../../utils/AlertImport"
+
 
 export default function ProductScope() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -121,10 +123,10 @@ export default function ProductScope() {
       setIsUploading(true);
       setProgress(0);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["productionscopes"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

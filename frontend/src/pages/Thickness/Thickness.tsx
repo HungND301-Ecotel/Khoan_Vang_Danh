@@ -39,6 +39,7 @@ import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import ThicknessService from "../../service/ThicknessService";
 import { parseAxiosError } from "../../utils/handleApiError";
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function Thickness() {
   const [open, setOpen] = useState(false);
@@ -111,10 +112,10 @@ export default function Thickness() {
       setIsUploading(true);
       setProgress(0);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["thickness"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

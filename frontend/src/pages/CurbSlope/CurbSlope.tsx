@@ -39,6 +39,7 @@ import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import CurbSlopeService from "../../service/CurbSlopeService";
 import { parseAxiosError } from "../../utils/handleApiError";
+import { ShowAlertImport } from "../../utils/AlertImport"
 
 export default function CurbSlope() {
   const [open, setOpen] = useState(false);
@@ -109,10 +110,10 @@ export default function CurbSlope() {
       setIsUploading(true);
       setProgress(0);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["curbslopes"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

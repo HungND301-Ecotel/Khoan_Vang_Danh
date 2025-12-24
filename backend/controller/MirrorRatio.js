@@ -189,8 +189,8 @@ exports.import = async (req, res) => {
     console.log(error.stack);
     res.status(500).json({
       status: "error",
-      message: "Tải thất bại",
-      error: error.message,
+      message: error.message,
+      error: error.stack,
     });
   }
 };

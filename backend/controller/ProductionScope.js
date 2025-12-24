@@ -31,133 +31,239 @@ const columnMapping = {
   _id: "_id",
 };
 
+const mongoose = require("mongoose");
+
 exports.import = async (req, res) => {
   try {
-    if (!req.file)
-      return res
-        .status(400)
-        .json({ status: "error", message: "Vui lòng chọn file" });
+    if (!req.file) {
+      return res.status(400).json({
+        status: "error",
+        message: "Vui lòng chọn file",
+      });
+    }
+
+    /** ===== READ FILE ===== */
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
+
+    /** ===== HEADER ===== */
     const headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
     })[0];
-    const mappedHeaders = headers.map(
-      (header) => columnMapping[header] || header
-    );
-    const data = xlsx.utils.sheet_to_json(worksheet, {
+
+    const mappedHeaders = headers.map(h => columnMapping[h] || h);
+
+    const rows = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
     });
-    const dataImport = data.filter((row) => row.code || row.name || row._id);
-    if (dataImport.length === 0)
+
+    const dataImport = rows.filter(r => r._id || r.code || r.name);
+
+    if (!dataImport.length) {
       return res.status(400).json({
         status: "error",
-        message: "Không tìm thấy dữ liệu hợp lệ trong file.",
+        message: "Không tìm thấy dữ liệu hợp lệ trong file",
       });
+    }
 
-    const phases = await Phase.find().lean();
-    const phaseMap = {};
-    phases.forEach((g) => {
-      if (g.code) phaseMap[g.code.trim()] = g._id;
-    });
+    /** ===== LOAD PHASE ===== */
+    const phases = await Phase.find({}, { code: 1 }).lean();
+    const phaseMap = new Map(
+      phases
+        .filter(p => p.code)
+        .map(p => [p.code.trim().toLowerCase(), p._id])
+    );
 
-    const operations = dataImport.map((item) => {
+    /** ===== LOAD EXISTED PRODUCTION SCOPE ===== */
+    const existed = await ProductionScope.find(
+      {},
+      { code: 1, name: 1 }
+    ).lean();
+
+    const codeMap = new Map(
+      existed
+        .filter(i => i.code)
+        .map(i => [i.code.toLowerCase(), String(i._id)])
+    );
+
+    const nameMap = new Map(
+      existed
+        .filter(i => i.name)
+        .map(i => [i.name.toLowerCase(), String(i._id)])
+    );
+
+    /** ===== PROCESS ===== */
+    const operations = [];
+    const invalidRows = [];
+
+    for (const item of dataImport) {
       let { _id, code, name, phase, ...updateData } = item;
-      let phaseIds = [];
-      if (phase) {
-        try {
-          // Nếu phase là chuỗi dạng '["XLT","DLD"]', parse nó thành mảng
-          let phaseCodes = [];
-          if (typeof phase === 'string' && phase.startsWith('[')) {
-            phaseCodes = JSON.parse(phase.replace(/'/g, '"')); // Đảm bảo đúng định dạng JSON
-          } else if (Array.isArray(phase)) {
-            phaseCodes = phase;
-          } else {
-            phaseCodes = [String(phase).trim()];
-          }
-          // Chuyển đổi mã code thành _id từ phaseMap
-          phaseIds = phaseCodes
-            .map(p => phaseMap[String(p).trim()])
-            .filter(id => id); // Loại bỏ các giá trị null/undefined nếu không tìm thấy mã
-        } catch (e) {
-          console.error("Lỗi parse phase:", phase, e.message);
-          phaseIds = [];
+
+      /** CLEAN STRING */
+      const cleanCode = code ? String(code).trim() : null;
+      const cleanName = name ? String(name).trim() : null;
+
+      /** CLEAN ID */
+      if (_id) {
+        _id = String(_id).replace(/"/g, "").trim();
+        if (_id.length !== 24) {
+          invalidRows.push({ item, error: "ID không hợp lệ" });
+          continue;
         }
       }
 
-      // CLEANUP _id
-      if (_id) {
-        _id = String(_id).replace(/"/g, "").trim(); // xoá dấu "
-        if (_id.length !== 24) _id = null; // nếu không đúng ObjectId thì bỏ
+      /** PARSE PHASE */
+      let phaseIds = [];
+      if (phase) {
+        try {
+          let phaseCodes = [];
+          if (typeof phase === "string" && phase.startsWith("[")) {
+            phaseCodes = JSON.parse(phase.replace(/'/g, '"'));
+          } else if (Array.isArray(phase)) {
+            phaseCodes = phase;
+          } else {
+            phaseCodes = [phase];
+          }
+
+          phaseIds = phaseCodes
+            .map(p => phaseMap.get(String(p).trim().toLowerCase()))
+            .filter(Boolean);
+        } catch {
+          invalidRows.push({
+            item,
+            error: `Công đoạn không hợp lệ: ${phase}`,
+          });
+          continue;
+        }
       }
 
-      if (_id) {
-        const hasData =
-          Object.values(updateData).some(
-            (v) => v !== undefined && v !== null && String(v).trim() !== ""
-          ) ||
-          (code && String(code).trim() !== "") ||
-          (name && String(name).trim() !== "");
+      /** DELETE */
+      if (_id && !cleanCode && !cleanName) {
+        operations.push({
+          deleteOne: { filter: { _id } },
+        });
+        continue;
+      }
 
-        if (!hasData) return { deleteOne: { filter: { _id } } };
-        return {
+      if (!cleanCode && !cleanName) {
+        invalidRows.push({
+          item,
+          error: "Mã hoặc tên là bắt buộc",
+        });
+        continue;
+      }
+
+      const codeKey = cleanCode?.toLowerCase();
+      const nameKey = cleanName?.toLowerCase();
+
+      const existedCodeId = codeKey ? codeMap.get(codeKey) : null;
+      const existedNameId = nameKey ? nameMap.get(nameKey) : null;
+
+      /** UPDATE */
+      if (_id) {
+        if (existedCodeId && existedCodeId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Mã đã tồn tại: ${cleanCode}`,
+          });
+          continue;
+        }
+
+        if (existedNameId && existedNameId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Tên đã tồn tại: ${cleanName}`,
+          });
+          continue;
+        }
+
+        operations.push({
           updateOne: {
             filter: { _id },
             update: {
               $set: {
-                ...(code ? { code } : {}),
-                ...(name ? { name } : {}),
-                ...(phaseIds.length > 0 ? { phases: phaseIds.map(i => ({ phase: i })) } : {}),
-                ...updateData,
+                ...(cleanCode ? { code: cleanCode } : {}),
+                ...(cleanName ? { name: cleanName } : {}),
+                ...(phaseIds.length
+                  ? { phases: phaseIds.map(id => ({ phase: id })) }
+                  : {}),
+                ...updateData, // GIỮ price + field khác
               },
             },
-            upsert: true,
           },
-        };
-      }
-      if (code)
-        return {
-          updateOne: {
-            filter: { code },
-            update: {
-              $set: { ...(name ? { name } : {}), ...(code ? { code } : {}), ...(phaseIds.length > 0 ? { phases: phaseIds.map(i => ({ phase: i })) } : {}) },
-            },
-            upsert: true,
-          },
-        };
-      if (name)
-        return {
-          updateOne: {
-            filter: { name },
-            update: { $set: { name, ...(phaseIds.length > 0 ? { phases: phaseIds.map(i => ({ phase: i })) } : {}) } },
-            upsert: true,
-          },
-        };
-      const updateFields = {
-        ...(code ? { code: String(code).trim() } : {}),
-        ...(name ? { name: String(name).trim() } : {}),
-        ...(phaseIds.length > 0 ? { phases: phaseIds.map(i => ({ phase: i })) } : {}), // Thêm mảng ID công đoạn vào đây
-        ...updateData,
-      };
-      return { insertOne: { document: updateFields } };
-    });
+        });
 
-    await ProductionScope.bulkWrite(operations);
-    res.status(200).json({
+        if (cleanCode) codeMap.set(codeKey, _id);
+        if (cleanName) nameMap.set(nameKey, _id);
+        continue;
+      }
+
+      /** INSERT */
+      if (existedCodeId) {
+        invalidRows.push({
+          item,
+          error: `Mã đã tồn tại: ${cleanCode}`,
+        });
+        continue;
+      }
+
+      if (existedNameId) {
+        invalidRows.push({
+          item,
+          error: `Tên đã tồn tại: ${cleanName}`,
+        });
+        continue;
+      }
+
+      operations.push({
+        insertOne: {
+          document: {
+            ...(cleanCode ? { code: cleanCode } : {}),
+            ...(cleanName ? { name: cleanName } : {}),
+            ...(phaseIds.length
+              ? { phases: phaseIds.map(id => ({ phase: id })) }
+              : {}),
+            ...updateData,
+          },
+        },
+      });
+
+      const fakeId = new mongoose.Types.ObjectId().toString();
+      if (cleanCode) codeMap.set(codeKey, fakeId);
+      if (cleanName) nameMap.set(nameKey, fakeId);
+    }
+
+    /** ===== EXECUTE ===== */
+    const bulkResult =
+      operations.length > 0
+        ? await ProductionScope.bulkWrite(operations)
+        : null;
+
+    return res.status(200).json({
       status: "success",
-      message: `Import file thành công. Đã xử lý ${dataImport.length} bản ghi.`,
+      message: "Import thành công",
+      summary: {
+        totalProcessed: dataImport.length,
+        insertedCount: bulkResult?.insertedCount || 0,
+        updatedCount: bulkResult?.modifiedCount || 0,
+        deletedCount: bulkResult?.deletedCount || 0,
+        invalidCount: invalidRows.length,
+      },
+      invalidRows,
     });
   } catch (error) {
-    console.log(error.stack);
-    res
-      .status(500)
-      .json({ status: "error", message: "Tải thất bại", error: error.message });
+    console.error(error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
   }
 };
+
 
 exports.export = async (req, res) => {
   try {

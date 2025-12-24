@@ -26,12 +26,15 @@ const columnMapping = {
   _id: "_id",
 };
 
+
 exports.import = async (req, res) => {
   try {
-    if (!req.file)
-      return res
-        .status(400)
-        .json({ status: "error", message: "Vui lòng chọn file" });
+    if (!req.file) {
+      return res.status(400).json({
+        status: "error",
+        message: "Vui lòng chọn file",
+      });
+    }
 
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
@@ -41,70 +44,134 @@ exports.import = async (req, res) => {
       header: 1,
       range: 0,
       raw: true,
-    })[0];
-    const mappedHeaders = headers.map(
-      (header) => columnMapping[header] || header
-    );
+    })[0].map(h => String(h).trim());
+
+    const mappedHeaders = headers.map(h => columnMapping[h] || h);
+
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
     });
 
-    const dataImport = data.filter((row) => row.name || row._id);
-    if (dataImport.length === 0)
+    const dataImport = data.filter(r => r._id || r.name);
+
+    if (dataImport.length === 0) {
       return res.status(400).json({
         status: "error",
-        message: "Không tìm thấy dữ liệu hợp lệ trong file.",
+        message: "Không có dữ liệu hợp lệ",
       });
+    }
 
-    const operations = dataImport.map((item) => {
+    // 🔹 Lấy danh sách Unit hiện có
+    const curbslopes = await CurbSlope.find({}, { name: 1 }).lean();
+    const nameMap = new Map(
+      curbslopes.map(u => [u.name.toLowerCase(), String(u._id)])
+    );
+
+    const operations = [];
+    const invalidRows = [];
+
+    for (const item of dataImport) {
       let { _id, name, ...updateData } = item;
 
-      // CLEANUP _id
       if (_id) {
-        _id = String(_id).replace(/"/g, "").trim(); // xoá toàn bộ dấu "
-        if (_id.length !== 24) _id = null; // nếu không phải ObjectId hợp lệ thì bỏ
+        _id = String(_id).replace(/"/g, "").trim();
+        if (_id.length !== 24) {
+          invalidRows.push({ item, error: "ID không hợp lệ" });
+          continue;
+        }
       }
 
-      if (_id) {
-        const hasData =
-          Object.values(updateData).some(
-            (v) => v !== undefined && v !== null && String(v).trim() !== ""
-          ) ||
-          (name && String(name).trim() !== "");
+      const cleanName = name ? String(name).trim() : null;
+      const nameKey = cleanName?.toLowerCase();
+      const existedId = nameKey ? nameMap.get(nameKey) : null;
 
-        if (!hasData) return { deleteOne: { filter: { _id } } };
-        return {
+      // ===== CASE 1: Có _id nhưng không có name → DELETE
+      if (_id && !cleanName) {
+        operations.push({
+          deleteOne: { filter: { _id } },
+        });
+        continue;
+      }
+
+      // ===== CASE 2: Có _id + có name → UPDATE
+      if (_id && cleanName) {
+        if (existedId && existedId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Độ dốc vỉa đã tồn tại: ${cleanName}`,
+          });
+          continue;
+        }
+
+        operations.push({
           updateOne: {
             filter: { _id },
-            update: { $set: { ...(name ? { name } : {}), ...updateData } },
-            upsert: true,
+            update: {
+              $set: {
+                name: cleanName,
+                ...updateData,
+              },
+            },
           },
-        };
+        });
+        continue;
       }
-      if (name)
-        return {
-          updateOne: {
-            filter: { name },
-            update: { $set: { name } },
-            upsert: true,
-          },
-        };
-      return { insertOne: { document: item } };
-    });
 
-    await CurbSlope.bulkWrite(operations);
+      // ===== CASE 3: Không có _id + có name → INSERT
+      if (!_id && cleanName) {
+        if (existedId) {
+          invalidRows.push({
+            item,
+            error: `Độ dốc vỉa đã tồn tại: ${cleanName}`,
+          });
+          continue;
+        }
+
+        operations.push({
+          insertOne: {
+            document: {
+              name: cleanName,
+              ...updateData,
+            },
+          },
+        });
+        continue;
+      }
+
+      // ===== CASE INVALID
+      invalidRows.push({
+        item,
+        error: "Dòng không hợp lệ",
+      });
+    }
+
+    let bulkResult = null;
+    if (operations.length > 0) {
+      bulkResult = await CurbSlope.bulkWrite(operations);
+    }
+
     res.status(200).json({
       status: "success",
-      message: `Import file thành công. Đã xử lý ${dataImport.length} bản ghi.`,
+      message: "Import Độ dốc vỉa hoàn tất",
+      summary: {
+        totalProcessed: dataImport.length,
+        insertedCount: bulkResult?.insertedCount || 0,
+        updatedCount: bulkResult?.modifiedCount || 0,
+        deletedCount: bulkResult?.deletedCount || 0,
+        invalidCount: invalidRows.length,
+      },
+      invalidRows,
     });
   } catch (error) {
-    console.log(error.stack);
-    res
-      .status(500)
-      .json({ status: "error", message: "Tải thất bại", error: error.message });
+    console.error(error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
   }
 };
+
 
 exports.export = async (req, res) => {
   try {

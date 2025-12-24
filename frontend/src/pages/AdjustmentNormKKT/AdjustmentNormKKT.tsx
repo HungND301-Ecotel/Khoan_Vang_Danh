@@ -42,6 +42,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import AdjustmentNormService from "../../service/AdjustmentNormService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { AdjustmentNormType } from "../../enum";
+import { ShowAlertImport } from "../../utils/AlertImport"
 
 export default function AdjustmentNormKKT() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -129,15 +130,15 @@ export default function AdjustmentNormKKT() {
 
   const importFile = useMutation({
     mutationFn: (formData: FormData) =>
-      AdjustmentNormService.importFile(formData),
+      AdjustmentNormService.importFile(formData, AdjustmentNormType.CKKT),
     onMutate: () => {
       // setIsUploading(true);
       // setProgress(0);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       // setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       // setIsUploading(false);

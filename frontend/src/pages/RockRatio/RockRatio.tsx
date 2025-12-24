@@ -39,6 +39,7 @@ import custom_theme from "../../theme";
 import RockRatioService from "../../service/RockRatioService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function RockRatio() {
   const [open, setOpen] = useState(false);
@@ -136,10 +137,10 @@ export default function RockRatio() {
       setIsUploading(true);
       setProgress(0); // Reset tiến trình khi bắt đầu
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["rockratios"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

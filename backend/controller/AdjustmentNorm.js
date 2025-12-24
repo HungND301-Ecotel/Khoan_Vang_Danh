@@ -75,7 +75,6 @@ exports.get = async (req, res) => {
 }
 
 const columnMapping = {
-    "Loại": "type",
     "Mã định mức": "code",
     "Độ cứng f": "hardness",
     "Tỷ lệ đá lẫn trong gương": "rockRatio",
@@ -86,7 +85,6 @@ const columnMapping = {
     hardness: "ignored",
     rockRatios: "ignored",
     mirrorRatios: "ignored",
-    type: "ignored"
 };
 
 const parseNorms = (normsString, assignmentCodeMap) => {
@@ -108,165 +106,226 @@ const parseNorms = (normsString, assignmentCodeMap) => {
         return null;
     }).filter(Boolean); // Loại bỏ các cặp không hợp lệ hoặc không tìm thấy code
 };
+const mongoose = require('mongoose')
 exports.import = async (req, res) => {
     try {
-        // const user = req.user;
+        const type = req.query.type;
+
         if (!req.file) {
-            return res
-                .status(400)
-                .json({ status: "error", message: "Vui lòng chọn file" });
+            return res.status(400).json({
+                status: "error",
+                message: "Vui lòng chọn file",
+            });
         }
 
+        // ===== READ EXCEL =====
         const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
 
+        // ===== HEADER =====
         let headers = xlsx.utils.sheet_to_json(worksheet, {
             header: 1,
             range: 0,
             raw: true,
         })[0];
-        headers = headers.map((h) => String(h).trim()); // Làm sạch header // 1. Kiểm tra Header không hợp lệ
+
+        headers = headers.map((h) => String(h).trim());
 
         const allowedHeaders = Object.keys(columnMapping);
-        const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
+        const invalidHeaders = headers.filter(
+            (h) => !allowedHeaders.includes(h)
+        );
 
         if (invalidHeaders.length > 0) {
             return res.status(400).json({
                 status: "error",
-                message: `File không hợp lệ. Các cột sau không được phép: ${invalidHeaders.join(
+                message: `File không hợp lệ. Cột không cho phép: ${invalidHeaders.join(
                     ", "
                 )}`,
             });
         }
 
         const mappedHeaders = headers.map(
-            (header) => columnMapping[header] || header
+            (h) => columnMapping[h] || h
         );
+
         const data = xlsx.utils.sheet_to_json(worksheet, {
             header: mappedHeaders,
             range: 1,
-        }); // Lọc bản ghi hợp lệ: có _id HOẶC (có code VÀ có name)
+        });
 
-        const dataImport = data.filter((row) => (row._id || row.code) && row.type);
+        const dataImport = data.filter((r) => r._id || r.code);
 
         if (dataImport.length === 0) {
             return res.status(400).json({
                 status: "error",
-                message: "Không tìm thấy dữ liệu hợp lệ trong file.",
+                message: "Không tìm thấy dữ liệu hợp lệ",
             });
-        } // Lấy danh sách codes/units để tìm kiếm
+        }
 
+        // ===== LOAD EXISTED ADJUSTMENT NORMS (CHECK TRÙNG CODE) =====
+        const existedNorms = await AdjustmentNorm.find(
+            {},
+            { code: 1 }
+        ).lean();
+
+        const codeMap = new Map(
+            existedNorms.map((n) => [
+                n.code.toLowerCase(),
+                String(n._id),
+            ])
+        );
+
+        // ===== LOAD FK =====
         const uniqueRockRatios = [
             ...new Set(
-                dataImport.map((d) => String(d.rockRatio).trim()).filter(Boolean)
+                dataImport.map((d) => d.rockRatio && String(d.rockRatio).trim()).filter(Boolean)
             ),
         ];
+
         const uniqueMirrorRatios = [
-            ...new Set(dataImport.map((d) => String(d.mirrorRatio).trim()).filter(Boolean)),
+            ...new Set(
+                dataImport.map((d) => d.mirrorRatio && String(d.mirrorRatio).trim()).filter(Boolean)
+            ),
         ];
 
         const uniqueHardness = [
-            ...new Set(dataImport.map((d) => String(d.hardness).trim()).filter(Boolean)),
+            ...new Set(
+                dataImport.map((d) => d.hardness && String(d.hardness).trim()).filter(Boolean)
+            ),
         ];
 
-        const [existingMirrorRatios, existingRockRatios, exitingHardness] = await Promise.all([
-            MirrorRatio.find({ name: { $in: uniqueMirrorRatios } }).lean(),
+        const [rockRatios, mirrorRatios, hardnessList] = await Promise.all([
             RockRatio.find({ name: { $in: uniqueRockRatios } }).lean(),
+            MirrorRatio.find({ name: { $in: uniqueMirrorRatios } }).lean(),
             Hardness.find({ name: { $in: uniqueHardness } }).lean(),
         ]);
 
-        const rockRatioMap = new Map(
-            existingRockRatios.map((d) => [d.name, d._id])
+        const rockRatioMap = new Map(rockRatios.map((d) => [d.name, d._id]));
+        const mirrorRatioMap = new Map(mirrorRatios.map((d) => [d.name, d._id]));
+        const hardnessMap = new Map(hardnessList.map((d) => [d.name, d._id]));
+
+        const assignmentCodes = await AssignmentCode.find().lean();
+        const assignmentCodeMap = new Map(
+            assignmentCodes.map((d) => [d.code, d._id])
         );
-        const mirrorRatioMap = new Map(existingMirrorRatios.map((d) => [d.name, d._id]));
-        const hardnessMap = new Map(exitingHardness.map((d) => [d.name, d._id]));
 
-        const assignmentCodes = await AssignmentCode.find()
-        const assignmentCodeMap = new Map(assignmentCodes.map((d) => [d.code, d._id]));
-
+        // ===== PROCESS =====
         const operations = [];
         const invalidRows = [];
 
         for (const item of dataImport) {
-            // Loại bỏ cột ignored
             if (item.ignored !== undefined) delete item.ignored;
 
-            let { _id, type, code, rockRatio, mirrorRatio, hardness, norms, ...updateData } =
-                item;
+            let { _id, code, rockRatio, mirrorRatio, hardness, norms, ...updateData } = item;
 
-            // --- CLEANUP _id ---
+            // ----- CLEAN ID -----
             if (_id) {
                 _id = String(_id).replace(/"/g, "").trim();
-                if (_id.length !== 24) _id = null;
-            } // --- Xử lý Tham chiếu và Dữ liệu ---
+                if (_id.length !== 24) {
+                    invalidRows.push({ item, error: "ID không hợp lệ" });
+                    continue;
+                }
+            }
 
-            let finalUpdateData = { ...updateData };
+            const cleanCode = code ? String(code).trim() : null;
 
+            // ===== DELETE =====
+            if (_id && !cleanCode) {
+                operations.push({
+                    deleteOne: { filter: { _id } },
+                });
+                continue;
+            }
+
+            if (!cleanCode) {
+                invalidRows.push({
+                    item,
+                    error: "Mã là bắt buộc",
+                });
+                continue;
+            }
+
+            const codeKey = cleanCode.toLowerCase();
+            const existedCodeId = codeMap.get(codeKey);
+
+            // ===== TYPE =====
             if (type) {
-                if ([AdjustmentType.CKKT, AdjustmentType.CKĐL, AdjustmentType.CM].includes(String(type).trim())) {
-                    finalUpdateData.type = String(type).trim()
-                } else {
+                if (
+                    ![
+                        AdjustmentType.CKKT,
+                        AdjustmentType.CKĐL,
+                        AdjustmentType.CM,
+                    ].includes(String(type).trim())
+                ) {
                     invalidRows.push({
                         item,
                         error: `Loại định mức không hợp lệ: ${type}`,
                     });
                     continue;
                 }
+                updateData.type = String(type).trim();
             }
 
+            // ===== NORMS =====
             if (norms) {
-                finalUpdateData.norms = parseNorms(String(norms), assignmentCodeMap);
+                updateData.norms = parseNorms(
+                    String(norms),
+                    assignmentCodeMap
+                );
             }
 
+            // ===== FK HARDNESS =====
             if (hardness) {
-                const trimmedHardness = String(hardness).trim();
-                const hardnessId = hardnessMap.get(trimmedHardness);
-                if (!hardnessId) {
+                const hId = hardnessMap.get(String(hardness).trim());
+                if (!hId) {
                     invalidRows.push({
                         item,
                         error: `Độ cứng f không hợp lệ: ${hardness}`,
                     });
                     continue;
                 }
-                finalUpdateData.hardness = hardnessId;
-            } // 2. Xử lý uom
+                updateData.hardness = hId;
+            }
 
+            // ===== FK ROCK RATIO =====
             if (rockRatio) {
-                const trimmedRockRatio = String(rockRatio).trim();
-                const rockRatioId = rockRatioMap.get(trimmedRockRatio);
-                if (!rockRatioId) {
-                    invalidRows.push({ item, error: `Tỉ lệ đá lẫn trong gương không hợp lệ: ${rockRatio}` });
+                const rrId = rockRatioMap.get(String(rockRatio).trim());
+                if (!rrId) {
+                    invalidRows.push({
+                        item,
+                        error: `Tỉ lệ đá lẫn trong gương không hợp lệ: ${rockRatio}`,
+                    });
                     continue;
                 }
-                finalUpdateData.rockRatio = rockRatioId;
+                updateData.rockRatio = rrId;
             } else {
-                finalUpdateData.rockRatio = null;
+                updateData.rockRatio = null;
             }
 
+            // ===== FK MIRROR RATIO =====
             if (mirrorRatio) {
-                const trimmedMirrorRatio = String(mirrorRatio).trim();
-                const mirrorRatioId = mirrorRatioMap.get(trimmedMirrorRatio);
-                if (!mirrorRatioId) {
-                    invalidRows.push({ item, error: `Tỉ lệ gương than mềm không hợp lệ: ${mirrorRatio}` });
+                const mrId = mirrorRatioMap.get(String(mirrorRatio).trim());
+                if (!mrId) {
+                    invalidRows.push({
+                        item,
+                        error: `Tỉ lệ gương than mềm không hợp lệ: ${mirrorRatio}`,
+                    });
                     continue;
                 }
-                finalUpdateData.mirrorRatio = mirrorRatioId;
+                updateData.mirrorRatio = mrId;
             } else {
-                finalUpdateData.mirrorRatio = null;
+                updateData.mirrorRatio = null;
             }
 
-            // ------- CASE 1: Có _id → update hoặc delete -------
+            // ===== UPDATE =====
             if (_id) {
-                console.log(finalUpdateData)
-                const hasData =
-                    Object.values(finalUpdateData).some(
-                        (v) => v !== undefined && v !== null && String(v).trim() !== ""
-                    ) ||
-                    (code && String(code).trim() !== "")
-
-                if (!hasData) {
-                    operations.push({ deleteOne: { filter: { _id } } });
+                if (existedCodeId && existedCodeId !== _id) {
+                    invalidRows.push({
+                        item,
+                        error: `Mã đã tồn tại: ${cleanCode}`,
+                    });
                     continue;
                 }
 
@@ -275,60 +334,66 @@ exports.import = async (req, res) => {
                         filter: { _id },
                         update: {
                             $set: {
-                                ...(code ? { code: String(code).trim() } : {}),
-                                ...finalUpdateData,
+                                code: cleanCode,
+                                ...updateData,
                             },
                         },
-                        upsert: true,
                     },
+                });
+
+                codeMap.set(codeKey, _id);
+                continue;
+            }
+
+            // ===== INSERT =====
+            if (existedCodeId) {
+                invalidRows.push({
+                    item,
+                    error: `Mã đã tồn tại: ${cleanCode}`,
                 });
                 continue;
             }
 
-            // ------- CASE 2: Không có _id nhưng có code và name → upsert theo cặp (code, name) -------
-            if (code) {
-                operations.push({
-                    updateOne: {
-                        filter: {
-                            code: String(code).trim(),
-                        },
-                        update: {
-                            $set: {
-                                code: String(code).trim(),
-                                ...finalUpdateData, // Bao gồm FKs và quantity
-                            },
-                        },
-                        upsert: true,
+            operations.push({
+                insertOne: {
+                    document: {
+                        code: cleanCode,
+                        ...updateData,
                     },
-                });
-                continue;
-            }
+                },
+            });
+
+            const fakeId = new mongoose.Types.ObjectId().toString();
+            codeMap.set(codeKey, fakeId);
         }
 
-        let bulkResult = null;
-        if (operations.length > 0) {
-            bulkResult = await AdjustmentNorm.bulkWrite(operations);
-        }
-        res.status(200).json({
+        // ===== EXECUTE =====
+        const bulkResult =
+            operations.length > 0
+                ? await AdjustmentNorm.bulkWrite(operations)
+                : null;
+
+        return res.status(200).json({
             status: "success",
-            message: "Import dữ liệu hoàn tất.",
+            message: "Import dữ liệu hoàn tất",
             summary: {
                 totalProcessed: dataImport.length,
-                insertedCount: bulkResult ? bulkResult.upsertedCount : 0,
-                updatedCount: bulkResult ? bulkResult.modifiedCount : 0,
+                insertedCount: bulkResult?.insertedCount || 0,
+                updatedCount: bulkResult?.modifiedCount || 0,
+                deletedCount: bulkResult?.deletedCount || 0,
                 invalidCount: invalidRows.length,
             },
-            invalidRows: invalidRows,
+            invalidRows,
         });
     } catch (error) {
-        console.log(error.stack);
-        res.status(500).json({
+        console.error(error);
+        return res.status(500).json({
             status: "error",
-            message: "Tải thất bại",
-            error: error.message,
+            message: error.message,
         });
     }
 };
+
 
 exports.export = async (req, res) => {
     try {
@@ -346,7 +411,6 @@ exports.export = async (req, res) => {
             })
 
         const columns = [
-            { header: "Loại", key: "type", width: 15 },
             { header: "Mã định mức", key: "code", width: 20 },
             [AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type) && { header: "Độ cứng f", key: "hardness", width: 20 },
             [AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type) && { header: "Tỷ lệ đá lẫn trong gương", key: "rockRatio", width: 25 },
@@ -361,7 +425,6 @@ exports.export = async (req, res) => {
                 .join(",");
 
         const formated = (data || []).map((i) => ({
-            type: i?.type || '',
             code: i?.code || "",
             ...([AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type) ? { hardness: i?.hardness?.name || "" } : {}),
             ...([AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type) ? { rockRatio: i?.rockRatio?.name || "" } : {}),
@@ -394,14 +457,6 @@ exports.export = async (req, res) => {
 
         const editableKeys = ["code", "norms"];
         // --- KHỐI LOGIC DROP DOWN BẮT ĐẦU ---
-
-        worksheet.dataValidations.add(`A2:A${MAX}`, {
-            type: 'list',
-            allowBlank: true,
-            formulae: ['"CM,CKĐL,CKKT"'],
-            showErrorMessage: true,
-            errorTitle: 'Giá trị không hợp lệ',
-        });
 
         if ([AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type)) {
             // Cột ĐVT luôn được thêm vào cột Y

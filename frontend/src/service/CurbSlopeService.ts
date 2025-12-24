@@ -31,7 +31,7 @@ const CurbSlopeService = {
         onProgress(percent);
       },
     });
-    return res.data.message;
+    return res.data;
   },
   exportFile: async () => {
     const res = await api.post(

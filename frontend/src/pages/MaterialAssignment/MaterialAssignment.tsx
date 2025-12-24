@@ -45,6 +45,7 @@ import EmptyState from "../../ui/EmptyState";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import MaterialAssignmentService from "../../service/MaterialAssignmentService";
 import { parseAxiosError } from "../../utils/handleApiError";
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -198,10 +199,10 @@ export default function MaterialAssignment() {
       setIsUploading(true);
       setProgress(0); // Reset tiến trình khi bắt đầu
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

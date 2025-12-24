@@ -36,6 +36,8 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import HardnessService from "../../service/HardnessService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import HardnessModal from "./HardnessModal/HardnessModal";
+import { ShowAlertImport } from "../../utils/AlertImport"
+
 export default function Hardness() {
   const [open, setOpen] = useState(false);
   const [selectedHardness, setSelectedHardness] = useState<HardnessType | null>(
@@ -179,10 +181,10 @@ export default function Hardness() {
       setIsUploading(true);
       setProgress(0); // Reset tiến trình khi bắt đầu
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["hardness"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

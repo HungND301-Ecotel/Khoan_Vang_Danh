@@ -76,24 +76,29 @@ const columnMapping = {
   uom: "ignored", // Thêm key cột ẩn cho dropdown
 };
 
+const mongoose = require("mongoose");
+
 exports.import = async (req, res) => {
   try {
     if (!req.file) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Vui lòng chọn file" });
+      return res.status(400).json({
+        status: "error",
+        message: "Vui lòng chọn file",
+      });
     }
 
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName]; // Lấy header
+    const worksheet = workbook.Sheets[sheetName];
 
+    // ===== HEADER =====
     let headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
     })[0];
-    headers = headers.map((h) => String(h).trim()); // Làm sạch header // 1. Kiểm tra Header không hợp lệ
+
+    headers = headers.map((h) => String(h).trim());
 
     const allowedHeaders = Object.keys(columnMapping);
     const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
@@ -106,133 +111,169 @@ exports.import = async (req, res) => {
         )}`,
       });
     }
-    const mappedHeaders = headers.map((h) => columnMapping[h] || h); // Parse data
 
-    const rawData = xlsx.utils.sheet_to_json(worksheet, {
+    const mappedHeaders = headers.map(
+      (h) => columnMapping[h] || h
+    );
+
+    const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
-    }); // Lặp qua rawData để "fill down" giá trị name
+    });
 
-    let lastName = null;
-    const dataImport = rawData
-      .map((row) => {
-        // Loại bỏ cột ignored
-        if (row.ignored !== undefined) delete row.ignored;
-
-        const hasName = row.name && String(row.name).trim() !== ""; // Chuẩn hóa name và uom (trim)
-        if (row.name) row.name = String(row.name).trim();
-        if (row.uom) row.uom = String(row.uom).trim();
-
-        if (hasName) {
-          lastName = row.name;
-          return row;
-        } // Nếu dòng không có name nhưng có uom, thì đây là dòng mới của uom. // Ta sẽ gán name là lastName (từ dòng trên).
-
-        if (!hasName && lastName) {
-          row.name = lastName;
-          return row;
-        }
-
-        return row;
-      })
-      .filter((row) => row.name || row._id); // Lọc chỉ giữ các dòng có name hoặc _id
+    const dataImport = data.filter((r) => r._id || r.name);
 
     if (dataImport.length === 0) {
       return res.status(400).json({
         status: "error",
         message: "Không tìm thấy dữ liệu hợp lệ trong file.",
       });
-    } // Lấy các unit từ DB
-
-    const uniqueUnits = [
-      ...new Set(dataImport.map((d) => d.uom).filter(Boolean)),
-    ];
-
-    const existingUnits = await Unit.find({
-      name: { $in: uniqueUnits },
-    }).lean();
-
-    const unitMap = new Map(existingUnits.map((d) => [d.name.trim(), d._id])); // Tạo unit mới nếu chưa có
-
-    for (const u of uniqueUnits) {
-      if (!unitMap.has(u)) {
-        const newUnit = await Unit.create({ name: u });
-        unitMap.set(u, newUnit._id);
-      }
     }
 
-    const operations = dataImport.map((item) => {
+    // ===== LOAD PHASE GROUP =====
+    const units = await Unit.find({}, { name: 1 }).lean();
+    const unitMap = new Map(
+      units.map((g) => [g.name.trim(), g._id])
+    );
+
+    // ===== LOAD EXISTED PHASE =====
+    const existed = await CrossSection.find({}, { name: 1 }).lean();
+
+    const nameMap = new Map(
+      existed
+        .filter((p) => p.name)
+        .map((p) => [p.name.toLowerCase(), String(p._id)])
+    );
+
+    // ===== PROCESS =====
+    const operations = [];
+    const invalidRows = [];
+
+    for (const item of dataImport) {
+      if (item.ignored !== undefined) delete item.ignored;
+
       let { _id, name, uom, ...updateData } = item;
 
-      let finalName = name ? String(name).trim() : null;
-      let finalUom = uom ? String(uom).trim() : null; // CLEANUP _id
-
+      // --- CLEAN ID ---
       if (_id) {
         _id = String(_id).replace(/"/g, "").trim();
-        if (_id.length !== 24) _id = null;
+        if (_id.length !== 24) {
+          invalidRows.push({ item, error: "ID không hợp lệ" });
+          continue;
+        }
       }
 
-      let finalUpdateData = { ...updateData }; // Map unit name sang unitId (Chỉ gán nếu tồn tại trong map)
+      const cleanName = name ? String(name).trim() : null;
 
-      if (finalUom && unitMap.has(finalUom)) {
-        finalUpdateData.uom = unitMap.get(finalUom);
+      // --- MAP GROUP ---
+      if (uom) {
+        const gId = unitMap.get(String(uom).trim());
+        if (!gId) {
+          invalidRows.push({
+            item,
+            error: `Đơn vị tính không tồn tại: ${uom}`,
+          });
+          continue;
+        }
+        updateData.uom = gId;
+      } else {
+        updateData.uom = null;
       }
 
-      const $setFields = {
-        ...(finalName ? { name: finalName } : {}),
-        ...finalUpdateData, // Chứa uom đã map và các trường khác
-      }; // ------- CASE 1: Có _id → update hoặc delete -------
+      // ===== DELETE =====
+      if (_id && !cleanName) {
+        operations.push({ deleteOne: { filter: { _id } } });
+        continue;
+      }
 
+      if (!cleanName) {
+        invalidRows.push({
+          item,
+          error: "Tiết diện là bắt buộc",
+        });
+        continue;
+      }
+
+      const nameKey = cleanName?.toLowerCase();
+
+      const existedNameId = nameKey ? nameMap.get(nameKey) : null;
+
+      // ===== UPDATE =====
       if (_id) {
-        const hasData =
-          Object.values(finalUpdateData).some(
-            (v) => v !== undefined && v !== null && String(v).trim() !== ""
-          ) ||
-          (finalName && finalName !== "");
+        if (existedNameId && existedNameId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Tiết diện đã tồn tại: ${cleanName}`,
+          });
+          continue;
+        }
 
-        if (!hasData) return { deleteOne: { filter: { _id } } };
-
-        return {
+        operations.push({
           updateOne: {
             filter: { _id },
-            update: { $set: $setFields },
-            upsert: true,
+            update: {
+              $set: {
+                ...(cleanName ? { name: cleanName } : {}),
+                ...updateData,
+              },
+            },
           },
-        };
-      } // ------- CASE 2: Không có _id nhưng có name → upsert theo name -------
+        });
 
-      if (finalName) {
-        return {
-          updateOne: {
-            filter: { name: finalName },
-            update: { $set: $setFields },
-            upsert: true,
+        if (cleanName) nameMap.set(nameKey, _id);
+        continue;
+      }
+
+      // ===== INSERT =====
+
+      if (existedNameId) {
+        invalidRows.push({
+          item,
+          error: `Tên đã tồn tại: ${cleanName}`,
+        });
+        continue;
+      }
+
+      operations.push({
+        insertOne: {
+          document: {
+            ...(cleanName ? { name: cleanName } : {}),
+            ...updateData,
           },
-        };
-      } // ------- CASE 3: Insert mới (dòng gốc) -------
+        },
+      });
 
-      return { insertOne: { document: item } };
-    });
-
-    if (operations.length > 0) {
-      await CrossSection.bulkWrite(operations);
+      const fakeId = new mongoose.Types.ObjectId().toString();
+      if (cleanName) nameMap.set(nameKey, fakeId);
     }
 
-    res.status(200).json({
+    // ===== EXECUTE =====
+    const bulkResult =
+      operations.length > 0
+        ? await CrossSection.bulkWrite(operations)
+        : null;
+
+    return res.status(200).json({
       status: "success",
-      message: "Import dữ liệu hoàn tất.",
-      totalProcessed: dataImport.length,
+      message: "Import thành công",
+      summary: {
+        totalProcessed: dataImport.length,
+        insertedCount: bulkResult?.insertedCount || 0,
+        updatedCount: bulkResult?.modifiedCount || 0,
+        deletedCount: bulkResult?.deletedCount || 0,
+        invalidCount: invalidRows.length,
+      },
+      invalidRows,
     });
-  } catch (err) {
-    console.log(err.stack);
-    res.status(500).json({
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
       status: "error",
-      message: "Tải thất bại",
-      error: err.message,
-      stack: err.stack,
+      message: error.message,
     });
   }
 };
+
 
 exports.export = async (req, res) => {
   try {
@@ -289,9 +330,8 @@ exports.export = async (req, res) => {
   } catch (err) {
     res.status(500).json({
       status: "error",
-      message: "Tải thất bại",
-      error: err.message,
-      stack: err.stack,
+      message: err.message,
+      error: err.stack,
     });
   }
 };

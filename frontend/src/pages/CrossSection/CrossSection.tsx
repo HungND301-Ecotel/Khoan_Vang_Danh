@@ -35,6 +35,7 @@ import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import CrossSectionService from "../../service/CrossSectionService";
 import { parseAxiosError } from "../../utils/handleApiError";
+import { ShowAlertImport } from "../../utils/AlertImport"
 
 export default function CrossSection() {
   const [open, setOpen] = useState(false);
@@ -107,10 +108,10 @@ export default function CrossSection() {
       setIsUploading(true);
       setProgress(0);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["crosssections"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

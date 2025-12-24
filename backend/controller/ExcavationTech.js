@@ -69,80 +69,172 @@ exports.get = async (req, res) => {
 
 const columnMapping = {
   "Công nghệ xúc": "name",
+  "_id": "_id"
 };
+
+const mongoose = require("mongoose");
 
 exports.import = async (req, res) => {
   try {
     if (!req.file) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Vui lòng chọn file" });
+      return res.status(400).json({
+        status: "error",
+        message: "Vui lòng chọn file",
+      });
     }
 
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
 
-    // Lấy header
+    // ===== HEADER =====
     const headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
-    })[0];
+    })[0].map(h => String(h).trim());
 
-    const mappedHeaders = headers.map(
-      (header) => columnMapping[header] || header
-    );
+    const allowedHeaders = Object.keys(columnMapping);
+    const invalidHeaders = headers.filter(h => !allowedHeaders.includes(h));
 
-    // Parse dữ liệu
+    if (invalidHeaders.length > 0) {
+      return res.status(400).json({
+        status: "error",
+        message: `File không hợp lệ. Cột không cho phép: ${invalidHeaders.join(", ")}`,
+      });
+    }
+
+    const mappedHeaders = headers.map(h => columnMapping[h] || h);
+
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
     });
 
-    // Lọc bản ghi hợp lệ (có name)
-    const dataImport = data.filter((row) => row.name);
+    const dataImport = data.filter(r => r._id || r.name);
 
-    if (dataImport.length === 0) {
+    if (!dataImport.length) {
       return res.status(400).json({
         status: "error",
-        message: "Không tìm thấy dữ liệu hợp lệ trong file.",
+        message: "Không tìm thấy dữ liệu hợp lệ",
       });
     }
 
-    // Bulk write (upsert theo name)
-    const operations = dataImport.map((item) => ({
-      updateOne: {
-        filter: { name: item.name.trim() },
-        update: { $set: { name: item.name.trim() } },
-        upsert: true,
-      },
-    }));
+    // ===== LOAD EXISTED =====
+    const existed = await ExcavationTech.find({}, { name: 1 }).lean();
+    const nameMap = new Map(
+      existed.map(r => [r.name.toLowerCase(), String(r._id)])
+    );
 
-    await ExcavationTech.bulkWrite(operations);
+    const operations = [];
+    const invalidRows = [];
 
-    res.status(200).json({
+    for (const item of dataImport) {
+      let { _id, name, ...updateData } = item;
+
+      // --- CLEAN ID ---
+      if (_id) {
+        _id = String(_id).replace(/"/g, "").trim();
+        if (_id.length !== 24) {
+          invalidRows.push({ item, error: "ID không hợp lệ" });
+          continue;
+        }
+      }
+
+      const cleanName = name ? String(name).trim() : null;
+
+      // ===== DELETE =====
+      if (_id && !cleanName) {
+        operations.push({ deleteOne: { filter: { _id } } });
+        continue;
+      }
+
+      if (!cleanName) {
+        invalidRows.push({ item, error: "Tên là bắt buộc" });
+        continue;
+      }
+
+      const nameKey = cleanName.toLowerCase();
+      const existedId = nameMap.get(nameKey);
+
+      // ===== UPDATE =====
+      if (_id) {
+        if (existedId && existedId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Tên đã tồn tại: ${cleanName}`,
+          });
+          continue;
+        }
+
+        operations.push({
+          updateOne: {
+            filter: { _id },
+            update: { $set: { name: cleanName, ...updateData } },
+          },
+        });
+
+        nameMap.set(nameKey, _id);
+        continue;
+      }
+
+      // ===== INSERT =====
+      if (existedId) {
+        invalidRows.push({
+          item,
+          error: `Tên đã tồn tại: ${cleanName}`,
+        });
+        continue;
+      }
+
+      operations.push({
+        insertOne: {
+          document: { name: cleanName, ...updateData },
+        },
+      });
+
+      nameMap.set(nameKey, new mongoose.Types.ObjectId().toString());
+    }
+
+    const bulkResult =
+      operations.length > 0
+        ? await ExcavationTech.bulkWrite(operations)
+        : null;
+
+    return res.status(200).json({
       status: "success",
-      message: `Import thành công. Đã xử lý ${dataImport.length} bản ghi.`,
+      message: "Import thành công",
+      summary: {
+        totalProcessed: dataImport.length,
+        insertedCount: bulkResult?.insertedCount || 0,
+        updatedCount: bulkResult?.modifiedCount || 0,
+        deletedCount: bulkResult?.deletedCount || 0,
+        invalidCount: invalidRows.length,
+      },
+      invalidRows,
     });
   } catch (error) {
-    console.error(error.stack);
-    res.status(500).json({
+    console.error(error);
+    return res.status(500).json({
       status: "error",
-      message: "Import thất bại",
-      error: error.message,
+      message: error.message,
     });
   }
 };
+
 
 exports.export = async (req, res) => {
   try {
     const data = await ExcavationTech.find().lean();
 
-    const columns = [{ header: "Công nghệ xúc", key: "name", width: 30 }];
+    const columns = [
+      { header: "Công nghệ xúc", key: "name", width: 30 },
+      { header: "_id", key: "_id", width: 20 },
+    ];
 
     const formatted = (data || []).map((i) => ({
       name: i?.name || "",
+      _id: i?._id
     }));
 
     const workbook = new ExcelJS.Workbook();
@@ -151,10 +243,14 @@ exports.export = async (req, res) => {
     worksheet.columns = columns;
     worksheet.addRows(formatted);
 
+    // Ẩn cột id (giống code mẫu)
+    const idCol = worksheet.columns.findIndex((c) => c && c.key === "_id") + 1;
+    if (idCol > 0) worksheet.getColumn(idCol).hidden = true;
+
     const MAX = Math.max(worksheet.rowCount + 50, 200);
 
     // Không dropdown nên validations = []
-    const buffer = await configExport(workbook, worksheet, [], MAX);
+    const buffer = await configExport(workbook, worksheet, ["name"], MAX);
 
     res.setHeader(
       "Content-Type",

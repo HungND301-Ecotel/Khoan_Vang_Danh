@@ -35,6 +35,7 @@ import custom_theme from "../../theme";
 import UnitService from "../../service/UnitService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function Unit() {
   const [open, setOpen] = useState(false);
@@ -82,10 +83,10 @@ export default function Unit() {
       setIsUploading(true);
       setProgress(0); // Reset tiến trình khi bắt đầu
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["units"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

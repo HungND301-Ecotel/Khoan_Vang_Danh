@@ -37,6 +37,7 @@ import custom_theme from "../../theme";
 import PhaseGroupService from "../../service/PhaseGroupService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import { ShowAlertImport } from "../../utils/AlertImport"
 
 interface PhaseGroupProps {
   searchValue?: string;
@@ -110,10 +111,10 @@ export default function PhaseGroup({
       setIsUploading(true);
       setProgress(0); // Reset tiến trình khi bắt đầu
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["phasegroups"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

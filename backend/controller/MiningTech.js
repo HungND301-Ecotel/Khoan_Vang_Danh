@@ -27,97 +27,183 @@ const columnMapping = {
   id: "_id",
   _id: "_id",
 };
-
+const mongoose = require('mongoose')
 exports.import = async (req, res) => {
   try {
-    if (!req.file)
-      return res
-        .status(400)
-        .json({ status: "error", message: "Vui lòng chọn file" });
+    if (!req.file) {
+      return res.status(400).json({
+        status: "error",
+        message: "Vui lòng chọn file",
+      });
+    }
+
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
+
     const headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
-    })[0];
-    const mappedHeaders = headers.map(
-      (header) => columnMapping[header] || header
-    );
+    })[0].map(h => String(h).trim());
+
+    const mappedHeaders = headers.map(h => columnMapping[h] || h);
+
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
     });
-    const dataImport = data.filter((row) => row.code || row.name || row._id);
-    if (dataImport.length === 0)
+
+    const dataImport = data.filter(r => r._id || r.name || r.code);
+
+    if (dataImport.length === 0) {
       return res.status(400).json({
         status: "error",
-        message: "Không tìm thấy dữ liệu hợp lệ trong file.",
+        message: "Không có dữ liệu hợp lệ",
       });
+    }
 
-    const operations = dataImport.map((item) => {
+    // 🔹 Lấy danh sách Unit hiện có
+    const miningtechs = await MiningTech.find({}, { code: 1, name: 1 }).lean();
+    const nameMap = new Map(
+      miningtechs.map(u => [u.name.toLowerCase(), String(u._id)])
+    );
+    const codeMap = new Map(
+      miningtechs.map(u => [u.code.toLowerCase(), String(u._id)])
+    );
+
+    const operations = [];
+    const invalidRows = [];
+
+    for (const item of dataImport) {
       let { _id, code, name, ...updateData } = item;
 
-      // CLEANUP _id trước khi dùng
       if (_id) {
-        _id = String(_id).replace(/"/g, "").trim(); // xoá dấu "
-        if (_id.length !== 24) _id = null; // nếu không phải ObjectId hợp lệ thì bỏ luôn
+        _id = String(_id).replace(/"/g, "").trim();
+        if (_id.length !== 24) {
+          invalidRows.push({ item, error: "ID không hợp lệ" });
+          continue;
+        }
       }
 
+      const cleanName = name ? String(name).trim() : null;
+      const cleanCode = code ? String(code).trim() : null;
+
+      // ===== DELETE =====
+      if (_id && !cleanCode && !cleanName) {
+        operations.push({
+          deleteOne: { filter: { _id } },
+        });
+        continue;
+      }
+
+      if (!cleanCode && !cleanName) {
+        invalidRows.push({
+          item,
+          error: "Mã hoặc tên là bắt buộc",
+        });
+        continue;
+      }
+
+      const nameKey = cleanName?.toLowerCase();
+      const codeKey = cleanCode?.toLowerCase();
+
+      const existedCodeId = codeKey ? codeMap.get(codeKey) : null;
+      const existedNameId = nameKey ? nameMap.get(nameKey) : null;
+
+
+      // ===== UPDATE =====
       if (_id) {
-        const hasData =
-          Object.values(updateData).some(
-            (v) => v !== undefined && v !== null && String(v).trim() !== ""
-          ) ||
-          (code && String(code).trim() !== "") ||
-          (name && String(name).trim() !== "");
-        if (!hasData) return { deleteOne: { filter: { _id } } };
-        return {
+        if (existedCodeId && existedCodeId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Mã đã tồn tại: ${cleanCode}`,
+          });
+          continue;
+        }
+
+        if (existedNameId && existedNameId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Tên đã tồn tại: ${cleanName}`,
+          });
+          continue;
+        }
+
+        operations.push({
           updateOne: {
             filter: { _id },
             update: {
               $set: {
-                ...(code ? { code } : {}),
-                ...(name ? { name } : {}),
+                ...(cleanCode ? { code: cleanCode } : {}),
+                ...(cleanName ? { name: cleanName } : {}),
                 ...updateData,
               },
             },
-            upsert: true,
           },
-        };
-      }
-      if (code)
-        return {
-          updateOne: {
-            filter: { code },
-            update: {
-              $set: { ...(name ? { name } : {}), ...(code ? { code } : {}) },
-            },
-            upsert: true,
-          },
-        };
-      if (name)
-        return {
-          updateOne: {
-            filter: { name },
-            update: { $set: { name } },
-            upsert: true,
-          },
-        };
-      return { insertOne: { document: item } };
-    });
+        });
 
-    await MiningTech.bulkWrite(operations);
+        if (cleanCode) codeMap.set(codeKey, _id);
+        if (cleanName) nameMap.set(nameKey, _id);
+        continue;
+      }
+
+      // ===== INSERT =====
+      if (existedCodeId) {
+        invalidRows.push({
+          item,
+          error: `Mã đã tồn tại: ${cleanCode}`,
+        });
+        continue;
+      }
+
+      if (existedNameId) {
+        invalidRows.push({
+          item,
+          error: `Tên đã tồn tại: ${cleanName}`,
+        });
+        continue;
+      }
+
+      operations.push({
+        insertOne: {
+          document: {
+            ...(cleanCode ? { code: cleanCode } : {}),
+            ...(cleanName ? { name: cleanName } : {}),
+            ...updateData,
+          },
+        },
+      });
+
+      const fakeId = new mongoose.Types.ObjectId().toString();
+      if (cleanCode) codeMap.set(codeKey, fakeId);
+      if (cleanName) nameMap.set(nameKey, fakeId);
+    }
+
+    // ===== EXECUTE =====
+    const bulkResult =
+      operations.length > 0
+        ? await MiningTech.bulkWrite(operations)
+        : null;
+
     res.status(200).json({
       status: "success",
-      message: `Import file thành công. Đã xử lý ${dataImport.length} bản ghi.`,
+      message: "Import công nghệ khai thác hoàn tất",
+      summary: {
+        totalProcessed: dataImport.length,
+        insertedCount: bulkResult?.insertedCount || 0,
+        updatedCount: bulkResult?.modifiedCount || 0,
+        deletedCount: bulkResult?.deletedCount || 0,
+        invalidCount: invalidRows.length,
+      },
+      invalidRows,
     });
   } catch (error) {
-    console.log(error.stack);
-    res
-      .status(500)
-      .json({ status: "error", message: "Tải thất bại", error: error.message });
+    console.error(error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
   }
 };
 

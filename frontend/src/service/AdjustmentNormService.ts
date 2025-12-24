@@ -22,18 +22,19 @@ const AdjustmentNormService = {
   },
   importFile: async (
     formData: FormData,
-    onProgress?: (percent: number) => void
+    // onProgress?: (percent: number) => void,
+    type: string
   ) => {
-    const res = await api.post("/adjustmentnorms/importFile", formData, {
+    const res = await api.post(`/adjustmentnorms/importFile?type=${type}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
-      onUploadProgress: (e) => {
-        if (!onProgress) return;
-        const total = e.total ?? 1;
-        const percent = Math.round((e.loaded * 100) / total);
-        onProgress(percent);
-      },
+      // onUploadProgress: (e) => {
+      //   if (!onProgress) return;
+      //   const total = e.total ?? 1;
+      //   const percent = Math.round((e.loaded * 100) / total);
+      //   onProgress(percent);
+      // },
     });
-    return res.data.message;
+    return res.data;
   },
   exportFile: async (type: string) => {
     const res = await api.post(

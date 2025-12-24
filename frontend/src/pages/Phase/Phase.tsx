@@ -35,6 +35,8 @@ import custom_theme from "../../theme";
 import { parseAxiosError } from "../../utils/handleApiError";
 import PhaseService from "../../service/PhaseService";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import { ShowAlertImport } from "../../utils/AlertImport"
+
 
 interface PhaseProps {
   searchValue?: string;
@@ -85,10 +87,10 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
       setIsUploading(true);
       setProgress(0);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["phases"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

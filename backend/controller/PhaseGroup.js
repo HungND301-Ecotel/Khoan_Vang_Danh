@@ -78,129 +78,217 @@ const columnMapping = {
   _id: "_id", // Bổ sung ánh xạ _id
 };
 
+const mongoose = require("mongoose");
+
 exports.import = async (req, res) => {
   try {
     if (!req.file) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Vui lòng chọn file" });
+      return res.status(400).json({
+        status: "error",
+        message: "Vui lòng chọn file",
+      });
     }
 
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName]; // Lấy header
+    const worksheet = workbook.Sheets[sheetName];
 
+    // ===== HEADER =====
     const headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
-    })[0]; // 1. Kiểm tra Header không hợp lệ
+    })[0];
 
     const allowedHeaders = Object.keys(columnMapping);
-    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
+    const invalidHeaders = headers.filter(
+      (h) => !allowedHeaders.includes(h)
+    );
 
     if (invalidHeaders.length > 0) {
       return res.status(400).json({
         status: "error",
-        message: `File không hợp lệ. Các cột sau không được phép: ${invalidHeaders.join(
+        message: `File không hợp lệ. Cột không cho phép: ${invalidHeaders.join(
           ", "
         )}`,
       });
-    } // Map header → key trong DB
+    }
 
-    const mappedHeaders = headers.map(
-      (header) => columnMapping[header] || header
-    ); // Parse dữ liệu
+    const mappedHeaders = headers.map((h) => columnMapping[h] || h);
 
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
-    }); // Lọc bản ghi hợp lệ (có _id, code, hoặc name)
+    });
 
-    const dataImport = data.filter((row) => row._id || row.code || row.name);
+    // PhaseGroup cần _id HOẶC code HOẶC name
+    const dataImport = data.filter((r) => r._id || r.code || r.name);
 
     if (dataImport.length === 0) {
       return res.status(400).json({
         status: "error",
-        message: "Không tìm thấy dữ liệu hợp lệ trong file.",
+        message: "Không tìm thấy dữ liệu hợp lệ",
       });
-    } // Tạo các operation bulk
+    }
 
-    const operations = dataImport.map((item) => {
-      let { _id, code, name, ...updateData } = item; // Cần destructure _id, code, name // --- CLEANUP _id ---
+    // ===== LOAD EXISTED CODE + NAME =====
+    const existed = await PhaseGroup.find(
+      {},
+      { code: 1, name: 1 }
+    ).lean();
 
+    const codeMap = new Map(
+      existed
+        .filter((r) => r.code)
+        .map((r) => [r.code.toLowerCase(), String(r._id)])
+    );
+
+    const nameMap = new Map(
+      existed
+        .filter((r) => r.name)
+        .map((r) => [r.name.toLowerCase(), String(r._id)])
+    );
+
+    // ===== PROCESS =====
+    const operations = [];
+    const invalidRows = [];
+
+    for (const item of dataImport) {
+      let { _id, code, name, ...updateData } = item;
+
+      // --- CLEAN ID ---
       if (_id) {
         _id = String(_id).replace(/"/g, "").trim();
-        if (_id.length !== 24) _id = null;
-      } // ------- CASE 1: Có _id → update hoặc delete -------
+        if (_id.length !== 24) {
+          invalidRows.push({
+            item,
+            error: "ID không hợp lệ",
+          });
+          continue;
+        }
+      }
 
+      const cleanCode = code ? String(code).trim() : null;
+      const cleanName = name ? String(name).trim() : null;
+
+      // ===== DELETE =====
+      if (_id && !cleanCode && !cleanName) {
+        operations.push({
+          deleteOne: { filter: { _id } },
+        });
+        continue;
+      }
+
+      if (!cleanCode && !cleanName) {
+        invalidRows.push({
+          item,
+          error: "Mã hoặc tên là bắt buộc",
+        });
+        continue;
+      }
+
+      const codeKey = cleanCode?.toLowerCase();
+      const nameKey = cleanName?.toLowerCase();
+
+      const existedCodeId = codeKey ? codeMap.get(codeKey) : null;
+      const existedNameId = nameKey ? nameMap.get(nameKey) : null;
+
+      // ===== UPDATE =====
       if (_id) {
-        // Kiểm tra xem dòng có dữ liệu thực sự hay không
-        const hasData =
-          Object.values(updateData).some(
-            (v) => v !== undefined && v !== null && String(v).trim() !== ""
-          ) ||
-          (code && String(code).trim() !== "") ||
-          (name && String(name).trim() !== ""); // Nếu không có dữ liệu ⇒ delete
+        if (existedCodeId && existedCodeId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Mã đã tồn tại: ${cleanCode}`,
+          });
+          continue;
+        }
 
-        if (!hasData) return { deleteOne: { filter: { _id } } }; // Nếu có dữ liệu ⇒ update/upsert
+        if (existedNameId && existedNameId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Tên đã tồn tại: ${cleanName}`,
+          });
+          continue;
+        }
 
-        return {
+        operations.push({
           updateOne: {
             filter: { _id },
             update: {
               $set: {
-                ...(code ? { code: String(code).trim() } : {}),
-                ...(name ? { name: String(name).trim() } : {}),
+                ...(cleanCode ? { code: cleanCode } : {}),
+                ...(cleanName ? { name: cleanName } : {}),
                 ...updateData,
               },
             },
-            upsert: true,
           },
-        };
-      } // ------- CASE 2: Không có _id nhưng có code → upsert theo code -------
+        });
 
-      if (code) {
-        return {
-          updateOne: {
-            filter: { code: String(code).trim() },
-            update: {
-              $set: {
-                code: String(code).trim(),
-                ...(name ? { name: String(name).trim() } : {}),
-                ...updateData,
-              },
-            },
-            upsert: true,
-          },
-        };
+        if (cleanCode) codeMap.set(codeKey, _id);
+        if (cleanName) nameMap.set(nameKey, _id);
+        continue;
       }
 
-      // ------- CASE 3: Chỉ có name hoặc không có gì (Insert) -------
-      // Do đã lọc dataImport.filter((row) => row._id || row.code || row.name);
-      // và đã xử lý Case 1 và Case 2, còn lại là insert mới
-      return {
+      // ===== INSERT =====
+      if (existedCodeId) {
+        invalidRows.push({
+          item,
+          error: `Mã đã tồn tại: ${cleanCode}`,
+        });
+        continue;
+      }
+
+      if (existedNameId) {
+        invalidRows.push({
+          item,
+          error: `Tên đã tồn tại: ${cleanName}`,
+        });
+        continue;
+      }
+
+      operations.push({
         insertOne: {
-          document: item,
+          document: {
+            ...(cleanCode ? { code: cleanCode } : {}),
+            ...(cleanName ? { name: cleanName } : {}),
+            ...updateData,
+          },
         },
-      };
-    });
+      });
 
-    await PhaseGroup.bulkWrite(operations);
+      const fakeId = new mongoose.Types.ObjectId().toString();
+      if (cleanCode) codeMap.set(codeKey, fakeId);
+      if (cleanName) nameMap.set(nameKey, fakeId);
+    }
 
-    res.status(200).json({
+    // ===== EXECUTE =====
+    const bulkResult =
+      operations.length > 0
+        ? await PhaseGroup.bulkWrite(operations)
+        : null;
+
+    return res.status(200).json({
       status: "success",
-      message: `Import file thành công. Đã xử lý ${dataImport.length} bản ghi.`,
+      message: "Import thành công",
+      summary: {
+        totalProcessed: dataImport.length,
+        insertedCount: bulkResult?.insertedCount || 0,
+        updatedCount: bulkResult?.modifiedCount || 0,
+        deletedCount: bulkResult?.deletedCount || 0,
+        invalidCount: invalidRows.length,
+      },
+      invalidRows,
     });
   } catch (error) {
-    console.log(error.stack);
-    res.status(500).json({
+    console.error(error);
+    return res.status(500).json({
       status: "error",
-      message: "Tải thất bại",
-      error: error.message,
+      message: error.message,
     });
   }
 };
+
+
 
 exports.export = async (req, res) => {
   try {

@@ -35,6 +35,7 @@ import custom_theme from "../../theme";
 import DeviceCodeService from "../../service/DeviceCodeService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function DeviceCode() {
   const [open, setOpen] = useState(false);
@@ -154,10 +155,10 @@ export default function DeviceCode() {
       setIsUploading(true);
       setProgress(0); // Reset tiến trình khi bắt đầu
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["devicecodes"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

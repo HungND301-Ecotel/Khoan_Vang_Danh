@@ -48,6 +48,7 @@ import { parseAxiosError } from "../../utils/handleApiError";
 import LoadingSkeleton from "../../ui/LoadingSkeleton";
 import EmptyState from "../../ui/EmptyState";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function AssignmentCode() {
   const [open, setOpen] = useState(false);
@@ -122,10 +123,10 @@ export default function AssignmentCode() {
       setIsUploading(true);
       setProgress(0); // Reset tiến trình khi bắt đầu
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
       setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       setIsUploading(false);

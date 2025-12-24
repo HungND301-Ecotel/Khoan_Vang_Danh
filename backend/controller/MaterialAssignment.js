@@ -387,150 +387,225 @@ const parsePriceRanges = (value) => {
   return result.map(({ _start, _end, ...rest }) => rest);
 };
 
-
+const mongoose = require('mongoose')
 
 exports.import = async (req, res) => {
   try {
-    // const user = req.user;
+    // ===== 1. CHECK FILE =====
     if (!req.file) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Vui lòng chọn file" });
+      return res.status(400).json({
+        status: "error",
+        message: "Vui lòng chọn file",
+      });
     }
 
+    // ===== 2. READ EXCEL =====
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
 
+    // ===== 3. HEADER =====
     let headers = xlsx.utils.sheet_to_json(worksheet, {
       header: 1,
       range: 0,
       raw: true,
     })[0];
-    headers = headers.map((h) => String(h).trim()); // Làm sạch header // 1. Kiểm tra Header không hợp lệ
+
+    headers = headers.map((h) => String(h).trim());
 
     const allowedHeaders = Object.keys(columnMapping);
-    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
+    const invalidHeaders = headers.filter(
+      (h) => !allowedHeaders.includes(h)
+    );
 
     if (invalidHeaders.length > 0) {
       return res.status(400).json({
         status: "error",
-        message: `File không hợp lệ. Các cột sau không được phép: ${invalidHeaders.join(
+        message: `File không hợp lệ. Cột không cho phép: ${invalidHeaders.join(
           ", "
         )}`,
       });
     }
 
     const mappedHeaders = headers.map(
-      (header) => columnMapping[header] || header
+      (h) => columnMapping[h] || h
     );
+
+    // ===== 4. DATA =====
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
-    }); // Lọc bản ghi hợp lệ: có _id HOẶC (có code VÀ có name)
+    });
 
-    const dataImport = data.filter((row) => row._id || (row.code && row.name));
+    const dataImport = data.filter(
+      (r) => r._id || r.code || r.name
+    );
 
     if (dataImport.length === 0) {
       return res.status(400).json({
         status: "error",
-        message: "Không tìm thấy dữ liệu hợp lệ trong file.",
+        message: "Không tìm thấy dữ liệu hợp lệ",
       });
-    } // Lấy danh sách codes/units để tìm kiếm
+    }
 
+    // ===== 5. LOAD EXISTED MATERIAL (CHECK TRÙNG) =====
+    const existedMaterials = await MaterialAssignment.find(
+      {},
+      { code: 1, name: 1 }
+    ).lean();
+
+    const codeMap = new Map(
+      existedMaterials.map((m) => [
+        m.code.toLowerCase(),
+        String(m._id),
+      ])
+    );
+
+    const nameMap = new Map(
+      existedMaterials.map((m) => [
+        m.name.toLowerCase(),
+        String(m._id),
+      ])
+    );
+
+    // ===== 6. LOAD FK =====
     const uniqueAssignmentCodes = [
       ...new Set(
-        dataImport.map((d) => String(d.assignmentCode).trim()).filter(Boolean)
+        dataImport
+          .map((d) => d.assignmentCode && String(d.assignmentCode).trim())
+          .filter(Boolean)
       ),
     ];
+
     const uniqueUnits = [
-      ...new Set(dataImport.map((d) => String(d.uom).trim()).filter(Boolean)),
+      ...new Set(
+        dataImport
+          .map((d) => d.uom && String(d.uom).trim())
+          .filter(Boolean)
+      ),
     ];
 
-    const [existingAssignmentCodes, existingUnits] = await Promise.all([
+    const [assignmentCodes, units] = await Promise.all([
       AssignmentCode.find({ code: { $in: uniqueAssignmentCodes } }).lean(),
       Unit.find({ name: { $in: uniqueUnits } }).lean(),
     ]);
 
     const assignmentCodeMap = new Map(
-      existingAssignmentCodes.map((d) => [d.code, d._id])
+      assignmentCodes.map((a) => [a.code, a._id])
     );
-    const unitMap = new Map(existingUnits.map((d) => [d.name, d._id]));
 
+    const unitMap = new Map(
+      units.map((u) => [u.name, u._id])
+    );
+
+    // ===== 7. PROCESS =====
     const operations = [];
     const invalidRows = [];
 
     for (const item of dataImport) {
-      // Loại bỏ cột ignored
       if (item.ignored !== undefined) delete item.ignored;
 
-      let { _id, code, name, assignmentCode, uom, quantity, ...updateData } =
-        item;
+      let {
+        _id,
+        code,
+        name,
+        assignmentCode,
+        uom,
+        quantity,
+        price,
+        ...updateData
+      } = item;
 
-      // --- CLEANUP _id ---
+      // ----- CLEAN ID -----
       if (_id) {
         _id = String(_id).replace(/"/g, "").trim();
-        if (_id.length !== 24) _id = null;
-      } // --- Xử lý Tham chiếu và Dữ liệu ---
-
-      let finalUpdateData = { ...updateData };
-
-      if (item.price) {
-        finalUpdateData.priceHistory = parsePriceRanges(item.price);
+        if (_id.length !== 24) {
+          invalidRows.push({ item, error: "ID không hợp lệ" });
+          continue;
+        }
       }
 
-      let isItemValid = true; // 1. Xử lý assignmentCode
+      const cleanCode = code ? String(code).trim() : null;
+      const cleanName = name ? String(name).trim() : null;
 
+      // ----- DELETE -----
+      if (_id && !cleanCode && !cleanName) {
+        operations.push({
+          deleteOne: { filter: { _id } },
+        });
+        continue;
+      }
+
+      if (!cleanCode || !cleanName) {
+        invalidRows.push({
+          item,
+          error: "Mã và tên là bắt buộc",
+        });
+        continue;
+      }
+
+      const codeKey = cleanCode.toLowerCase();
+      const nameKey = cleanName.toLowerCase();
+
+      const existedCodeId = codeMap.get(codeKey);
+      const existedNameId = nameMap.get(nameKey);
+
+      // ===== PRICE (GIỮ NGUYÊN LOGIC CỦA BẠN) =====
+      if (price) {
+        updateData.priceHistory = parsePriceRanges(price);
+      }
+
+      // ===== FK assignmentCode =====
       if (assignmentCode) {
-        const trimmedAssignmentCode = String(assignmentCode).trim();
-        const assignmentCodeId = assignmentCodeMap.get(trimmedAssignmentCode);
-        if (!assignmentCodeId) {
+        const acId = assignmentCodeMap.get(
+          String(assignmentCode).trim()
+        );
+        if (!acId) {
           invalidRows.push({
             item,
-            error: `Mã giao khoán không hợp lệ: ${assignmentCode}`,
+            error: `Mã giao khoán không tồn tại: ${assignmentCode}`,
           });
-          isItemValid = false;
           continue;
         }
-        finalUpdateData.assignmentCode = assignmentCodeId;
-      } // 2. Xử lý uom
+        updateData.assignmentCode = acId;
+      }
 
+      // ===== FK uom =====
       if (uom) {
-        const trimmedUom = String(uom).trim();
-        const unitId = unitMap.get(trimmedUom);
-        if (!unitId) {
-          invalidRows.push({ item, error: `Đơn vị tính không hợp lệ: ${uom}` });
-          isItemValid = false;
+        const uomId = unitMap.get(String(uom).trim());
+        if (!uomId) {
+          invalidRows.push({
+            item,
+            error: `Đơn vị tính không tồn tại: ${uom}`,
+          });
           continue;
         }
-        finalUpdateData.uom = unitId;
+        updateData.uom = uomId;
       } else {
-        finalUpdateData.uom = null;
+        updateData.uom = null;
       }
 
-      // 3. Xử lý Quantity (chuyển sang dạng số, nếu cần)
+      // ===== QUANTITY =====
       if (quantity !== undefined && quantity !== null) {
-        const numericQuantity = parseFloat(quantity);
-        if (!isNaN(numericQuantity)) {
-          finalUpdateData.quantity = numericQuantity;
-        } else {
-          finalUpdateData.quantity = 0;
-        }
+        const q = Number(quantity);
+        updateData.quantity = isNaN(q) ? 0 : q;
       }
 
-      if (!isItemValid) continue;
-
-      // ------- CASE 1: Có _id → update hoặc delete -------
+      // ===== UPDATE =====
       if (_id) {
-        const hasData =
-          Object.values(finalUpdateData).some(
-            (v) => v !== undefined && v !== null && String(v).trim() !== ""
-          ) ||
-          (code && String(code).trim() !== "") ||
-          (name && String(name).trim() !== "");
+        if (existedCodeId && existedCodeId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Mã đã tồn tại: ${cleanCode}`,
+          });
+          continue;
+        }
 
-        if (!hasData) {
-          operations.push({ deleteOne: { filter: { _id } } });
+        if (existedNameId && existedNameId !== _id) {
+          invalidRows.push({
+            item,
+            error: `Tên đã tồn tại: ${cleanName}`,
+          });
           continue;
         }
 
@@ -539,63 +614,78 @@ exports.import = async (req, res) => {
             filter: { _id },
             update: {
               $set: {
-                ...(code ? { code: String(code).trim() } : {}),
-                ...(name ? { name: String(name).trim() } : {}),
-                ...finalUpdateData, // Bao gồm FKs và quantity
+                code: cleanCode,
+                name: cleanName,
+                ...updateData,
               },
             },
-            upsert: true,
           },
+        });
+
+        codeMap.set(codeKey, _id);
+        nameMap.set(nameKey, _id);
+        continue;
+      }
+
+      // ===== INSERT =====
+      if (existedCodeId) {
+        invalidRows.push({
+          item,
+          error: `Mã đã tồn tại: ${cleanCode}`,
         });
         continue;
       }
 
-      // ------- CASE 2: Không có _id nhưng có code và name → upsert theo cặp (code, name) -------
-      if (code && name) {
-        operations.push({
-          updateOne: {
-            filter: {
-              code: String(code).trim(),
-              name: String(name).trim(),
-            },
-            update: {
-              $set: {
-                code: String(code).trim(),
-                name: String(name).trim(),
-                ...finalUpdateData, // Bao gồm FKs và quantity
-              },
-            },
-            upsert: true,
-          },
+      if (existedNameId) {
+        invalidRows.push({
+          item,
+          error: `Tên đã tồn tại: ${cleanName}`,
         });
         continue;
       }
+
+      operations.push({
+        insertOne: {
+          document: {
+            code: cleanCode,
+            name: cleanName,
+            ...updateData,
+          },
+        },
+      });
+
+      const fakeId = new mongoose.Types.ObjectId().toString();
+      codeMap.set(codeKey, fakeId);
+      nameMap.set(nameKey, fakeId);
     }
 
-    let bulkResult = null;
-    if (operations.length > 0) {
-      bulkResult = await MaterialAssignment.bulkWrite(operations);
-    }
-    res.status(200).json({
+    // ===== 8. EXECUTE =====
+    const bulkResult =
+      operations.length > 0
+        ? await MaterialAssignment.bulkWrite(operations)
+        : null;
+
+    return res.status(200).json({
       status: "success",
-      message: "Import dữ liệu hoàn tất.",
+      message: "Import vật tư thành công",
       summary: {
         totalProcessed: dataImport.length,
-        insertedCount: bulkResult ? bulkResult.upsertedCount : 0,
-        updatedCount: bulkResult ? bulkResult.modifiedCount : 0,
+        insertedCount: bulkResult?.insertedCount || 0,
+        updatedCount: bulkResult?.modifiedCount || 0,
+        deletedCount: bulkResult?.deletedCount || 0,
         invalidCount: invalidRows.length,
       },
-      invalidRows: invalidRows,
+      invalidRows,
     });
   } catch (error) {
-    console.log(error.stack);
-    res.status(500).json({
+    console.error(error);
+    return res.status(500).json({
       status: "error",
-      message: "Tải thất bại",
-      error: error.message,
+      message: error.message,
     });
   }
 };
+
 
 exports.export = async (req, res) => {
   try {

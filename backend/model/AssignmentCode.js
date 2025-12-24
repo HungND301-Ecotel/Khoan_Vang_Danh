@@ -9,7 +9,6 @@ const AssignmentCode = new mongoose.Schema({
     name: {
         type: String,
         required: [true, 'Assignment name is required'],
-        unique: true
     },
     uom: {
         type: mongoose.Schema.Types.ObjectId,

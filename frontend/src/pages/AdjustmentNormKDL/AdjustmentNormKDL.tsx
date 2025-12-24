@@ -42,6 +42,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import AdjustmentNormService from "../../service/AdjustmentNormService";
 import { AdjustmentNormType } from "../../enum";
 import { parseAxiosError } from "../../utils/handleApiError";
+import { ShowAlertImport } from "../../utils/AlertImport"
 
 export default function AdjustmentNormKDL() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -66,7 +67,7 @@ export default function AdjustmentNormKDL() {
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/adjustmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=CKĐL`
+          `/adjustmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=${AdjustmentNormType.CKĐL}`
         );
         return response.data.data;
       } catch (error) {
@@ -117,15 +118,15 @@ export default function AdjustmentNormKDL() {
 
   const importFile = useMutation({
     mutationFn: (formData: FormData) =>
-      AdjustmentNormService.importFile(formData),
+      AdjustmentNormService.importFile(formData, AdjustmentNormType.CKĐL),
     onMutate: () => {
       // setIsUploading(true);
       // setProgress(0);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       // setIsUploading(false);
-      showSuccessAlert("Import thành công!");
+      ShowAlertImport(data)
     },
     onError: (error: any) => {
       // setIsUploading(false);
