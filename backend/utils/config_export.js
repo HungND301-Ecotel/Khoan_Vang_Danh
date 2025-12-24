@@ -66,28 +66,28 @@ async function configExport(
   editableKeys = [],
   MAX = 1000
 ) {
-  worksheet.protect("123456", {
-    selectLockedCells: true,
-    selectUnlockedCells: true,
-  });
 
-  // Mặc định: tất cả đều locked
-  worksheet.eachRow((row, rowNum) => {
-    row.eachCell((cell) => {
-      cell.protection = { locked: true };
-    });
-  });
+  // // Mặc định: tất cả đều locked
+  // worksheet.eachRow((row, rowNum) => {
+  //   row.eachCell((cell) => {
+  //     cell.protection = { locked: false };
+  //   });
+  // });
 
-  // Tìm cột bằng key (ExcelJS cho phép)
-  editableKeys.forEach((key) => {
-    const col = worksheet.getColumn(key);
-    if (!col) return;
+  // // Tìm cột bằng key (ExcelJS cho phép)
+  // editableKeys.forEach((key) => {
+  //   const col = worksheet.getColumn(key);
+  //   if (!col) return;
 
-    for (let r = 2; r <= MAX; r++) {
-      const cell = worksheet.getCell(`${col.letter}${r}`);
-      cell.protection = { locked: false };
-    }
-  });
+  //   for (let r = 2; r <= MAX; r++) {
+  //     const cell = worksheet.getCell(`${col.letter}${r}`);
+  //     cell.protection = { locked: true };
+  //   }
+  // });
+  // worksheet.protect("123456", {
+  //   selectLockedCells: true,
+  //   selectUnlockedCells: true,
+  // });
 
   const buffer = await workbook.xlsx.writeBuffer();
   return buffer;
