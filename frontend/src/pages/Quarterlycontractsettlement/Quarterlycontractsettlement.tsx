@@ -860,7 +860,7 @@ export default function Quarterlycontractsettlement() {
             </TableRow>
             {contractsettlements.data.map(
               (assignment: any, index: number) => (
-                <Fragment key={assignment?.assignmentCode?._id}>
+                <Fragment key={(assignment?.assignmentCode||assignment.assignmentCode===null) ?._id}>
                   <TableRow>
                     <TableCell
                       align="center"
@@ -892,7 +892,7 @@ export default function Quarterlycontractsettlement() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode?.deviceCode?.code}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ?.deviceCode?.code}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -904,7 +904,7 @@ export default function Quarterlycontractsettlement() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode?.code}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ?.code}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -914,7 +914,7 @@ export default function Quarterlycontractsettlement() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode?.name || 'Vật tư không có định mức'}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ?(assignment?.assignmentCode?.name||'Không xác định') : 'Vật tư không có định mức'}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -923,7 +923,7 @@ export default function Quarterlycontractsettlement() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode?.uom?.name}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ?.uom?.name}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -934,7 +934,7 @@ export default function Quarterlycontractsettlement() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode ? (assignment?.price ? (Number(assignment?.price.toFixed(0))).toLocaleString() : '') : ''}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.price ? (Number(assignment?.price.toFixed(0))).toLocaleString() : '') : ''}
                     </TableCell>
                     {
                       Array.from({ length: 10 }).map((_, index) => (
@@ -957,25 +957,25 @@ export default function Quarterlycontractsettlement() {
                           }}
                         >
                           {index === 0
-                            ? assignment?.assignmentCode ? (Number(assignment?.plan_Quantity.toFixed(1))).toLocaleString() : ''
+                            ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (Number(assignment?.plan_Quantity.toFixed(1))).toLocaleString() : ''
                             : index === 1
                               ? ""
                               : index === 2
                                 ? ""
                                 : index === 3
-                                  ? assignment?.assignmentCode ? (assignment?.plan_Cost ? (Number(assignment?.plan_Cost.toFixed(0))).toLocaleString() : "") : ''
+                                  ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.plan_Cost ? (Number(assignment?.plan_Cost.toFixed(0))).toLocaleString() : "") : ''
                                   : index === 4
-                                    ? assignment?.assignmentCode ? (assignment?.used_Quantity ? (Number(assignment?.used_Quantity.toFixed(1))).toLocaleString() : '') : ''
+                                    ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.used_Quantity ? (Number(assignment?.used_Quantity.toFixed(1))).toLocaleString() : '') : ''
                                     : index === 5
                                       ? ""
                                       : index === 6
                                         ? ""
                                         : index === 7
-                                          ? assignment?.assignmentCode ? (assignment?.used_Cost ? (Number(assignment?.used_Cost.toFixed(0))).toLocaleString() : '') : ''
+                                          ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.used_Cost ? (Number(assignment?.used_Cost.toFixed(0))).toLocaleString() : '') : ''
                                           : index === 8
-                                            ? assignment?.assignmentCode ? (assignment?.varianceQuantity ? (Number(assignment?.varianceQuantity.toFixed(1))).toLocaleString() : '') : ''
+                                            ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.varianceQuantity ? (Number(assignment?.varianceQuantity.toFixed(1))).toLocaleString() : '') : ''
                                             : index === 9
-                                              ? assignment?.assignmentCode ? (assignment?.varianceCost ? (Number(assignment?.varianceCost.toFixed(0))).toLocaleString() : '') : ''
+                                              ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.varianceCost ? (Number(assignment?.varianceCost.toFixed(0))).toLocaleString() : '') : ''
                                               : ""
                           }
                         </TableCell>
@@ -1010,7 +1010,7 @@ export default function Quarterlycontractsettlement() {
                           p: 0.5,
                         }}
                       >
-                        {assignment?.assignmentCode?.device}
+                        {(assignment?.assignmentCode||assignment.assignmentCode===null) ?.device}
                       </TableCell>
                       <TableCell
                         align="center"
@@ -1050,7 +1050,7 @@ export default function Quarterlycontractsettlement() {
                           p: 0.5,
                         }}
                       >
-                        {assignment?.assignmentCode ? '' : (materialUsed?.price ? (Number(materialUsed?.price.toFixed(0)))?.toLocaleString() : '')}
+                        {(assignment?.assignmentCode||assignment.assignmentCode===null)  ? '' : (materialUsed?.price ? (Number(materialUsed?.price.toFixed(0)))?.toLocaleString() : '')}
                       </TableCell>
                       {
                         Array.from({ length: 10 }).map((_, index) => (

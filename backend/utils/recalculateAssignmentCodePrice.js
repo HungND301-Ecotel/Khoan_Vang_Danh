@@ -70,6 +70,7 @@ const calculatedPhases = async (phases, month, type) => {
         const assignmentDoc = await AssignmentNorm.findById(phaseData.assignmentNormCode)
             .populate('norms.assignmentCode')
             .lean();
+        console.log(assignmentDoc)
 
 
         const adjustmentDoc = await AdjustmentNorm.findById(phaseData.adjustmentNormCode)
@@ -84,7 +85,7 @@ const calculatedPhases = async (phases, month, type) => {
         // Thu thập Base Norms và IDs
         if (assignmentDoc && assignmentDoc.norms) {
             assignmentDoc.norms.forEach(n => {
-                const id = n.assignmentCode._id.toString();
+                const id = n.assignmentCode && n.assignmentCode?._id.toString();
                 assignmentNormsMap.set(id, n.norm || 0);
                 uniqueAssignmentCodeIds.add(id);
             });
@@ -93,7 +94,7 @@ const calculatedPhases = async (phases, month, type) => {
         // Thu thập Adjustment Factors và IDs
         if (adjustmentDoc && adjustmentDoc.norms) {
             adjustmentDoc.norms.forEach(n => {
-                const id = n.assignmentCode._id.toString();
+                const id = n.assignmentCode && n.assignmentCode._id.toString();
                 adjustmentFactorsMap.set(id, n.norm || 1); // Hệ số mặc định là 1 nếu thiếu
                 uniqueAssignmentCodeIds.add(id);
             });

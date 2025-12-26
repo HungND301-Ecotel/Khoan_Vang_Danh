@@ -82,7 +82,7 @@ exports.get = async (req, res) => {
     }
     let queryModel = AssignmentCode.find(query)
       .populate("uom")
-      .populate("deviceCode");
+      .populate("deviceCode").sort({code:1});
     const pagination = await paginateQuery(
       AssignmentCode,
       queryModel,

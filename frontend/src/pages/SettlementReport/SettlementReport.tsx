@@ -59,7 +59,7 @@ export default function SettlementReport() {
           `/contractsettlements/getMonth?month=${selectedMonth}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`
         )
         .then((res) => res.data.data),
-    enabled: !!selectedMonth,
+    enabled: !!selectedMonth && !!selectedPhase,
   });
 
   const { data: productionscopes = [] } = useQuery({
@@ -908,7 +908,7 @@ export default function SettlementReport() {
             </TableRow>
             {contractsettlements.data.map(
               (assignment: any, index: number) => (
-                <Fragment key={assignment?.assignmentCode?._id}>
+                <Fragment key={(assignment?.assignmentCode||assignment.assignmentCode===null)?._id}>
                   <TableRow>
                     <TableCell
                       align="center"
@@ -961,7 +961,7 @@ export default function SettlementReport() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode?.code}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null)?.code}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -971,7 +971,7 @@ export default function SettlementReport() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode?.name || 'Vật tư không có định mức'}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null)?(assignment?.assignmentCode?.name||'Không xác định') : 'Vật tư không có định mức'}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -993,7 +993,7 @@ export default function SettlementReport() {
                         p: 0.5,
                       }}
                     >
-                      {assignment?.assignmentCode ? (assignment?.price ? (Number(assignment?.price.toFixed(0))).toLocaleString() : '') : ''}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ? (assignment?.price ? (Number(assignment?.price.toFixed(0))).toLocaleString() : '') : ''}
                     </TableCell>
                     {isShow && <TableCell
                       align="center"
@@ -1005,7 +1005,7 @@ export default function SettlementReport() {
                         bgcolor: "#F3D01640"
                       }}
                     >
-                      {assignment?.assignmentCode ? (assignment?.baseNorm ? (Number(assignment?.baseNorm.toFixed(3))).toLocaleString() : '') : ''}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ? (assignment?.baseNorm ? (Number(assignment?.baseNorm.toFixed(3))).toLocaleString() : '') : ''}
                     </TableCell>}
                     {isShow && <TableCell
                       align="center"
@@ -1017,7 +1017,7 @@ export default function SettlementReport() {
                         bgcolor: "#F3D01640"
                       }}
                     >
-                      {assignment?.assignmentCode ? (assignment?.adjustmentNorm ? (Number(assignment?.adjustmentNorm.toFixed(3))).toLocaleString() : '') : ''}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ? (assignment?.adjustmentNorm ? (Number(assignment?.adjustmentNorm.toFixed(3))).toLocaleString() : '') : ''}
                     </TableCell>}
                     {isShow && <TableCell
                       align="center"
@@ -1029,7 +1029,7 @@ export default function SettlementReport() {
                         bgcolor: "#F3D01640"
                       }}
                     >
-                      {assignment?.assignmentCode ? (assignment?.norm ? (Number(assignment?.norm.toFixed(3))).toLocaleString() : '') : ''}
+                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ? (assignment?.norm ? (Number(assignment?.norm.toFixed(3))).toLocaleString() : '') : ''}
                     </TableCell>}
                     {Array.from({ length: 10 }).map((_, index) => (
                       <TableCell
@@ -1156,7 +1156,7 @@ export default function SettlementReport() {
                           p: 0.5,
                         }}
                       >
-                        {assignment?.assignmentCode ? '' : (materialUsed?.price ? (Number(materialUsed?.price.toFixed(0)))?.toLocaleString() : '')}
+                        {(assignment?.assignmentCode||assignment.assignmentCode===null) ? '' : (materialUsed?.price ? (Number(materialUsed?.price.toFixed(0)))?.toLocaleString() : '')}
                       </TableCell>
                       {isShow && <TableCell
                         align="center"

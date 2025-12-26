@@ -55,10 +55,10 @@ export default function MaterialCostUsedModal({
     queryFn: async () =>
       api.get("/productionscopes").then((res) => res.data.data),
   });
-  const { data: phaseGroups = { data: [] } } = useQuery({
-    queryKey: ["phaseGroups"],
+  const { data: phases = { data: [] } } = useQuery({
+    queryKey: ["phases"],
     queryFn: async () =>
-      api.get("/phaseGroups").then((res) => res.data.data),
+      api.get("/phases").then((res) => res.data.data),
   });
   const { data: materialassignments = { data: [] } } = useQuery({
     queryKey: ["materialassignments"],
@@ -382,7 +382,7 @@ export default function MaterialCostUsedModal({
                 {() => (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, p: 2 }}>
                     {formik.values.phases.map((item: any, index: number) => {
-                      const phase = phaseGroups.data.find(
+                      const phase = phases.data.find(
                         (pg: PhaseOutputType) => pg._id === item.phase
                       );
 

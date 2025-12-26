@@ -212,8 +212,9 @@ exports.get = async (req, res) => {
       query.assignmentCode = { $exists: false };
     }
     let queryModel = MaterialAssignment.find(query)
-      .populate("assignmentCode")
-      .populate("uom");
+      .populate("assignmentCode","code")
+      .populate("uom")
+      .sort({"assignmentCode.code":1});
     const pagination = await paginateQuery(
       MaterialAssignment,
       queryModel,

@@ -285,8 +285,6 @@ export default function InitialPlannedCostModal({
                   (ps: ProductionScopeOutputType) => ps._id === scopeId
                 );
 
-                console.log(scope)
-
                 // nếu scope có mảng phases thì map ra
                 if (scope && Array.isArray(scope.phases)) {
                   const mappedPhases = scope.phases.map((ph: any) => ({
