@@ -595,14 +595,27 @@ exports.import = async (req, res) => {
       const compositeKey = `${cleanCode.toLowerCase()}|${String(acId)}`;
       const existedRecord = compositeMap.get(compositeKey);
 
-      // KIỂM TRA TRÙNG LẶP (Dùng chung cho cả Insert và Update)
-      // Nếu tìm thấy record trùng key, mà record đó không phải là record đang update (_id khác nhau)
-      if (existedRecord && existedRecord.id !== _id) {
-        invalidRows.push({
-          item,
-          error: `Mã giao khoán và mã vật tư này đã tồn tại ở vật tư: '${existedRecord.name}'`,
-        });
-        continue;
+      // KIỂM TRA TRÙNG LẶP
+      if (existedRecord) {
+        // TRƯỜNG HỢP 1: Nếu file Excel có truyền _id (Lệnh Update)
+        // Chỉ báo lỗi nếu cái trùng đó là một thằng KHÁC (khác _id)
+        if (_id && existedRecord.id !== _id) {
+          invalidRows.push({
+            item,
+            error: `Cặp Mã giao khoán và Mã vật tư này đã tồn tại ở vật tư: '${existedRecord.name}'`,
+          });
+          continue;
+        }
+
+        // TRƯỜNG HỢP 2: Nếu file Excel KHÔNG có _id (Lệnh Insert/Thêm mới)
+        // Mà đã tìm thấy existedRecord trong DB thì chắc chắn là trùng rồi
+        if (!_id) {
+          invalidRows.push({
+            item,
+            error: `Cặp Mã giao khoán và Mã vật tư này đã tồn tại trong hệ thống (Vật tư: '${existedRecord.name}')`,
+          });
+          continue;
+        }
       }
 
       // ===== PRICE & UOM & QUANTITY (Giữ nguyên logic của bạn) =====
