@@ -21,13 +21,15 @@ exports.create = async (req, res) => {
 
     const exitMaterial = await MaterialAssignment.countDocuments({
       code: code,
+      assignmentCode: assignmentCode,
     });
     if (exitMaterial > 0) {
       return res.status(409).json({
         status: "error",
-        message: `Vật tư, tài sản '${name}' đã tồn tại`,
+        message: `Mã giao khoán và mã vật tư này đã là của vật tư, tài sản '${name}' `,
       });
     }
+
     const newMaterialAssignment = new MaterialAssignment({
       code,
       name,
@@ -46,10 +48,26 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    const { id } = req.params;
+    const { code, assignmentCode, name } = req.body;
+
+    const duplicateMaterial = await MaterialAssignment.findOne({
+      code: code,
+      assignmentCode: assignmentCode,
+      _id: { $ne: id },
+    });
+
+    if (duplicateMaterial) {
+      return res.status(409).json({
+        status: "error",
+        message: `Mã giao khoán và mã vật tư này đã tồn tại ở vật tư/tài sản '${duplicateMaterial.name}'`,
+      });
+    }
+
     const updateData = await MaterialAssignment.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true, runValidators: true },
     );
     if (!updateData) {
       return res.status(404).json({ status: "error", message: "Sửa thất bại" });
@@ -64,7 +82,7 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const deleteData = await MaterialAssignment.findByIdAndDelete(
-      req.params.id
+      req.params.id,
     );
     if (!deleteData) {
       return res.status(404).json({ status: "error", message: "Xóa thất bại" });
@@ -96,7 +114,7 @@ exports.getGroup = async (req, res) => {
       AssignmentCode,
       modelQuery,
       query,
-      req.query
+      req.query,
     );
 
     const result = [];
@@ -151,7 +169,7 @@ exports.getGroup = async (req, res) => {
           assignment._id,
           null,
           null,
-          req.query.month || currentYearMonth
+          req.query.month || currentYearMonth,
         ),
         device: assignment.deviceCode?.code,
         materials: materialsWithPrice,
@@ -254,7 +272,7 @@ exports.get = async (req, res) => {
       MaterialAssignment,
       queryModel,
       query,
-      req.query
+      req.query,
     );
     console.log(pagination);
 
@@ -456,7 +474,7 @@ exports.import = async (req, res) => {
       return res.status(400).json({
         status: "error",
         message: `File không hợp lệ. Cột không cho phép: ${invalidHeaders.join(
-          ", "
+          ", ",
         )}`,
       });
     }
@@ -478,18 +496,19 @@ exports.import = async (req, res) => {
       });
     }
 
-    // ===== 5. LOAD EXISTED MATERIAL (CHECK TRÙNG) =====
+    // ===== 5. LOAD EXISTED MATERIAL (CHECK TRÙNG KẾT HỢP) =====
     const existedMaterials = await MaterialAssignment.find(
       {},
-      { code: 1, name: 1 }
+      { code: 1, assignmentCode: 1, name: 1 },
     ).lean();
 
-    const codeMap = new Map(
-      existedMaterials.map((m) => [m.code.toLowerCase(), String(m._id)])
-    );
-
-    const nameMap = new Map(
-      existedMaterials.map((m) => [m.name.toLowerCase(), String(m._id)])
+    // Tạo Map với key là "code|assignmentCode" để check trùng nhanh
+    // Lưu giá trị là { id, name } để báo lỗi chi tiết nếu cần
+    const compositeMap = new Map(
+      existedMaterials.map((m) => [
+        `${String(m.code).toLowerCase()}|${String(m.assignmentCode)}`,
+        { id: String(m._id), name: m.name },
+      ]),
     );
 
     // ===== 6. LOAD FK =====
@@ -497,13 +516,13 @@ exports.import = async (req, res) => {
       ...new Set(
         dataImport
           .map((d) => d.assignmentCode && String(d.assignmentCode).trim())
-          .filter(Boolean)
+          .filter(Boolean),
       ),
     ];
 
     const uniqueUnits = [
       ...new Set(
-        dataImport.map((d) => d.uom && String(d.uom).trim()).filter(Boolean)
+        dataImport.map((d) => d.uom && String(d.uom).trim()).filter(Boolean),
       ),
     ];
 
@@ -513,7 +532,7 @@ exports.import = async (req, res) => {
     ]);
 
     const assignmentCodeMap = new Map(
-      assignmentCodes.map((a) => [a.code, a._id])
+      assignmentCodes.map((a) => [a.code, a._id]),
     );
 
     const unitMap = new Map(units.map((u) => [u.name, u._id]));
@@ -550,34 +569,19 @@ exports.import = async (req, res) => {
 
       // ----- DELETE -----
       if (_id && !cleanCode && !cleanName) {
-        operations.push({
-          deleteOne: { filter: { _id } },
-        });
+        operations.push({ deleteOne: { filter: { _id } } });
         continue;
       }
 
       if (!cleanCode || !cleanName) {
-        invalidRows.push({
-          item,
-          error: "Mã và tên là bắt buộc",
-        });
+        invalidRows.push({ item, error: "Mã và tên là bắt buộc" });
         continue;
       }
 
-      const codeKey = cleanCode.toLowerCase();
-      const nameKey = cleanName.toLowerCase();
-
-      const existedCodeId = codeMap.get(codeKey);
-      const existedNameId = nameMap.get(nameKey);
-
-      // ===== PRICE (GIỮ NGUYÊN LOGIC CỦA BẠN) =====
-      if (price) {
-        updateData.priceHistory = parsePriceRanges(price);
-      }
-
-      // ===== FK assignmentCode =====
+      // Xử lý FK AssignmentCode để lấy ID thật trước khi check trùng
+      let acId = null;
       if (assignmentCode) {
-        const acId = assignmentCodeMap.get(String(assignmentCode).trim());
+        acId = assignmentCodeMap.get(String(assignmentCode).trim());
         if (!acId) {
           invalidRows.push({
             item,
@@ -585,10 +589,25 @@ exports.import = async (req, res) => {
           });
           continue;
         }
-        updateData.assignmentCode = acId;
       }
 
-      // ===== FK uom =====
+      // TẠO KEY KẾT HỢP ĐỂ CHECK TRÙNG
+      const compositeKey = `${cleanCode.toLowerCase()}|${String(acId)}`;
+      const existedRecord = compositeMap.get(compositeKey);
+
+      // KIỂM TRA TRÙNG LẶP (Dùng chung cho cả Insert và Update)
+      // Nếu tìm thấy record trùng key, mà record đó không phải là record đang update (_id khác nhau)
+      if (existedRecord && existedRecord.id !== _id) {
+        invalidRows.push({
+          item,
+          error: `Mã giao khoán và mã vật tư này đã tồn tại ở vật tư: '${existedRecord.name}'`,
+        });
+        continue;
+      }
+
+      // ===== PRICE & UOM & QUANTITY (Giữ nguyên logic của bạn) =====
+      if (price) updateData.priceHistory = parsePriceRanges(price);
+
       if (uom) {
         const uomId = unitMap.get(String(uom).trim());
         if (!uomId) {
@@ -603,30 +622,14 @@ exports.import = async (req, res) => {
         updateData.uom = null;
       }
 
-      // ===== QUANTITY =====
       if (quantity !== undefined && quantity !== null) {
         const q = Number(quantity);
         updateData.quantity = isNaN(q) ? 0 : q;
       }
 
-      // ===== UPDATE =====
+      // ===== THỰC THI =====
       if (_id) {
-        if (existedCodeId && existedCodeId !== _id) {
-          invalidRows.push({
-            item,
-            error: `Mã đã tồn tại: ${cleanCode}`,
-          });
-          continue;
-        }
-
-        if (existedNameId && existedNameId !== _id) {
-          invalidRows.push({
-            item,
-            error: `Tên đã tồn tại: ${cleanName}`,
-          });
-          continue;
-        }
-
+        // Trường hợp UPDATE
         operations.push({
           updateOne: {
             filter: { _id },
@@ -634,47 +637,29 @@ exports.import = async (req, res) => {
               $set: {
                 code: cleanCode,
                 name: cleanName,
+                assignmentCode: acId,
                 ...updateData,
               },
             },
           },
         });
-
-        codeMap.set(codeKey, _id);
-        nameMap.set(nameKey, _id);
-        continue;
-      }
-
-      // ===== INSERT =====
-      if (existedCodeId) {
-        invalidRows.push({
-          item,
-          error: `Mã đã tồn tại: ${cleanCode}`,
-        });
-        continue;
-      }
-
-      if (existedNameId) {
-        invalidRows.push({
-          item,
-          error: `Tên đã tồn tại: ${cleanName}`,
-        });
-        continue;
-      }
-
-      operations.push({
-        insertOne: {
-          document: {
-            code: cleanCode,
-            name: cleanName,
-            ...updateData,
+      } else {
+        // Trường hợp INSERT
+        operations.push({
+          insertOne: {
+            document: {
+              code: cleanCode,
+              name: cleanName,
+              assignmentCode: acId,
+              ...updateData,
+            },
           },
-        },
-      });
+        });
+      }
 
-      const fakeId = new mongoose.Types.ObjectId().toString();
-      codeMap.set(codeKey, fakeId);
-      nameMap.set(nameKey, fakeId);
+      // Cập nhật Map tạm thời để tránh trùng lặp ngay trong chính file Excel đang import
+      const currentId = _id || new mongoose.Types.ObjectId().toString();
+      compositeMap.set(compositeKey, { id: currentId, name: cleanName });
     }
 
     // ===== 8. EXECUTE =====
@@ -783,10 +768,10 @@ exports.export = async (req, res) => {
     // Logic cho type="in" (Xử lý cột Mã giao khoán)
     if (typeIn) {
       const assignmentColIndex = columns.findIndex(
-        (c) => c && c.key === "assignmentCode"
+        (c) => c && c.key === "assignmentCode",
       );
       const assignmentColLetter = worksheet.getColumn(
-        assignmentColIndex + 1
+        assignmentColIndex + 1,
       ).letter;
 
       // Thêm cột X cho Mã giao khoán
@@ -803,7 +788,7 @@ exports.export = async (req, res) => {
           type: "list",
           allowBlank: true,
           formulae: [`=$X$2:$X$${assignmentCodeList.length + 1}`],
-        }
+        },
       );
 
       editableKeys.push("assignmentCode"); // Cho phép sửa cột này
@@ -815,16 +800,16 @@ exports.export = async (req, res) => {
       workbook,
       worksheet,
       editableKeys, // Truyền đúng editableKeys
-      MAX
+      MAX,
     );
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=vat_tu_tai_san_trong_khoan.xlsx"
+      "attachment; filename=vat_tu_tai_san_trong_khoan.xlsx",
     );
     res.send(buffer);
   } catch (err) {
