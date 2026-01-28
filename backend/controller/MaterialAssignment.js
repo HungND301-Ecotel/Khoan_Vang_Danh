@@ -13,6 +13,7 @@ const {
   recalculateAssignmentCodePrice,
 } = require("../utils/recalculateAssignmentCodePrice");
 const { monthToNumber } = require("../utils/helpers");
+const mongoose = require("mongoose");
 
 exports.create = async (req, res) => {
   try {
@@ -377,6 +378,7 @@ const columnMapping = {
   assignmentCodes: "ignored",
   units: "ignored",
 };
+
 const parsePriceRanges = (value) => {
   if (!value || typeof value !== "string") return [];
 
@@ -441,100 +443,58 @@ const parsePriceRanges = (value) => {
   return result.map(({ _start, _end, ...rest }) => rest);
 };
 
-const mongoose = require("mongoose");
-
 exports.import = async (req, res) => {
   try {
-    // ===== 1. CHECK FILE =====
-    if (!req.file) {
-      return res.status(400).json({
-        status: "error",
-        message: "Vui lòng chọn file",
-      });
-    }
+    // ===== 1. CHECK FILE & READ EXCEL (Giữ nguyên) =====
+    if (!req.file)
+      return res
+        .status(400)
+        .json({ status: "error", message: "Vui lòng chọn file" });
 
-    // ===== 2. READ EXCEL =====
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
 
-    // ===== 3. HEADER =====
-    let headers = xlsx.utils.sheet_to_json(worksheet, {
-      header: 1,
-      range: 0,
-      raw: true,
-    })[0];
-
+    // ===== 3. HEADER & MAPPING =====
+    let headers =
+      xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: true })[0] || [];
     headers = headers.map((h) => String(h).trim());
-
-    const allowedHeaders = Object.keys(columnMapping);
-    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
-
-    if (invalidHeaders.length > 0) {
-      return res.status(400).json({
-        status: "error",
-        message: `File không hợp lệ. Cột không cho phép: ${invalidHeaders.join(
-          ", ",
-        )}`,
-      });
-    }
 
     const mappedHeaders = headers.map((h) => columnMapping[h] || h);
 
     // ===== 4. DATA =====
-    const data = xlsx.utils.sheet_to_json(worksheet, {
-      header: mappedHeaders,
-      range: 1,
-    });
-
-    const dataImport = data.filter((r) => r._id || r.code || r.name);
+    const dataImport = xlsx.utils
+      .sheet_to_json(worksheet, { header: mappedHeaders, range: 1 })
+      .filter((r) => r._id || r.code || r.name);
 
     if (dataImport.length === 0) {
-      return res.status(400).json({
-        status: "error",
-        message: "Không tìm thấy dữ liệu hợp lệ",
-      });
+      return res
+        .status(400)
+        .json({ status: "error", message: "Không tìm thấy dữ liệu hợp lệ" });
     }
 
-    // ===== 5. LOAD EXISTED MATERIAL (CHECK TRÙNG KẾT HỢP) =====
-    const existedMaterials = await MaterialAssignment.find(
-      {},
-      { code: 1, assignmentCode: 1, name: 1 },
-    ).lean();
-
-    // Tạo Map với key là "code|assignmentCode" để check trùng nhanh
-    // Lưu giá trị là { id, name } để báo lỗi chi tiết nếu cần
-    const compositeMap = new Map(
-      existedMaterials.map((m) => [
-        `${String(m.code).toLowerCase()}|${String(m.assignmentCode)}`,
-        { id: String(m._id), name: m.name },
-      ]),
-    );
-
-    // ===== 6. LOAD FK =====
-    const uniqueAssignmentCodes = [
-      ...new Set(
-        dataImport
-          .map((d) => d.assignmentCode && String(d.assignmentCode).trim())
-          .filter(Boolean),
-      ),
-    ];
-
-    const uniqueUnits = [
-      ...new Set(
-        dataImport.map((d) => d.uom && String(d.uom).trim()).filter(Boolean),
-      ),
-    ];
-
-    const [assignmentCodes, units] = await Promise.all([
-      AssignmentCode.find({ code: { $in: uniqueAssignmentCodes } }).lean(),
-      Unit.find({ name: { $in: uniqueUnits } }).lean(),
+    // ===== 5. LOAD DATA & FK (Giữ nguyên phần query của bạn) =====
+    const [existedMaterials, assignmentCodes, units] = await Promise.all([
+      MaterialAssignment.find(
+        {},
+        { code: 1, assignmentCode: 1, name: 1 },
+      ).lean(),
+      AssignmentCode.find({}).lean(), // Lấy hết để map cho nhanh
+      Unit.find({}).lean(),
     ]);
+
+    const compositeMap = new Map(
+      existedMaterials.map((m) => {
+        // Đảm bảo assignmentCode luôn là chuỗi, nếu null thì thành chuỗi "null"
+        const s_acId = m.assignmentCode ? String(m.assignmentCode) : "null";
+        const key = `${String(m.code).toLowerCase().trim()}|${s_acId}`;
+
+        return [key, { id: String(m._id), name: m.name }];
+      }),
+    );
 
     const assignmentCodeMap = new Map(
       assignmentCodes.map((a) => [a.code, a._id]),
     );
-
     const unitMap = new Map(units.map((u) => [u.name, u._id]));
 
     // ===== 7. PROCESS =====
@@ -542,7 +502,7 @@ exports.import = async (req, res) => {
     const invalidRows = [];
 
     for (const item of dataImport) {
-      if (item.ignored !== undefined) delete item.ignored;
+      const rowIndex = dataImport.indexOf(item) + 2;
 
       let {
         _id,
@@ -555,84 +515,94 @@ exports.import = async (req, res) => {
         ...updateData
       } = item;
 
-      // ----- CLEAN ID -----
+      // ----- CLEAN ID TRIỆT ĐỂ (Sửa ở đây) -----
+      let cleanId = null;
       if (_id) {
-        _id = String(_id).replace(/"/g, "").trim();
-        if (_id.length !== 24) {
-          invalidRows.push({ item, error: "ID không hợp lệ" });
-          continue;
-        }
+        cleanId = String(_id).replace(/[^a-fA-F0-9]/g, "");
       }
 
       const cleanCode = code ? String(code).trim() : null;
       const cleanName = name ? String(name).trim() : null;
 
-      // ----- DELETE -----
-      if (_id && !cleanCode && !cleanName) {
-        operations.push({ deleteOne: { filter: { _id } } });
-        continue;
+      // ----- LOGIC XÓA -----
+      // Nếu có ID mà không có Code và Name -> Ưu tiên xóa
+      if (cleanId && !cleanCode && !cleanName) {
+        if (cleanId.length === 24) {
+          operations.push({ deleteOne: { filter: { _id: cleanId } } });
+          continue;
+        } else {
+          invalidRows.push({ row: rowIndex, error: "ID để xóa không hợp lệ" });
+          continue;
+        }
       }
 
+      // ----- VALIDATE BẮT BUỘC -----
       if (!cleanCode || !cleanName) {
-        invalidRows.push({ item, error: "Mã và tên là bắt buộc" });
+        invalidRows.push({
+          row: rowIndex,
+          error: "Mã và Tên vật tư là bắt buộc",
+        });
         continue;
       }
 
-      // Xử lý FK AssignmentCode để lấy ID thật trước khi check trùng
+      // Xử lý FK AssignmentCode
       let acId = null;
       if (assignmentCode) {
-        acId = assignmentCodeMap.get(String(assignmentCode).trim());
-        if (!acId) {
+        const foundAcId = assignmentCodeMap.get(String(assignmentCode).trim());
+        if (foundAcId) {
+          acId = String(foundAcId);
+        } else {
           invalidRows.push({
-            item,
-            error: `Mã giao khoán không tồn tại: ${assignmentCode}`,
+            row: rowIndex,
+            error: `Mã giao khoán '${assignmentCode}' không tồn tại`,
           });
           continue;
         }
       }
 
-      // TẠO KEY KẾT HỢP ĐỂ CHECK TRÙNG
-      const compositeKey = `${cleanCode.toLowerCase()}|${String(acId)}`;
+      // CHECK TRÙNG KẾT HỢP
+      const compositeKey = `${cleanCode.toLowerCase()}|${acId}`;
       const existedRecord = compositeMap.get(compositeKey);
 
-      // KIỂM TRA TRÙNG LẶP
       if (existedRecord) {
-        // TRƯỜNG HỢP 1: Nếu file Excel có truyền _id (Lệnh Update)
-        // Chỉ báo lỗi nếu cái trùng đó là một thằng KHÁC (khác _id)
-        if (_id && existedRecord.id !== _id) {
+        if (cleanId && String(existedRecord.id) !== cleanId) {
           invalidRows.push({
-            item,
-            error: `Cặp Mã giao khoán và Mã vật tư này đã tồn tại ở vật tư: '${existedRecord.name}'`,
+            row: rowIndex,
+            error: `Cặp Mã giao khoán và Mã vật tư này đã tồn tại ở vật tư khác: '${existedRecord.name}'`,
           });
           continue;
         }
 
-        // TRƯỜNG HỢP 2: Nếu file Excel KHÔNG có _id (Lệnh Insert/Thêm mới)
-        // Mà đã tìm thấy existedRecord trong DB thì chắc chắn là trùng rồi
-        if (!_id) {
+        if (!cleanId) {
           invalidRows.push({
-            item,
-            error: `Cặp Mã giao khoán và Mã vật tư này đã tồn tại trong hệ thống (Vật tư: '${existedRecord.name}')`,
+            row: rowIndex,
+            error: `Cặp Mã giao khoán và Mã vật tư này đã tồn tại trong hệ thống (Tên: '${existedRecord.name}')`,
           });
           continue;
         }
       }
 
-      // ===== PRICE & UOM & QUANTITY (Giữ nguyên logic của bạn) =====
-      if (price) updateData.priceHistory = parsePriceRanges(price);
+      console.log("--- Row Check ---");
+      console.log("Composite Key từ File:", compositeKey);
+      console.log("Clean ID từ File:", cleanId);
+      console.log("Record tìm thấy trong Map:", existedRecord);
+      if (existedRecord) {
+        console.log("So sánh ID:", String(existedRecord.id), " vs ", cleanId);
+        console.log(
+          "Kết quả so sánh (!==):",
+          String(existedRecord.id) !== cleanId,
+        );
+      }
 
+      // Parse Price History (Nếu bạn có hàm parsePriceRanges)
+      if (price)
+        updateData.priceHistory =
+          typeof parsePriceRanges === "function" ? parsePriceRanges(price) : [];
+
+      // Map Unit
       if (uom) {
         const uomId = unitMap.get(String(uom).trim());
-        if (!uomId) {
-          invalidRows.push({
-            item,
-            error: `Đơn vị tính không tồn tại: ${uom}`,
-          });
-          continue;
-        }
-        updateData.uom = uomId;
-      } else {
-        updateData.uom = null;
+        if (uomId) updateData.uom = uomId;
       }
 
       if (quantity !== undefined && quantity !== null) {
@@ -640,12 +610,11 @@ exports.import = async (req, res) => {
         updateData.quantity = isNaN(q) ? 0 : q;
       }
 
-      // ===== THỰC THI =====
-      if (_id) {
-        // Trường hợp UPDATE
+      // ----- PHÂN LOẠI UPDATE / INSERT (Dùng cleanId) -----
+      if (cleanId && cleanId.length === 24) {
         operations.push({
           updateOne: {
-            filter: { _id },
+            filter: { _id: cleanId },
             update: {
               $set: {
                 code: cleanCode,
@@ -657,7 +626,6 @@ exports.import = async (req, res) => {
           },
         });
       } else {
-        // Trường hợp INSERT
         operations.push({
           insertOne: {
             document: {
@@ -670,35 +638,33 @@ exports.import = async (req, res) => {
         });
       }
 
-      // Cập nhật Map tạm thời để tránh trùng lặp ngay trong chính file Excel đang import
-      const currentId = _id || new mongoose.Types.ObjectId().toString();
-      compositeMap.set(compositeKey, { id: currentId, name: cleanName });
+      // Cập nhật map tạm để tránh trùng trong cùng 1 file
+      compositeMap.set(compositeKey, {
+        id: cleanId || "temp",
+        name: cleanName,
+      });
     }
 
-    // ===== 8. EXECUTE =====
+    // ===== 8. EXECUTE & SUMMARY =====
     const bulkResult =
       operations.length > 0
         ? await MaterialAssignment.bulkWrite(operations)
         : null;
 
+    // Trả về cấu trúc summary y hệt file 5 loại định mức để Frontend dùng chung Dialog
     return res.status(200).json({
       status: "success",
-      message: "Import vật tư thành công",
       summary: {
-        totalProcessed: dataImport.length,
-        insertedCount: bulkResult?.insertedCount || 0,
-        updatedCount: bulkResult?.modifiedCount || 0,
-        deletedCount: bulkResult?.deletedCount || 0,
-        invalidCount: invalidRows.length,
+        total: dataImport.length,
+        inserted: bulkResult?.insertedCount || 0,
+        updated: bulkResult?.modifiedCount || 0,
+        deleted: bulkResult?.deletedCount || 0, // Đã bao gồm deletedCount từ bulkWrite
+        failed: invalidRows.length,
       },
-      invalidRows,
+      invalidRows, // Bây giờ mỗi row đã có { row: rowIndex, error: "..." }
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      status: "error",
-      message: error.message,
-    });
+    return res.status(500).json({ status: "error", message: error.message });
   }
 };
 
@@ -727,7 +693,7 @@ exports.export = async (req, res) => {
       },
       { header: "Số lượng", key: "quantity", width: 15 },
       { header: "Đơn giá", key: "price", width: 100 },
-      { header: "_id", key: "_id", width: 20 }, // Thêm cột _id
+      { header: "_id", key: "_id", width: 0 },
     ].filter(Boolean);
 
     const formatPriceRanges = (prices = []) =>

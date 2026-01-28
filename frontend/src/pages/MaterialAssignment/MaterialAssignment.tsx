@@ -46,6 +46,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import MaterialAssignmentService from "../../service/MaterialAssignmentService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
+import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -56,6 +57,10 @@ export default function MaterialAssignment() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    messages: [] as string[],
+  });
 
   const queryClient = useQueryClient();
   const {
@@ -71,7 +76,7 @@ export default function MaterialAssignment() {
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/materialAssignments?q=${searchValue}&page=${page}&limit=${limit}&type=in`
+          `/materialAssignments?q=${searchValue}&page=${page}&limit=${limit}&type=in`,
         );
         return response.data.data;
       } catch (error) {
@@ -98,12 +103,12 @@ export default function MaterialAssignment() {
 
   const updateMutation = useMutation({
     mutationFn: (
-      updateMaterialAssignment: Partial<MaterialAssignmentInputType>
+      updateMaterialAssignment: Partial<MaterialAssignmentInputType>,
     ) =>
       api
         .put(
           `/materialassignments/${updateMaterialAssignment._id}`,
-          updateMaterialAssignment
+          updateMaterialAssignment,
         )
         .then((res) => res.data),
     onSuccess: () => {
@@ -136,11 +141,11 @@ export default function MaterialAssignment() {
     }
 
     showConfirmAlert(
-      `Bạn có muốn xóa ${selectedMaterialAssignments.length} bản ghi đã chọn?`
+      `Bạn có muốn xóa ${selectedMaterialAssignments.length} bản ghi đã chọn?`,
     ).then((result) => {
       if (result.isConfirmed) {
         const deletePromises = selectedMaterialAssignments.map((id) =>
-          api.delete(`/materialassignments/${id}`)
+          api.delete(`/materialassignments/${id}`),
         );
 
         Promise.all(deletePromises)
@@ -150,7 +155,7 @@ export default function MaterialAssignment() {
             });
             setSelectedMaterialAssignments([]);
             showSuccessAlert(
-              `Đã xóa ${selectedMaterialAssignments.length} bản ghi thành công`
+              `Đã xóa ${selectedMaterialAssignments.length} bản ghi thành công`,
             );
           })
           .catch((error) => {
@@ -192,17 +197,28 @@ export default function MaterialAssignment() {
 
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
   const importFile = useMutation({
     mutationFn: (formData: FormData) =>
       MaterialAssignmentService.importFile(formData, setProgress),
     onMutate: () => {
       setIsUploading(true);
-      setProgress(0); // Reset tiến trình khi bắt đầu
+      setProgress(0);
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
       setIsUploading(false);
-      ShowAlertImport(data)
+
+      if (data.invalidRows && data.invalidRows.length > 0) {
+        const formattedErrors = data.invalidRows.map(
+          (err: any) => `Dòng ${err.row || "?"}: ${err.error}`,
+        );
+        setErrorDialog({ open: true, messages: formattedErrors });
+      } else {
+        showSuccessAlert(
+          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated}, Xóa: ${data.summary.deleted})`,
+        );
+      }
     },
     onError: (error: any) => {
       setIsUploading(false);
@@ -212,7 +228,7 @@ export default function MaterialAssignment() {
 
   const exportExcel = useMutation({
     mutationFn: MaterialAssignmentService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -235,15 +251,13 @@ export default function MaterialAssignment() {
       key: "assignmentCode",
       width: 200,
       render: (_, record) => (
-        <Typography >
-          {record.assignmentCode?.code}
-        </Typography>
+        <Typography>{record.assignmentCode?.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.assignmentCode?.code ?? "").localeCompare(
           b.assignmentCode?.code ?? "",
           "vi",
-          { sensitivity: "base" }
+          { sensitivity: "base" },
         ),
     },
     {
@@ -251,9 +265,7 @@ export default function MaterialAssignment() {
       dataIndex: "code",
       key: "code",
       width: 200,
-      render: (_, record) => (
-        <Typography >{record.code}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.code}</Typography>,
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
@@ -263,9 +275,7 @@ export default function MaterialAssignment() {
       title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
       dataIndex: "name",
       key: "name",
-      render: (value, record) => (
-        <Typography >{value}</Typography>
-      ),
+      render: (value, record) => <Typography>{value}</Typography>,
       sorter: (a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {
           sensitivity: "base",
@@ -275,16 +285,14 @@ export default function MaterialAssignment() {
       title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
       dataIndex: "uom",
       key: "uom",
-      render: (_, record) => (
-        <Typography >{record.uom?.name}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.uom?.name}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
       dataIndex: "quantity",
       key: "quantity",
       render: (_, record) => (
-        <Typography >
+        <Typography>
           {record.quantity ? record.quantity.toLocaleString() : ""}
         </Typography>
       ),
@@ -294,7 +302,7 @@ export default function MaterialAssignment() {
       dataIndex: "price",
       key: "price",
       render: (_, record) => (
-        <Typography >
+        <Typography>
           {record.currentPrice ? record.currentPrice.toLocaleString() : ""}
         </Typography>
       ),
@@ -340,308 +348,325 @@ export default function MaterialAssignment() {
   };
 
   return (
-    <Box
-      sx={{
-        px: 5, // horizontal = 32px
-        py: 1, // vertical = 8px
-      }}
-    >
-      <Breadcrumbs aria-label="breadcrumb">
-        <Typography>Danh mục</Typography>
-        <Typography>Vật tư tài sản</Typography>
-        <Typography>Vật tư tài sản trong khoán</Typography>
-      </Breadcrumbs>
-      <Box mt={3}>
-        <Box>
-          <Box sx={{ mb: 2 }}>
-            <Typography
-              variant="h4"
-              sx={{ color: (theme) => custom_theme.palette.table_name.main }}
-            >
-              Vật tư tài sản trong khoán
-            </Typography>
-            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="contained"
-                  endIcon={<Add />}
-                  onClick={() => handleOpen()}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_add_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_add_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tạo mới
-                </Button>
-                <Button
-                  variant="contained"
-                  endIcon={<Delete />}
-                  onClick={handleDeleteMultiple}
-                  disabled={selectedMaterialAssignments.length === 0}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_delete_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_delete_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  {deleteMutation.isPending
-                    ? "Đang xóa..."
-                    : `Xóa (${selectedMaterialAssignments.length})`}
-                </Button>
-              </Box>
-              <Box display={"flex"} flex={1} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FilterList />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Lọc
-                </Button>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm kiếm theo mã vật tư hoặc tên vật tư..."
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  value={searchValue}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_filter_box.main,
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        {searchValue && (
-                          <IconButton
-                            onClick={handleClearSearch}
-                            size="small"
-                            sx={{ mr: 1 }}
-                          >
-                            ×
-                          </IconButton>
-                        )}
-                        {isLoading && searchValue !== "" ? (
-                          <CircularProgress size={20} sx={{ mr: 1 }} />
-                        ) : (
-                          <Search sx={{ fontSize: 24 }} />
-                        )}
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-              <Box display={"flex"} gap={2}>
-                <input
-                  ref={fileInputRef}
-                  id="upload-excel"
-                  type="file"
-                  accept=".xlsx, .xls"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const formData = new FormData();
-                      formData.append("file", file);
-                      importFile.mutate(formData);
-                    }
-                    e.target.value = "";
-                  }}
-                />
-
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileUpload />}
-                  onClick={handleUploadClick}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tải lên
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileDownload />}
-                  onClick={() => exportExcel.mutate("in")}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Xuất file
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Print />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  In
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Mail />}
-                  endIcon={<ArrowDropDown />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Gửi
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-          {/* Enhanced Search Results Info with Loading State */}
-          {searchValue && (
-            <Box
-              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
-            >
-              <Typography variant="body2" color="primary">
-                {isLoading && searchValue !== "" ? (
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Đang tìm kiếm "{searchValue}"...
-                  </Box>
-                ) : (
-                  <>
-                    Tìm thấy {materialAssignments.totalDocs} kết quả cho "
-                    {searchValue}"
-                    {materialAssignments.totalDocs > 0 && (
-                      <Button
-                        size="small"
-                        onClick={handleClearSearch}
-                        sx={{ ml: 2 }}
-                      >
-                        Xóa bộ lọc
-                      </Button>
-                    )}
-                  </>
-                )}
+    <>
+      <Box
+        sx={{
+          px: 5, // horizontal = 32px
+          py: 1, // vertical = 8px
+        }}
+      >
+        <Breadcrumbs aria-label="breadcrumb">
+          <Typography>Danh mục</Typography>
+          <Typography>Vật tư tài sản</Typography>
+          <Typography>Vật tư tài sản trong khoán</Typography>
+        </Breadcrumbs>
+        <Box mt={3}>
+          <Box>
+            <Box sx={{ mb: 2 }}>
+              <Typography
+                variant="h4"
+                sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+              >
+                Vật tư tài sản trong khoán
               </Typography>
+              <Box
+                display={"flex"}
+                gap={4}
+                mt={2}
+                justifyContent="space-between"
+              >
+                <Box display={"flex"} gap={2}>
+                  <Button
+                    variant="contained"
+                    endIcon={<Add />}
+                    onClick={() => handleOpen()}
+                    sx={{
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_add_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) =>
+                          custom_theme.palette.table_add_button.dark,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    Tạo mới
+                  </Button>
+                  <Button
+                    variant="contained"
+                    endIcon={<Delete />}
+                    onClick={handleDeleteMultiple}
+                    disabled={selectedMaterialAssignments.length === 0}
+                    sx={{
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_delete_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) =>
+                          custom_theme.palette.table_delete_button.dark,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    {deleteMutation.isPending
+                      ? "Đang xóa..."
+                      : `Xóa (${selectedMaterialAssignments.length})`}
+                  </Button>
+                </Box>
+                <Box display={"flex"} flex={1} gap={2}>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<FilterList />}
+                    sx={{
+                      border: "none",
+                      boxShadow: custom_theme.customShadows.tableFunctional,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) =>
+                          custom_theme.palette.table_functional_button.dark,
+                        boxShadow:
+                          custom_theme.customShadows.tableFunctionalHover,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    Lọc
+                  </Button>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Tìm kiếm theo mã vật tư hoặc tên vật tư..."
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    value={searchValue}
+                    sx={{
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_filter_box.main,
+                    }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          {searchValue && (
+                            <IconButton
+                              onClick={handleClearSearch}
+                              size="small"
+                              sx={{ mr: 1 }}
+                            >
+                              ×
+                            </IconButton>
+                          )}
+                          {isLoading && searchValue !== "" ? (
+                            <CircularProgress size={20} sx={{ mr: 1 }} />
+                          ) : (
+                            <Search sx={{ fontSize: 24 }} />
+                          )}
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+                <Box display={"flex"} gap={2}>
+                  <input
+                    ref={fileInputRef}
+                    id="upload-excel"
+                    type="file"
+                    accept=".xlsx, .xls"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        importFile.mutate(formData);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<FileUpload />}
+                    onClick={handleUploadClick}
+                    sx={{
+                      border: "none",
+                      boxShadow: custom_theme.customShadows.tableFunctional,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) =>
+                          custom_theme.palette.table_functional_button.dark,
+                        boxShadow:
+                          custom_theme.customShadows.tableFunctionalHover,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    Tải lên
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<FileDownload />}
+                    onClick={() => exportExcel.mutate("in")}
+                    sx={{
+                      border: "none",
+                      boxShadow: custom_theme.customShadows.tableFunctional,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) =>
+                          custom_theme.palette.table_functional_button.dark,
+                        boxShadow:
+                          custom_theme.customShadows.tableFunctionalHover,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    Xuất file
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<Print />}
+                    sx={{
+                      border: "none",
+                      boxShadow: custom_theme.customShadows.tableFunctional,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) =>
+                          custom_theme.palette.table_functional_button.dark,
+                        boxShadow:
+                          custom_theme.customShadows.tableFunctionalHover,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    In
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<Mail />}
+                    endIcon={<ArrowDropDown />}
+                    sx={{
+                      border: "none",
+                      boxShadow: custom_theme.customShadows.tableFunctional,
+                      backgroundColor: (theme) =>
+                        custom_theme.palette.table_functional_button.main,
+                      "&:hover": {
+                        backgroundColor: (theme) =>
+                          custom_theme.palette.table_functional_button.dark,
+                        boxShadow:
+                          custom_theme.customShadows.tableFunctionalHover,
+                      },
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "8px",
+                      px: 3,
+                    }}
+                  >
+                    Gửi
+                  </Button>
+                </Box>
+              </Box>
             </Box>
-          )}
-          <CustomTable<Materials>
-            data={materialAssignments.data}
-            total={materialAssignments.totalDocs}
-            page={page}
-            limit={limit}
-            columns={columns}
-            rowSelection={rowSelection}
-            onPageChange={(p, ps) => {
-              setPage(p);
-              setLimit(ps);
-            }}
-            isLoading={isLoading}
-            searchValue={searchValue}
-            handleClearSearch={handleClearSearch}
-          />
+            {/* Enhanced Search Results Info with Loading State */}
+            {searchValue && (
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 1,
+                  backgroundColor: "#f0f7ff",
+                  borderRadius: 1,
+                }}
+              >
+                <Typography variant="body2" color="primary">
+                  {isLoading && searchValue !== "" ? (
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <CircularProgress size={16} sx={{ mr: 1 }} />
+                      Đang tìm kiếm "{searchValue}"...
+                    </Box>
+                  ) : (
+                    <>
+                      Tìm thấy {materialAssignments.totalDocs} kết quả cho "
+                      {searchValue}"
+                      {materialAssignments.totalDocs > 0 && (
+                        <Button
+                          size="small"
+                          onClick={handleClearSearch}
+                          sx={{ ml: 2 }}
+                        >
+                          Xóa bộ lọc
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </Typography>
+              </Box>
+            )}
+            <CustomTable<Materials>
+              data={materialAssignments.data}
+              total={materialAssignments.totalDocs}
+              page={page}
+              limit={limit}
+              columns={columns}
+              rowSelection={rowSelection}
+              onPageChange={(p, ps) => {
+                setPage(p);
+                setLimit(ps);
+              }}
+              isLoading={isLoading}
+              searchValue={searchValue}
+              handleClearSearch={handleClearSearch}
+            />
+          </Box>
         </Box>
+        <MaterialAssignmentModal
+          open={open}
+          setOpen={setOpen}
+          handleSubmit={handleSubmit}
+          selectedMaterialAssignment={selectedMaterialAssignment}
+        />
       </Box>
-      <MaterialAssignmentModal
-        open={open}
-        setOpen={setOpen}
-        handleSubmit={handleSubmit}
-        selectedMaterialAssignment={selectedMaterialAssignment}
+      <ImportErrorDialog
+        open={errorDialog.open}
+        errors={errorDialog.messages}
+        onClose={() => setErrorDialog({ ...errorDialog, open: false })}
       />
-    </Box>
+    </>
   );
 }
