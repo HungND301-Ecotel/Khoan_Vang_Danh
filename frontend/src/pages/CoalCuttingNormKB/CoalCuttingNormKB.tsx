@@ -35,27 +35,32 @@ import {
 } from "../../components/Alert";
 import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 
 export default function CoalCuttingNormKB() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [selected, setSelected] = useState<AssignmentNormOutputType | null>(
-    null
+    null,
   );
   const [open, setOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
 
-  const { data: assignmentnorms = { totalDocs: 0, data: [] }, isLoading } = useQuery({
-    queryKey: ["assignmentnorms", searchValue, page, limit],
-    queryFn: async () =>
-      api.get(`/assignmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=coal_kb`).then((res) => res.data.data),
-  });
+  const { data: assignmentnorms = { totalDocs: 0, data: [] }, isLoading } =
+    useQuery({
+      queryKey: ["assignmentnorms", searchValue, page, limit],
+      queryFn: async () =>
+        api
+          .get(
+            `/assignmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=coal_kb`,
+          )
+          .then((res) => res.data.data),
+    });
 
   const handleToggleExpand = (cuttingnorm: AssignmentNormOutputType) => {
     const id = cuttingnorm?._id;
@@ -63,6 +68,7 @@ export default function CoalCuttingNormKB() {
 
     setExpandedRow((prev) => (prev === id ? null : id));
   };
+
   const createMutation = useMutation({
     mutationFn: (newCuttingNorm: Partial<AssignmentNormInputType>) =>
       api.post("/assignmentnorms", newCuttingNorm).then((res) => res.data),
@@ -76,6 +82,7 @@ export default function CoalCuttingNormKB() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const updateMutation = useMutation({
     mutationFn: (updateCuttingNorm: Partial<AssignmentNormInputType>) =>
       api
@@ -92,19 +99,21 @@ export default function CoalCuttingNormKB() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const handleDelete = () => {
     if (selectedRowKeys.length === 0) {
       showErrorAlert("Không tìm thấy bản ghi");
       return;
     }
     showConfirmAlert(
-      `Bạn có muốn xóa ${selectedRowKeys.length} bản ghi? hành động này không thể hoàn tác.`
+      `Bạn có muốn xóa ${selectedRowKeys.length} bản ghi? hành động này không thể hoàn tác.`,
     ).then((result) => {
       if (result.isConfirmed) {
         deleteMutation.mutate(selectedRowKeys);
       }
     });
   };
+
   const deleteMutation = useMutation({
     mutationFn: (ids: React.Key[]) =>
       api
@@ -120,6 +129,7 @@ export default function CoalCuttingNormKB() {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
     },
   });
+
   const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
     if (selected) {
       updateMutation.mutate({ ...values, _id: selected._id });
@@ -127,6 +137,7 @@ export default function CoalCuttingNormKB() {
       createMutation.mutate(values);
     }
   };
+
   const handleOpen = (CuttingNorm?: AssignmentNormOutputType) => {
     if (CuttingNorm) {
       setSelected(CuttingNorm);
@@ -136,13 +147,81 @@ export default function CoalCuttingNormKB() {
     setOpen(true);
   };
 
+  // Mutation xử lý Import
+  const importMutation = useMutation({
+    mutationFn: (formData: FormData) =>
+      api
+        .post("/assignmentnorms/importFile?type=coal_kb", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+        .then((res) => res.data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
+      showSuccessAlert(
+        `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated})`,
+      );
+      if (data.invalidRows?.length > 0) {
+        console.warn("Các dòng lỗi:", data.invalidRows);
+        showErrorAlert(
+          `Có ${data.invalidRows.length} dòng lỗi, kiểm tra console.`,
+        );
+      }
+    },
+    onError: (error: any) => {
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import file");
+    },
+  });
+
+  // Hàm kích hoạt chọn file
+  const handleImportClick = () => {
+    const fileInput = document.getElementById("import-file-input-kb");
+    if (fileInput) (fileInput as HTMLInputElement).click();
+  };
+
+  // Xử lý khi chọn file xong
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    importMutation.mutate(formData);
+    e.target.value = ""; // Reset để có thể chọn lại file cùng tên
+  };
+
+  // Hàm xử lý Export
+  const handleExport = async () => {
+    try {
+      const res = await api.post(
+        "/assignmentnorms/exportFile?type=coal_kb",
+        {},
+        { responseType: "blob" },
+      );
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `dinh_muc_khau_than_kb.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showSuccessAlert("Xuất file thành công");
+    } catch (error) {
+      showErrorAlert("Không thể xuất file");
+    }
+  };
+
   const columns: TableProps<AssignmentNormOutputType>["columns"] = [
     {
       title: "",
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (_v, _r, idx) => <Typography>{(page - 1) * limit + idx + 1}</Typography>,
+      render: (_v, _r, idx) => (
+        <Typography>{(page - 1) * limit + idx + 1}</Typography>
+      ),
     },
     {
       title: (
@@ -152,9 +231,7 @@ export default function CoalCuttingNormKB() {
       ),
       dataIndex: "code",
       key: "code",
-      render: (_v, record) => (
-        <Typography>{record.code}</Typography>
-      ),
+      render: (_v, record) => <Typography>{record.code}</Typography>,
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
@@ -211,7 +288,9 @@ export default function CoalCuttingNormKB() {
         key: "index",
         align: "center" as const,
         width: "5%",
-        render: (_: any, __: any, index: number) => <Typography>{index + 1}</Typography>,
+        render: (_: any, __: any, index: number) => (
+          <Typography>{index + 1}</Typography>
+        ),
       },
       {
         title: (
@@ -221,9 +300,7 @@ export default function CoalCuttingNormKB() {
         key: "assignmentCode",
         align: "center" as const,
         width: "20%",
-        render: (text: string) => (
-          <Typography>{text}</Typography>
-        ),
+        render: (text: string) => <Typography>{text}</Typography>,
       },
       {
         title: (
@@ -234,9 +311,7 @@ export default function CoalCuttingNormKB() {
         dataIndex: ["assignmentCode", "name"],
         key: "name",
         width: "55%",
-        render: (text: string) => (
-          <Typography>{text}</Typography>
-        ),
+        render: (text: string) => <Typography>{text}</Typography>,
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Đơn vị</Typography>,
@@ -244,9 +319,7 @@ export default function CoalCuttingNormKB() {
         key: "uom",
         align: "center" as const,
         width: "10%",
-        render: (text: string) => (
-          <Typography>{text}</Typography>
-        ),
+        render: (text: string) => <Typography>{text}</Typography>,
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
@@ -254,25 +327,49 @@ export default function CoalCuttingNormKB() {
         key: "norm",
         align: "center" as const,
         width: "10%",
-        render: (value: number) => <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>,
+        render: (value: number) => (
+          <Typography>
+            {value ? Number(value.toFixed(3)).toLocaleString() : ""}
+          </Typography>
+        ),
       },
     ];
 
     return (
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         {/* Header */}
-        <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1, backgroundColor: 'white' }}>
+        <Box
+          sx={{
+            p: 2,
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            backgroundColor: "white",
+          }}
+        >
           <Grid container>
-            <Grid item xs={3}><Typography>Độ dày vỉa (m)</Typography></Grid>
-            <Grid item xs={9}><Typography>{thicknessLabel}</Typography></Grid>
+            <Grid item xs={3}>
+              <Typography>Độ dày vỉa (m)</Typography>
+            </Grid>
+            <Grid item xs={9}>
+              <Typography>{thicknessLabel}</Typography>
+            </Grid>
           </Grid>
           <Grid container>
-            <Grid item xs={3}><Typography>Độ dốc vỉa</Typography></Grid>
-            <Grid item xs={9}><Typography>{slopeLabel}</Typography></Grid>
+            <Grid item xs={3}>
+              <Typography>Độ dốc vỉa</Typography>
+            </Grid>
+            <Grid item xs={9}>
+              <Typography>{slopeLabel}</Typography>
+            </Grid>
           </Grid>
           <Grid container>
-            <Grid item xs={3}><Typography>Độ cứng</Typography></Grid>
-            <Grid item xs={9}><Typography>{hardnessLabel}</Typography></Grid>
+            <Grid item xs={3}>
+              <Typography>Độ cứng</Typography>
+            </Grid>
+            <Grid item xs={9}>
+              <Typography>{hardnessLabel}</Typography>
+            </Grid>
           </Grid>
         </Box>
         {/* Bảng con */}
@@ -289,8 +386,8 @@ export default function CoalCuttingNormKB() {
   };
 
   const handleClearSearch = () => {
-    setSearchValue('')
-  }
+    setSearchValue("");
+  };
 
   return (
     <Box>
@@ -309,8 +406,12 @@ export default function CoalCuttingNormKB() {
                 endIcon={<Add />}
                 onClick={() => handleOpen()}
                 sx={{
-                  backgroundColor: (theme) => custom_theme.palette.table_add_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_add_button.dark },
+                  backgroundColor: (theme) =>
+                    custom_theme.palette.table_add_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_add_button.dark,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -327,8 +428,12 @@ export default function CoalCuttingNormKB() {
                 onClick={() => handleDelete()}
                 disabled={selectedRowKeys.length === 0}
                 sx={{
-                  backgroundColor: (theme) => custom_theme.palette.table_delete_button.main,
-                  "&:hover": { backgroundColor: (theme) => custom_theme.palette.table_delete_button.dark },
+                  backgroundColor: (theme) =>
+                    custom_theme.palette.table_delete_button.main,
+                  "&:hover": {
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_delete_button.dark,
+                  },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
                   fontWeight: 500,
@@ -349,9 +454,11 @@ export default function CoalCuttingNormKB() {
                 sx={{
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  backgroundColor: (theme) =>
+                    custom_theme.palette.table_functional_button.main,
                   "&:hover": {
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.dark,
                     boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
@@ -370,7 +477,10 @@ export default function CoalCuttingNormKB() {
                 placeholder="Tìm kiếm"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                sx={{ backgroundColor: (theme) => custom_theme.palette.table_filter_box.main }}
+                sx={{
+                  backgroundColor: (theme) =>
+                    custom_theme.palette.table_filter_box.main,
+                }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -382,16 +492,26 @@ export default function CoalCuttingNormKB() {
             </Box>
 
             <Box display={"flex"} gap={2}>
+              <input
+                type="file"
+                id="import-file-input-kb"
+                style={{ display: "none" }}
+                accept=".xlsx, .xls"
+                onChange={onFileChange}
+              />
               <Button
                 variant="outlined"
                 color="inherit"
                 startIcon={<FileUpload />}
+                onClick={handleImportClick}
                 sx={{
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  backgroundColor: (theme) =>
+                    custom_theme.palette.table_functional_button.main,
                   "&:hover": {
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.dark,
                     boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
@@ -408,12 +528,15 @@ export default function CoalCuttingNormKB() {
                 variant="outlined"
                 color="inherit"
                 startIcon={<FileDownload />}
+                onClick={handleExport}
                 sx={{
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  backgroundColor: (theme) =>
+                    custom_theme.palette.table_functional_button.main,
                   "&:hover": {
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.dark,
                     boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
@@ -433,9 +556,11 @@ export default function CoalCuttingNormKB() {
                 sx={{
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  backgroundColor: (theme) =>
+                    custom_theme.palette.table_functional_button.main,
                   "&:hover": {
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.dark,
                     boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
@@ -456,9 +581,11 @@ export default function CoalCuttingNormKB() {
                 sx={{
                   border: "none",
                   boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) => custom_theme.palette.table_functional_button.main,
+                  backgroundColor: (theme) =>
+                    custom_theme.palette.table_functional_button.main,
                   "&:hover": {
-                    backgroundColor: (theme) => custom_theme.palette.table_functional_button.dark,
+                    backgroundColor: (theme) =>
+                      custom_theme.palette.table_functional_button.dark,
                     boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
@@ -492,7 +619,7 @@ export default function CoalCuttingNormKB() {
           expandable={{
             expandedRowKeys: expandedRow ? [expandedRow] : [],
             onExpand: (expanded, record) => {
-              setExpandedRow(expanded ? record._id ?? null : null);
+              setExpandedRow(expanded ? (record._id ?? null) : null);
             },
             expandedRowRender,
             expandIconColumnIndex: -1,

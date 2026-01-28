@@ -38,22 +38,26 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 export default function ExcavationNorm() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
   const [selected, setSelected] = useState<AssignmentNormOutputType | null>(
-    null
+    null,
   );
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
 
-  const { data: assignmentnorms = { totalDOcs: 0, data: [] }, isLoading } = useQuery({
-    queryKey: ["assignmentnorms", searchValue, page, limit],
-    queryFn: async () =>
-      api.get(`/assignmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=excavation`).then((res) => res.data.data),
-  });
-
+  const { data: assignmentnorms = { totalDOcs: 0, data: [] }, isLoading } =
+    useQuery({
+      queryKey: ["assignmentnorms", searchValue, page, limit],
+      queryFn: async () =>
+        api
+          .get(
+            `/assignmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=excavation`,
+          )
+          .then((res) => res.data.data),
+    });
 
   const createMutation = useMutation({
     mutationFn: (newExcavationNorm: Partial<AssignmentNormInputType>) =>
@@ -74,7 +78,7 @@ export default function ExcavationNorm() {
       api
         .put(
           `/assignmentnorms/${updateExcavationNorm._id}`,
-          updateExcavationNorm
+          updateExcavationNorm,
         )
         .then((res) => res.data),
     onSuccess: () => {
@@ -104,6 +108,32 @@ export default function ExcavationNorm() {
     },
   });
 
+  const importMutation = useMutation({
+    mutationFn: (formData: FormData) =>
+      api
+        .post("/assignmentnorms/importFile?type=excavation", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+        .then((res) => res.data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
+
+      showSuccessAlert(
+        `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated})`,
+      );
+
+      if (data.invalidRows?.length > 0) {
+        console.warn("Các dòng lỗi:", data.invalidRows);
+        showErrorAlert(
+          `Có ${data.invalidRows.length} dòng không hợp lệ, kiểm tra console.`,
+        );
+      }
+    },
+    onError: (error: any) => {
+      showErrorAlert(error.response?.data?.message || "Lỗi khi import file");
+    },
+  });
+
   const handleDelete = () => {
     if (selectedRows.length === 0) {
       showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
@@ -120,8 +150,8 @@ export default function ExcavationNorm() {
   const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
     const cleanedValues = Object.fromEntries(
       Object.entries(values).filter(
-        ([_, value]) => value !== "" && value !== null && value !== undefined
-      )
+        ([_, value]) => value !== "" && value !== null && value !== undefined,
+      ),
     );
 
     if (selected) {
@@ -140,10 +170,53 @@ export default function ExcavationNorm() {
     setOpen(true);
   };
 
+  const handleExport = async () => {
+    try {
+      const res = await api.post(
+        "/assignmentnorms/exportFile?type=excavation",
+        {},
+        {
+          responseType: "blob",
+        },
+      );
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `dinh_muc_dao_lo.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showSuccessAlert("Xuất file thành công");
+    } catch (error) {
+      console.error(error);
+      showErrorAlert("Không thể xuất file");
+    }
+  };
+
+  const handleImportClick = () => {
+    const fileInput = document.getElementById("import-file-input");
+    if (fileInput) fileInput.click();
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    importMutation.mutate(formData);
+
+    e.target.value = "";
+  };
+
   const expandedRowRender = (record: AssignmentNormOutputType) => {
     const innerColumns = [
       {
-        title: (<Typography sx={{ fontWeight: "bold" }}>STT</Typography>),
+        title: <Typography sx={{ fontWeight: "bold" }}>STT</Typography>,
         dataIndex: "index",
         key: "index",
         width: 60,
@@ -158,9 +231,7 @@ export default function ExcavationNorm() {
         dataIndex: "assignmentCode",
         key: "assignmentCode",
         render: (assignmentCode: any) => (
-          <Typography >
-            {assignmentCode?.code}
-          </Typography>
+          <Typography>{assignmentCode?.code}</Typography>
         ),
       },
       {
@@ -171,19 +242,25 @@ export default function ExcavationNorm() {
         ),
         dataIndex: "assignmentCode",
         key: "name",
-        render: (assignmentCode: any) => <Typography>{assignmentCode?.name}</Typography>,
+        render: (assignmentCode: any) => (
+          <Typography>{assignmentCode?.name}</Typography>
+        ),
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
         dataIndex: "assignmentCode",
         key: "uom",
-        render: (assignmentCode: any) => <Typography>{assignmentCode?.uom?.name}</Typography>,
+        render: (assignmentCode: any) => (
+          <Typography>{assignmentCode?.uom?.name}</Typography>
+        ),
       },
       {
         title: <Typography sx={{ fontWeight: "bold" }}>Định mức</Typography>,
         dataIndex: "norm",
         key: "norm",
-        render: (norm: number) => <Typography>{(norm ? norm.toLocaleString() : "")}</Typography>,
+        render: (norm: number) => (
+          <Typography>{norm ? norm.toLocaleString() : ""}</Typography>
+        ),
       },
     ];
 
@@ -217,7 +294,9 @@ export default function ExcavationNorm() {
       dataIndex: "number",
       key: "number",
       width: 50,
-      render: (value, record, index) => <Typography>{(page - 1) * limit + index + 1}</Typography>,
+      render: (value, record, index) => (
+        <Typography>{(page - 1) * limit + index + 1}</Typography>
+      ),
     },
     {
       title: (
@@ -227,9 +306,7 @@ export default function ExcavationNorm() {
       ),
       dataIndex: "code",
       key: "code",
-      render: (_, record) => (
-        <Typography >{record.code}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.code}</Typography>,
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
@@ -291,8 +368,8 @@ export default function ExcavationNorm() {
   };
 
   const handleClearSearch = () => {
-    setSearchValue('')
-  }
+    setSearchValue("");
+  };
 
   return (
     <Box
@@ -408,10 +485,21 @@ export default function ExcavationNorm() {
                 />
               </Box>
               <Box display={"flex"} gap={2}>
+                {/* Input ẩn để chọn file */}
+                <input
+                  type="file"
+                  id="import-file-input"
+                  style={{ display: "none" }}
+                  accept=".xlsx, .xls"
+                  onChange={onFileChange}
+                />
+
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileUpload />}
+                  onClick={handleImportClick} // Gọi hàm trigger input file (thường là document.getElementById('import-file-input').click())
+                  disabled={importMutation.isPending}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,
@@ -431,12 +519,14 @@ export default function ExcavationNorm() {
                     px: 3,
                   }}
                 >
-                  Tải lên
+                  {importMutation.isPending ? "Đang tải..." : "Tải lên"}
                 </Button>
+
                 <Button
                   variant="outlined"
                   color="inherit"
                   startIcon={<FileDownload />}
+                  onClick={handleExport}
                   sx={{
                     border: "none",
                     boxShadow: custom_theme.customShadows.tableFunctional,

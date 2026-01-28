@@ -1,5 +1,20 @@
 const AssignmentNorm = require("../model/AssignmentNorm");
-const { paginateQuery } = require("../utils/pagination")
+const PhaseGroup = require("../model/PhaseGroup");
+const Phase = require("../model/Phase");
+const ExcavationTech = require("../model/ExcavationTech");
+const Step = require("../model/Step");
+const Length = require("../model/Length");
+const Cutting = require("../model/CuttingNorm");
+const CrossSection = require("../model/CrossSection");
+const CurbSlope = require("../model/CurbSlope");
+const Hardness = require("../model/Hardness");
+const Thickness = require("../model/Thickness");
+const AssignmentCode = require("../model/AssignmentCode");
+
+const { paginateQuery } = require("../utils/pagination");
+const { configExport } = require("../utils/config_export");
+const ExcelJS = require("exceljs");
+const xlsx = require("xlsx");
 
 exports.create = async (req, res) => {
   try {
@@ -18,9 +33,11 @@ exports.create = async (req, res) => {
       thickness,
       norms,
     } = req.body;
-    const exitData = await AssignmentNorm.countDocuments({ code: code })
+    const exitData = await AssignmentNorm.countDocuments({ code: code });
     if (exitData > 0) {
-      return res.status(409).json({ status: 'error', message: `Mã định mức '${code}' đã tồn tại` })
+      return res
+        .status(409)
+        .json({ status: "error", message: `Mã định mức '${code}' đã tồn tại` });
     }
     const newAssignmentNorm = new AssignmentNorm({
       code,
@@ -49,7 +66,7 @@ exports.update = async (req, res) => {
     const updateData = await AssignmentNorm.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true },
     );
     if (!updateData) {
       return res.status(404).json({ status: "error", message: "Sửa thất bại" });
@@ -87,12 +104,12 @@ exports.delete = async (req, res) => {
 
 exports.get = async (req, res) => {
   try {
-    let query = {}
+    let query = {};
     if (req.query.q) {
-      query.code = new RegExp(req.query.q, 'i')
+      query.code = new RegExp(req.query.q, "i");
     }
     if (req.query.type) {
-      query.type = new RegExp(req.query.type, 'i')
+      query.type = new RegExp(req.query.type, "i");
     }
     const modelQuery = AssignmentNorm.find(query)
       .populate("phaseGroup")
@@ -112,9 +129,393 @@ exports.get = async (req, res) => {
         path: "norms.assignmentCode",
         populate: "uom",
       });
-    const pagination = await paginateQuery(AssignmentNorm, modelQuery, query, req.query)
+    const pagination = await paginateQuery(
+      AssignmentNorm,
+      modelQuery,
+      query,
+      req.query,
+    );
 
     res.status(200).json({ status: "success", data: pagination });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+const columnMapping = {
+  "Mã định mức": "code",
+  "Nhóm công đoạn": "phaseGroup",
+  "Công đoạn": "phase",
+  "Công nghệ xúc": "excavationTech",
+  Chống: "step",
+  "Độ cứng": "hardness",
+  "Chiều dài": "length",
+  "Cắt vỉa": "cutting",
+  "Tiết diện lò xén": "crossSection",
+  "Độ dốc vỉa": "curbSlope",
+  "Chiều dày vỉa": "thickness",
+  "Định mức": "norms",
+  id: "_id",
+  _id: "_id",
+};
+
+exports.import = async (req, res) => {
+  try {
+    const type = req.query.type || "excavation";
+    if (!req.file)
+      return res
+        .status(400)
+        .json({ status: "error", message: "Vui lòng chọn file" });
+
+    const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const headers = xlsx.utils
+      .sheet_to_json(worksheet, { header: 1 })[0]
+      .map((h) => String(h).trim());
+    const mappedHeaders = headers.map((h) => columnMapping[h] || h);
+    const dataImport = xlsx.utils
+      .sheet_to_json(worksheet, { header: mappedHeaders, range: 1 })
+      .filter((r) => r._id || r.code);
+
+    // 1. Chuẩn bị Map danh mục
+    const getU = (f) => [
+      ...new Set(
+        dataImport.map((d) => d[f] && String(d[f]).trim()).filter(Boolean),
+      ),
+    ];
+    const [
+      existed,
+      pgs,
+      ps,
+      techs,
+      sts,
+      lens,
+      cuts,
+      secs,
+      slos,
+      hards,
+      thics,
+      asCodes,
+    ] = await Promise.all([
+      AssignmentNorm.find({}, { code: 1 }).lean(),
+      PhaseGroup.find({ name: { $in: getU("phaseGroup") } }).lean(),
+      Phase.find({ name: { $in: getU("phase") } }).lean(),
+      ExcavationTech.find({ name: { $in: getU("excavationTech") } }).lean(),
+      Step.find({ name: { $in: getU("step") } }).lean(),
+      Length.find({ name: { $in: getU("length") } }).lean(),
+      Cutting.find({ name: { $in: getU("cutting") } }).lean(),
+      CrossSection.find({ name: { $in: getU("crossSection") } }).lean(),
+      CurbSlope.find({ name: { $in: getU("curbSlope") } }).lean(),
+      Hardness.find({ name: { $in: getU("hardness") } }).lean(),
+      Thickness.find({ name: { $in: getU("thickness") } }).lean(),
+      AssignmentCode.find().lean(),
+    ]);
+
+    const codeMap = new Map(
+      existed.map((n) => [n.code.toLowerCase(), String(n._id)]),
+    );
+    const maps = {
+      phaseGroup: new Map(pgs.map((d) => [d.name, d._id])),
+      phase: new Map(ps.map((d) => [d.name, d._id])),
+      excavationTech: new Map(techs.map((d) => [d.name, d._id])),
+      step: new Map(sts.map((d) => [d.name, d._id])),
+      length: new Map(lens.map((d) => [d.name, d._id])),
+      cutting: new Map(cuts.map((d) => [d.name, d._id])),
+      crossSection: new Map(secs.map((d) => [d.name, d._id])),
+      curbSlope: new Map(slos.map((d) => [d.name, d._id])),
+      hardness: new Map(hards.map((d) => [d.name, d._id])),
+      thickness: new Map(thics.map((d) => [d.name, d._id])),
+      asCode: new Map(asCodes.map((d) => [d.code, d._id])),
+    };
+
+    // Lấy Nhóm công đoạn mặc định theo trang hiện tại
+    const typeMapping = {
+      excavation: "Đào lò",
+      cutting: "Xén lò",
+      coal_kb: "Khấu than KB",
+      coal_zh: "Khấu than ZH",
+      coal_zry: "Khấu than ZRY",
+    };
+    const defaultGroup = await PhaseGroup.findOne({
+      name: new RegExp(typeMapping[type] || "Đào lò", "i"),
+    }).lean();
+
+    const operations = [];
+    const invalidRows = [];
+
+    for (const item of dataImport) {
+      const rowIndex = dataImport.indexOf(item) + 2;
+      const cleanCode = item.code ? String(item.code).trim() : null;
+      if (!cleanCode && !item._id) continue;
+
+      const updateObj = { type };
+      Object.keys(maps).forEach((key) => {
+        if (key !== "asCode" && item[key]) {
+          const id = maps[key].get(String(item[key]).trim());
+          if (id) updateObj[key] = id;
+          else {
+            console.warn(`Không tìm thấy ID cho ${key}: ${item[key]}`);
+          }
+        }
+      });
+
+      // Logic bắt buộc Phase/PhaseGroup
+      if (!updateObj.phaseGroup && defaultGroup)
+        updateObj.phaseGroup = defaultGroup._id;
+
+      // Chỉ bắt lỗi thiếu Phase cho Đào và Xén
+      if (["excavation", "cutting"].includes(type) && !updateObj.phase) {
+        invalidRows.push({
+          row: rowIndex,
+          error: "Tên Công đoạn không khớp với danh mục hệ thống",
+        });
+        continue;
+      }
+
+      if (item.norms) {
+        const normArray = String(item.norms)
+          .split(",")
+          .map((p) => p.trim())
+          .filter(Boolean);
+        const processedNorms = [];
+        let hasErrorInNorm = false;
+
+        for (const p of normArray) {
+          if (!p.includes("=")) continue;
+          const [c, v] = p.split("=");
+          const id = maps.asCode.get(c?.trim());
+          const val = parseFloat(v);
+
+          if (!id) {
+            invalidRows.push({
+              row: rowIndex,
+              item,
+              error: `Mã vật tư '${c}' trong cột Định mức không tồn tại`,
+            });
+            hasErrorInNorm = true;
+            break;
+          }
+          if (isNaN(val)) {
+            invalidRows.push({
+              row: rowIndex,
+              item,
+              error: `Giá trị định mức '${v}' không hợp lệ`,
+            });
+            hasErrorInNorm = true;
+            break;
+          }
+          processedNorms.push({ assignmentCode: id, norm: val });
+        }
+
+        if (hasErrorInNorm) continue;
+        updateObj.norms = processedNorms;
+      }
+
+      if (item._id) {
+        item._id = String(item._id).replace(/["']/g, "").trim();
+
+        if (item._id.length !== 24) {
+          invalidRows.push({
+            row: dataImport.indexOf(item) + 2,
+            item,
+            error: "ID không hợp lệ (phải đủ 24 ký tự)",
+          });
+          continue;
+        }
+      }
+
+      const existedId = codeMap.get(cleanCode?.toLowerCase());
+
+      if (item._id) {
+        operations.push({
+          updateOne: {
+            filter: { _id: item._id },
+            update: { $set: { ...updateObj, code: cleanCode } },
+          },
+        });
+      } else if (!existedId) {
+        operations.push({
+          insertOne: { document: { ...updateObj, code: cleanCode } },
+        });
+      } else {
+        invalidRows.push({ item, error: "Mã định mức đã tồn tại" });
+      }
+    }
+
+    const result =
+      operations.length > 0 ? await AssignmentNorm.bulkWrite(operations) : null;
+    res.status(200).json({
+      status: "success",
+      summary: {
+        total: dataImport.length,
+        inserted: result?.insertedCount || 0,
+        updated: result?.modifiedCount || 0,
+        failed: invalidRows.length,
+      },
+      invalidRows,
+    });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+exports.export = async (req, res) => {
+  try {
+    const type = req.query.type || "excavation";
+    let query = { type };
+    if (req.query.q) query.code = new RegExp(req.query.q, "i");
+
+    const data = await AssignmentNorm.find(query)
+      .populate(
+        "phaseGroup phase excavationTech step length cutting crossSection curbSlope hardness thickness",
+      )
+      .populate({ path: "norms.assignmentCode" });
+
+    // 1. Định nghĩa Cột động theo Type
+    let columns = [{ header: "Mã định mức", key: "code", width: 20 }];
+    if (["excavation", "cutting"].includes(type)) {
+      columns.push(
+        { header: "Nhóm công đoạn", key: "phaseGroup", width: 0 },
+        { header: "Công đoạn", key: "phase", width: 25 },
+      );
+    }
+
+    if (type === "excavation") {
+      columns.push(
+        { header: "Công nghệ xúc", key: "excavationTech", width: 20 },
+        { header: "Chống", key: "step", width: 20 },
+        { header: "Độ cứng", key: "hardness", width: 15 },
+      );
+    } else if (type === "cutting") {
+      // Đã loại bỏ Chiều dài, Cắt vỉa. Đổi tên thành Tiết diện lò xén
+      columns.push(
+        { header: "Tiết diện lò xén", key: "crossSection", width: 25 },
+        { header: "Độ cứng", key: "hardness", width: 15 },
+      );
+    } else if (type === "coal_kb") {
+      columns.push(
+        { header: "Độ dày vỉa", key: "thickness", width: 15 },
+        { header: "Độ dốc vỉa", key: "curbSlope", width: 15 },
+        { header: "Độ cứng", key: "hardness", width: 15 },
+      );
+    } else if (type === "coal_zh") {
+      columns.push(
+        { header: "Độ dày vỉa", key: "thickness", width: 15 },
+        { header: "Chiều dài", key: "length", width: 15 },
+        { header: "Độ cứng", key: "hardness", width: 15 },
+      );
+    } else if (type === "coal_zry") {
+      columns.push(
+        { header: "Độ dày vỉa", key: "thickness", width: 15 },
+        { header: "Chiều dài lò", key: "length", width: 15 },
+        { header: "Độ cứng", key: "hardness", width: 15 },
+      );
+    }
+    columns.push(
+      { header: "Định mức", key: "norms", width: 100 },
+      { header: "_id", key: "_id", width: 0 },
+    );
+
+    // 2. Format dữ liệu
+    const formatNorm = (norms = []) =>
+      norms.map((p) => `${p.assignmentCode?.code}=${p.norm}`).join(",");
+    const formatted = (data || []).map((i) => {
+      const row = {
+        code: i.code || "",
+        phaseGroup: i.phaseGroup?.name || "",
+        phase: i.phase?.name || "",
+        norms: formatNorm(i.norms || []),
+        _id: i._id || "",
+      };
+      columns.forEach((col) => {
+        if (!row[col.key] && i[col.key])
+          row[col.key] = i[col.key].name || i[col.key];
+      });
+      return row;
+    });
+
+    // 3. Lọc Dropdown Phase theo Group
+    const typeMapping = {
+      excavation: "Đào lò",
+      cutting: "Xén lò",
+      coal_kb: "Khấu than KB",
+      coal_zh: "Khấu than ZH",
+      coal_zry: "Khấu than ZRY",
+    };
+    const relevantGroups = await PhaseGroup.find({
+      name: new RegExp(typeMapping[type] || "Đào lò", "i"),
+    }).select("_id");
+    const [pgs, ps, techs, sts, lens, cuts, secs, slos, hards, thics] =
+      await Promise.all([
+        PhaseGroup.find().lean(),
+        Phase.find({
+          phaseGroup: { $in: relevantGroups.map((g) => g._id) },
+        }).lean(),
+        ExcavationTech.find().lean(),
+        Step.find().lean(),
+        Length.find().lean(),
+        Cutting.find().lean(),
+        CrossSection.find().lean(),
+        CurbSlope.find().lean(),
+        Hardness.find().lean(),
+        Thickness.find().lean(),
+      ]);
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Dinh_Muc");
+
+    worksheet.columns = columns;
+    worksheet.addRows(formatted);
+
+    // 4. Ẩn cột và tạo Dropdown
+    columns.forEach((col, idx) => {
+      if (["_id", "phaseGroup"].includes(col.key))
+        worksheet.getColumn(idx + 1).hidden = true;
+    });
+
+    const addList = (letter, title, list, colKey) => {
+      const idx = columns.findIndex((c) => c.key === colKey) + 1;
+      if (idx <= 0) return;
+      worksheet.getColumn(letter).values = [
+        title,
+        ...list.map((i) => i.name).filter(Boolean),
+      ];
+      worksheet.getColumn(letter).hidden = true;
+      worksheet.dataValidations.add(
+        `${worksheet.getColumn(idx).letter}2:${worksheet.getColumn(idx).letter}2000`,
+        {
+          type: "list",
+          allowBlank: true,
+          formulae: [`=$${letter}$2:$${letter}$${list.length + 1}`],
+        },
+      );
+    };
+
+    addList("BA", "pgList", pgs, "phaseGroup");
+    addList("BB", "pList", ps, "phase");
+    addList("BC", "tList", techs, "excavationTech");
+    addList("BD", "sList", sts, "step");
+    addList("BE", "lList", lens, "length");
+    addList("BF", "cList", cuts, "cutting");
+    addList("BG", "secList", secs, "crossSection");
+    addList("BH", "sloList", slos, "curbSlope");
+    addList("BI", "hList", hards, "hardness");
+    addList("BJ", "thList", thics, "thickness");
+
+    const editableKeys = columns
+      .map((c) => c.key)
+      .filter((k) => !["_id", "phaseGroup"].includes(k));
+    const buffer = await configExport(workbook, worksheet, editableKeys, 2000);
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=dinh_muc_${type}.xlsx`,
+    );
+    res.send(buffer);
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
