@@ -109,4 +109,40 @@ MaterialAssignment.pre("findOneAndUpdate", function (next) {
   }
 });
 
+/**
+ * Xử lý xóa index code_1 và name_1 tự động
+ * Cách này an toàn vì nó kiểm tra xem index có tồn tại không trước khi xóa
+ */
+const dropOldIndexes = async () => {
+  try {
+    // Chờ kết nối DB sẵn sàng
+    if (mongoose.connection.readyState !== 1) {
+      await new Promise((resolve) =>
+        mongoose.connection.once("connected", resolve),
+      );
+    }
+
+    const collection = MaterialAssignmentModel.collection;
+    const currentIndexes = await collection.indexes();
+    const indexNames = currentIndexes.map((idx) => idx.name);
+
+    if (indexNames.includes("code_1")) {
+      await collection.dropIndex("code_1");
+      console.log("--- [SYSTEM] Đã xóa index unique cũ: code_1");
+    }
+
+    if (indexNames.includes("name_1")) {
+      await collection.dropIndex("name_1");
+      console.log("--- [SYSTEM] Đã xóa index unique cũ: name_1");
+    }
+  } catch (error) {
+    // Nếu index đã bị xóa rồi thì nó sẽ báo lỗi IndexNotFound, ta có thể ignore
+    if (error.codeName !== "IndexNotFound") {
+      console.error("--- [SYSTEM] Lỗi khi xử lý index:", error.message);
+    }
+  }
+};
+
+// Thực thi việc xóa index
+dropOldIndexes();
 module.exports = mongoose.model("MaterialAssignment", MaterialAssignment);
