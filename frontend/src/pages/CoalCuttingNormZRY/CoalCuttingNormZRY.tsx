@@ -169,7 +169,7 @@ export default function CoalCuttingNormZRY() {
         setErrorDialog({ open: true, messages: formattedErrors });
       } else {
         showSuccessAlert(
-          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated})`,
+          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated}, Xóa: ${data.summary.deleted})`,
         );
       }
     },

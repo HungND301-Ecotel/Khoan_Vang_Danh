@@ -124,14 +124,13 @@ export default function ExcavationNorm() {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
 
       if (data.invalidRows?.length > 0) {
-        // Chuyển đổi dữ liệu lỗi từ Backend thành mảng chuỗi để Dialog hiển thị
         const formattedErrors = data.invalidRows.map(
           (err: any) => `Dòng ${err.row || "?"}: ${err.error}`,
         );
         setErrorDialog({ open: true, messages: formattedErrors });
       } else {
         showSuccessAlert(
-          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated})`,
+          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated}, Xóa: ${data.summary.deleted})`,
         );
       }
     },

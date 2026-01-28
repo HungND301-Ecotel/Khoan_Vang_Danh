@@ -153,7 +153,7 @@ const columnMapping = {
   "Cắt vỉa": "cutting",
   "Tiết diện lò xén": "crossSection",
   "Độ dốc vỉa": "curbSlope",
-  "Chiều dày vỉa": "thickness",
+  "Độ dày vỉa": "thickness",
   "Định mức": "norms",
   id: "_id",
   _id: "_id",
@@ -254,23 +254,15 @@ exports.import = async (req, res) => {
       const cleanCode = item.code ? String(item.code).trim() : null;
 
       // 2. TRƯỜNG HỢP XÓA: Có ID nhưng tuyệt đối không có Code và không có dữ liệu khác
-      const hasOtherData = Object.keys(item).some(
-        (key) => !["_id", "code", "norms"].includes(key) && item[key],
-      );
 
-      if (
-        item._id &&
-        !cleanCode &&
-        !hasOtherData &&
-        (!item.norms || String(item.norms).trim() === "")
-      ) {
+      if (item._id && !cleanCode) {
         if (item._id.length === 24) {
           operations.push({ deleteOne: { filter: { _id: item._id } } });
           continue;
         } else {
           invalidRows.push({
             row: rowIndex,
-            error: "ID để xóa không đúng định dạng 24 ký tự",
+            error: "ID không hợp lệ để thực hiện lệnh xóa",
           });
           continue;
         }
@@ -281,7 +273,7 @@ exports.import = async (req, res) => {
         invalidRows.push({
           row: rowIndex,
           error:
-            "Dòng dữ liệu không hợp lệ: 'Mã định mức' là bắt buộc và không được để trống",
+            "Dòng dữ liệu không hợp lệ: 'Mã định mức' là bắt buộc khi thêm mới",
         });
         continue;
       }
@@ -373,35 +365,43 @@ exports.import = async (req, res) => {
       }
 
       // 5. PHÂN LOẠI OPERATION: UPDATE / INSERT / DUPLICATE
-      const existedId = codeMap.get(cleanCode.toLowerCase());
+      // Sử dụng Optional Chaining ?. để tránh lỗi khi cleanCode là null
+      const existedId = cleanCode ? codeMap.get(cleanCode.toLowerCase()) : null;
 
       if (item._id) {
+        // Trường hợp có ID: Thực hiện UPDATE
         operations.push({
           updateOne: {
             filter: { _id: item._id },
             update: { $set: { ...updateObj, code: cleanCode } },
           },
         });
-      } else if (!existedId) {
+      } else if (cleanCode && !existedId) {
+        // Trường hợp không có ID và Mã chưa tồn tại: Thực hiện INSERT
         operations.push({
           insertOne: { document: { ...updateObj, code: cleanCode } },
         });
-      } else {
+      } else if (cleanCode && existedId) {
+        // Trường hợp không có ID nhưng Mã đã tồn tại: Báo lỗi TRÙNG
         invalidRows.push({
           row: rowIndex,
           error: `Mã định mức "${cleanCode}" đã tồn tại trong hệ thống`,
         });
       }
-    }
+    } // Kết thúc vòng lặp for
 
+    // Thực thi BulkWrite (Đoạn này giữ nguyên như của bạn)
     const result =
       operations.length > 0 ? await AssignmentNorm.bulkWrite(operations) : null;
+
+    // Trả về kết quả (Summary)
     res.status(200).json({
       status: "success",
       summary: {
         total: dataImport.length,
         inserted: result?.insertedCount || 0,
         updated: result?.modifiedCount || 0,
+        deleted: result?.deletedCount || 0,
         failed: invalidRows.length,
       },
       invalidRows,
@@ -459,7 +459,7 @@ exports.export = async (req, res) => {
     } else if (type === "coal_zry") {
       columns.push(
         { header: "Độ dày vỉa", key: "thickness", width: 15 },
-        { header: "Chiều dài lò", key: "length", width: 15 },
+        { header: "Chiều dài", key: "length", width: 15 },
         { header: "Độ cứng", key: "hardness", width: 15 },
       );
     }
