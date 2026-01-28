@@ -245,25 +245,71 @@ exports.import = async (req, res) => {
 
     for (const item of dataImport) {
       const rowIndex = dataImport.indexOf(item) + 2;
-      const cleanCode = item.code ? String(item.code).trim() : null;
-      if (!cleanCode && !item._id) continue;
 
+      // 1. Làm sạch ID ngay từ đầu để check
+      if (item._id) {
+        item._id = String(item._id).replace(/["']/g, "").trim();
+      }
+
+      const cleanCode = item.code ? String(item.code).trim() : null;
+
+      // 2. TRƯỜNG HỢP XÓA: Có ID nhưng tuyệt đối không có Code và không có dữ liệu khác
+      const hasOtherData = Object.keys(item).some(
+        (key) => !["_id", "code", "norms"].includes(key) && item[key],
+      );
+
+      if (
+        item._id &&
+        !cleanCode &&
+        !hasOtherData &&
+        (!item.norms || String(item.norms).trim() === "")
+      ) {
+        if (item._id.length === 24) {
+          operations.push({ deleteOne: { filter: { _id: item._id } } });
+          continue;
+        } else {
+          invalidRows.push({
+            row: rowIndex,
+            error: "ID để xóa không đúng định dạng 24 ký tự",
+          });
+          continue;
+        }
+      }
+
+      // 3. TRƯỜNG HỢP LỖI: Thiếu Code nhưng lại có dữ liệu khác (bao gồm cả có ID hoặc không)
+      if (!cleanCode) {
+        invalidRows.push({
+          row: rowIndex,
+          error:
+            "Dòng dữ liệu không hợp lệ: 'Mã định mức' là bắt buộc và không được để trống",
+        });
+        continue;
+      }
+
+      // 4. KIỂM TRA ID HỢP LỆ (nếu có truyền ID để Update)
+      if (item._id && item._id.length !== 24) {
+        invalidRows.push({
+          row: rowIndex,
+          error: "ID không hợp lệ (phải đủ 24 ký tự)",
+        });
+        continue;
+      }
+
+      // --- BẮT ĐẦU LOGIC XỬ LÝ DỮ LIỆU ---
       const updateObj = { type };
+
+      // Map danh mục (bỏ console.warn, chỉ set nếu tìm thấy)
       Object.keys(maps).forEach((key) => {
         if (key !== "asCode" && item[key]) {
           const id = maps[key].get(String(item[key]).trim());
           if (id) updateObj[key] = id;
-          else {
-            console.warn(`Không tìm thấy ID cho ${key}: ${item[key]}`);
-          }
         }
       });
 
-      // Logic bắt buộc Phase/PhaseGroup
+      // Logic bắt buộc Phase/PhaseGroup cho Đào và Xén
       if (!updateObj.phaseGroup && defaultGroup)
         updateObj.phaseGroup = defaultGroup._id;
 
-      // Chỉ bắt lỗi thiếu Phase cho Đào và Xén
       if (["excavation", "cutting"].includes(type) && !updateObj.phase) {
         invalidRows.push({
           row: rowIndex,
@@ -272,6 +318,7 @@ exports.import = async (req, res) => {
         continue;
       }
 
+      // Logic xử lý Định mức (giữ nguyên khối check lỗi chi tiết của bạn)
       if (item.norms) {
         const normArray = String(item.norms)
           .split(",")
@@ -281,16 +328,31 @@ exports.import = async (req, res) => {
         let hasErrorInNorm = false;
 
         for (const p of normArray) {
-          if (!p.includes("=")) continue;
+          if (!p.includes("=")) {
+            invalidRows.push({
+              row: rowIndex,
+              error: `Định dạng sai tại cụm "${p}". Phải sử dụng dấu "=" (Ví dụ: KT10=1.5)`,
+            });
+            hasErrorInNorm = true;
+            break;
+          }
           const [c, v] = p.split("=");
-          const id = maps.asCode.get(c?.trim());
+          if (!c?.trim() || v === undefined || v?.trim() === "") {
+            invalidRows.push({
+              row: rowIndex,
+              error: `Dữ liệu định mức "${p}" bị thiếu Mã hoặc Giá trị định mức`,
+            });
+            hasErrorInNorm = true;
+            break;
+          }
+
+          const id = maps.asCode.get(c.trim());
           const val = parseFloat(v);
 
           if (!id) {
             invalidRows.push({
               row: rowIndex,
-              item,
-              error: `Mã vật tư '${c}' trong cột Định mức không tồn tại`,
+              error: `Mã vật tư '${c.trim()}' trong cột "Định mức" không tồn tại`,
             });
             hasErrorInNorm = true;
             break;
@@ -298,8 +360,7 @@ exports.import = async (req, res) => {
           if (isNaN(val)) {
             invalidRows.push({
               row: rowIndex,
-              item,
-              error: `Giá trị định mức '${v}' không hợp lệ`,
+              error: `Giá trị "${v}" của mã "${c.trim()}" phải là một số hợp lệ`,
             });
             hasErrorInNorm = true;
             break;
@@ -311,20 +372,8 @@ exports.import = async (req, res) => {
         updateObj.norms = processedNorms;
       }
 
-      if (item._id) {
-        item._id = String(item._id).replace(/["']/g, "").trim();
-
-        if (item._id.length !== 24) {
-          invalidRows.push({
-            row: dataImport.indexOf(item) + 2,
-            item,
-            error: "ID không hợp lệ (phải đủ 24 ký tự)",
-          });
-          continue;
-        }
-      }
-
-      const existedId = codeMap.get(cleanCode?.toLowerCase());
+      // 5. PHÂN LOẠI OPERATION: UPDATE / INSERT / DUPLICATE
+      const existedId = codeMap.get(cleanCode.toLowerCase());
 
       if (item._id) {
         operations.push({
@@ -338,7 +387,10 @@ exports.import = async (req, res) => {
           insertOne: { document: { ...updateObj, code: cleanCode } },
         });
       } else {
-        invalidRows.push({ item, error: "Mã định mức đã tồn tại" });
+        invalidRows.push({
+          row: rowIndex,
+          error: `Mã định mức "${cleanCode}" đã tồn tại trong hệ thống`,
+        });
       }
     }
 

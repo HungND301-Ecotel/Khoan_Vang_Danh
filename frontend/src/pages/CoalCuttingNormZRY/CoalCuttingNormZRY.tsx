@@ -36,6 +36,7 @@ import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 
 export default function CoalCuttingNormZRY() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -47,6 +48,10 @@ export default function CoalCuttingNormZRY() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    messages: [] as string[],
+  });
 
   const queryClient = useQueryClient();
 
@@ -154,11 +159,19 @@ export default function CoalCuttingNormZRY() {
           headers: { "Content-Type": "multipart/form-data" },
         })
         .then((res) => res.data),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
-      showSuccessAlert(
-        `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated})`,
-      );
+
+      if (data.invalidRows?.length > 0) {
+        const formattedErrors = data.invalidRows.map(
+          (err: any) => `Dòng ${err.row || "?"}: ${err.error}`,
+        );
+        setErrorDialog({ open: true, messages: formattedErrors });
+      } else {
+        showSuccessAlert(
+          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated})`,
+        );
+      }
     },
     onError: (error: any) =>
       showErrorAlert(error.response?.data?.message || "Lỗi khi import"),
@@ -371,7 +384,7 @@ export default function CoalCuttingNormZRY() {
   };
 
   return (
-    <Box>
+    <>
       <Box mt={3}>
         <Box sx={{ mb: 2 }}>
           <Box
@@ -616,6 +629,11 @@ export default function CoalCuttingNormZRY() {
           existingNorms={assignmentnorms.data}
         />
       </Box>
-    </Box>
+      <ImportErrorDialog
+        open={errorDialog.open}
+        errors={errorDialog.messages}
+        onClose={() => setErrorDialog({ ...errorDialog, open: false })}
+      />
+    </>
   );
 }

@@ -36,6 +36,7 @@ import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 
 export default function CoalCuttingNormZH() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -47,6 +48,10 @@ export default function CoalCuttingNormZH() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    messages: [] as string[],
+  });
 
   const queryClient = useQueryClient();
 
@@ -148,11 +153,19 @@ export default function CoalCuttingNormZH() {
           headers: { "Content-Type": "multipart/form-data" },
         })
         .then((res) => res.data),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
-      showSuccessAlert(
-        `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated})`,
-      );
+
+      if (data.invalidRows?.length > 0) {
+        const formattedErrors = data.invalidRows.map(
+          (err: any) => `Dòng ${err.row || "?"}: ${err.error}`,
+        );
+        setErrorDialog({ open: true, messages: formattedErrors });
+      } else {
+        showSuccessAlert(
+          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated})`,
+        );
+      }
     },
     onError: (error: any) =>
       showErrorAlert(error.response?.data?.message || "Lỗi khi import"),
@@ -365,7 +378,7 @@ export default function CoalCuttingNormZH() {
   };
 
   return (
-    <Box>
+    <>
       <Box mt={3}>
         <Box sx={{ mb: 2 }}>
           <Box
@@ -609,7 +622,12 @@ export default function CoalCuttingNormZH() {
           hasExistingRecords={assignmentnorms.totalDocs > 1}
           existingNorms={assignmentnorms.data}
         />
+        <ImportErrorDialog
+          open={errorDialog.open}
+          errors={errorDialog.messages}
+          onClose={() => setErrorDialog({ ...errorDialog, open: false })}
+        />
       </Box>
-    </Box>
+    </>
   );
 }
