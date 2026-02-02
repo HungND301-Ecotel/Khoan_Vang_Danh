@@ -19,18 +19,11 @@ import {
   TextField,
   Typography,
   CircularProgress,
-  Skeleton,
-  Card,
-  CardContent,
 } from "@mui/material";
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import MaterialAssignmentModal from "./MaterialAssignmentModal/MaterialAssignment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  MaterialAssignmentInputType,
-  MaterialAssignmentOutputType,
-  Materials,
-} from "../../types";
+import { MaterialAssignmentInputType, Materials } from "../../types";
 import api from "../../config/api.config";
 import {
   showConfirmAlert,
@@ -38,15 +31,13 @@ import {
   showSuccessAlert,
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table } from "antd";
+import { TableProps } from "antd";
 import custom_theme from "../../theme";
-import LoadingSkeleton from "../../ui/LoadingSkeleton";
-import EmptyState from "../../ui/EmptyState";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import MaterialAssignmentService from "../../service/MaterialAssignmentService";
 import { parseAxiosError } from "../../utils/handleApiError";
-import { ShowAlertImport } from "../../utils/AlertImport";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -205,19 +196,20 @@ export default function MaterialAssignment() {
       setIsUploading(true);
       setProgress(0);
     },
-    onSuccess: (data: any) => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
       setIsUploading(false);
 
-      if (data.invalidRows && data.invalidRows.length > 0) {
+      const data = res?.data || res;
+
+      ShowAlertImport(data);
+
+      // 3. Nếu có lỗi chi tiết, mở Dialog đỏ lên
+      if (data?.invalidRows && data.invalidRows.length > 0) {
         const formattedErrors = data.invalidRows.map(
           (err: any) => `Dòng ${err.row || "?"}: ${err.error}`,
         );
         setErrorDialog({ open: true, messages: formattedErrors });
-      } else {
-        showSuccessAlert(
-          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated}, Xóa: ${data.summary.deleted})`,
-        );
       }
     },
     onError: (error: any) => {
@@ -664,8 +656,8 @@ export default function MaterialAssignment() {
       </Box>
       <ImportErrorDialog
         open={errorDialog.open}
-        errors={errorDialog.messages}
         onClose={() => setErrorDialog({ ...errorDialog, open: false })}
+        errors={errorDialog.messages}
       />
     </>
   );

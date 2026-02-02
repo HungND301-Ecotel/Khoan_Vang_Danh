@@ -571,7 +571,7 @@ exports.import = async (req, res) => {
           if (normalized[i + 1]._start <= normalized[i]._end) {
             invalidRows.push({
               row: rowIndex,
-              error: `Thời giá bị chồng chéo: ${normalized[i].startMonth}->${normalized[i].endMonth} và ${normalized[i + 1].startMonth}->${normalized[i + 1].endMonth}`,
+              error: `Thời gian bị chồng chéo: ${normalized[i].startMonth}->${normalized[i].endMonth} và ${normalized[i + 1].startMonth}->${normalized[i + 1].endMonth}`,
             });
             hasTimeError = true;
             break;
