@@ -14,15 +14,8 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  Container,
   IconButton,
   InputAdornment,
-  Paper,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -37,12 +30,13 @@ import {
   showSuccessAlert,
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table, Empty } from "antd";
+import { TableProps } from "antd";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import MaterialAssignmentService from "../../service/MaterialAssignmentService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
+import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -53,6 +47,8 @@ export default function MaterialAssignment() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
 
@@ -91,12 +87,12 @@ export default function MaterialAssignment() {
 
   const updateMutation = useMutation({
     mutationFn: (
-      updateMaterialAssignment: Partial<MaterialAssignmentInputType>
+      updateMaterialAssignment: Partial<MaterialAssignmentInputType>,
     ) =>
       api
         .put(
           `/materialassignments/${updateMaterialAssignment._id}`,
-          updateMaterialAssignment
+          updateMaterialAssignment,
         )
         .then((res) => res.data),
     onSuccess: () => {
@@ -129,11 +125,11 @@ export default function MaterialAssignment() {
     }
 
     showConfirmAlert(
-      `Bạn có muốn xóa ${selectedMaterialAssignments.length} bản ghi đã chọn?`
+      `Bạn có muốn xóa ${selectedMaterialAssignments.length} bản ghi đã chọn?`,
     ).then((result) => {
       if (result.isConfirmed) {
         const deletePromises = selectedMaterialAssignments.map((id) =>
-          api.delete(`/materialassignments/${id}`)
+          api.delete(`/materialassignments/${id}`),
         );
 
         Promise.all(deletePromises)
@@ -143,7 +139,7 @@ export default function MaterialAssignment() {
             });
             setSelectedMaterialAssignments([]);
             showSuccessAlert(
-              `Đã xóa ${selectedMaterialAssignments.length} bản ghi thành công`
+              `Đã xóa ${selectedMaterialAssignments.length} bản ghi thành công`,
             );
           })
           .catch((error) => {
@@ -190,12 +186,25 @@ export default function MaterialAssignment() {
       MaterialAssignmentService.importFile(formData, setProgress),
     onMutate: () => {
       setIsUploading(true);
-      setProgress(0); // Reset tiến trình khi bắt đầu
+      setProgress(0);
     },
-    onSuccess: (data) => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
       setIsUploading(false);
-      ShowAlertImport(data)
+
+      const responseData = res?.data || res;
+
+      if (responseData?.invalidRows && responseData.invalidRows.length > 0) {
+        const errorMessages = responseData.invalidRows.map(
+          (item: any) => `Dòng ${item.row}: ${item.error}`,
+        );
+        setImportErrors(errorMessages);
+        setErrorDialogOpen(true);
+      } else {
+        ShowAlertImport(
+          responseData?.summary ? responseData : { summary: responseData },
+        );
+      }
     },
     onError: (error: any) => {
       setIsUploading(false);
@@ -205,7 +214,7 @@ export default function MaterialAssignment() {
 
   const exportExcel = useMutation({
     mutationFn: () => MaterialAssignmentService.exportFile("out"),
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -227,9 +236,7 @@ export default function MaterialAssignment() {
       dataIndex: "code",
       key: "code",
       width: 200,
-      render: (_, record) => (
-        <Typography >{record.code}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.code}</Typography>,
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
@@ -239,9 +246,7 @@ export default function MaterialAssignment() {
       title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
       dataIndex: "name",
       key: "name",
-      render: (_, record) => (
-        <Typography >{record.name}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.name}</Typography>,
       sorter: (a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {
           sensitivity: "base",
@@ -251,26 +256,14 @@ export default function MaterialAssignment() {
       title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
       dataIndex: "uom",
       key: "uom",
-      render: (_, record) => (
-        <Typography>{record.uom?.name}</Typography>
-      ),
-    },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
-      dataIndex: "quantity",
-      key: "quantity",
-      render: (_, record) => (
-        <Typography>
-          {record.quantity ? record.quantity.toLocaleString() : ""}
-        </Typography>
-      ),
+      render: (_, record) => <Typography>{record.uom?.name}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>,
       dataIndex: "price",
       key: "price",
       render: (_, record) => (
-        <Typography >
+        <Typography>
           {record.currentPrice ? record.currentPrice.toLocaleString() : ""}
         </Typography>
       ),
@@ -559,6 +552,13 @@ export default function MaterialAssignment() {
           />
         </Box>
       </Box>
+
+      <ImportErrorDialog
+        open={errorDialogOpen}
+        onClose={() => setErrorDialogOpen(false)}
+        errors={importErrors}
+      />
+
       <MaterialAssignmentOutPlanModal
         open={open}
         setOpen={setOpen}

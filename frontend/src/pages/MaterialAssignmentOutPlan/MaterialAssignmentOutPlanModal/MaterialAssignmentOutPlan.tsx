@@ -14,11 +14,10 @@ import {
 } from "@mui/material";
 import { Add, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import {
-  AssignmentCodeOutputType,
   MaterialAssignmentInputType,
   Materials,
   UnitType,
@@ -29,8 +28,6 @@ import { Divider } from "antd";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
-import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
@@ -54,9 +51,11 @@ export default function MaterialAssignmentOutPlanModal({
     queryFn: () => api.get("/assignmentcodes").then((res) => res.data.data),
   });
 
-  const { data: units = {
-    data: []
-  } } = useQuery({
+  const {
+    data: units = {
+      data: [],
+    },
+  } = useQuery({
     queryKey: ["units"],
     queryFn: () => api.get("/units").then((res) => res.data.data),
   });
@@ -68,27 +67,25 @@ export default function MaterialAssignmentOutPlanModal({
       uom: selectedMaterialAssignment
         ? selectedMaterialAssignment.uom?._id
         : "",
-      quantity: selectedMaterialAssignment
-        ? selectedMaterialAssignment.quantity
-        : undefined,
-      // assignmentCode: selectedMaterialAssignment
-      //   ? selectedMaterialAssignment.assignmentCode?._id
-      //   : "",
       priceHistory:
         selectedMaterialAssignment &&
-          Array.isArray(selectedMaterialAssignment.priceHistory)
+        Array.isArray(selectedMaterialAssignment.priceHistory)
           ? selectedMaterialAssignment.priceHistory.map((item) => ({
-            price: item.price,
-            startMonth: item.startMonth ? dayjs(item.startMonth).format("YYYY-MM") : '',
-            endMonth: item.endMonth ? dayjs(item.endMonth).format("YYYY-MM") : '',
-          }))
+              price: item.price,
+              startMonth: item.startMonth
+                ? dayjs(item.startMonth).format("YYYY-MM")
+                : "",
+              endMonth: item.endMonth
+                ? dayjs(item.endMonth).format("YYYY-MM")
+                : "",
+            }))
           : [
-            {
-              price: 0,
-              startMonth: dayjs(new Date()).format("YYYY-MM"),
-              endMonth: dayjs(new Date()).format("YYYY-MM"),
-            },
-          ],
+              {
+                price: 0,
+                startMonth: dayjs(new Date()).format("YYYY-MM"),
+                endMonth: dayjs(new Date()).format("YYYY-MM"),
+              },
+            ],
     },
     enableReinitialize: true,
     validationSchema,
@@ -161,7 +158,7 @@ export default function MaterialAssignmentOutPlanModal({
         </Typography>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0, }}>
+      <DialogContent sx={{ p: 0 }}>
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -215,33 +212,6 @@ export default function MaterialAssignmentOutPlanModal({
                 />
               </Box>
 
-              {/* Số lượng */}
-              <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                  Số lượng
-                </Typography>
-                <TextField
-                  fullWidth
-                  id="quantity"
-                  name="quantity"
-                  placeholder="Input Text"
-                  value={formik.values.quantity}
-                  onChange={formik.handleChange}
-                  error={
-                    formik.touched.quantity && Boolean(formik.errors.quantity)
-                  }
-                  helperText={formik.touched.quantity && formik.errors.quantity}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
-                />
-              </Box>
-
               {/* Đơn vị tính */}
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
@@ -276,14 +246,25 @@ export default function MaterialAssignmentOutPlanModal({
 
               {/* Đơn giá section */}
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>Đơn giá</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>
+                  Đơn giá
+                </Typography>
                 <FieldArray name="priceHistory">
                   {({ push, remove }) => (
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <Box
+                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                    >
                       {formik.values.priceHistory.map((item, index) => (
-                        <Grid container spacing={2} key={index} alignItems="center">
+                        <Grid
+                          container
+                          spacing={2}
+                          key={index}
+                          alignItems="center"
+                        >
                           <Grid item xs={4}>
-                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                            >
                               Từ tháng
                             </Typography>
                             {/* <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
@@ -311,17 +292,27 @@ export default function MaterialAssignmentOutPlanModal({
                                 )}
                               />
                             </LocalizationProvider> */}
-                            <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.startMonth`} />
+                            <FieldMonthYear
+                              formik={formik}
+                              fieldName={`priceHistory.${index}.startMonth`}
+                            />
                           </Grid>
                           <Grid item xs={4}>
-                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                            >
                               Đến tháng
                             </Typography>
-                            <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.endMonth`} />
+                            <FieldMonthYear
+                              formik={formik}
+                              fieldName={`priceHistory.${index}.endMonth`}
+                            />
                           </Grid>
 
                           <Grid item xs={3}>
-                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                            >
                               Đơn giá
                             </Typography>
                             <TextField
@@ -331,7 +322,10 @@ export default function MaterialAssignmentOutPlanModal({
                               placeholder="Placeholder"
                               value={formik.values.priceHistory[index].price}
                               onChange={(e) =>
-                                formik.setFieldValue(`priceHistory[${index}].price`, e.target.value)
+                                formik.setFieldValue(
+                                  `priceHistory[${index}].price`,
+                                  e.target.value,
+                                )
                               }
                               variant="outlined"
                               sx={{
@@ -343,7 +337,6 @@ export default function MaterialAssignmentOutPlanModal({
                               }}
                             />
                           </Grid>
-
 
                           <Grid item xs={1}>
                             {formik.values.priceHistory.length > 1 && (
@@ -378,7 +371,6 @@ export default function MaterialAssignmentOutPlanModal({
                   )}
                 </FieldArray>
               </Box>
-
             </Box>
           </Box>
         </FormikProvider>

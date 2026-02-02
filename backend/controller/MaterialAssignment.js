@@ -235,10 +235,13 @@ exports.get = async (req, res) => {
       ];
     }
     if (req.query.type === "in") {
-      query.assignmentCode = { $ne: null, $exists: true };
+      // Tìm các bản ghi mà assignmentCode không phải null
+      query.assignmentCode = { $ne: null };
     } else if (req.query.type === "out") {
-      query.assignmentCode = { $exists: false };
+      // Tìm các bản ghi mà assignmentCode là null (Dữ liệu bạn vừa import sẽ rơi vào đây)
+      query.assignmentCode = null;
     }
+
     let pipeline = [
       { $match: query },
       // 1. Lookup bảng assignmentcodes
@@ -250,7 +253,9 @@ exports.get = async (req, res) => {
           as: "assignmentCode",
         },
       },
-      { $unwind: "$assignmentCode" },
+      {
+        $unwind: { path: "$assignmentCode", preserveNullAndEmptyArrays: true },
+      },
       // 2. Lookup bảng uoms (Đơn vị tính)
       {
         $lookup: {
@@ -260,11 +265,11 @@ exports.get = async (req, res) => {
           as: "uom",
         },
       },
-      { $unwind: "$uom" },
+      { $unwind: { path: "$uom", preserveNullAndEmptyArrays: true } },
       // 3. Sắp xếp đa tầng
       {
         $sort: {
-          "assignmentCode.code": 1, // Sắp xếp theo mã giao khoán trước
+          "assignmentCode.code": 1,
         },
       },
     ];
@@ -275,7 +280,6 @@ exports.get = async (req, res) => {
       query,
       req.query,
     );
-    console.log(pagination);
 
     const today = new Date();
     const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1)
@@ -361,7 +365,7 @@ exports.getCount = async (req, res) => {
       data: result,
     });
   } catch (err) {
-    console.error(err.stack); // Dùng console.error thay vì console.log cho lỗi
+    console.error(err.stack);
     res.status(500).json({ status: "error", message: err.message });
   }
 };
@@ -381,10 +385,9 @@ const columnMapping = {
 
 const parsePriceRanges = (value) => {
   if (!value || typeof value !== "string") return [];
-
   const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-  const parsed = value
+  return value
     .split(",")
     .map((v) => v.trim())
     .filter(Boolean)
@@ -395,52 +398,23 @@ const parsePriceRanges = (value) => {
       const [startMonth, endMonth] = range.split("~");
       const numericPrice = Number(price);
 
-      // ❌ format sai
       if (
         !MONTH_REGEX.test(startMonth) ||
         !MONTH_REGEX.test(endMonth) ||
         isNaN(numericPrice)
-      )
+      ) {
         return null;
-
-      // ❌ start > end
-      if (startMonth > endMonth) return null;
+      }
 
       return {
         startMonth,
         endMonth,
         price: numericPrice,
-        _start: monthToNumber(startMonth),
-        _end: monthToNumber(endMonth),
+        _start: parseInt(startMonth.replace("-", "")),
+        _end: parseInt(endMonth.replace("-", "")),
       };
     })
     .filter(Boolean);
-
-  if (parsed.length === 0) return [];
-
-  // sort theo tháng bắt đầu
-  parsed.sort((a, b) => a._start - b._start);
-
-  // ❌ Loại bỏ khoảng bị trùng / đè / bọc
-  const result = [];
-  for (const item of parsed) {
-    const last = result[result.length - 1];
-
-    if (!last) {
-      result.push(item);
-      continue;
-    }
-
-    // Nếu overlap → bỏ item hiện tại
-    if (item._start <= last._end) {
-      continue;
-    }
-
-    result.push(item);
-  }
-
-  // cleanup field tạm
-  return result.map(({ _start, _end, ...rest }) => rest);
 };
 
 exports.import = async (req, res) => {
@@ -472,7 +446,7 @@ exports.import = async (req, res) => {
         .json({ status: "error", message: "Không tìm thấy dữ liệu hợp lệ" });
     }
 
-    // ===== 5. LOAD DATA & FK (Giữ nguyên phần query của bạn) =====
+    // ===== 5. LOAD DATA & FK  =====
     const [existedMaterials, assignmentCodes, units] = await Promise.all([
       MaterialAssignment.find(
         {},
@@ -515,17 +489,12 @@ exports.import = async (req, res) => {
         ...updateData
       } = item;
 
-      // ----- CLEAN ID TRIỆT ĐỂ (Sửa ở đây) -----
-      let cleanId = null;
-      if (_id) {
-        cleanId = String(_id).replace(/[^a-fA-F0-9]/g, "");
-      }
-
+      // 1. Làm sạch dữ liệu đầu vào
+      let cleanId = _id ? String(_id).replace(/[^a-fA-F0-9]/g, "") : null;
       const cleanCode = code ? String(code).trim() : null;
       const cleanName = name ? String(name).trim() : null;
 
-      // ----- LOGIC XÓA -----
-      // Nếu có ID mà không có Code và Name -> Ưu tiên xóa
+      // 2. LOGIC XÓA (Giữ từ bản cũ của bạn)
       if (cleanId && !cleanCode && !cleanName) {
         if (cleanId.length === 24) {
           operations.push({ deleteOne: { filter: { _id: cleanId } } });
@@ -536,7 +505,7 @@ exports.import = async (req, res) => {
         }
       }
 
-      // ----- VALIDATE BẮT BUỘC -----
+      // 3. VALIDATE BẮT BUỘC
       if (!cleanCode || !cleanName) {
         invalidRows.push({
           row: rowIndex,
@@ -545,102 +514,117 @@ exports.import = async (req, res) => {
         continue;
       }
 
-      // Xử lý FK AssignmentCode
+      // 4. Xử lý FK AssignmentCode
       let acId = null;
       if (assignmentCode) {
         const foundAcId = assignmentCodeMap.get(String(assignmentCode).trim());
-        if (foundAcId) {
-          acId = String(foundAcId);
-        } else {
+        if (foundAcId) acId = String(foundAcId);
+        else {
           invalidRows.push({
             row: rowIndex,
-            error: `Mã giao khoán '${assignmentCode}' không tồn tại`,
+            error: `Không tìm thấy Mã giao khoán '${assignmentCode}'`,
           });
           continue;
         }
       }
 
-      // CHECK TRÙNG KẾT HỢP
-      const compositeKey = `${cleanCode.toLowerCase()}|${acId}`;
-      const existedRecord = compositeMap.get(compositeKey);
+      // 5. Xử lý ĐVT và Lịch sử giá
+      const uomName = uom ? String(uom).trim() : null;
+      updateData.uom = uomName ? unitMap.get(uomName) : null;
 
-      if (existedRecord) {
-        if (cleanId && String(existedRecord.id) !== cleanId) {
-          invalidRows.push({
-            row: rowIndex,
-            error: `Cặp Mã giao khoán và Mã vật tư này đã tồn tại ở vật tư khác: '${existedRecord.name}'`,
-          });
-          continue;
-        }
-
-        if (!cleanId) {
-          invalidRows.push({
-            row: rowIndex,
-            error: `Cặp Mã giao khoán và Mã vật tư này đã tồn tại trong hệ thống (Tên: '${existedRecord.name}')`,
-          });
-          continue;
-        }
+      const cleanPriceStr = price ? String(price).trim() : "";
+      let history = [];
+      if (cleanPriceStr && typeof parsePriceRanges === "function") {
+        history = parsePriceRanges(cleanPriceStr);
       }
+      console.log(history);
 
-      console.log("--- Row Check ---");
-      console.log("Composite Key từ File:", compositeKey);
-      console.log("Clean ID từ File:", cleanId);
-      console.log("Record tìm thấy trong Map:", existedRecord);
-      if (existedRecord) {
-        console.log("So sánh ID:", String(existedRecord.id), " vs ", cleanId);
-        console.log(
-          "Kết quả so sánh (!==):",
-          String(existedRecord.id) !== cleanId,
+      // --- LOGIC KIỂM TRA THỜI GIAN (BẮT ĐẦU) ---
+      if (history.length > 0) {
+        let hasTimeError = false;
+
+        // Tạm thời chuẩn hóa để so sánh số (YYYYMM)
+        const normalized = history.map((h) => ({
+          ...h,
+          _start: parseInt(h.startMonth.replace("-", "")),
+          _end: parseInt(h.endMonth.replace("-", "")),
+        }));
+
+        // 1️⃣ Check start <= end
+        for (const h of normalized) {
+          if (h._start > h._end) {
+            invalidRows.push({
+              row: rowIndex,
+              error: `Khoảng thời gian không hợp lệ: ${h.startMonth} > ${h.endMonth}`,
+            });
+            hasTimeError = true;
+            break;
+          }
+        }
+        if (hasTimeError) continue; // Bỏ qua dòng này, sang dòng tiếp theo trong file Excel
+
+        // 2️⃣ Sort theo thời gian bắt đầu
+        normalized.sort((a, b) => a._start - b._start);
+
+        // 3️⃣ Check overlap (Chồng chéo)
+        for (let i = 0; i < normalized.length - 1; i++) {
+          if (normalized[i + 1]._start <= normalized[i]._end) {
+            invalidRows.push({
+              row: rowIndex,
+              error: `Thời giá bị chồng chéo: ${normalized[i].startMonth}->${normalized[i].endMonth} và ${normalized[i + 1].startMonth}->${normalized[i + 1].endMonth}`,
+            });
+            hasTimeError = true;
+            break;
+          }
+        }
+        if (hasTimeError) continue; // Bỏ qua dòng này
+
+        // Nếu mọi thứ ok, gán lại history đã sort cho sạch sẽ
+        updateData.priceHistory = normalized.map(
+          ({ _start, _end, ...rest }) => rest,
         );
+      } else {
+        updateData.priceHistory = [];
       }
 
-      // Parse Price History (Nếu bạn có hàm parsePriceRanges)
-      if (price)
-        updateData.priceHistory =
-          typeof parsePriceRanges === "function" ? parsePriceRanges(price) : [];
-
-      // Map Unit
-      if (uom) {
-        const uomId = unitMap.get(String(uom).trim());
-        if (uomId) updateData.uom = uomId;
-      }
-
-      if (quantity !== undefined && quantity !== null) {
+      // 6. Xử lý Số lượng (Chỉ cho phép nếu có Mã GK)
+      if (acId && quantity !== undefined && quantity !== null) {
         const q = Number(quantity);
         updateData.quantity = isNaN(q) ? 0 : q;
-      }
-
-      // ----- PHÂN LOẠI UPDATE / INSERT (Dùng cleanId) -----
-      if (cleanId && cleanId.length === 24) {
-        operations.push({
-          updateOne: {
-            filter: { _id: cleanId },
-            update: {
-              $set: {
-                code: cleanCode,
-                name: cleanName,
-                assignmentCode: acId,
-                ...updateData,
-              },
-            },
-          },
-        });
       } else {
-        operations.push({
-          insertOne: {
-            document: {
-              code: cleanCode,
-              name: cleanName,
-              assignmentCode: acId,
-              ...updateData,
-            },
-          },
-        });
+        delete updateData.quantity; // Loại bỏ quantity nếu là vật tư "out"
       }
 
-      // Cập nhật map tạm để tránh trùng trong cùng 1 file
+      // 7. Check trùng để quyết định Update hay Insert
+      const s_acId = acId ? String(acId) : "null";
+      const compositeKey = `${cleanCode.toLowerCase()}|${s_acId}`;
+      const existedRecord = compositeMap.get(compositeKey);
+
+      let filter = null;
+      if (cleanId && cleanId.length === 24) {
+        filter = { _id: cleanId }; // Ưu tiên ID từ file
+      } else if (existedRecord) {
+        filter = { _id: existedRecord.id }; // Nếu trùng cặp Mã VT|GK thì lấy ID cũ
+      }
+
+      const finalDoc = {
+        code: cleanCode,
+        name: cleanName,
+        assignmentCode: acId,
+        uom: updateData.uom,
+        priceHistory: updateData.priceHistory,
+        ...updateData,
+      };
+
+      if (filter) {
+        operations.push({ updateOne: { filter, update: { $set: finalDoc } } });
+      } else {
+        operations.push({ insertOne: { document: finalDoc } });
+      }
+
+      // Cập nhật map tạm
       compositeMap.set(compositeKey, {
-        id: cleanId || "temp",
+        id: filter?._id || "temp",
         name: cleanName,
       });
     }
@@ -651,17 +635,19 @@ exports.import = async (req, res) => {
         ? await MaterialAssignment.bulkWrite(operations)
         : null;
 
-    // Trả về cấu trúc summary y hệt file 5 loại định mức để Frontend dùng chung Dialog
     return res.status(200).json({
       status: "success",
       summary: {
-        total: dataImport.length,
-        inserted: bulkResult?.insertedCount || 0,
-        updated: bulkResult?.modifiedCount || 0,
-        deleted: bulkResult?.deletedCount || 0, // Đã bao gồm deletedCount từ bulkWrite
-        failed: invalidRows.length,
+        totalProcessed: dataImport.length,
+        insertedCount: bulkResult?.insertedCount || bulkResult?.nInserted || 0,
+        updatedCount:
+          bulkResult?.modifiedCount ||
+          bulkResult?.nModified ||
+          bulkResult?.nMatched ||
+          0,
+        deletedCount: bulkResult?.deletedCount || bulkResult?.nRemoved || 0,
       },
-      invalidRows, // Bây giờ mỗi row đã có { row: rowIndex, error: "..." }
+      invalidRows: invalidRows || [],
     });
   } catch (error) {
     return res.status(500).json({ status: "error", message: error.message });
@@ -674,9 +660,9 @@ exports.export = async (req, res) => {
     const typeIn = req.query.type === "in";
 
     if (typeIn) {
-      query.assignmentCode = { $ne: null, $exists: true };
+      query.assignmentCode = { $ne: null };
     } else if (req.query.type === "out") {
-      query.assignmentCode = { $exists: false };
+      query.assignmentCode = null;
     }
     const data = await MaterialAssignment.find(query)
       .populate("uom")
@@ -691,7 +677,7 @@ exports.export = async (req, res) => {
         key: "assignmentCode",
         width: 20,
       },
-      { header: "Số lượng", key: "quantity", width: 15 },
+      typeIn && { header: "Số lượng", key: "quantity", width: 15 },
       { header: "Đơn giá", key: "price", width: 100 },
       { header: "_id", key: "_id", width: 0 },
     ].filter(Boolean);
@@ -704,7 +690,7 @@ exports.export = async (req, res) => {
       name: i?.name || "",
       uom: i?.uom?.name || "",
       ...(typeIn ? { assignmentCode: i?.assignmentCode?.code || "" } : {}),
-      quantity: i?.quantity || 0,
+      ...(typeIn ? { quantity: i?.quantity || 0 } : {}),
       price: formatPriceRanges(i?.priceHistory || []),
       _id: i?._id || "", // Thêm _id
     }));
