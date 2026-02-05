@@ -38,6 +38,7 @@ import MaterialAssignmentService from "../../service/MaterialAssignmentService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 import { ShowAlertImport } from "../../utils/AlertImport";
+import { formatDecimal, formattedPrice } from "../../utils/helpers";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -284,9 +285,7 @@ export default function MaterialAssignment() {
       dataIndex: "quantity",
       key: "quantity",
       render: (_, record) => (
-        <Typography>
-          {record.quantity ? record.quantity.toLocaleString() : ""}
-        </Typography>
+        <Typography>{formatDecimal(record?.quantity)}</Typography>
       ),
     },
     {
@@ -294,9 +293,7 @@ export default function MaterialAssignment() {
       dataIndex: "price",
       key: "price",
       render: (_, record) => (
-        <Typography>
-          {record.currentPrice ? record.currentPrice.toLocaleString() : ""}
-        </Typography>
+        <Typography>{formattedPrice(record?.currentPrice)}</Typography>
       ),
     },
     {

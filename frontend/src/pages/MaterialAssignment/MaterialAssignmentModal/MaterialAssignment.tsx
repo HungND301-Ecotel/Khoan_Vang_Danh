@@ -15,6 +15,7 @@ import {
 import { Add, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import React, { Dispatch, SetStateAction, useState } from "react";
+import { NumericFormat } from "react-number-format";
 import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import {
@@ -31,6 +32,9 @@ import dayjs from "dayjs";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { formatDecimal, formattedPrice } from "../../../utils/helpers";
+import TextFieldPrice from "../../../components/TextField/TextFieldPrice";
+import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
@@ -50,10 +54,11 @@ export default function MaterialAssignmentModal({
   handleSubmit: (values: Partial<MaterialAssignmentInputType>) => void;
   selectedMaterialAssignment: Materials | null;
 }) {
-
-  const { data: assignmentCodes = {
-    data: []
-  } } = useQuery({
+  const {
+    data: assignmentCodes = {
+      data: [],
+    },
+  } = useQuery({
     queryKey: ["assignmentCodes"],
     queryFn: () => api.get("/assignmentcodes").then((res) => res.data.data),
   });
@@ -72,33 +77,39 @@ export default function MaterialAssignmentModal({
         : "",
       quantity: selectedMaterialAssignment
         ? selectedMaterialAssignment.quantity
-        : "",
+        : 0,
       assignmentCode: selectedMaterialAssignment
         ? selectedMaterialAssignment.assignmentCode?._id
         : "",
       priceHistory:
-        selectedMaterialAssignment && Array.isArray(selectedMaterialAssignment.priceHistory)
+        selectedMaterialAssignment &&
+        Array.isArray(selectedMaterialAssignment.priceHistory)
           ? selectedMaterialAssignment.priceHistory.map((item) => ({
-            price: item.price,
-            startMonth: item.startMonth ? dayjs(item.startMonth).format("YYYY-MM") : '',
-            endMonth: item.endMonth ? dayjs(item.endMonth).format("YYYY-MM") : '',
-          }))
+              price: item.price,
+              startMonth: item.startMonth
+                ? dayjs(item.startMonth).format("YYYY-MM")
+                : "",
+              endMonth: item.endMonth
+                ? dayjs(item.endMonth).format("YYYY-MM")
+                : "",
+            }))
           : [
-            {
-              price: 0,
-              startMonth: dayjs(new Date()).format("YYYY-MM"),
-              endMonth: dayjs(new Date()).format("YYYY-MM"),
-            },
-          ],
+              {
+                price: 0,
+                startMonth: dayjs(new Date()).format("YYYY-MM"),
+                endMonth: dayjs(new Date()).format("YYYY-MM"),
+              },
+            ],
     },
     enableReinitialize: true,
     validationSchema,
     onSubmit: (values) => {
       const transformedValues: MaterialAssignmentInputType = {
         ...values,
-        quantity: values.quantity === undefined || typeof values.quantity === "number"
-          ? values.quantity
-          : Number(values.quantity),
+        quantity:
+          values.quantity === undefined || typeof values.quantity === "number"
+            ? values.quantity
+            : Number(values.quantity),
         priceHistory: values.priceHistory.map((item) => ({
           ...item,
           price: Number(item.price),
@@ -147,7 +158,9 @@ export default function MaterialAssignmentModal({
         <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "14px" }}>
           <Typography sx={{ color: "#666" }}>Danh mục</Typography>
           <Typography sx={{ color: "#666" }}>Vật tư, tài sản</Typography>
-          <Typography sx={{ color: "#666" }}>Vật tư, tài sản trong khoán</Typography>
+          <Typography sx={{ color: "#666" }}>
+            Vật tư, tài sản trong khoán
+          </Typography>
         </Breadcrumbs>
         <Divider
           style={{
@@ -157,8 +170,12 @@ export default function MaterialAssignmentModal({
             borderColor: "#ccc",
           }}
         />
-        <Typography sx={{ fontSize: "20px", color: "#1976d2", fontWeight: 500 }}>
-          {selectedMaterialAssignment ? "Chỉnh sửa Vật tư, tài sản trong khoán" : "Tạo mới Vật tư, tài sản trong khoán"}
+        <Typography
+          sx={{ fontSize: "20px", color: "#1976d2", fontWeight: 500 }}
+        >
+          {selectedMaterialAssignment
+            ? "Chỉnh sửa Vật tư, tài sản trong khoán"
+            : "Tạo mới Vật tư, tài sản trong khoán"}
         </Typography>
       </DialogTitle>
 
@@ -166,10 +183,11 @@ export default function MaterialAssignmentModal({
         <FormikProvider value={formik}>
           <Box component="form" onSubmit={formik.handleSubmit}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-
               {/* Mã giao khoán */}
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã giao khoán</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Mã giao khoán
+                </Typography>
                 <TextField
                   fullWidth
                   select
@@ -180,8 +198,14 @@ export default function MaterialAssignmentModal({
                   onChange={(event) => {
                     formik.setFieldValue("assignmentCode", event.target.value);
                   }}
-                  error={formik.touched.assignmentCode && Boolean(formik.errors.assignmentCode)}
-                  helperText={formik.touched.assignmentCode && formik.errors.assignmentCode}
+                  error={
+                    formik.touched.assignmentCode &&
+                    Boolean(formik.errors.assignmentCode)
+                  }
+                  helperText={
+                    formik.touched.assignmentCode &&
+                    formik.errors.assignmentCode
+                  }
                   variant="outlined"
                   sx={{
                     "& .MuiInputBase-root": {
@@ -191,16 +215,23 @@ export default function MaterialAssignmentModal({
                     },
                   }}
                 >
-                  {assignmentCodes.data.map((assignmentCode: AssignmentCodeOutputType) => (
-                    <MenuItem key={assignmentCode._id} value={assignmentCode._id}>
-                      {assignmentCode.code}
-                    </MenuItem>
-                  ))}
+                  {assignmentCodes.data.map(
+                    (assignmentCode: AssignmentCodeOutputType) => (
+                      <MenuItem
+                        key={assignmentCode._id}
+                        value={assignmentCode._id}
+                      >
+                        {assignmentCode.code}
+                      </MenuItem>
+                    ),
+                  )}
                 </TextField>
               </Box>
 
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã vật tư, tài sản</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Mã vật tư, tài sản
+                </Typography>
                 <TextField
                   fullWidth
                   id="code"
@@ -221,7 +252,9 @@ export default function MaterialAssignmentModal({
                 />
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Tên vật tư, tài sản</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Tên vật tư, tài sản
+                </Typography>
                 <TextField
                   fullWidth
                   id="name"
@@ -242,28 +275,18 @@ export default function MaterialAssignmentModal({
                 />
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Số lượng</Typography>
-                <TextField
-                  fullWidth
-                  id="quantity"
-                  name="quantity"
-                  placeholder="Input Text"
-                  value={formik.values.quantity}
-                  onChange={formik.handleChange}
-                  error={formik.touched.quantity && Boolean(formik.errors.quantity)}
-                  helperText={formik.touched.quantity && formik.errors.quantity}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Số lượng
+                </Typography>
+                <TextFieldNumber
+                  formik={formik}
+                  field="quantity"
                 />
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Đơn vị tính</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Đơn vị tính
+                </Typography>
                 <TextField
                   fullWidth
                   select
@@ -292,74 +315,55 @@ export default function MaterialAssignmentModal({
               </Box>
 
               <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>Đơn giá</Typography>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>
+                  Đơn giá
+                </Typography>
                 <FieldArray name="priceHistory">
                   {({ push, remove }) => (
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <Box
+                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                    >
                       {formik.values.priceHistory.map((item, index) => (
-                        <Grid container spacing={2} key={index} alignItems="center">
+                        <Grid
+                          container
+                          spacing={2}
+                          key={index}
+                          alignItems="center"
+                        >
                           <Grid item xs={4}>
-                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                            >
                               Từ tháng
                             </Typography>
-                            {/* <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
-                              <DatePicker
-                                label="Chọn tháng"
-                                inputFormat="MM/YYYY" // v5 vẫn hỗ trợ
-                                views={["year", "month"]}
-                                openTo="month"
-                                value={
-                                  formik.values.priceHistory[index].startMonth || ''
-                                }
-                                onChange={(value) => {
-                                  formik.setFieldValue(
-                                    `priceHistory[${index}].startMonth`,
-                                    value ? dayjs(value).format("YYYY-MM") : ""
-                                  );
-                                }}
-                                renderInput={(params) => (
-                                  <TextField
-                                    {...params}
-                                    fullWidth
-                                    size="small"
-                                    sx={{ backgroundColor: "#fff" }}
-                                  />
-                                )}
-                              />
-                            </LocalizationProvider> */}
-                            <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.startMonth`} />
+                            <FieldMonthYear
+                              formik={formik}
+                              fieldName={`priceHistory.${index}.startMonth`}
+                            />
                           </Grid>
                           <Grid item xs={4}>
-                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                            >
                               Đến tháng
                             </Typography>
-                            <FieldMonthYear formik={formik} fieldName={`priceHistory.${index}.endMonth`} />
-                          </Grid>
-
-                          <Grid item xs={3}>
-                            <Typography sx={{ fontSize: "12px", color: "#666", mb: 1 }}>
-                              Đơn giá
-                            </Typography>
-                            <TextField
-                              fullWidth
-                              type="number"
-                              name={`priceHistory[${index}].price`}
-                              placeholder="Placeholder"
-                              value={formik.values.priceHistory[index].price}
-                              onChange={(e) =>
-                                formik.setFieldValue(`priceHistory[${index}].price`, e.target.value)
-                              }
-                              variant="outlined"
-                              sx={{
-                                "& .MuiInputBase-root": {
-                                  height: "40px",
-                                  borderRadius: "6px",
-                                  fontSize: "14px",
-                                },
-                              }}
+                            <FieldMonthYear
+                              formik={formik}
+                              fieldName={`priceHistory.${index}.endMonth`}
                             />
                           </Grid>
 
+                          <Grid item xs={3}>
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                            >
+                              Đơn giá
+                            </Typography>
+                            <TextFieldPrice
+                              formik={formik}
+                              field={`priceHistory.${index}.price`}
+                            />
+                          </Grid>
 
                           <Grid item xs={1}>
                             {formik.values.priceHistory.length > 1 && (
@@ -398,7 +402,9 @@ export default function MaterialAssignmentModal({
           </Box>
         </FormikProvider>
       </DialogContent>
-      <DialogActions sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}>
+      <DialogActions
+        sx={{ mt: 4, px: 0, gap: "12px", justifyContent: "flex-end" }}
+      >
         <Button
           onClick={handleClose}
           sx={{

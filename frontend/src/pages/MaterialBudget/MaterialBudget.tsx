@@ -40,6 +40,7 @@ import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import dayjs from "dayjs";
 import GroupTable from "./GroupTable";
+import { formattedPrice } from "../../utils/helpers";
 
 export default function MaterialBudget() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -181,7 +182,7 @@ export default function MaterialBudget() {
           (sum: number, i: any) => sum + i.totalBudgetCost,
           0
         );
-        return <Typography> {total ? (Number(total.toFixed(0))).toLocaleString() : ""}</Typography>;
+        return <Typography> {formattedPrice(total)}</Typography>;
       },
     },
     {

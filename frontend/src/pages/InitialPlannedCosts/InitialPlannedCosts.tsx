@@ -42,12 +42,11 @@ import InitialPlannedCostModal from "./InitialPlannedCostModal/InitialPlannedCos
 import PhaseTable from "./PhaseTable";
 import dayjs from "dayjs";
 import GroupTable from "./GroupTable";
+import { formattedPrice } from "../../utils/helpers";
 
 export default function InitialPlannedCosts() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<any | null>(
-    null
-  );
+  const [selected, setSelected] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
@@ -64,7 +63,7 @@ export default function InitialPlannedCosts() {
       queryFn: async () => {
         try {
           const res = await api.get(
-            `/initialplannedcosts?q=${searchValue}&page=${page}&limit=${limit}`
+            `/initialplannedcosts?q=${searchValue}&page=${page}&limit=${limit}`,
           );
           return res.data?.data;
         } catch (error: any) {
@@ -94,12 +93,12 @@ export default function InitialPlannedCosts() {
 
   const updateMutation = useMutation({
     mutationFn: (
-      updateInitialPlannedCost: Partial<InitialPlannedCostInputType>
+      updateInitialPlannedCost: Partial<InitialPlannedCostInputType>,
     ) =>
       api
         .put(
           `/initialplannedcosts/${updateInitialPlannedCost._id}`,
-          updateInitialPlannedCost
+          updateInitialPlannedCost,
         )
         .then((res) => res.data),
     onSuccess: () => {
@@ -128,25 +127,26 @@ export default function InitialPlannedCosts() {
     });
   };
 
-  const { mutate: handleDeleteMutation, isPending: isDeletePending } = useMutation({
-    mutationFn: async (ids: React.Key[]) => {
-      const deletePromises = ids.map((id) =>
-        api.delete(`/initialplannedcosts/${id}`).then((res) => res.data)
-      );
-      return Promise.all(deletePromises);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
-      setSelectedRows([]);
-      showSuccessAlert("Xóa thành công");
-    },
-    onError: (error: any) => {
-      const errorMessage =
-        error.response?.data?.message || error.message || "Lỗi khi xóa";
-      console.error(errorMessage);
-      showErrorAlert(errorMessage);
-    },
-  });
+  const { mutate: handleDeleteMutation, isPending: isDeletePending } =
+    useMutation({
+      mutationFn: async (ids: React.Key[]) => {
+        const deletePromises = ids.map((id) =>
+          api.delete(`/initialplannedcosts/${id}`).then((res) => res.data),
+        );
+        return Promise.all(deletePromises);
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
+        setSelectedRows([]);
+        showSuccessAlert("Xóa thành công");
+      },
+      onError: (error: any) => {
+        const errorMessage =
+          error.response?.data?.message || error.message || "Lỗi khi xóa";
+        console.error(errorMessage);
+        showErrorAlert(errorMessage);
+      },
+    });
 
   const handleSubmit = (values: Partial<InitialPlannedCostInputType>) => {
     if (values._id) {
@@ -187,9 +187,16 @@ export default function InitialPlannedCosts() {
     if (!data.group) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
-    return <Box>
-      <GroupTable data={data.group} handleOpen={handleOpen} productionScope={record.productionScope} handleDeleteMutation={handleDeleteMutation} />
-    </Box>
+    return (
+      <Box>
+        <GroupTable
+          data={data.group}
+          handleOpen={handleOpen}
+          productionScope={record.productionScope}
+          handleDeleteMutation={handleDeleteMutation}
+        />
+      </Box>
+    );
   };
 
   const columns: TableProps<InitialPlannedCostOutputType>["columns"] = [
@@ -213,20 +220,20 @@ export default function InitialPlannedCosts() {
         <Typography>{record.productionScope?.code}</Typography>
       ),
       sorter: (a, b) =>
-        (a.productionScope?.code ?? "").localeCompare(b.productionScope?.code ?? "", "vi", {
-          sensitivity: "base",
-        }),
+        (a.productionScope?.code ?? "").localeCompare(
+          b.productionScope?.code ?? "",
+          "vi",
+          {
+            sensitivity: "base",
+          },
+        ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Thời gian</Typography>,
       dataIndex: "month",
       key: "month",
       width: 350,
-      render: (text: string, item: any) => (
-        <Typography>
-          {text}
-        </Typography>
-      ),
+      render: (text: string, item: any) => <Typography>{text}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Chi phí</Typography>,
@@ -236,9 +243,9 @@ export default function InitialPlannedCosts() {
       render: (text: string, item: any) => {
         const total = item.group.reduce(
           (sum: number, i: any) => sum + i.totalInitialPlannedCost,
-          0
+          0,
         );
-        return <Typography> {total ? (Number(total.toFixed(0))).toLocaleString() : ""}</Typography>;
+        return <Typography> {formattedPrice(total)}</Typography>;
       },
     },
     {
@@ -270,9 +277,11 @@ export default function InitialPlannedCosts() {
       align: "center",
       render: (_, record) => (
         <IconButton
-          onClick={() => handleOpen({
-            productionScope: record.productionScope
-          })}
+          onClick={() =>
+            handleOpen({
+              productionScope: record.productionScope,
+            })
+          }
           sx={{
             color: "#666",
             "&:hover": {
@@ -296,11 +305,15 @@ export default function InitialPlannedCosts() {
     onChange: (newSelectedRows: React.Key[]) => {
       setSelectedRows(newSelectedRows);
 
-      const selectedDocuments = initialplannedcosts.data.filter((g: InitialPlannedCostOutputType) =>
-        newSelectedRows.some(s => s === g._id))
+      const selectedDocuments = initialplannedcosts.data.filter(
+        (g: InitialPlannedCostOutputType) =>
+          newSelectedRows.some((s) => s === g._id),
+      );
       const allSelectedGroups = selectedDocuments.flatMap((g: any) => g.group);
-      const deletedGroupIds = allSelectedGroups.map((groupItem: any) => groupItem._id);
-      setDeletedIds(deletedGroupIds)
+      const deletedGroupIds = allSelectedGroups.map(
+        (groupItem: any) => groupItem._id,
+      );
+      setDeletedIds(deletedGroupIds);
     },
   };
 
@@ -367,7 +380,7 @@ export default function InitialPlannedCosts() {
                     px: 3,
                   }}
                 >
-                  {isDeletePending ? 'Đang xóa' : 'Xóa'} ({selectedRows.length})
+                  {isDeletePending ? "Đang xóa" : "Xóa"} ({selectedRows.length})
                 </Button>
               </Box>
               <Box display={"flex"} flex={1} gap={2}>

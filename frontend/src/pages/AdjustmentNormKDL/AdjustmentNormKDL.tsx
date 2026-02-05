@@ -43,6 +43,7 @@ import AdjustmentNormService from "../../service/AdjustmentNormService";
 import { AdjustmentNormType } from "../../enum";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport"
+import { formatDecimal } from "../../utils/helpers";
 
 export default function AdjustmentNormKDL() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -244,7 +245,7 @@ export default function AdjustmentNormKDL() {
                   {item.assignmentCode?.uom?.name || ""}
                 </TableCell>
                 <TableCell align="center" sx={{ width: "10%" }}>
-                  {item.norm ? (Number(item.norm.toFixed(3))).toLocaleString() : ""}
+                  {formatDecimal(item.norm)}
                 </TableCell>
               </TableRow>
             ))}

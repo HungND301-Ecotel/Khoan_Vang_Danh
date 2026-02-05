@@ -35,6 +35,7 @@ import * as yup from "yup";
 import { CloudUpload } from "@mui/icons-material";
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
+import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -48,7 +49,7 @@ const validationSchema = yup.object({
       yup.object().shape({
         assignmentCode: yup.string().required("Bắt buộc"),
         norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
-      })
+      }),
     )
     .min(1, "Chọn mã giao khoán"),
 });
@@ -78,10 +79,10 @@ export default function CuttingNormModal({
 
   // interpolation states (mirrors ExcavationNormModal behavior)
   const [upperLimitFirstNorm, setUpperLimitFirstNorm] = useState<number | null>(
-    null
+    null,
   );
   const [lowerLimitFirstNorm, setLowerLimitFirstNorm] = useState<number | null>(
-    null
+    null,
   );
   const [upperLimitPoint, setUpperLimitPoint] = useState<number | null>(null);
   const [lowerLimitPoint, setLowerLimitPoint] = useState<number | null>(null);
@@ -115,8 +116,8 @@ export default function CuttingNormModal({
   useEffect(() => {
     setPhaseGroup(
       phasegroups.data.find(
-        (p: PhaseGroupType) => p.name?.toLowerCase() === "xén lò".toLowerCase()
-      )?._id
+        (p: PhaseGroupType) => p.name?.toLowerCase() === "xén lò".toLowerCase(),
+      )?._id,
     );
   }, [phasegroups]);
 
@@ -138,9 +139,9 @@ export default function CuttingNormModal({
       norms:
         selected?.norms && selected.norms.length > 0
           ? selected.norms.map((item) => ({
-            assignmentCode: item.assignmentCode?._id ?? "",
-            norm: item.norm,
-          }))
+              assignmentCode: item.assignmentCode?._id ?? "",
+              norm: item.norm,
+            }))
           : [],
     },
     enableReinitialize: true,
@@ -169,7 +170,7 @@ export default function CuttingNormModal({
 
     if (selected && selected.norms.length > 0) {
       const selectedCodes = assignmentcodes.data.filter((ac: any) =>
-        selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
+        selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
     }
@@ -179,7 +180,7 @@ export default function CuttingNormModal({
   useEffect(() => {
     if (formik.values.upperLimitNorm && existingNorms) {
       const selectedNorm = existingNorms.find(
-        (norm) => norm._id === formik.values.upperLimitNorm
+        (norm) => norm._id === formik.values.upperLimitNorm,
       );
       if (selectedNorm && selectedNorm.norms && selectedNorm.norms.length > 0) {
         const firstNorm = selectedNorm.norms[0]?.norm;
@@ -196,7 +197,7 @@ export default function CuttingNormModal({
   useEffect(() => {
     if (formik.values.lowerLimitNorm && existingNorms) {
       const selectedNorm = existingNorms.find(
-        (norm) => norm._id === formik.values.lowerLimitNorm
+        (norm) => norm._id === formik.values.lowerLimitNorm,
       );
       if (selectedNorm && selectedNorm.norms && selectedNorm.norms.length > 0) {
         const firstNorm = selectedNorm.norms[0]?.norm;
@@ -205,7 +206,7 @@ export default function CuttingNormModal({
         // Prefill all assignment codes norms from selected lower-limit existing norm
         const updatedNorms = formik.values.norms.map((item: any) => {
           const matchingNorm = selectedNorm.norms.find(
-            (n) => n.assignmentCode?._id === item.assignmentCode
+            (n) => n.assignmentCode?._id === item.assignmentCode,
           );
           return {
             assignmentCode: item.assignmentCode,
@@ -227,7 +228,7 @@ export default function CuttingNormModal({
     // Mỗi khi selectedAssignmentCodes thay đổi → cập nhật lại formik.norms
     const updatedNorms = selectedAssignmentCodes.map((item: any) => {
       const existing = formik.values.norms.find(
-        (n: any) => n.assignmentCode === item._id
+        (n: any) => n.assignmentCode === item._id,
       );
       return {
         assignmentCode: item._id,
@@ -291,7 +292,7 @@ export default function CuttingNormModal({
         if (item.norm != null && !isNaN(Number(item.norm))) {
           return {
             ...item,
-            norm: Number((Number(item.norm) * ratio)),
+            norm: Number(Number(item.norm) * ratio),
           };
         }
         return item;
@@ -306,9 +307,9 @@ export default function CuttingNormModal({
     const validNorms: any[] = [];
     const newSelectedCodes: AssignmentCodeOutputType[] = [];
 
-    excelData.forEach(item => {
+    excelData.forEach((item) => {
       const matchingAssignmentCode = assignmentcodes.data.find(
-        (ac: AssignmentCodeOutputType) => ac.code === item.code
+        (ac: AssignmentCodeOutputType) => ac.code === item.code,
       );
 
       if (matchingAssignmentCode) {
@@ -339,7 +340,7 @@ export default function CuttingNormModal({
           height: "740px",
           p: "40px",
           backgroundColor: "#F1F2F5",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -564,7 +565,7 @@ export default function CuttingNormModal({
                   <MenuItem key={crosssection._id} value={crosssection._id}>
                     {crosssection.name}
                   </MenuItem>
-                )
+                ),
               )}
             </TextField>
           </Box>
@@ -702,8 +703,7 @@ export default function CuttingNormModal({
                       value={formik.values.predictingPoint || ""}
                       placeholder="Input Text"
                       onChange={(event) => {
-                        const value =
-                          Number(event.target.value);
+                        const value = Number(event.target.value);
                         formik.setFieldValue("predictingPoint", value);
                         setPredictingPoint(value);
                         handleInterpolationChange({
@@ -740,7 +740,7 @@ export default function CuttingNormModal({
                       onChange={(event) =>
                         formik.setFieldValue(
                           "upperLimitNorm",
-                          event.target.value
+                          event.target.value,
                         )
                       }
                       variant="outlined"
@@ -794,8 +794,7 @@ export default function CuttingNormModal({
                       value={formik.values.upperLimitPoint || ""}
                       placeholder="Input Text"
                       onChange={(event) => {
-                        const value =
-                          Number(event.target.value);
+                        const value = Number(event.target.value);
                         formik.setFieldValue("upperLimitPoint", value);
                         setUpperLimitPoint(value);
                         handleInterpolationChange({
@@ -832,7 +831,7 @@ export default function CuttingNormModal({
                       onChange={(event) => {
                         formik.setFieldValue(
                           "lowerLimitNorm",
-                          event.target.value
+                          event.target.value,
                         );
                       }}
                       variant="outlined"
@@ -886,8 +885,7 @@ export default function CuttingNormModal({
                       value={formik.values.lowerLimitPoint || ""}
                       placeholder="Input Text"
                       onChange={(event) => {
-                        const value =
-                          Number(event.target.value);
+                        const value = Number(event.target.value);
                         formik.setFieldValue("lowerLimitPoint", value);
                         setLowerLimitPoint(value);
                         handleInterpolationChange({
@@ -954,7 +952,11 @@ export default function CuttingNormModal({
           />
 
           {/* Mã giao khoán */}
-          <Box display="flex" alignItems={"center"} justifyContent={"space-between"}>
+          <Box
+            display="flex"
+            alignItems={"center"}
+            justifyContent={"space-between"}
+          >
             <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
               Mã giao khoán
             </Typography>
@@ -964,16 +966,16 @@ export default function CuttingNormModal({
               startIcon={<CloudUpload />}
               variant="outlined" // Sử dụng outlined hoặc text để tránh quá nổi bật
               sx={{
-                textTransform: 'none',
-                fontSize: '12px',
-                padding: '4px 8px',
-                minWidth: 'auto',
-                borderColor: '#1976d2', // Màu primary của MUI
-                color: '#1976d2',
-                '&:hover': {
-                  backgroundColor: '#e3f2fd', // Light blue background on hover
-                  borderColor: '#1976d2',
-                }
+                textTransform: "none",
+                fontSize: "12px",
+                padding: "4px 8px",
+                minWidth: "auto",
+                borderColor: "#1976d2", // Màu primary của MUI
+                color: "#1976d2",
+                "&:hover": {
+                  backgroundColor: "#e3f2fd", // Light blue background on hover
+                  borderColor: "#1976d2",
+                },
               }}
             >
               Tải lên
@@ -991,7 +993,7 @@ export default function CuttingNormModal({
                 setSelectedAssignmentCodes(newValue);
                 const updatedNorms = newValue.map((item) => {
                   const existing = formik.values.norms.find(
-                    (n: any) => n.assignmentCode === item._id
+                    (n: any) => n.assignmentCode === item._id,
                   );
                   return {
                     assignmentCode: item._id,
@@ -1011,7 +1013,7 @@ export default function CuttingNormModal({
                   }
                   helperText={
                     formik.touched.norms &&
-                      typeof formik.errors.norms === "string"
+                    typeof formik.errors.norms === "string"
                       ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
                       : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
                   }
@@ -1083,7 +1085,7 @@ export default function CuttingNormModal({
                             assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
-                                formik.values.norms[index].assignmentCode
+                                formik.values.norms[index].assignmentCode,
                             )?.code || ""
                           }
                           InputLabelProps={{ shrink: true }}
@@ -1114,7 +1116,7 @@ export default function CuttingNormModal({
                             assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
-                                formik.values.norms[index].assignmentCode
+                                formik.values.norms[index].assignmentCode,
                             )?.name || ""
                           }
                           InputLabelProps={{ shrink: true }}
@@ -1139,41 +1141,9 @@ export default function CuttingNormModal({
                         >
                           Định mức
                         </Typography>
-                        <TextField
-                          fullWidth
-                          type="number"
-                          name={`norms[${index}].norm`}
-                          value={formik.values.norms[index]?.norm || ""}
-                          onChange={(e) =>
-                            formik.setFieldValue(
-                              `norms[${index}].norm`,
-                              e.target.value
-                            )
-                          }
-                          variant="outlined"
-                          error={Boolean(
-                            typeof formik.errors.norms?.[index] === "object" &&
-                            (formik.errors.norms?.[index] as any)?.norm
-                          )}
-                          helperText={
-                            typeof formik.errors.norms?.[index] === "object"
-                              ? (formik.errors.norms?.[index] as any)?.norm
-                              : ""
-                          }
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              height: "32px",
-                              borderRadius: "6px",
-                              px: "12px",
-                              fontSize: "14px",
-                              backgroundColor: formik.values.norms[index]?.norm
-                                ? "#F2F2F2"
-                                : "#FFFFFF",
-                            },
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#D9D9D9",
-                            },
-                          }}
+                        <TextFieldNumber
+                          formik={formik}
+                          field={`norms.${index}.norm`}
                         />
                       </Grid>
                     </Grid>

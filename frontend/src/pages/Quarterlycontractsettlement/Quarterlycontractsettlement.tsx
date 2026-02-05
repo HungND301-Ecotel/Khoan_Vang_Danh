@@ -39,9 +39,10 @@ import dayjs from "dayjs";
 import SettlementService from "../../service/SettlementRepotr";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { showErrorAlert } from "../../components/Alert";
+import { formatDecimal, formattedPrice } from "../../utils/helpers";
 
 export default function Quarterlycontractsettlement() {
-  const [selectedPhase, setSelectedPhase] = useState('');
+  const [selectedPhase, setSelectedPhase] = useState("");
   const [selectedProductionScope, setSelectedProductionScope] = useState("");
   const [selectedQuarter, setSelectedQuarter] = useState<number | null>(1);
 
@@ -68,18 +69,19 @@ export default function Quarterlycontractsettlement() {
     queryFn: () =>
       api
         .get(
-          `/contractsettlements/getQuarter?quarter=${selectedQuarter}&year=${selectedYear}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`
+          `/contractsettlements/getQuarter?quarter=${selectedQuarter}&year=${selectedYear}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`,
         )
         .then((res) => res.data.data),
     enabled: !!selectedQuarter && !!selectedYear,
   });
 
   const exportExcel = useMutation({
-    mutationFn: () => SettlementService.exportFile({
-      quarter: selectedQuarter,
-      year: selectedYear
-    }),
-    onSuccess: () => { },
+    mutationFn: () =>
+      SettlementService.exportFile({
+        quarter: selectedQuarter,
+        year: selectedYear,
+      }),
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -92,8 +94,7 @@ export default function Quarterlycontractsettlement() {
   });
 
   return (
-
-    <Paper sx={{ width: 'calc(100vw - 148px)', p: 2 }}>
+    <Paper sx={{ width: "calc(100vw - 148px)", p: 2 }}>
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>
           <Grid item xs={6}>
@@ -206,7 +207,13 @@ export default function Quarterlycontractsettlement() {
               </Grid>*/}
             </Grid>
           </Grid>
-          <Grid item xs={6} alignItems="center" justifyContent="flex-end" display="flex">
+          <Grid
+            item
+            xs={6}
+            alignItems="center"
+            justifyContent="flex-end"
+            display="flex"
+          >
             <Box display="flex" gap={2}>
               <Button
                 variant="outlined"
@@ -221,8 +228,7 @@ export default function Quarterlycontractsettlement() {
                   "&:hover": {
                     backgroundColor: (theme) =>
                       custom_theme.palette.table_functional_button.dark,
-                    boxShadow:
-                      custom_theme.customShadows.tableFunctionalHover,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -250,8 +256,7 @@ export default function Quarterlycontractsettlement() {
                   "&:hover": {
                     backgroundColor: (theme) =>
                       custom_theme.palette.table_functional_button.dark,
-                    boxShadow:
-                      custom_theme.customShadows.tableFunctionalHover,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -280,8 +285,7 @@ export default function Quarterlycontractsettlement() {
                   "&:hover": {
                     backgroundColor: (theme) =>
                       custom_theme.palette.table_functional_button.dark,
-                    boxShadow:
-                      custom_theme.customShadows.tableFunctionalHover,
+                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
                   },
                   fontFamily: "Roboto, sans-serif",
                   fontSize: 14,
@@ -299,8 +303,8 @@ export default function Quarterlycontractsettlement() {
           </Grid>
         </Grid>
       </Box>
-      <Box sx={{ overflowX: "auto", }}>
-        <Table sx={{ tableLayout: "auto", width: '100%', }} size="small">
+      <Box sx={{ overflowX: "auto" }}>
+        <Table sx={{ tableLayout: "auto", width: "100%" }} size="small">
           <TableHead>
             <TableRow>
               <TableCell
@@ -718,7 +722,15 @@ export default function Quarterlycontractsettlement() {
                             : "white",
                   }}
                 >
-                  {index === 3 ? "Than nguyên khai" : index === 6 ? (contractsettlements?.info.totalCoal ? Number(contractsettlements?.info.totalCoal.toFixed(1)).toLocaleString() : '') : ''}
+                  {index === 3
+                    ? "Than nguyên khai"
+                    : index === 6
+                      ? contractsettlements?.info.totalCoal
+                        ? Number(
+                            contractsettlements?.info.totalCoal.toFixed(1),
+                          ).toLocaleString()
+                        : ""
+                      : ""}
                 </TableCell>
               ))}
             </TableRow>
@@ -752,7 +764,11 @@ export default function Quarterlycontractsettlement() {
                             : "white",
                   }}
                 >
-                  {index === 3 ? "Mét lò đào" : index === 6 ? (contractsettlements?.info.totalExcavation ? Number(contractsettlements?.info.totalExcavation.toFixed(1)).toLocaleString() : '') : ''}
+                  {index === 3
+                    ? "Mét lò đào"
+                    : index === 6
+                      ? formatDecimal(contractsettlements?.info.totalExcavation)
+                      : ""}
                 </TableCell>
               ))}
             </TableRow>
@@ -786,7 +802,11 @@ export default function Quarterlycontractsettlement() {
                             : "white",
                   }}
                 >
-                  {index === 3 ? "Mét lò xén" : index === 6 ? (contractsettlements?.info.totalCutting ? Number(contractsettlements?.info.totalCutting.toFixed(1)).toLocaleString() : '') : ''}
+                  {index === 3
+                    ? "Mét lò xén"
+                    : index === 6
+                      ? formatDecimal(contractsettlements?.info.totalCutting)
+                      : ""}
                 </TableCell>
               ))}
             </TableRow>
@@ -858,130 +878,178 @@ export default function Quarterlycontractsettlement() {
                 </TableCell>
               ))}
             </TableRow>
-            {contractsettlements.data.map(
-              (assignment: any, index: number) => (
-                <Fragment key={(assignment?.assignmentCode||assignment.assignmentCode===null) ?._id}>
-                  <TableRow>
+            {contractsettlements.data.map((assignment: any, index: number) => (
+              <Fragment
+                key={
+                  (
+                    assignment?.assignmentCode ||
+                    assignment.assignmentCode === null
+                  )?._id
+                }
+              >
+                <TableRow>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "14px",
+                      p: 0.5,
+                    }}
+                  >
+                    {index + 6}
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "14px",
+                      p: 0.5,
+                    }}
+                  ></TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      color: "black",
+                      fontSize: "14px",
+                      p: 0.5,
+                    }}
+                  >
+                    {
+                      (
+                        assignment?.assignmentCode ||
+                        assignment.assignmentCode === null
+                      )?.deviceCode?.code
+                    }
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      color: "black",
+                      fontSize: "14px",
+                      p: 0.5,
+                    }}
+                  >
+                    {
+                      (
+                        assignment?.assignmentCode ||
+                        assignment.assignmentCode === null
+                      )?.code
+                    }
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      fontSize: "14px",
+                      p: 0.5,
+                    }}
+                  >
+                    {assignment?.assignmentCode ||
+                    assignment.assignmentCode === null
+                      ? assignment?.assignmentCode?.name || "Không xác định"
+                      : "Vật tư không có định mức"}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontSize: "14px",
+                      p: 0.5,
+                    }}
+                  >
+                    {
+                      (
+                        assignment?.assignmentCode ||
+                        assignment.assignmentCode === null
+                      )?.uom?.name
+                    }
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "normal",
+                      fontSize: "14px",
+                      p: 0.5,
+                    }}
+                  >
+                    {assignment?.assignmentCode ||
+                    assignment.assignmentCode === null
+                      ? formattedPrice(assignment?.price)
+                      : ""}
+                  </TableCell>
+                  {Array.from({ length: 10 }).map((_, index) => (
                     <TableCell
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "14px",
-                        p: 0.5,
-                      }}
-                    >
-                      {index + 6}
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "14px",
-                        p: 0.5,
-                      }}
-                    ></TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        color: "black",
-                        fontSize: "14px",
-                        p: 0.5,
-                      }}
-                    >
-                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ?.deviceCode?.code}
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        color: "black",
-                        fontSize: "14px",
-                        p: 0.5,
-                      }}
-                    >
-                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ?.code}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "bold",
-                        fontSize: "14px",
-                        p: 0.5,
-                      }}
-                    >
-                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ?(assignment?.assignmentCode?.name||'Không xác định') : 'Vật tư không có định mức'}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontSize: "14px",
-                        p: 0.5,
-                      }}
-                    >
-                      {(assignment?.assignmentCode||assignment.assignmentCode===null) ?.uom?.name}
-                    </TableCell>
-                    <TableCell
+                      key={index}
                       align="center"
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "normal",
                         fontSize: "14px",
                         p: 0.5,
+                        bgcolor:
+                          index >= 0 && index <= 3
+                            ? "#F3D01640"
+                            : index >= 4 && index <= 7
+                              ? "#4CAF503D"
+                              : index >= 8 && index <= 9
+                                ? "#FF620040"
+                                : "white",
                       }}
                     >
-                      {(assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.price ? (Number(assignment?.price.toFixed(0))).toLocaleString() : '') : ''}
+                      {index === 0
+                        ? assignment?.assignmentCode ||
+                          assignment.assignmentCode === null
+                          ? formatDecimal(assignment?.plan_Quantity)
+                          : ""
+                        : index === 1
+                          ? ""
+                          : index === 2
+                            ? ""
+                            : index === 3
+                              ? assignment?.assignmentCode ||
+                                assignment.assignmentCode === null
+                                ? formattedPrice(assignment?.plan_Cost)
+                                : ""
+                              : index === 4
+                                ? assignment?.assignmentCode ||
+                                  assignment.assignmentCode === null
+                                  ? formatDecimal(assignment?.used_Quantity)
+                                  : ""
+                                : index === 5
+                                  ? ""
+                                  : index === 6
+                                    ? ""
+                                    : index === 7
+                                      ? assignment?.assignmentCode ||
+                                        assignment.assignmentCode === null
+                                        ? formattedPrice(assignment?.used_Cost)
+                                        : ""
+                                      : index === 8
+                                        ? assignment?.assignmentCode ||
+                                          assignment.assignmentCode === null
+                                          ? formatDecimal(
+                                              assignment?.varianceQuantity,
+                                            )
+                                          : ""
+                                        : index === 9
+                                          ? assignment?.assignmentCode ||
+                                            assignment.assignmentCode === null
+                                            ? formattedPrice(
+                                                assignment?.varianceCost,
+                                              )
+                                            : ""
+                                          : ""}
                     </TableCell>
-                    {
-                      Array.from({ length: 10 }).map((_, index) => (
-                        <TableCell
-                          key={index}
-                          align="center"
-                          sx={{
-                            border: "1px solid #ddd",
-                            fontWeight: "normal",
-                            fontSize: "14px",
-                            p: 0.5,
-                            bgcolor:
-                              index >= 0 && index <= 3
-                                ? "#F3D01640"
-                                : index >= 4 && index <= 7
-                                  ? "#4CAF503D"
-                                  : index >= 8 && index <= 9
-                                    ? "#FF620040"
-                                    : "white",
-                          }}
-                        >
-                          {index === 0
-                            ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (Number(assignment?.plan_Quantity.toFixed(1))).toLocaleString() : ''
-                            : index === 1
-                              ? ""
-                              : index === 2
-                                ? ""
-                                : index === 3
-                                  ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.plan_Cost ? (Number(assignment?.plan_Cost.toFixed(0))).toLocaleString() : "") : ''
-                                  : index === 4
-                                    ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.used_Quantity ? (Number(assignment?.used_Quantity.toFixed(1))).toLocaleString() : '') : ''
-                                    : index === 5
-                                      ? ""
-                                      : index === 6
-                                        ? ""
-                                        : index === 7
-                                          ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.used_Cost ? (Number(assignment?.used_Cost.toFixed(0))).toLocaleString() : '') : ''
-                                          : index === 8
-                                            ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.varianceQuantity ? (Number(assignment?.varianceQuantity.toFixed(1))).toLocaleString() : '') : ''
-                                            : index === 9
-                                              ? (assignment?.assignmentCode||assignment.assignmentCode===null)  ? (assignment?.varianceCost ? (Number(assignment?.varianceCost.toFixed(0))).toLocaleString() : '') : ''
-                                              : ""
-                          }
-                        </TableCell>
-                      ))}
-                  </TableRow>
-                  {assignment?.materialUseds.map((materialUsed: any, i: number) => (
+                  ))}
+                </TableRow>
+                {assignment?.materialUseds.map(
+                  (materialUsed: any, i: number) => (
                     <TableRow key={materialUsed?._id}>
                       <TableCell
                         align="center"
@@ -990,8 +1058,7 @@ export default function Quarterlycontractsettlement() {
                           fontSize: "14px",
                           p: 0.5,
                         }}
-                      >
-                      </TableCell>
+                      ></TableCell>
                       <TableCell
                         align="center"
                         sx={{
@@ -999,18 +1066,8 @@ export default function Quarterlycontractsettlement() {
                           fontSize: "14px",
                           p: 0.5,
                         }}
-                      >{materialUsed?.material?.code}</TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          border: "1px solid #ddd",
-                          fontWeight: "bold",
-                          color: "black",
-                          fontSize: "14px",
-                          p: 0.5,
-                        }}
                       >
-                        {(assignment?.assignmentCode||assignment.assignmentCode===null) ?.device}
+                        {materialUsed?.material?.code}
                       </TableCell>
                       <TableCell
                         align="center"
@@ -1022,7 +1079,23 @@ export default function Quarterlycontractsettlement() {
                           p: 0.5,
                         }}
                       >
+                        {
+                          (
+                            assignment?.assignmentCode ||
+                            assignment.assignmentCode === null
+                          )?.device
+                        }
                       </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          border: "1px solid #ddd",
+                          fontWeight: "bold",
+                          color: "black",
+                          fontSize: "14px",
+                          p: 0.5,
+                        }}
+                      ></TableCell>
                       <TableCell
                         sx={{
                           border: "1px solid #ddd",
@@ -1050,60 +1123,63 @@ export default function Quarterlycontractsettlement() {
                           p: 0.5,
                         }}
                       >
-                        {(assignment?.assignmentCode||assignment.assignmentCode===null)  ? '' : (materialUsed?.price ? (Number(materialUsed?.price.toFixed(0)))?.toLocaleString() : '')}
+                        {assignment?.assignmentCode ||
+                        assignment.assignmentCode === null
+                          ? ""
+                          : formattedPrice(materialUsed?.price)}
                       </TableCell>
-                      {
-                        Array.from({ length: 10 }).map((_, index) => (
-                          <TableCell
-                            key={index}
-                            align="center"
-                            sx={{
-                              border: "1px solid #ddd",
-                              fontWeight: "normal",
-                              fontSize: "14px",
-                              p: 0.5,
-                              bgcolor:
-                                index >= 0 && index <= 3
-                                  ? "#F3D01640"
-                                  : index >= 4 && index <= 7
-                                    ? "#4CAF503D"
-                                    : index >= 8 && index <= 9
-                                      ? "#FF620040"
-                                      : "white",
-                            }}
-                          >
-                            {index === 0
-                              ? ''
-                              : index === 1
+                      {Array.from({ length: 10 }).map((_, index) => (
+                        <TableCell
+                          key={index}
+                          align="center"
+                          sx={{
+                            border: "1px solid #ddd",
+                            fontWeight: "normal",
+                            fontSize: "14px",
+                            p: 0.5,
+                            bgcolor:
+                              index >= 0 && index <= 3
+                                ? "#F3D01640"
+                                : index >= 4 && index <= 7
+                                  ? "#4CAF503D"
+                                  : index >= 8 && index <= 9
+                                    ? "#FF620040"
+                                    : "white",
+                          }}
+                        >
+                          {index === 0
+                            ? ""
+                            : index === 1
+                              ? ""
+                              : index === 2
                                 ? ""
-                                : index === 2
+                                : index === 3
                                   ? ""
-                                  : index === 3
-                                    ? ""
-                                    : index === 4
-                                      ? (materialUsed?.quantity ? Number(materialUsed?.quantity.toFixed(1))?.toLocaleString() : '')
-                                      : index === 5
-                                        ? ''
-                                        : index === 6
-                                          ? ""
-                                          : index === 7
-                                            ? assignment?.assignmentCode ? '' : (materialUsed?.cost ? Number(materialUsed?.cost.toFixed(0))?.toLocaleString() : '')
-                                            : index === 8
-                                              ? ''
-                                              : index === 9
-                                                ? ""
-                                                : ""
-                            }
-                          </TableCell>
-                        ))
-                      }
-                    </TableRow>))}
-                </Fragment>
-              )
-            )}
+                                  : index === 4
+                                    ? formatDecimal(materialUsed?.quantity)
+                                    : index === 5
+                                      ? ""
+                                      : index === 6
+                                        ? ""
+                                        : index === 7
+                                          ? assignment?.assignmentCode
+                                            ? ""
+                                            : formattedPrice(materialUsed?.cost)
+                                          : index === 8
+                                            ? ""
+                                            : index === 9
+                                              ? ""
+                                              : ""}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ),
+                )}
+              </Fragment>
+            ))}
           </TableBody>
         </Table>
       </Box>
-    </Paper >
+    </Paper>
   );
 }

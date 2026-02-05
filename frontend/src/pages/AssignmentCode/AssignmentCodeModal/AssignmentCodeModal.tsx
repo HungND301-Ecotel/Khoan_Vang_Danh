@@ -15,10 +15,16 @@ import CloseIcon from "@mui/icons-material/Close";
 import React, { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
-import { AssignmentCodeInputType, AssignmentCodeOutputType, DeviceCodeType, UnitType } from "../../../types";
+import {
+  AssignmentCodeInputType,
+  AssignmentCodeOutputType,
+  DeviceCodeType,
+  UnitType,
+} from "../../../types";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../../config/api.config";
 import { Divider } from "antd";
+import { formattedPrice } from "../../../utils/helpers";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã giao khoán không được để trống"),
@@ -50,7 +56,9 @@ export default function AssignmentCodeModal({
       code: selectedAssignmentCode ? selectedAssignmentCode.code : "",
       name: selectedAssignmentCode ? selectedAssignmentCode.name : "",
       uom: selectedAssignmentCode ? selectedAssignmentCode.uom?._id : "",
-      deviceCode: selectedAssignmentCode ? selectedAssignmentCode.deviceCode?._id : "",
+      deviceCode: selectedAssignmentCode
+        ? selectedAssignmentCode.deviceCode?._id
+        : "",
       price: selectedAssignmentCode ? selectedAssignmentCode.price : undefined,
     },
     enableReinitialize: true,
@@ -75,7 +83,7 @@ export default function AssignmentCodeModal({
           height: "740px",
           p: "40px",
           position: "relative",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -107,15 +115,30 @@ export default function AssignmentCodeModal({
           }}
         />
         <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-          {selectedAssignmentCode ? "Sửa mã giao khoán" : "Tạo mới mã giao khoán"}
+          {selectedAssignmentCode
+            ? "Sửa mã giao khoán"
+            : "Tạo mới mã giao khoán"}
         </Typography>
       </DialogTitle>
 
       <DialogContent sx={{ p: 0, mt: 3 }}>
-        <Box component="form" onSubmit={formik.handleSubmit} sx={{ display: "flex", justifyContent: "center" }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "700px" }}>
+        <Box
+          component="form"
+          onSubmit={formik.handleSubmit}
+          sx={{ display: "flex", justifyContent: "center" }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              width: "700px",
+            }}
+          >
             <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã giao khoán</Typography>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Mã giao khoán
+              </Typography>
               <TextField
                 fullWidth
                 id="code"
@@ -138,7 +161,9 @@ export default function AssignmentCodeModal({
               />
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Tên mã giao khoán</Typography>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Tên mã giao khoán
+              </Typography>
               <TextField
                 fullWidth
                 id="name"
@@ -161,7 +186,9 @@ export default function AssignmentCodeModal({
               />
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Đơn vị tính</Typography>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Đơn vị tính
+              </Typography>
               <TextField
                 fullWidth
                 select
@@ -191,7 +218,9 @@ export default function AssignmentCodeModal({
               </TextField>
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Mã thiết bị</Typography>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Mã thiết bị
+              </Typography>
               <TextField
                 fullWidth
                 select
@@ -200,8 +229,12 @@ export default function AssignmentCodeModal({
                 placeholder="Chọn mã thiết bị"
                 value={formik.values.deviceCode}
                 onChange={formik.handleChange}
-                error={formik.touched.deviceCode && Boolean(formik.errors.deviceCode)}
-                helperText={formik.touched.deviceCode && formik.errors.deviceCode}
+                error={
+                  formik.touched.deviceCode && Boolean(formik.errors.deviceCode)
+                }
+                helperText={
+                  formik.touched.deviceCode && formik.errors.deviceCode
+                }
                 variant="outlined"
                 sx={{
                   "& .MuiInputBase-root": {
@@ -221,13 +254,15 @@ export default function AssignmentCodeModal({
               </TextField>
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Đơn giá</Typography>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Đơn giá
+              </Typography>
               <TextField
                 fullWidth
                 id="price"
                 name="price"
                 placeholder="View only"
-                value={formik.values.price?.toLocaleString()}
+                value={formattedPrice(formik.values.price)}
                 onChange={formik.handleChange}
                 error={formik.touched.price && Boolean(formik.errors.price)}
                 helperText={formik.touched.price && formik.errors.price}

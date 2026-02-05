@@ -49,6 +49,7 @@ import LoadingSkeleton from "../../ui/LoadingSkeleton";
 import EmptyState from "../../ui/EmptyState";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport";
+import { formattedPrice } from "../../utils/helpers";
 
 export default function AssignmentCode() {
   const [open, setOpen] = useState(false);
@@ -217,25 +218,19 @@ export default function AssignmentCode() {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã thiết bị</Typography>,
       dataIndex: "deviceCode",
       key: "deviceCode",
-      render: (_, record) => (
-        <Typography >
-          {record.deviceCode?.code}
-        </Typography>
-      ),
+      render: (_, record) => <Typography>{record.deviceCode?.code}</Typography>,
       sorter: (a, b) =>
         (a.deviceCode?.code ?? "").localeCompare(
           b.deviceCode?.code ?? "",
           "vi",
-          { sensitivity: "base" }
+          { sensitivity: "base" },
         ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
       dataIndex: "code",
       key: "code",
-      render: (_, record) => (
-        <Typography >{record.code}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.code}</Typography>,
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
@@ -247,9 +242,7 @@ export default function AssignmentCode() {
       ),
       dataIndex: "name",
       key: "name",
-      render: (value, record) => (
-        <Typography >{value}</Typography>
-      ),
+      render: (value, record) => <Typography>{value}</Typography>,
       sorter: (a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {
           sensitivity: "base",
@@ -259,19 +252,13 @@ export default function AssignmentCode() {
       title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
       dataIndex: "uom",
       key: "uom",
-      render: (_, record) => (
-        <Typography >{record.uom?.name}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.uom?.name}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>,
       dataIndex: "price",
       key: "price",
-      render: (_, record) => (
-        <Typography >
-          {record.price ? record.price.toLocaleString() : ""}
-        </Typography>
-      ),
+      render: (_, record) => <Typography>{formattedPrice(record.price)}</Typography>,
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,

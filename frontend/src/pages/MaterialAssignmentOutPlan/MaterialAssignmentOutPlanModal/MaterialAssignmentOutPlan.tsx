@@ -28,6 +28,7 @@ import { Divider } from "antd";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
+import TextFieldPrice from "../../../components/TextField/TextFieldPrice";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
@@ -315,26 +316,9 @@ export default function MaterialAssignmentOutPlanModal({
                             >
                               Đơn giá
                             </Typography>
-                            <TextField
-                              fullWidth
-                              type="number"
-                              name={`priceHistory[${index}].price`}
-                              placeholder="Placeholder"
-                              value={formik.values.priceHistory[index].price}
-                              onChange={(e) =>
-                                formik.setFieldValue(
-                                  `priceHistory[${index}].price`,
-                                  e.target.value,
-                                )
-                              }
-                              variant="outlined"
-                              sx={{
-                                "& .MuiInputBase-root": {
-                                  height: "40px",
-                                  borderRadius: "6px",
-                                  fontSize: "14px",
-                                },
-                              }}
+                            <TextFieldPrice
+                              formik={formik}
+                              field={`priceHistory.${index}.price`}
                             />
                           </Grid>
 

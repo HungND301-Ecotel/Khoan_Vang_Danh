@@ -31,19 +31,24 @@ import { Divider } from "antd";
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import { CloudUpload } from "@mui/icons-material";
+import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã định mức không được để trống"),
   hardness: yup.string().required("Độ cứng của đá không được để trống"),
-  rockRatio: yup.string().required("Tỉ lệ đá lẫn trong gương không được để trống"),
-  norms: yup.array().of(
-    yup.object().shape({
-      assignmentCode: yup.string().required("Bắt buộc"),
-      norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
-    })
-  ).min(1, "Chọn mã giao khoán"),
-})
-
+  rockRatio: yup
+    .string()
+    .required("Tỉ lệ đá lẫn trong gương không được để trống"),
+  norms: yup
+    .array()
+    .of(
+      yup.object().shape({
+        assignmentCode: yup.string().required("Bắt buộc"),
+        norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
+      }),
+    )
+    .min(1, "Chọn mã giao khoán"),
+});
 
 export default function AdjustmentNormKDLModal({
   open,
@@ -61,6 +66,9 @@ export default function AdjustmentNormKDLModal({
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<
     AssignmentCodeOutputType[]
   >([]);
+  useEffect(() => {
+    setSelectedAssignmentCodes([]);
+  }, [open]);
 
   const { data: assignmentcodes = { totalDocs: 0, data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
@@ -104,7 +112,7 @@ export default function AdjustmentNormKDLModal({
 
     if (selected && selected.norms.length > 0) {
       const selectedCodes = assignmentcodes.data.filter((ac: any) =>
-        selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
+        selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
     }
@@ -120,9 +128,9 @@ export default function AdjustmentNormKDLModal({
     const validNorms: any[] = [];
     const newSelectedCodes: AssignmentCodeOutputType[] = [];
 
-    excelData.forEach(item => {
+    excelData.forEach((item) => {
       const matchingAssignmentCode = assignmentcodes.data.find(
-        (ac: AssignmentCodeOutputType) => ac.code === item.code
+        (ac: AssignmentCodeOutputType) => ac.code === item.code,
       );
 
       if (matchingAssignmentCode) {
@@ -154,7 +162,7 @@ export default function AdjustmentNormKDLModal({
           height: "740px",
           p: "40px",
           position: "relative",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -172,8 +180,13 @@ export default function AdjustmentNormKDLModal({
       </IconButton>
 
       <DialogTitle sx={{ p: 0, mt: "8px" }}>
-        <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "12px", color: "#666" }}>
-          <Typography sx={{ fontSize: "12px", color: "#666" }}>Danh mục</Typography>
+        <Breadcrumbs
+          aria-label="breadcrumb"
+          sx={{ fontSize: "12px", color: "#666" }}
+        >
+          <Typography sx={{ fontSize: "12px", color: "#666" }}>
+            Danh mục
+          </Typography>
           <Typography sx={{ fontSize: "12px", color: "#666" }}>
             Hệ số điều chỉnh định mức
           </Typography>
@@ -189,7 +202,9 @@ export default function AdjustmentNormKDLModal({
             borderColor: "#6592B7",
           }}
         />
-        <Typography sx={{ fontSize: "18px", color: "#1976d2", fontWeight: 500, mt: 1 }}>
+        <Typography
+          sx={{ fontSize: "18px", color: "#1976d2", fontWeight: 500, mt: 1 }}
+        >
           {selected
             ? "Chỉnh sửa Hệ số điều chỉnh định mức (CK.ĐL)"
             : "Tạo mới Hệ số điều chỉnh định mức (CK.ĐL)"}
@@ -231,7 +246,8 @@ export default function AdjustmentNormKDLModal({
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                Độ cứng của đá lẫn trong gương (f) <span style={{ color: "red" }}>*</span>
+                Độ cứng của đá lẫn trong gương (f){" "}
+                <span style={{ color: "red" }}>*</span>
               </Typography>
               <TextField
                 fullWidth
@@ -245,7 +261,9 @@ export default function AdjustmentNormKDLModal({
                 }}
                 variant="outlined"
                 size="small"
-                error={formik.touched.hardness && Boolean(formik.errors.hardness)}
+                error={
+                  formik.touched.hardness && Boolean(formik.errors.hardness)
+                }
                 helperText={formik.touched.hardness && formik.errors.hardness}
                 sx={{
                   "& .MuiInputBase-root": {
@@ -265,7 +283,8 @@ export default function AdjustmentNormKDLModal({
             {/* Tỷ lệ đá lẫn */}
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                Tỷ lệ đá lẫn trong gương (Ckẹp) <span style={{ color: "red" }}>*</span>
+                Tỷ lệ đá lẫn trong gương (Ckẹp){" "}
+                <span style={{ color: "red" }}>*</span>
               </Typography>
               <TextField
                 fullWidth
@@ -279,7 +298,9 @@ export default function AdjustmentNormKDLModal({
                 }}
                 variant="outlined"
                 size="small"
-                error={formik.touched.rockRatio && Boolean(formik.errors.rockRatio)}
+                error={
+                  formik.touched.rockRatio && Boolean(formik.errors.rockRatio)
+                }
                 helperText={formik.touched.rockRatio && formik.errors.rockRatio}
                 sx={{
                   "& .MuiInputBase-root": {
@@ -296,7 +317,11 @@ export default function AdjustmentNormKDLModal({
               </TextField>
             </Box>
             <Box>
-              <Box display="flex" alignItems={"center"} justifyContent={"space-between"}>
+              <Box
+                display="flex"
+                alignItems={"center"}
+                justifyContent={"space-between"}
+              >
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Mã giao khoán
                 </Typography>
@@ -306,16 +331,16 @@ export default function AdjustmentNormKDLModal({
                   startIcon={<CloudUpload />}
                   variant="outlined" // Sử dụng outlined hoặc text để tránh quá nổi bật
                   sx={{
-                    textTransform: 'none',
-                    fontSize: '12px',
-                    padding: '4px 8px',
-                    minWidth: 'auto',
-                    borderColor: '#1976d2', // Màu primary của MUI
-                    color: '#1976d2',
-                    '&:hover': {
-                      backgroundColor: '#e3f2fd', // Light blue background on hover
-                      borderColor: '#1976d2',
-                    }
+                    textTransform: "none",
+                    fontSize: "12px",
+                    padding: "4px 8px",
+                    minWidth: "auto",
+                    borderColor: "#1976d2", // Màu primary của MUI
+                    color: "#1976d2",
+                    "&:hover": {
+                      backgroundColor: "#e3f2fd", // Light blue background on hover
+                      borderColor: "#1976d2",
+                    },
                   }}
                 >
                   Tải lên
@@ -326,8 +351,8 @@ export default function AdjustmentNormKDLModal({
                 options={assignmentcodes.data.filter(
                   (opt: AssignmentCodeOutputType) =>
                     !selectedAssignmentCodes.some(
-                      (selected) => selected._id === opt._id
-                    )
+                      (selected) => selected._id === opt._id,
+                    ),
                 )}
                 getOptionLabel={(option: AssignmentCodeOutputType) =>
                   option.code || ""
@@ -337,7 +362,7 @@ export default function AdjustmentNormKDLModal({
                   setSelectedAssignmentCodes(newValue);
                   const updatedNorms = newValue.map((item) => {
                     const existing = formik.values.norms.find(
-                      (n: any) => n.assignmentCode === item._id
+                      (n: any) => n.assignmentCode === item._id,
                     );
                     return {
                       assignmentCode: item._id,
@@ -368,11 +393,11 @@ export default function AdjustmentNormKDLModal({
                     error={
                       formik.touched.norms &&
                       Boolean(formik.errors.norms) &&
-                      typeof formik.errors.norms === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                      typeof formik.errors.norms === "string" // CHỈ BÁO LỖI NẾU LÀ CHUỖI
                     }
                     helperText={
                       formik.touched.norms &&
-                        typeof formik.errors.norms === 'string'
+                      typeof formik.errors.norms === "string"
                         ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
                         : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
                     }
@@ -424,7 +449,8 @@ export default function AdjustmentNormKDLModal({
                       value={
                         assignmentcodes.data.find(
                           (ac: AssignmentCodeOutputType) =>
-                            ac._id === formik.values.norms[index].assignmentCode
+                            ac._id ===
+                            formik.values.norms[index].assignmentCode,
                         )?.code || ""
                       }
                       variant="outlined"
@@ -445,7 +471,8 @@ export default function AdjustmentNormKDLModal({
                       value={
                         assignmentcodes.data.find(
                           (ac: AssignmentCodeOutputType) =>
-                            ac._id === formik.values.norms[index].assignmentCode
+                            ac._id ===
+                            formik.values.norms[index].assignmentCode,
                         )?.name || ""
                       }
                       placeholder="Placeholder"
@@ -462,44 +489,21 @@ export default function AdjustmentNormKDLModal({
                         },
                       }}
                     />
-                    <TextField
-                      fullWidth
-                      type="number"
-                      value={formik.values.norms[index]?.norm || ""}
-                      onChange={(e) =>
-                        formik.setFieldValue(
-                          `norms[${index}].norm`,
-                          e.target.value
-                        )
-                      }
-                      placeholder="Placeholder"
-                      variant="outlined"
-                      size="small"
-                      error={Boolean(
-                        typeof formik.errors.norms?.[index] === 'object' &&
-                        (formik.errors.norms?.[index] as any)?.norm
-                      )}
-                      helperText={
-                        typeof formik.errors.norms?.[index] === 'object'
-                          ? (formik.errors.norms?.[index] as any)?.norm
-                          : ''
-                      }
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "36px",
-                          fontSize: "14px",
-                        },
-                      }}
+                    <TextFieldNumber
+                      formik={formik}
+                      field={`norms.${index}.norm`}
                     />
                     <IconButton
                       onClick={() => {
                         const updatedCodes = selectedAssignmentCodes.filter(
-                          (code) => code._id !== formik.values.norms[index].assignmentCode
+                          (code) =>
+                            code._id !==
+                            formik.values.norms[index].assignmentCode,
                         );
                         setSelectedAssignmentCodes(updatedCodes);
 
                         const updatedNorms = formik.values.norms.filter(
-                          (_, i) => i !== index
+                          (_, i) => i !== index,
                         );
                         formik.setFieldValue("norms", updatedNorms);
                       }}

@@ -42,12 +42,13 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import AdjustmentNormService from "../../service/AdjustmentNormService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { AdjustmentNormType } from "../../enum";
-import { ShowAlertImport } from "../../utils/AlertImport"
+import { ShowAlertImport } from "../../utils/AlertImport";
+import { formatDecimal } from "../../utils/helpers";
 
 export default function AdjustmentNormKKT() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [selected, setSelected] = useState<AdjustmentNormOutputType | null>(
-    null
+    null,
   );
   const [open, setOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<React.Key[]>([]);
@@ -67,7 +68,7 @@ export default function AdjustmentNormKKT() {
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/adjustmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=${AdjustmentNormType.CKKT}`
+          `/adjustmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=${AdjustmentNormType.CKKT}`,
         );
         return response.data.data;
       } catch (error) {
@@ -106,7 +107,7 @@ export default function AdjustmentNormKKT() {
       api
         .put(
           `/adjustmentnorms/${updateAdjustmentNorm._id}`,
-          updateAdjustmentNorm
+          updateAdjustmentNorm,
         )
         .then((res) => res.data),
     onSuccess: () => {
@@ -138,7 +139,7 @@ export default function AdjustmentNormKKT() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       // setIsUploading(false);
-      ShowAlertImport(data)
+      ShowAlertImport(data);
     },
     onError: (error: any) => {
       // setIsUploading(false);
@@ -148,7 +149,7 @@ export default function AdjustmentNormKKT() {
 
   const exportExcel = useMutation({
     mutationFn: () => AdjustmentNormService.exportFile(AdjustmentNormType.CKKT),
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -161,7 +162,7 @@ export default function AdjustmentNormKKT() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       showSuccessAlert("Xóa thành công");
-      setSelectedItems([])
+      setSelectedItems([]);
     },
     onError: (error: any) => {
       console.log(error.response.data.message || error.response || "Lỗi");
@@ -307,7 +308,7 @@ export default function AdjustmentNormKKT() {
                   {item.assignmentCode?.uom?.name || ""}
                 </TableCell>
                 <TableCell align="center" sx={{ width: "10%" }}>
-                  {item.norm ? (Number(item.norm.toFixed(3))).toLocaleString() : ""}
+                  {formatDecimal(item.norm)}
                 </TableCell>
               </TableRow>
             ))}

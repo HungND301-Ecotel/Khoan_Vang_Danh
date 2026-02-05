@@ -39,6 +39,7 @@ import {
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import { CloudUpload } from "@mui/icons-material";
+import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 
 const validationSchema = yup.object({
   thickness: yup.string().required("Độ dày vỉa không được để trống"),
@@ -296,7 +297,7 @@ export default function CuttingNormKBModal({
           height: "740px",
           p: "40px",
           backgroundColor: "#F1F2F5",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -361,7 +362,9 @@ export default function CuttingNormKBModal({
                 formik.setFieldValue("thickness", event.target.value);
               }}
               variant="outlined"
-              error={formik.touched.thickness && Boolean(formik.errors.thickness)}
+              error={
+                formik.touched.thickness && Boolean(formik.errors.thickness)
+              }
               helperText={formik.touched.thickness && formik.errors.thickness}
               InputProps={{
                 startAdornment: formik.values.thickness ? null : (
@@ -576,8 +579,7 @@ export default function CuttingNormKBModal({
                       value={formik.values.predictingPoint || ""}
                       placeholder="Input Text"
                       onChange={(event) => {
-                        const value =
-                          Number(event.target.value);
+                        const value = Number(event.target.value);
                         formik.setFieldValue("predictingPoint", value);
                         setPredictingPoint(value);
                         handleInterpolationChange({
@@ -614,7 +616,7 @@ export default function CuttingNormKBModal({
                       onChange={(event) =>
                         formik.setFieldValue(
                           "upperLimitNorm",
-                          event.target.value
+                          event.target.value,
                         )
                       }
                       variant="outlined"
@@ -668,8 +670,7 @@ export default function CuttingNormKBModal({
                       value={formik.values.upperLimitPoint || ""}
                       placeholder="Input Text"
                       onChange={(event) => {
-                        const value =
-                          Number(event.target.value);
+                        const value = Number(event.target.value);
                         formik.setFieldValue("upperLimitPoint", value);
                         setUpperLimitPoint(value);
                         handleInterpolationChange({
@@ -706,7 +707,7 @@ export default function CuttingNormKBModal({
                       onChange={(event) => {
                         formik.setFieldValue(
                           "lowerLimitNorm",
-                          event.target.value
+                          event.target.value,
                         );
                       }}
                       variant="outlined"
@@ -760,8 +761,7 @@ export default function CuttingNormKBModal({
                       value={formik.values.lowerLimitPoint || ""}
                       placeholder="Input Text"
                       onChange={(event) => {
-                        const value =
-                          Number(event.target.value);
+                        const value = Number(event.target.value);
                         formik.setFieldValue("lowerLimitPoint", value);
                         setLowerLimitPoint(value);
                         handleInterpolationChange({
@@ -825,7 +825,11 @@ export default function CuttingNormKBModal({
               borderWidth: "1px",
             }}
           />
-          <Box display="flex" alignItems={"center"} justifyContent={"space-between"}>
+          <Box
+            display="flex"
+            alignItems={"center"}
+            justifyContent={"space-between"}
+          >
             <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
               Mã giao khoán
             </Typography>
@@ -835,16 +839,16 @@ export default function CuttingNormKBModal({
               startIcon={<CloudUpload />}
               variant="outlined" // Sử dụng outlined hoặc text để tránh quá nổi bật
               sx={{
-                textTransform: 'none',
-                fontSize: '12px',
-                padding: '4px 8px',
-                minWidth: 'auto',
-                borderColor: '#1976d2', // Màu primary của MUI
-                color: '#1976d2',
-                '&:hover': {
-                  backgroundColor: '#e3f2fd', // Light blue background on hover
-                  borderColor: '#1976d2',
-                }
+                textTransform: "none",
+                fontSize: "12px",
+                padding: "4px 8px",
+                minWidth: "auto",
+                borderColor: "#1976d2", // Màu primary của MUI
+                color: "#1976d2",
+                "&:hover": {
+                  backgroundColor: "#e3f2fd", // Light blue background on hover
+                  borderColor: "#1976d2",
+                },
               }}
             >
               Tải lên
@@ -856,8 +860,8 @@ export default function CuttingNormKBModal({
               options={assignmentcodes.data.filter(
                 (opt: AssignmentCodeOutputType) =>
                   !selectedAssignmentCodes.some(
-                    (selected) => selected._id === opt._id
-                  )
+                    (selected) => selected._id === opt._id,
+                  ),
               )}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
                 option.code || ""
@@ -867,7 +871,7 @@ export default function CuttingNormKBModal({
                 setSelectedAssignmentCodes(newValue);
                 const updatedNorms = newValue.map((item) => {
                   const existing = formik.values.norms.find(
-                    (n: any) => n.assignmentCode === item._id
+                    (n: any) => n.assignmentCode === item._id,
                   );
                   return {
                     assignmentCode: item._id,
@@ -877,18 +881,21 @@ export default function CuttingNormKBModal({
                 formik.setFieldValue("norms", updatedNorms);
               }}
               renderInput={(params) => (
-                <TextField {...params} variant="outlined"
+                <TextField
+                  {...params}
+                  variant="outlined"
                   error={
                     formik.touched.norms &&
                     Boolean(formik.errors.norms) &&
-                    typeof formik.errors.norms === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                    typeof formik.errors.norms === "string" // CHỈ BÁO LỖI NẾU LÀ CHUỖI
                   }
                   helperText={
                     formik.touched.norms &&
-                      typeof formik.errors.norms === 'string'
+                    typeof formik.errors.norms === "string"
                       ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
                       : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
-                  } />
+                  }
+                />
               )}
               sx={{
                 width: "700px",
@@ -955,7 +962,7 @@ export default function CuttingNormKBModal({
                             assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
-                                formik.values.norms[index].assignmentCode
+                                formik.values.norms[index].assignmentCode,
                             )?.code
                           }
                           InputLabelProps={{ shrink: true }}
@@ -986,7 +993,7 @@ export default function CuttingNormKBModal({
                             assignmentcodes.data.find(
                               (ac: AssignmentCodeOutputType) =>
                                 ac._id ===
-                                formik.values.norms[index].assignmentCode
+                                formik.values.norms[index].assignmentCode,
                             )?.name
                           }
                           InputLabelProps={{ shrink: true }}
@@ -1011,41 +1018,9 @@ export default function CuttingNormKBModal({
                         >
                           Định mức
                         </Typography>
-                        <TextField
-                          fullWidth
-                          type="number"
-                          name={`norms[${index}].norm`}
-                          value={formik.values.norms[index]?.norm || ""}
-                          onChange={(e) =>
-                            formik.setFieldValue(
-                              `norms[${index}].norm`,
-                              e.target.value
-                            )
-                          }
-                          variant="outlined"
-                          error={Boolean(
-                            typeof formik.errors.norms?.[index] === 'object' &&
-                            (formik.errors.norms?.[index] as any)?.norm
-                          )}
-                          helperText={
-                            typeof formik.errors.norms?.[index] === 'object'
-                              ? (formik.errors.norms?.[index] as any)?.norm
-                              : ''
-                          }
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              height: "32px",
-                              borderRadius: "6px",
-                              px: "12px",
-                              fontSize: "14px",
-                              backgroundColor: formik.values.norms[index]?.norm
-                                ? "#F2F2F2"
-                                : "#FFFFFF",
-                            },
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#D9D9D9",
-                            },
-                          }}
+                        <TextFieldNumber
+                          formik={formik}
+                          field={`norms.${index}.norm`}
                         />
                       </Grid>
                     </Grid>

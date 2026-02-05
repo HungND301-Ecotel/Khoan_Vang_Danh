@@ -35,6 +35,7 @@ import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
+import { formatDecimal } from "../../utils/helpers";
 
 export default function CuttingNorm() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -262,7 +263,7 @@ export default function CuttingNorm() {
         dataIndex: "norm",
         key: "norm",
         render: (norm: number) => (
-          <Typography>{norm ? norm.toLocaleString() : ""}</Typography>
+          <Typography>{formatDecimal(norm)}</Typography>
         ),
       },
     ];

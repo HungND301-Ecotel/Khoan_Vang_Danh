@@ -37,6 +37,7 @@ import MaterialAssignmentService from "../../service/MaterialAssignmentService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
+import { formattedPrice } from "../../utils/helpers";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -264,7 +265,7 @@ export default function MaterialAssignment() {
       key: "price",
       render: (_, record) => (
         <Typography>
-          {record.currentPrice ? record.currentPrice.toLocaleString() : ""}
+          {formattedPrice(record.currentPrice)}
         </Typography>
       ),
     },

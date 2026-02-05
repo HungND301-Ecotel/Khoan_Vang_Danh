@@ -1,4 +1,13 @@
-import { Box, IconButton, Typography, Table as TableMui, TableHead, TableRow, TableCell, Paper, } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  Typography,
+  Table as TableMui,
+  TableHead,
+  TableRow,
+  TableCell,
+  Paper,
+} from "@mui/material";
 import React, { useState } from "react";
 import { MaterialBudgetCostType } from "../../types";
 import { Table, TableProps } from "antd";
@@ -6,12 +15,9 @@ import { Edit, Visibility, VisibilityOff } from "@mui/icons-material";
 import { showErrorAlert } from "../../components/Alert";
 import AssignmentNormTable from "./AssignmentNormTable";
 import dayjs from "dayjs";
+import { formatDecimal, formattedPrice } from "../../utils/helpers";
 
-export default function PhaseTable({
-  data,
-}: {
-  data: any[];
-}) {
+export default function PhaseTable({ data }: { data: any[] }) {
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
@@ -37,12 +43,16 @@ export default function PhaseTable({
     if (!data) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
-    return <Box sx={{ p: 2 }}><AssignmentNormTable data={data} /></Box>;
+    return (
+      <Box sx={{ p: 2 }}>
+        <AssignmentNormTable data={data} />
+      </Box>
+    );
   };
 
   const innerColumns = [
     {
-      title: '',
+      title: "",
       width: 120,
       dataIndex: "index",
       key: "index",
@@ -61,11 +71,7 @@ export default function PhaseTable({
       ),
     },
     {
-      title: (
-        <Typography >
-          Tên công đoạn
-        </Typography>
-      ),
+      title: <Typography>Tên công đoạn</Typography>,
       dataIndex: "name",
       key: "name",
       render: (text: string, item: any) => (
@@ -73,25 +79,22 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography >ĐVT</Typography>,
+      title: <Typography>ĐVT</Typography>,
       dataIndex: "unit",
       key: "unit",
       align: "center" as const,
-      render: (value: number) => (
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
-      ),
     },
     {
-      title: <Typography >Sản lượng</Typography>,
+      title: <Typography>Sản lượng</Typography>,
       dataIndex: "production",
       key: "production",
       align: "center" as const,
       render: (value: number) => (
-        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
+        <Typography>{formatDecimal(value)}</Typography>
       ),
     },
     {
-      title: <Typography >Mã định mức giao khoán</Typography>,
+      title: <Typography>Mã định mức giao khoán</Typography>,
       dataIndex: "assignmentNormCode",
       key: "assignmentNormCode",
       align: "center" as const,
@@ -100,7 +103,7 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography >Mã hệ số điều chỉnh định mức</Typography>,
+      title: <Typography>Mã hệ số điều chỉnh định mức</Typography>,
       dataIndex: "adjustmentNormCode",
       key: "adjustmentNormCode",
       align: "center" as const,
@@ -109,12 +112,12 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography >Chi phí</Typography>,
+      title: <Typography>Chi phí</Typography>,
       dataIndex: "totalBudgetCost",
       key: "totalBudgetCost",
       align: "center" as const,
       render: (value: number) => (
-        <Typography>{value ? (Number(value.toFixed(0))).toLocaleString() : ""}</Typography>
+        <Typography>{formattedPrice(value)}</Typography>
       ),
     },
     {
@@ -153,10 +156,10 @@ export default function PhaseTable({
             setExpandedRow(expanded ? record.key || null : null);
           },
           expandedRowRender,
-          showExpandColumn: false
+          showExpandColumn: false,
         }}
         onHeaderRow={() => ({
-          className: "custom-header1"
+          className: "custom-header1",
         })}
       />
       <style>{`

@@ -1,19 +1,29 @@
-import { Box, IconButton, Typography, Table as TableMui, TableHead, TableRow, TableCell, Paper, TableBody, } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  Typography,
+  Table as TableMui,
+  TableHead,
+  TableRow,
+  TableCell,
+  Paper,
+  TableBody,
+} from "@mui/material";
 import React, { Fragment, useState } from "react";
 import { Table, TableProps } from "antd";
 import dayjs from "dayjs";
+import { formatDecimal, formattedPrice } from "../../utils/helpers";
 
 export default function PhaseTable({
   data,
-  materials
+  materials,
 }: {
   data: any[];
   materials: any[];
 }) {
-
   const innerColumns = [
     {
-      title: '',
+      title: "",
       width: 120,
       dataIndex: "index",
       key: "index",
@@ -32,11 +42,7 @@ export default function PhaseTable({
       ),
     },
     {
-      title: (
-        <Typography >
-          Tên công đoạn
-        </Typography>
-      ),
+      title: <Typography>Tên công đoạn</Typography>,
       dataIndex: "name",
       key: "name",
       render: (text: string, item: any) => (
@@ -44,26 +50,23 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography >ĐVT</Typography>,
+      title: <Typography>ĐVT</Typography>,
       dataIndex: "unit",
       key: "unit",
       align: "center" as const,
-      render: (value: number) => (
-        <Typography>{value ? value.toLocaleString() : ""}</Typography>
-      ),
     },
     {
-      title: <Typography >Sản lượng</Typography>,
+      title: <Typography>Sản lượng</Typography>,
       dataIndex: "production",
       key: "production",
       align: "center" as const,
       render: (value: number) => (
-        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
+        <Typography>{formatDecimal(value)}</Typography>
       ),
-    }
+    },
   ];
   return (
-    <Paper sx={{ paddingBottom: '10px' }}>
+    <Paper sx={{ paddingBottom: "10px" }}>
       <Table
         columns={innerColumns}
         dataSource={data || []}
@@ -71,20 +74,20 @@ export default function PhaseTable({
         size="small"
         rowKey={(item) => item.key}
         onHeaderRow={() => ({
-          className: "custom-header1"
+          className: "custom-header1",
         })}
       />
-      <Paper sx={{ margin: '20px', }}>
+      <Paper sx={{ margin: "20px" }}>
         <TableMui>
           <TableHead sx={{ backgroundColor: "#dcd7d7fa" }}>
             <TableRow>
-              <TableCell >Mã giao khoán</TableCell>
-              <TableCell >Mã vật tư</TableCell>
-              <TableCell >Tên vật tư, tài sản</TableCell>
-              <TableCell >ĐVT</TableCell>
-              <TableCell >Số lượng</TableCell>
-              <TableCell >Đơn giá bình quân</TableCell>
-              <TableCell >Chi phí thực hiện</TableCell>
+              <TableCell>Mã giao khoán</TableCell>
+              <TableCell>Mã vật tư</TableCell>
+              <TableCell>Tên vật tư, tài sản</TableCell>
+              <TableCell>ĐVT</TableCell>
+              <TableCell>Số lượng</TableCell>
+              <TableCell>Đơn giá bình quân</TableCell>
+              <TableCell>Chi phí thực hiện</TableCell>
             </TableRow>
           </TableHead>
           <TableBody sx={{ backgroundColor: "white" }}>
@@ -95,9 +98,23 @@ export default function PhaseTable({
                   <TableCell></TableCell>
                   <TableCell>{m?.assignmentCode?.name}</TableCell>
                   <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
-                  <TableCell>{m.materials.reduce((sum: number, i: any) => sum + (i?.quantity || 0), 0)}</TableCell>
-                  <TableCell>{m.price ? (Number(m.price.toFixed(0))).toLocaleString() : ""}</TableCell>
-                  <TableCell>{(Number(m.materials.reduce((sum: number, i: any) => sum + (i?.cost || 0), 0).toFixed(0))).toLocaleString()}</TableCell>
+                  <TableCell>
+                    {formattedPrice(
+                      m.materials.reduce(
+                        (sum: number, i: any) => sum + (i?.quantity || 0),
+                        0,
+                      ),
+                    )}
+                  </TableCell>
+                  <TableCell>{formattedPrice(m.price)}</TableCell>
+                  <TableCell>
+                    {formattedPrice(
+                      m.materials.reduce(
+                        (sum: number, i: any) => sum + (i?.cost || 0),
+                        0,
+                      ),
+                    )}
+                  </TableCell>
                 </TableRow>
                 {m.materials.map((i: any) => (
                   <TableRow>
@@ -105,9 +122,11 @@ export default function PhaseTable({
                     <TableCell>{i?.material?.code}</TableCell>
                     <TableCell>{i?.material?.name}</TableCell>
                     <TableCell>{i?.material?.uom?.name}</TableCell>
-                    <TableCell>{i?.quantity}</TableCell>
-                    <TableCell>{m?.assignmentCode ? '' : (Number(i?.price || 0).toFixed(0)).toLocaleString()}</TableCell>
-                    <TableCell>{i.cost ? (Number(i.cost.toFixed(0))).toLocaleString() : ""}</TableCell>
+                    <TableCell>{formatDecimal(i.quantity)}</TableCell>
+                    <TableCell>
+                      {m?.assignmentCode ? "" : formattedPrice(i.price)}
+                    </TableCell>
+                    <TableCell>{formattedPrice(i.cost)}</TableCell>
                   </TableRow>
                 ))}
               </Fragment>

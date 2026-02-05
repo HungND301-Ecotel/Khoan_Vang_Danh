@@ -1,10 +1,10 @@
 import { Table, Typography } from "antd";
 import React from "react";
 import { Box, Paper } from "@mui/material";
+import { formatDecimal, formattedPrice } from "../../utils/helpers";
 
 // Giả sử Data type của AssignmentNormTable là object của một Phase trong InitialPlannedCostOutputType
 export default function AssignmentNormTable({ data }: { data: any }) {
-
   const innerColumns = [
     {
       title: <Typography>Mã giao khoán</Typography>,
@@ -30,9 +30,8 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       key: "unit",
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (assignmentCode: any) => {
-        return <Typography>{assignmentCode?.uom?.name}</Typography>
-      }
-
+        return <Typography>{assignmentCode?.uom?.name}</Typography>;
+      },
     },
     {
       title: <Typography>Định mức gốc</Typography>,
@@ -40,7 +39,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       key: "baseNorm",
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
-        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
+        <Typography>{formatDecimal(value)}</Typography>
       ),
     },
     {
@@ -49,7 +48,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       key: "adjustmentNorm",
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
-        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
+        <Typography>{formatDecimal(value)}</Typography>
       ),
     },
     {
@@ -58,7 +57,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       key: "norm",
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
-        <Typography>{value ? (Number(value.toFixed(0))).toLocaleString() : ""}</Typography>
+        <Typography>{formatDecimal(value)}</Typography>
       ),
     },
     // Thêm các cột còn lại dựa trên dữ liệu 'phase' cha
@@ -69,7 +68,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
         // Số lượng cho định mức này là 1? Cần xem lại logic nghiệp vụ
-        <Typography>{value ? (Number(value.toFixed(3))).toLocaleString() : ""}</Typography>
+        <Typography>{formatDecimal(value)}</Typography>
       ),
     },
     {
@@ -79,7 +78,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
         // Cột này cần dữ liệu từ đâu đó (có thể là data.unitPrice?)
-        <Typography>{value ? (Number(value.toFixed(0))).toLocaleString() : ""}</Typography>
+        <Typography>{formattedPrice(value)}</Typography>
       ),
     },
     {
@@ -89,13 +88,13 @@ export default function AssignmentNormTable({ data }: { data: any }) {
       align: "center" as const, // SỬA LỖI TS TỪ BƯỚC TRƯỚC
       render: (value: number) => (
         // Cột này cần dữ liệu từ đâu đó (có thể là data.unitPrice?)
-        <Typography>{value ? (Number(value.toFixed(0))).toLocaleString() : ""}</Typography>
+        <Typography>{formattedPrice(value)}</Typography>
       ),
     },
   ];
 
   return (
-    <Paper >
+    <Paper>
       <Table
         columns={innerColumns}
         dataSource={data.initialPlannedCostDetails || []} // <-- Dùng mảng đã xử lý
@@ -103,10 +102,10 @@ export default function AssignmentNormTable({ data }: { data: any }) {
         size="small"
         rowKey="key"
         onRow={() => ({
-          className: "custom-row2"
+          className: "custom-row2",
         })}
         onHeaderRow={() => ({
-          className: "custom-header2"
+          className: "custom-header2",
         })}
       />
       <style>{`
@@ -116,8 +115,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
         .custom-row2 > td {
             background-color: #fdfafafa !important;
           }
-      `}</style >
+      `}</style>
     </Paper>
-
-  )
+  );
 }

@@ -38,6 +38,7 @@ import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
+import { formatDecimal } from "../../utils/helpers";
 
 export default function CoalCuttingNormKB() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -335,9 +336,7 @@ export default function CoalCuttingNormKB() {
         align: "center" as const,
         width: "10%",
         render: (value: number) => (
-          <Typography>
-            {value ? Number(value.toFixed(3)).toLocaleString() : ""}
-          </Typography>
+          <Typography>{formatDecimal(value)}</Typography>
         ),
       },
     ];

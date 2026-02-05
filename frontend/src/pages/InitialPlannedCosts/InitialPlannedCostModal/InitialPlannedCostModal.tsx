@@ -36,6 +36,7 @@ import {
 import * as yup from "yup";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
 import dayjs from "dayjs";
+import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 
 const validationSchema = yup.object({
   productionScope: yup.string().required("Diện sản xuất không được để trống"),
@@ -52,7 +53,7 @@ const validationSchema = yup.object({
         unit: yup.string().required("Bắt buộc"),
         assignmentNormCode: yup.string().required("Bắt buộc"),
         adjustmentNormCode: yup.string().required("Bắt buộc"),
-      })
+      }),
     )
     .min(1, "Cần ít nhất một công đoạn"),
 });
@@ -113,7 +114,7 @@ export default function InitialPlannedCostModal({
               : "mét"), // CHANGED
           assignmentNormCode: p.assignmentNormCode?._id, // CHANGED
           adjustmentNormCode: p.adjustmentNormCode?._id, // CHANGED
-        })
+        }),
       ),
     },
     enableReinitialize: true,
@@ -146,7 +147,7 @@ export default function InitialPlannedCostModal({
   const handlePhaseChange = (
     index: number,
     field: keyof PhaseType,
-    value: any
+    value: any,
   ) => {
     const newPhases = [...formik.values.phases];
     newPhases[index] = { ...newPhases[index], [field]: value };
@@ -193,7 +194,7 @@ export default function InitialPlannedCostModal({
           height: "740px",
           p: "40px",
           backgroundColor: "#F1F2F5",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -282,7 +283,7 @@ export default function InitialPlannedCostModal({
                 formik.setFieldValue("productionScope", scopeId);
 
                 const scope = productionscopes.data.find(
-                  (ps: ProductionScopeOutputType) => ps._id === scopeId
+                  (ps: ProductionScopeOutputType) => ps._id === scopeId,
                 );
 
                 // nếu scope có mảng phases thì map ra
@@ -290,7 +291,9 @@ export default function InitialPlannedCostModal({
                   const mappedPhases = scope.phases.map((ph: any) => ({
                     phase: ph.phase?._id ?? "",
                     production: 0, // CHANGED
-                    unit: ph.phase?.phaseGroup?.name.toLowerCase().includes("khấu than")
+                    unit: ph.phase?.phaseGroup?.name
+                      .toLowerCase()
+                      .includes("khấu than")
                       ? "tấn"
                       : "mét", // CHANGED
                     assignmentNormCode: "",
@@ -365,7 +368,7 @@ export default function InitialPlannedCostModal({
                     >
                       {formik.values.phases.map((item: any, index: number) => {
                         const phase = phases.data.find(
-                          (pg: PhaseOutputType) => pg._id === item.phase
+                          (pg: PhaseOutputType) => pg._id === item.phase,
                         );
 
                         return (
@@ -477,35 +480,9 @@ export default function InitialPlannedCostModal({
                                 >
                                   Sản lượng
                                 </Typography>
-                                <TextField
-                                  fullWidth
-                                  type="number"
-                                  name={`phases[${index}].production`}
-                                  value={
-                                    formik.values.phases[index]?.production ?? 0
-                                  }
-                                  onChange={(e) =>
-                                    formik.setFieldValue(
-                                      `phases[${index}].production`,
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="Placeholder"
-                                  variant="outlined"
-                                  error={Boolean(getError(index, "production"))}
-                                  helperText={getError(index, "production")}
-                                  sx={{
-                                    "& .MuiInputBase-root": {
-                                      height: "32px",
-                                      borderRadius: "6px",
-                                      px: "12px",
-                                      fontSize: "14px",
-                                      background: "white",
-                                    },
-                                    "& .MuiOutlinedInput-notchedOutline": {
-                                      borderColor: "#D9D9D9",
-                                    },
-                                  }}
+                                <TextFieldNumber
+                                  formik={formik}
+                                  field={`phases.${index}.production`}
                                 />
                               </Box>
 
@@ -528,7 +505,7 @@ export default function InitialPlannedCostModal({
                                   onChange={(e) =>
                                     formik.setFieldValue(
                                       `phases[${index}].unit`,
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder="VD: mét, tấn ..."
@@ -570,15 +547,15 @@ export default function InitialPlannedCostModal({
                                     handlePhaseChange(
                                       index,
                                       "assignmentNormCode",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   error={Boolean(
-                                    getError(index, "assignmentNormCode")
+                                    getError(index, "assignmentNormCode"),
                                   )}
                                   helperText={getError(
                                     index,
-                                    "assignmentNormCode"
+                                    "assignmentNormCode",
                                   )}
                                   variant="outlined"
                                   sx={{
@@ -601,7 +578,7 @@ export default function InitialPlannedCostModal({
                                       <MenuItem key={it._id} value={it._id}>
                                         {it.code}
                                       </MenuItem>
-                                    )
+                                    ),
                                   )}
                                 </TextField>
                               </Box>
@@ -626,15 +603,15 @@ export default function InitialPlannedCostModal({
                                     handlePhaseChange(
                                       index,
                                       "adjustmentNormCode",
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   error={Boolean(
-                                    getError(index, "adjustmentNormCode")
+                                    getError(index, "adjustmentNormCode"),
                                   )}
                                   helperText={getError(
                                     index,
-                                    "adjustmentNormCode"
+                                    "adjustmentNormCode",
                                   )}
                                   variant="outlined"
                                   sx={{
@@ -657,7 +634,7 @@ export default function InitialPlannedCostModal({
                                       <MenuItem key={it._id} value={it._id}>
                                         {it.code}
                                       </MenuItem>
-                                    )
+                                    ),
                                   )}
                                 </TextField>
                               </Box>
