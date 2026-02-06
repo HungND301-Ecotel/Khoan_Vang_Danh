@@ -137,7 +137,7 @@ exports.get = async (req, res) => {
         // 1. Xử lý điều kiện tìm kiếm theo req.query.q
         if (req.query.q) {
             const productionScopes = await ProductionScope.find({ code: new RegExp(req.query.q, 'i') }).select('_id');
-            const productionScopeIds = productionScopes.map(i => i._id);
+            const productionScopeIds = productionScopes.map(i => i?._id);
             // Chỉ match những InitialPlannedCost có productionScope nằm trong kết quả tìm kiếm
             scopeMatchQuery.productionScope = { $in: productionScopeIds };
         }
@@ -194,8 +194,8 @@ exports.get = async (req, res) => {
 
         // Khởi tạo Map với các ProductionScope đã được phân trang (đã populate)
         for (const scope of targetScopes) {
-            groupedMap.set(scope._id.toString(), {
-                _id: scope._id.toString(),
+            groupedMap.set(scope?._id.toString(), {
+                _id: scope?._id.toString(),
                 productionScope: scope, // Đã populate
                 minMonth: null,
                 maxMonth: null,
@@ -204,7 +204,7 @@ exports.get = async (req, res) => {
         }
 
         for (const doc of allDocs) {
-            const scopeId = doc.productionScope._id.toString();
+            const scopeId = doc.productionScope?._id.toString();
 
             if (groupedMap.has(scopeId)) { // Chỉ xử lý các scope đã được phân trang
                 const groupedDoc = groupedMap.get(scopeId);
@@ -255,7 +255,7 @@ exports.get = async (req, res) => {
 
                 // Thêm dữ liệu vào mảng 'group'
                 groupedDoc.group.push({
-                    _id: doc._id,
+                    _id: doc?._id,
                     month: doc.month,
                     totalUsedCost: doc.totalUsedCost,
                     phases: doc.phases,
