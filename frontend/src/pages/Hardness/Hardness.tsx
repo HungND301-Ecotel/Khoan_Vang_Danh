@@ -29,19 +29,19 @@ import {
   showSuccessAlert,
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table } from "antd";
+import { TableProps } from "antd";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 
 import HardnessService from "../../service/HardnessService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import HardnessModal from "./HardnessModal/HardnessModal";
-import { ShowAlertImport } from "../../utils/AlertImport"
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function Hardness() {
   const [open, setOpen] = useState(false);
   const [selectedHardness, setSelectedHardness] = useState<HardnessType | null>(
-    null
+    null,
   );
   const [selectedHardnesses, setSelectedHardnesses] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
@@ -63,7 +63,7 @@ export default function Hardness() {
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/hardness?q=${searchValue}&page=${page}&limit=${limit}`
+          `/hardness?q=${searchValue}&page=${page}&limit=${limit}`,
         );
         return response.data.data;
       } catch (error) {
@@ -120,12 +120,12 @@ export default function Hardness() {
     }
 
     showConfirmAlert(
-      `Bạn có muốn xóa ${selectedHardnesses.length} bản ghi đã chọn?`
+      `Bạn có muốn xóa ${selectedHardnesses.length} bản ghi đã chọn?`,
     ).then((result) => {
       if (result.isConfirmed) {
         // Tạo mảng các promise để xóa từng bản ghi
         const deletePromises = selectedHardnesses.map((id) =>
-          api.delete(`/hardness/${id}`)
+          api.delete(`/hardness/${id}`),
         );
 
         // Thực hiện xóa tất cả
@@ -134,7 +134,7 @@ export default function Hardness() {
             queryClient.invalidateQueries({ queryKey: ["hardness"] });
             setSelectedHardnesses([]);
             showSuccessAlert(
-              `Đã xóa ${selectedHardnesses.length} bản ghi thành công`
+              `Đã xóa ${selectedHardnesses.length} bản ghi thành công`,
             );
           })
           .catch((error) => {
@@ -184,7 +184,7 @@ export default function Hardness() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["hardness"] });
       setIsUploading(false);
-      ShowAlertImport(data)
+      ShowAlertImport(data);
     },
     onError: (error: any) => {
       setIsUploading(false);
@@ -194,7 +194,7 @@ export default function Hardness() {
 
   const exportExcel = useMutation({
     mutationFn: HardnessService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

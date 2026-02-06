@@ -29,6 +29,8 @@ import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
+import FieldInput from "../../../components/TextField/FieldInput";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
@@ -168,24 +170,7 @@ export default function MaterialAssignmentOutPlanModal({
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Mã vật tư, tài sản
                 </Typography>
-                <TextField
-                  fullWidth
-                  id="code"
-                  name="code"
-                  placeholder="Input Text"
-                  value={formik.values.code}
-                  onChange={formik.handleChange}
-                  error={formik.touched.code && Boolean(formik.errors.code)}
-                  helperText={formik.touched.code && formik.errors.code}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
-                />
+                <FieldInput formik={formik} field="code" />
               </Box>
 
               {/* Tên vật tư, tài sản */}
@@ -193,24 +178,7 @@ export default function MaterialAssignmentOutPlanModal({
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Tên vật tư, tài sản
                 </Typography>
-                <TextField
-                  fullWidth
-                  id="name"
-                  name="name"
-                  placeholder="Input Text"
-                  value={formik.values.name}
-                  onChange={formik.handleChange}
-                  error={formik.touched.name && Boolean(formik.errors.name)}
-                  helperText={formik.touched.name && formik.errors.name}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
-                />
+                <FieldInput formik={formik} field="name" />
               </Box>
 
               {/* Đơn vị tính */}
@@ -218,31 +186,13 @@ export default function MaterialAssignmentOutPlanModal({
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Đơn vị tính
                 </Typography>
-                <TextField
-                  fullWidth
-                  select
-                  id="uom"
-                  name="uom"
-                  placeholder="Placeholder"
-                  value={formik.values.uom}
-                  onChange={formik.handleChange}
-                  error={formik.touched.uom && Boolean(formik.errors.uom)}
-                  helperText={formik.touched.uom && formik.errors.uom}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
-                >
-                  {units.data.map((unit: UnitType) => (
-                    <MenuItem key={unit._id} value={unit._id}>
-                      {unit.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <FieldAutoCompleted
+                  formik={formik}
+                  field="uom"
+                  labelkey="name"
+                  title=""
+                  data={units.data}
+                />
               </Box>
 
               {/* Đơn giá section */}
@@ -268,31 +218,6 @@ export default function MaterialAssignmentOutPlanModal({
                             >
                               Từ tháng
                             </Typography>
-                            {/* <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
-                              <DatePicker
-                                label="Chọn tháng"
-                                inputFormat="MM/YYYY" // v5 vẫn hỗ trợ
-                                views={["year", "month"]}
-                                openTo="month"
-                                value={
-                                  formik.values.priceHistory[index].startMonth || ''
-                                }
-                                onChange={(value) => {
-                                  formik.setFieldValue(
-                                    `priceHistory[${index}].startMonth`,
-                                    value ? dayjs(value).format("YYYY-MM") : ""
-                                  );
-                                }}
-                                renderInput={(params) => (
-                                  <TextField
-                                    {...params}
-                                    fullWidth
-                                    size="small"
-                                    sx={{ backgroundColor: "#fff" }}
-                                  />
-                                )}
-                              />
-                            </LocalizationProvider> */}
                             <FieldMonthYear
                               formik={formik}
                               fieldName={`priceHistory.${index}.startMonth`}

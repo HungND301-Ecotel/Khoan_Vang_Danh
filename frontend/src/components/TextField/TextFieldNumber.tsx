@@ -1,13 +1,17 @@
 import { TextField } from "@mui/material";
 import { getIn } from "formik";
-import React from "react";
 import { NumericFormat } from "react-number-format";
 
 interface Props {
   formik?: any;
   field?: string;
+  disabled?: boolean;
 }
-export default function TextFieldNumber({ formik, field }: Props) {
+export default function TextFieldNumber({
+  formik,
+  field,
+  disabled = false,
+}: Props) {
   const currentValue = formik && field ? getIn(formik.values, field) : "";
   const touched = formik && field ? getIn(formik.touched, field) : false;
   const error = formik && field ? getIn(formik.errors, field) : "";
@@ -15,6 +19,7 @@ export default function TextFieldNumber({ formik, field }: Props) {
     <NumericFormat
       customInput={TextField}
       fullWidth
+      disabled={disabled}
       value={currentValue}
       thousandSeparator="."
       decimalSeparator=","

@@ -14,7 +14,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import * as yup from "yup";
-import { FormikProvider, useFormik } from "formik";
+import { Field, FormikProvider, useFormik } from "formik";
 import api from "../../../config/api.config";
 import {
   AssignmentCodeOutputType,
@@ -30,6 +30,8 @@ import { readExcelFile } from "../../../utils/readExcel";
 import { CloudUpload } from "@mui/icons-material";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
+import FieldInput from "../../../components/TextField/FieldInput";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã định mức không được để trống"),
@@ -220,61 +222,20 @@ export default function AdjustmentNormKKTModal({
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Mã định mức <span style={{ color: "red" }}>*</span>
               </Typography>
-              <TextField
-                fullWidth
-                id="code"
-                name="code"
-                placeholder="Input Text"
-                value={formik.values.code}
-                onChange={(event) => {
-                  formik.setFieldValue("code", event.target.value);
-                }}
-                error={formik.touched.code && Boolean(formik.errors.code)}
-                helperText={formik.touched.code && formik.errors.code}
-                variant="outlined"
-                size="small"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "36px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <FieldInput formik={formik} field="code" />
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Độ cứng của đá lẫn trong gương (f){" "}
                 <span style={{ color: "red" }}>*</span>
               </Typography>
-              <TextField
-                fullWidth
-                select
-                id="hardness"
-                name="hardness"
-                placeholder="Placeholder"
-                value={formik.values.hardness}
-                onChange={(event) => {
-                  formik.setFieldValue("hardness", event.target.value);
-                }}
-                variant="outlined"
-                size="small"
-                error={
-                  formik.touched.hardness && Boolean(formik.errors.hardness)
-                }
-                helperText={formik.touched.hardness && formik.errors.hardness}
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "36px",
-                    fontSize: "14px",
-                  },
-                }}
-              >
-                {hardness?.data.map((item: HardnessType) => (
-                  <MenuItem key={item._id} value={item._id}>
-                    {item.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <FieldAutoCompleted
+                formik={formik}
+                field="hardness"
+                title=""
+                labelkey="name"
+                data={hardness.data}
+              />
             </Box>
 
             {/* Tỷ lệ đá lẫn */}
@@ -283,35 +244,13 @@ export default function AdjustmentNormKKTModal({
                 Tỷ lệ đá lẫn trong gương (Ckẹp){" "}
                 <span style={{ color: "red" }}>*</span>
               </Typography>
-              <TextField
-                fullWidth
-                select
-                id="rockRatio"
-                name="rockRatio"
-                placeholder="Placeholder"
-                value={formik.values.rockRatio}
-                onChange={(event) => {
-                  formik.setFieldValue("rockRatio", event.target.value);
-                }}
-                variant="outlined"
-                size="small"
-                error={
-                  formik.touched.rockRatio && Boolean(formik.errors.rockRatio)
-                }
-                helperText={formik.touched.rockRatio && formik.errors.rockRatio}
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "36px",
-                    fontSize: "14px",
-                  },
-                }}
-              >
-                {rockratios.data?.map((step: RockRatioType) => (
-                  <MenuItem key={step._id} value={step._id}>
-                    {step.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <FieldAutoCompleted
+                formik={formik}
+                field="rockRatio"
+                title=""
+                labelkey="name"
+                data={rockratios.data}
+              />
             </Box>
             <Box>
               <Box

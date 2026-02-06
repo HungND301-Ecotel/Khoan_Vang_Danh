@@ -37,6 +37,7 @@ import * as yup from "yup";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
 import dayjs from "dayjs";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 
 const validationSchema = yup.object({
   productionScope: yup.string().required("Diện sản xuất không được để trống"),
@@ -497,21 +498,24 @@ export default function InitialPlannedCostModal({
                                 >
                                   Đơn vị tính
                                 </Typography>
+
                                 <TextField
+                                  select // Kích hoạt chế độ chọn
                                   fullWidth
-                                  type="text" // CHANGED
-                                  name={`phases[${index}].unit`} // CHANGED
-                                  value={formik.values.phases[index]?.unit}
+                                  name={`phases[${index}].unit`}
+                                  value={
+                                    formik.values.phases[index]?.unit || ""
+                                  } // Đảm bảo value không bị undefined
                                   onChange={(e) =>
                                     formik.setFieldValue(
                                       `phases[${index}].unit`,
                                       e.target.value,
                                     )
                                   }
-                                  placeholder="VD: mét, tấn ..."
                                   variant="outlined"
                                   error={Boolean(getError(index, "unit"))}
                                   helperText={getError(index, "unit")}
+                                  // Giữ nguyên styling của bạn
                                   sx={{
                                     "& .MuiInputBase-root": {
                                       height: "32px",
@@ -523,8 +527,27 @@ export default function InitialPlannedCostModal({
                                     "& .MuiOutlinedInput-notchedOutline": {
                                       borderColor: "#D9D9D9",
                                     },
+                                    // Chỉnh lại icon mũi tên cho cân đối với chiều cao 32px
+                                    "& .MuiSelect-select": {
+                                      display: "flex",
+                                      alignItems: "center",
+                                      paddingY: 0,
+                                    },
                                   }}
-                                />
+                                >
+                                  <MenuItem
+                                    value="tấn"
+                                    sx={{ fontSize: "14px" }}
+                                  >
+                                    Tấn
+                                  </MenuItem>
+                                  <MenuItem
+                                    value="mét"
+                                    sx={{ fontSize: "14px" }}
+                                  >
+                                    Mét
+                                  </MenuItem>
+                                </TextField>
                               </Box>
 
                               {/* Mã định mức giao khoán */}
@@ -539,48 +562,13 @@ export default function InitialPlannedCostModal({
                                 >
                                   Mã định mức giao khoán
                                 </Typography>
-                                <TextField
-                                  fullWidth
-                                  select
-                                  value={item.assignmentNormCode || ""}
-                                  onChange={(e) =>
-                                    handlePhaseChange(
-                                      index,
-                                      "assignmentNormCode",
-                                      e.target.value,
-                                    )
-                                  }
-                                  error={Boolean(
-                                    getError(index, "assignmentNormCode"),
-                                  )}
-                                  helperText={getError(
-                                    index,
-                                    "assignmentNormCode",
-                                  )}
-                                  variant="outlined"
-                                  sx={{
-                                    "& .MuiInputBase-root": {
-                                      height: "40px",
-                                      borderRadius: "4px",
-                                      fontSize: "14px",
-                                      background: "white",
-                                    },
-                                    "& .MuiOutlinedInput-root": {
-                                      "& fieldset": { borderColor: "#d0d7de" },
-                                      "&:hover fieldset": {
-                                        borderColor: "#0969da",
-                                      },
-                                    },
-                                  }}
-                                >
-                                  {assignmentnorms?.data.map(
-                                    (it: AssignmentNormOutputType) => (
-                                      <MenuItem key={it._id} value={it._id}>
-                                        {it.code}
-                                      </MenuItem>
-                                    ),
-                                  )}
-                                </TextField>
+                                <FieldAutoCompleted
+                                  formik={formik}
+                                  field="assignmentNormCode"
+                                  title=""
+                                  labelkey="code"
+                                  data={assignmentnorms.data}
+                                />
                               </Box>
 
                               {/* Mã hệ số điều chỉnh định mức */}
@@ -595,48 +583,13 @@ export default function InitialPlannedCostModal({
                                 >
                                   Mã hệ số điều chỉnh định mức
                                 </Typography>
-                                <TextField
-                                  fullWidth
-                                  select
-                                  value={item.adjustmentNormCode || ""}
-                                  onChange={(e) =>
-                                    handlePhaseChange(
-                                      index,
-                                      "adjustmentNormCode",
-                                      e.target.value,
-                                    )
-                                  }
-                                  error={Boolean(
-                                    getError(index, "adjustmentNormCode"),
-                                  )}
-                                  helperText={getError(
-                                    index,
-                                    "adjustmentNormCode",
-                                  )}
-                                  variant="outlined"
-                                  sx={{
-                                    "& .MuiInputBase-root": {
-                                      height: "40px",
-                                      borderRadius: "4px",
-                                      fontSize: "14px",
-                                      background: "white",
-                                    },
-                                    "& .MuiOutlinedInput-root": {
-                                      "& fieldset": { borderColor: "#d0d7de" },
-                                      "&:hover fieldset": {
-                                        borderColor: "#0969da",
-                                      },
-                                    },
-                                  }}
-                                >
-                                  {adjustmentnorms?.data.map(
-                                    (it: AdjustmentNormOutputType) => (
-                                      <MenuItem key={it._id} value={it._id}>
-                                        {it.code}
-                                      </MenuItem>
-                                    ),
-                                  )}
-                                </TextField>
+                                <FieldAutoCompleted
+                                  formik={formik}
+                                  field="adjustmentNormCode"
+                                  title=""
+                                  labelkey="code"
+                                  data={adjustmentnorms.data}
+                                />
                               </Box>
                             </Box>
                           </Paper>

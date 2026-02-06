@@ -14,8 +14,7 @@ import {
 } from "@mui/material";
 import { Add, Delete } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction, useState } from "react";
-import { NumericFormat } from "react-number-format";
+import { Dispatch, SetStateAction, useState } from "react";
 import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import {
@@ -30,10 +29,9 @@ import { Divider } from "antd";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
-import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { formatDecimal, formattedPrice } from "../../../utils/helpers";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
+import FieldInput from "../../../components/TextField/FieldInput";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
@@ -187,91 +185,26 @@ export default function MaterialAssignmentModal({
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Mã giao khoán
                 </Typography>
-                <TextField
-                  fullWidth
-                  select
-                  id="assignmentCode"
-                  name="assignmentCode"
-                  placeholder="Placeholder"
-                  value={formik.values.assignmentCode}
-                  onChange={(event) => {
-                    formik.setFieldValue("assignmentCode", event.target.value);
-                  }}
-                  error={
-                    formik.touched.assignmentCode &&
-                    Boolean(formik.errors.assignmentCode)
-                  }
-                  helperText={
-                    formik.touched.assignmentCode &&
-                    formik.errors.assignmentCode
-                  }
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
-                >
-                  {assignmentCodes.data.map(
-                    (assignmentCode: AssignmentCodeOutputType) => (
-                      <MenuItem
-                        key={assignmentCode._id}
-                        value={assignmentCode._id}
-                      >
-                        {assignmentCode.code}
-                      </MenuItem>
-                    ),
-                  )}
-                </TextField>
+                <FieldAutoCompleted
+                  formik={formik}
+                  field="assignmentCode"
+                  labelkey="code"
+                  title=""
+                  data={assignmentCodes.data}
+                />
               </Box>
 
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Mã vật tư, tài sản
                 </Typography>
-                <TextField
-                  fullWidth
-                  id="code"
-                  name="code"
-                  placeholder="Input Text"
-                  value={formik.values.code}
-                  onChange={formik.handleChange}
-                  error={formik.touched.code && Boolean(formik.errors.code)}
-                  helperText={formik.touched.code && formik.errors.code}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
-                />
+                <FieldInput formik={formik} field="code" />
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Tên vật tư, tài sản
                 </Typography>
-                <TextField
-                  fullWidth
-                  id="name"
-                  name="name"
-                  placeholder="Input Text"
-                  value={formik.values.name}
-                  onChange={formik.handleChange}
-                  error={formik.touched.name && Boolean(formik.errors.name)}
-                  helperText={formik.touched.name && formik.errors.name}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
-                />
+                <FieldInput formik={formik} field="name" />
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
@@ -283,31 +216,13 @@ export default function MaterialAssignmentModal({
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Đơn vị tính
                 </Typography>
-                <TextField
-                  fullWidth
-                  select
-                  id="uom"
-                  name="uom"
-                  placeholder="Placeholder"
-                  value={formik.values.uom}
-                  onChange={formik.handleChange}
-                  error={formik.touched.uom && Boolean(formik.errors.uom)}
-                  helperText={formik.touched.uom && formik.errors.uom}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      height: "40px",
-                      borderRadius: "6px",
-                      fontSize: "14px",
-                    },
-                  }}
-                >
-                  {units.data.map((unit: UnitType) => (
-                    <MenuItem key={unit._id} value={unit._id}>
-                      {unit.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <FieldAutoCompleted
+                  formik={formik}
+                  field="uom"
+                  labelkey="name"
+                  title=""
+                  data={units.data}
+                />
               </Box>
 
               <Box>

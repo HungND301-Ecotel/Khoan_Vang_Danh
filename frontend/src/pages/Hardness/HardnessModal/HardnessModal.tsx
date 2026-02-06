@@ -7,18 +7,18 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
 import { HardnessType, UnitType } from "../../../types";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../../config/api.config";
 import { Divider } from "antd";
+import FieldInput from "../../../components/TextField/FieldInput";
 
 const validationSchema = yup.object({
   name: yup.string().required("Vui lòng nhập độ cứng"),
@@ -74,7 +74,7 @@ export default function HardnessModal({
           height: "740px",
           p: "40px",
           position: "relative",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -131,26 +131,7 @@ export default function HardnessModal({
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Độ cứng
               </Typography>
-              <TextField
-                fullWidth
-                id="name"
-                name="name"
-                placeholder="VD: f=3-4"
-                value={formik.values.name}
-                onChange={formik.handleChange}
-                error={formik.touched.name && Boolean(formik.errors.name)}
-                helperText={formik.touched.name && formik.errors.name}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <FieldInput field="name" formik={formik} />
             </Box>
             <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
               {["≥", "≤", "<", ">", "%", "°", "=", "-"].map((symbol) => (
@@ -182,67 +163,7 @@ export default function HardnessModal({
                 </Button>
               ))}
             </Box>
-            {/* <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                Đơn vị tính
-              </Typography>
-              <TextField
-                fullWidth
-                select
-                id="uom"
-                name="uom"
-                placeholder="Chọn đơn vị tính"
-                value={formik.values.uom || ""}
-                onChange={formik.handleChange}
-                error={formik.touched.uom && Boolean(formik.errors.uom)}
-                helperText={formik.touched.uom && formik.errors.uom}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-                SelectProps={{
-                  displayEmpty: true,
-                  renderValue: (selected) => {
-                    if (!selected) {
-                      return (
-                        <span style={{ color: "#999" }}>Chọn đơn vị tính</span>
-                      );
-                    }
-                    const selectedUnit = units.find(
-                      (unit: UnitType) => unit._id === selected
-                    );
-                    return selectedUnit?.name;
-                  },
-                }}
-              >
-                {units.map((unit: UnitType) => (
-                  <MenuItem
-                    key={unit._id}
-                    value={unit._id}
-                    sx={{
-                      fontSize: "14px",
-                      "&:hover": {
-                        backgroundColor: "#f5f5f5",
-                      },
-                      "&.Mui-selected": {
-                        backgroundColor: "#e3f2fd",
-                        "&:hover": {
-                          backgroundColor: "#f5f5f5",
-                        },
-                      },
-                    }}
-                  >
-                    {unit.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box> */}
+
             <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
               <Button
                 onClick={handleClose}

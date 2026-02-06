@@ -14,7 +14,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import * as yup from "yup";
-import { FormikProvider, useFormik } from "formik";
+import { Field, FormikProvider, useFormik } from "formik";
 import api from "../../../config/api.config";
 import {
   AssignmentCodeOutputType,
@@ -29,6 +29,8 @@ import { readExcelFile } from "../../../utils/readExcel";
 import { CloudUpload } from "@mui/icons-material";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
+import FieldInput from "../../../components/TextField/FieldInput";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã định mức không được để trống"),
@@ -212,64 +214,20 @@ export default function AdjustmentNormCMModal({
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Mã định mức <span style={{ color: "red" }}>*</span>
               </Typography>
-              <TextField
-                fullWidth
-                id="code"
-                name="code"
-                placeholder="Input Text"
-                value={formik.values.code}
-                onChange={(event) => {
-                  formik.setFieldValue("code", event.target.value);
-                }}
-                variant="outlined"
-                size="small"
-                error={formik.touched.code && Boolean(formik.errors.code)}
-                helperText={formik.touched.code && formik.errors.code}
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "36px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <FieldInput formik={formik} field="code" />
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Tỷ lệ đá lẫn gương than mềm (Cm){" "}
                 <span style={{ color: "red" }}>*</span>
               </Typography>
-              <TextField
-                fullWidth
-                select
-                id="mirrorRatio"
-                name="mirrorRatio"
-                placeholder="Placeholder"
-                value={formik.values.mirrorRatio}
-                onChange={(event) => {
-                  formik.setFieldValue("mirrorRatio", event.target.value);
-                }}
-                variant="outlined"
-                size="small"
-                error={
-                  formik.touched.mirrorRatio &&
-                  Boolean(formik.errors.mirrorRatio)
-                }
-                helperText={
-                  formik.touched.mirrorRatio && formik.errors.mirrorRatio
-                }
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "36px",
-                    fontSize: "14px",
-                  },
-                }}
-              >
-                {mirrorratios.data.map((step: StepType) => (
-                  <MenuItem key={step._id} value={step._id}>
-                    {step.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <FieldAutoCompleted
+                formik={formik}
+                field="mirrorRatio"
+                title=""
+                labelkey="name"
+                data={mirrorratios.data}
+              />
             </Box>
 
             <Box>

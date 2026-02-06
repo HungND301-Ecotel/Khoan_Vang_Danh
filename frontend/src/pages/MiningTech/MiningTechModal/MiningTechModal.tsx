@@ -11,11 +11,12 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
 import { PhaseGroupType } from "../../../types";
 import { Divider } from "antd";
+import FieldInput from "../../../components/TextField/FieldInput";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã công nghệ khai thác không được để trống"),
@@ -60,7 +61,7 @@ export default function PhaseGroupModal({
           height: "740px",
           p: "40px",
           position: "relative",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -100,57 +101,30 @@ export default function PhaseGroupModal({
       </DialogTitle>
 
       <DialogContent sx={{ p: 0, mt: 3 }}>
-        <Box component="form" onSubmit={formik.handleSubmit} sx={{ display: "flex", justifyContent: "center" }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "700px" }}>
+        <Box
+          component="form"
+          onSubmit={formik.handleSubmit}
+          sx={{ display: "flex", justifyContent: "center" }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              width: "700px",
+            }}
+          >
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Mã nhóm công đoạn
               </Typography>
-              <TextField
-                fullWidth
-                id="code"
-                name="code"
-                placeholder="Input Text"
-                value={formik.values.code}
-                onChange={formik.handleChange}
-                error={formik.touched.code && Boolean(formik.errors.code)}
-                helperText={formik.touched.code && formik.errors.code}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <FieldInput formik={formik} field="code" />
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Tên nhóm công đoạn
               </Typography>
-              <TextField
-                fullWidth
-                id="name"
-                name="name"
-                placeholder="Input Text"
-                value={formik.values.name}
-                onChange={formik.handleChange}
-                error={formik.touched.name && Boolean(formik.errors.name)}
-                helperText={formik.touched.name && formik.errors.name}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <FieldInput formik={formik} field="name" />
             </Box>
             <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
               <Button

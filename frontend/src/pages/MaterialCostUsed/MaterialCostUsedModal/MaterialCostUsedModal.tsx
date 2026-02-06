@@ -42,6 +42,7 @@ import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 
 export default function MaterialCostUsedModal({
   open,
@@ -321,41 +322,13 @@ export default function MaterialCostUsedModal({
           <Box
             sx={{ display: "flex", justifyContent: "center", width: "100%" }}
           >
-            <TextField
-              select
-              fullWidth
-              value={formik.values.productionScope || null}
-              onChange={(event) => {
-                const scopeId = event.target.value;
-                formik.setFieldValue("productionScope", scopeId);
-              }}
-              variant="outlined"
-              InputProps={{
-                startAdornment: formik.values.productionScope ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Chọn mã diện sản xuất
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                },
-                backgroundColor: "white",
-              }}
-            >
-              {productionscopes?.data.map((item: ProductionScopeOutputType) => (
-                <MenuItem key={item._id} value={item._id}>
-                  {item.code}
-                </MenuItem>
-              ))}
-            </TextField>
+            <FieldAutoCompleted
+              formik={formik}
+              field="productionScope"
+              title=""
+              labelkey="code"
+              data={productionscopes.data}
+            />
           </Box>
           {initialplannedcost && (
             <Box>
@@ -381,6 +354,7 @@ export default function MaterialCostUsedModal({
                     label="Chọn thời gian"
                     placeholder="Chọn..."
                     sx={{ background: "white" }}
+                    size="small"
                   />
                 )}
               />

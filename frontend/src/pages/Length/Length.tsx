@@ -34,12 +34,12 @@ import {
   showSuccessAlert,
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table } from "antd";
+import { TableProps } from "antd";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import LengthService from "../../service/LengthService";
 import { parseAxiosError } from "../../utils/handleApiError";
-import { ShowAlertImport } from "../../utils/AlertImport"
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function Length() {
   const [open, setOpen] = useState(false);
@@ -64,7 +64,7 @@ export default function Length() {
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/length?q=${searchValue}&page=${page}&limit=${limit}`
+          `/length?q=${searchValue}&page=${page}&limit=${limit}`,
         );
         return response.data.data;
       } catch (error) {
@@ -114,7 +114,7 @@ export default function Length() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["length"] });
       setIsUploading(false);
-      ShowAlertImport(data)
+      ShowAlertImport(data);
     },
     onError: (error: any) => {
       setIsUploading(false);
@@ -124,7 +124,7 @@ export default function Length() {
 
   const exportExcel = useMutation({
     mutationFn: LengthService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -135,12 +135,12 @@ export default function Length() {
     // Xóa nhiều bản ghi
     if (!id && selectedLengths.length > 0) {
       showConfirmAlert(
-        `Bạn có muốn xóa ${selectedLengths.length} bản ghi đã chọn?`
+        `Bạn có muốn xóa ${selectedLengths.length} bản ghi đã chọn?`,
       ).then((result) => {
         if (result.isConfirmed) {
           // Gọi API xóa nhiều
           const deletePromises = selectedLengths.map((lengthId) =>
-            api.delete(`/length/${lengthId}`)
+            api.delete(`/length/${lengthId}`),
           );
 
           Promise.all(deletePromises)
@@ -148,17 +148,17 @@ export default function Length() {
               queryClient.invalidateQueries({ queryKey: ["length"] });
               setSelectedLengths([]);
               showSuccessAlert(
-                `Đã xóa ${selectedLengths.length} bản ghi thành công`
+                `Đã xóa ${selectedLengths.length} bản ghi thành công`,
               );
             })
             .catch((error) => {
               console.log(
-                error.response?.data?.message || error.response || "Lỗi"
+                error.response?.data?.message || error.response || "Lỗi",
               );
               showErrorAlert(
                 error.response?.data?.message ||
-                error.response ||
-                "Lỗi khi xóa nhiều bản ghi"
+                  error.response ||
+                  "Lỗi khi xóa nhiều bản ghi",
               );
             });
         }

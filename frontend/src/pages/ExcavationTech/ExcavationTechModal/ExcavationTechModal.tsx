@@ -11,11 +11,12 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
 import { ExcavationTechType } from "../../../types";
 import { Divider } from "antd";
+import FieldInput from "../../../components/TextField/FieldInput";
 
 const validationSchema = yup.object({
   name: yup.string().required("Công nghệ xúc không được để trống"),
@@ -58,7 +59,7 @@ export default function ExcavationTechModal({
           height: "740px",
           p: "40px",
           position: "relative",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -91,7 +92,9 @@ export default function ExcavationTechModal({
           }}
         />
         <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-          {selectedExcavationTech ? "Chỉnh sửa công nghệ xúc" : "Tạo mới công nghệ xúc"}
+          {selectedExcavationTech
+            ? "Chỉnh sửa công nghệ xúc"
+            : "Tạo mới công nghệ xúc"}
         </Typography>
       </DialogTitle>
 
@@ -101,26 +104,7 @@ export default function ExcavationTechModal({
         </Typography>
 
         <Box sx={{ display: "flex", justifyContent: "center" }}>
-          <TextField
-            id="name"
-            name="name"
-            placeholder="Input Text"
-            value={formik.values.name}
-            onChange={formik.handleChange}
-            error={formik.touched.name && Boolean(formik.errors.name)}
-            helperText={formik.touched.name && formik.errors.name}
-            variant="outlined"
-            sx={{
-              width: "700px",
-              "& .MuiInputBase-root": {
-                height: "32px",
-                borderRadius: "6px",
-                paddingRight: "12px",
-                paddingLeft: "12px",
-                fontSize: "14px",
-              },
-            }}
-          />
+          <FieldInput formik={formik} field="name"></FieldInput>
         </Box>
 
         <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>

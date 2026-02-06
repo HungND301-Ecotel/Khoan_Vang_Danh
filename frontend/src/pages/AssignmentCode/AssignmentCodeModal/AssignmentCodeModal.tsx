@@ -12,9 +12,9 @@ import {
   MenuItem,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
-import { useFormik } from "formik";
+import { Field, useFormik } from "formik";
 import {
   AssignmentCodeInputType,
   AssignmentCodeOutputType,
@@ -25,6 +25,9 @@ import { useQuery } from "@tanstack/react-query";
 import api from "../../../config/api.config";
 import { Divider } from "antd";
 import { formattedPrice } from "../../../utils/helpers";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
+import FieldInput from "../../../components/TextField/FieldInput";
+import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã giao khoán không được để trống"),
@@ -139,145 +142,43 @@ export default function AssignmentCodeModal({
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Mã giao khoán
               </Typography>
-              <TextField
-                fullWidth
-                id="code"
-                name="code"
-                placeholder="Input Text"
-                value={formik.values.code}
-                onChange={formik.handleChange}
-                error={formik.touched.code && Boolean(formik.errors.code)}
-                helperText={formik.touched.code && formik.errors.code}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <FieldInput formik={formik} field="code" />
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Tên mã giao khoán
               </Typography>
-              <TextField
-                fullWidth
-                id="name"
-                name="name"
-                placeholder="Input Text"
-                value={formik.values.name}
-                onChange={formik.handleChange}
-                error={formik.touched.name && Boolean(formik.errors.name)}
-                helperText={formik.touched.name && formik.errors.name}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <FieldInput formik={formik} field="name" />
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Đơn vị tính
               </Typography>
-              <TextField
-                fullWidth
-                select
-                id="uom"
-                name="uom"
-                placeholder="Chọn đơn vị tính"
-                value={formik.values.uom}
-                onChange={formik.handleChange}
-                error={formik.touched.uom && Boolean(formik.errors.uom)}
-                helperText={formik.touched.uom && formik.errors.uom}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              >
-                {units.data.map((unit: UnitType) => (
-                  <MenuItem key={unit._id} value={unit._id}>
-                    {unit.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <FieldAutoCompleted
+                formik={formik}
+                field="uom"
+                labelkey="name"
+                title=""
+                data={units.data}
+              />
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Mã thiết bị
               </Typography>
-              <TextField
-                fullWidth
-                select
-                id="deviceCode"
-                name="deviceCode"
-                placeholder="Chọn mã thiết bị"
-                value={formik.values.deviceCode}
-                onChange={formik.handleChange}
-                error={
-                  formik.touched.deviceCode && Boolean(formik.errors.deviceCode)
-                }
-                helperText={
-                  formik.touched.deviceCode && formik.errors.deviceCode
-                }
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              >
-                {devicecodes.data.map((devicecode: DeviceCodeType) => (
-                  <MenuItem key={devicecode._id} value={devicecode._id}>
-                    {devicecode.code}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <FieldAutoCompleted
+                formik={formik}
+                field="deviceCode"
+                labelkey="code"
+                title=""
+                data={devicecodes.data}
+              />
             </Box>
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Đơn giá
               </Typography>
-              <TextField
-                fullWidth
-                id="price"
-                name="price"
-                placeholder="View only"
-                value={formattedPrice(formik.values.price)}
-                onChange={formik.handleChange}
-                error={formik.touched.price && Boolean(formik.errors.price)}
-                helperText={formik.touched.price && formik.errors.price}
-                variant="outlined"
-                InputProps={{ readOnly: true }}
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <TextFieldNumber formik={formik} field="price" disabled={true} />
             </Box>
             <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
               <Button

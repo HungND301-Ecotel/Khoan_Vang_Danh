@@ -34,12 +34,12 @@ import {
   showSuccessAlert,
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table } from "antd";
+import { TableProps } from "antd";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import StepService from "../../service/StepService";
 import { parseAxiosError } from "../../utils/handleApiError";
-import { ShowAlertImport } from "../../utils/AlertImport"
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function Step() {
   const [open, setOpen] = useState(false);
@@ -63,7 +63,7 @@ export default function Step() {
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/steps?q=${searchValue}&page=${page}&limit=${limit}`
+          `/steps?q=${searchValue}&page=${page}&limit=${limit}`,
         );
         return response.data.data;
       } catch (error) {
@@ -107,7 +107,7 @@ export default function Step() {
       }
 
       showConfirmAlert(
-        `Bạn có muốn xóa ${selectedSteps.length} bản ghi đã chọn?`
+        `Bạn có muốn xóa ${selectedSteps.length} bản ghi đã chọn?`,
       ).then((result) => {
         if (result.isConfirmed) {
           selectedSteps.forEach((stepId) => {
@@ -147,7 +147,7 @@ export default function Step() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["steps"] });
       setIsUploading(false);
-      ShowAlertImport(data)
+      ShowAlertImport(data);
     },
     onError: (error: any) => {
       setIsUploading(false);
@@ -157,7 +157,7 @@ export default function Step() {
 
   const exportExcel = useMutation({
     mutationFn: StepService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);

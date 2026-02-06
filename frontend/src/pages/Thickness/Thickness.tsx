@@ -34,7 +34,7 @@ import {
   showSuccessAlert,
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table } from "antd";
+import { TableProps } from "antd";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import ThicknessService from "../../service/ThicknessService";
@@ -46,7 +46,7 @@ export default function Thickness() {
   const [selectedThickness, setSelectedThickness] =
     useState<ThicknessType | null>(null);
   const [selectedThicknesses, setSelectedThicknesses] = useState<React.Key[]>(
-    []
+    [],
   );
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
@@ -67,7 +67,7 @@ export default function Thickness() {
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/thickness?q=${searchValue}&page=${page}&limit=${limit}`
+          `/thickness?q=${searchValue}&page=${page}&limit=${limit}`,
         );
         return response.data.data;
       } catch (error) {
@@ -115,7 +115,7 @@ export default function Thickness() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["thickness"] });
       setIsUploading(false);
-      ShowAlertImport(data)
+      ShowAlertImport(data);
     },
     onError: (error: any) => {
       setIsUploading(false);
@@ -125,7 +125,7 @@ export default function Thickness() {
 
   const exportExcel = useMutation({
     mutationFn: ThicknessService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -151,11 +151,11 @@ export default function Thickness() {
     }
 
     showConfirmAlert(
-      `Bạn có muốn xóa ${selectedThicknesses.length} bản ghi đã chọn?`
+      `Bạn có muốn xóa ${selectedThicknesses.length} bản ghi đã chọn?`,
     ).then((result) => {
       if (result.isConfirmed) {
         const deletePromises = selectedThicknesses.map((id) =>
-          api.delete(`/thickness/${id}`)
+          api.delete(`/thickness/${id}`),
         );
 
         Promise.all(deletePromises)
@@ -163,7 +163,7 @@ export default function Thickness() {
             queryClient.invalidateQueries({ queryKey: ["thickness"] });
             setSelectedThicknesses([]);
             showSuccessAlert(
-              `Đã xóa ${selectedThicknesses.length} bản ghi thành công`
+              `Đã xóa ${selectedThicknesses.length} bản ghi thành công`,
             );
           })
           .catch((error) => {

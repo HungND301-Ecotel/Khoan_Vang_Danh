@@ -34,12 +34,12 @@ import {
   showSuccessAlert,
 } from "../../components/Alert";
 import { TableRowSelection } from "antd/es/table/interface";
-import { TableProps, Table } from "antd";
+import { TableProps } from "antd";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import CurbSlopeService from "../../service/CurbSlopeService";
 import { parseAxiosError } from "../../utils/handleApiError";
-import { ShowAlertImport } from "../../utils/AlertImport"
+import { ShowAlertImport } from "../../utils/AlertImport";
 
 export default function CurbSlope() {
   const [open, setOpen] = useState(false);
@@ -65,7 +65,7 @@ export default function CurbSlope() {
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/curbslopes?q=${searchValue}&page=${page}&limit=${limit}`
+          `/curbslopes?q=${searchValue}&page=${page}&limit=${limit}`,
         );
         return response.data.data;
       } catch (error) {
@@ -113,7 +113,7 @@ export default function CurbSlope() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["curbslopes"] });
       setIsUploading(false);
-      ShowAlertImport(data)
+      ShowAlertImport(data);
     },
     onError: (error: any) => {
       setIsUploading(false);
@@ -123,7 +123,7 @@ export default function CurbSlope() {
 
   const exportExcel = useMutation({
     mutationFn: CurbSlopeService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -149,11 +149,11 @@ export default function CurbSlope() {
     }
 
     showConfirmAlert(
-      `Bạn có muốn xóa ${selectedCurbSlopes.length} bản ghi đã chọn?`
+      `Bạn có muốn xóa ${selectedCurbSlopes.length} bản ghi đã chọn?`,
     ).then((result) => {
       if (result.isConfirmed) {
         const deletePromises = selectedCurbSlopes.map((id) =>
-          api.delete(`/curbslopes/${id}`)
+          api.delete(`/curbslopes/${id}`),
         );
 
         Promise.all(deletePromises)
@@ -161,7 +161,7 @@ export default function CurbSlope() {
             queryClient.invalidateQueries({ queryKey: ["curbslopes"] });
             setSelectedCurbSlopes([]);
             showSuccessAlert(
-              `Đã xóa ${selectedCurbSlopes.length} bản ghi thành công`
+              `Đã xóa ${selectedCurbSlopes.length} bản ghi thành công`,
             );
           })
           .catch((error) => {

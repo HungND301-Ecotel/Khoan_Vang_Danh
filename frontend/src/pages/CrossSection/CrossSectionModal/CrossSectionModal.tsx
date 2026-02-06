@@ -12,13 +12,19 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
-import { useFormik } from "formik";
-import { CrossSectionOutputType, CrossSectionInputType, UnitType } from "../../../types";
+import { Field, useFormik } from "formik";
+import {
+  CrossSectionOutputType,
+  CrossSectionInputType,
+  UnitType,
+} from "../../../types";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../../config/api.config";
 import { Divider } from "antd";
+import FieldInput from "../../../components/TextField/FieldInput";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 
 const validationSchema = yup.object({
   name: yup.string().required("Tiết diện lò xén không được để trống"),
@@ -67,7 +73,7 @@ export default function CrossSection({
           height: "740px",
           p: "40px",
           position: "relative",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -100,68 +106,68 @@ export default function CrossSection({
           }}
         />
         <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-          {selectedCrossSection ? "Chỉnh sửa tiết diện lò xén" : "Tạo mới Tiết diện lò xén"}
+          {selectedCrossSection
+            ? "Chỉnh sửa tiết diện lò xén"
+            : "Tạo mới Tiết diện lò xén"}
         </Typography>
       </DialogTitle>
 
       <DialogContent sx={{ p: 0, mt: 3 }}>
-        <Box component="form" onSubmit={formik.handleSubmit} sx={{ display: "flex", justifyContent: "center" }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "700px" }}>
+        <Box
+          component="form"
+          onSubmit={formik.handleSubmit}
+          sx={{ display: "flex", justifyContent: "center" }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              width: "700px",
+            }}
+          >
             <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Tiết diện lò xén</Typography>
-              <TextField
-                fullWidth
-                id="name"
-                name="name"
-                placeholder="Nhập tên tiết diện..."
-                value={formik.values.name}
-                onChange={formik.handleChange}
-                error={formik.touched.name && Boolean(formik.errors.name)}
-                helperText={formik.touched.name && formik.errors.name}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Tiết diện lò xén
+              </Typography>
+              <FieldInput formik={formik} field="name" />
             </Box>
             <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
-              {["≥", "≤", "<", ">", "%", "°", "=", "-", "+", "−"].map((symbol) => (
-                <Button
-                  key={symbol}
-                  variant="outlined"
-                  size="small"
-                  onClick={() => {
-                    formik.setFieldValue("name", formik.values.name + symbol);
-                    setTimeout(() => {
-                      document.getElementById("name")?.focus();
-                    }, 0);
-                  }}
-                  sx={{
-                    height: "32px",
-                    minWidth: "40px",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    textTransform: "none",
-                    borderColor: "#e0e0e0",
-                    color: "#666",
-                    "&:hover": {
-                      borderColor: "#ccc",
-                      backgroundColor: "#f5f5f5",
-                    },
-                  }}
-                >
-                  {symbol}
-                </Button>
-              ))}
+              {["≥", "≤", "<", ">", "%", "°", "=", "-", "+", "−"].map(
+                (symbol) => (
+                  <Button
+                    key={symbol}
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      formik.setFieldValue("name", formik.values.name + symbol);
+                      setTimeout(() => {
+                        document.getElementById("name")?.focus();
+                      }, 0);
+                    }}
+                    sx={{
+                      height: "32px",
+                      minWidth: "40px",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      textTransform: "none",
+                      borderColor: "#e0e0e0",
+                      color: "#666",
+                      "&:hover": {
+                        borderColor: "#ccc",
+                        backgroundColor: "#f5f5f5",
+                      },
+                    }}
+                  >
+                    {symbol}
+                  </Button>
+                ),
+              )}
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Đơn vị tính</Typography>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Đơn vị tính
+              </Typography>
               <TextField
                 select
                 id="uom"
@@ -186,9 +192,13 @@ export default function CrossSection({
                   displayEmpty: true,
                   renderValue: (selected) => {
                     if (!selected) {
-                      return <span style={{ color: "#999" }}>Chọn đơn vị tính</span>;
+                      return (
+                        <span style={{ color: "#999" }}>Chọn đơn vị tính</span>
+                      );
                     }
-                    const selectedUnit = units.data.find((unit: UnitType) => unit._id === selected);
+                    const selectedUnit = units.data.find(
+                      (unit: UnitType) => unit._id === selected,
+                    );
                     return selectedUnit?.name;
                   },
                 }}
@@ -214,6 +224,13 @@ export default function CrossSection({
                   </MenuItem>
                 ))}
               </TextField>
+              <FieldAutoCompleted
+                formik={formik}
+                field="uom"
+                title=""
+                labelkey="name"
+                data={units.data}
+              />
             </Box>
             <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
               <Button

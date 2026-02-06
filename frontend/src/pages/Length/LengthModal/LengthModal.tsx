@@ -11,11 +11,12 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
 import { LengthType } from "../../../types";
 import { Divider } from "antd";
+import FieldInput from "../../../components/TextField/FieldInput";
 
 const validationSchema = yup.object({
   name: yup.string().required("Chiều dài lò không được để trống"),
@@ -58,7 +59,7 @@ export default function LengthModal({
           height: "740px",
           p: "40px",
           position: "relative",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -96,30 +97,24 @@ export default function LengthModal({
       </DialogTitle>
 
       <DialogContent sx={{ p: 0, mt: 3 }}>
-        <Box component="form" onSubmit={formik.handleSubmit} sx={{ display: "flex", justifyContent: "center" }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "700px" }}>
+        <Box
+          component="form"
+          onSubmit={formik.handleSubmit}
+          sx={{ display: "flex", justifyContent: "center" }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              width: "700px",
+            }}
+          >
             <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>Chiều dài lò</Typography>
-              <TextField
-                fullWidth
-                id="name"
-                name="name"
-                placeholder="Input Text"
-                value={formik.values.name}
-                onChange={formik.handleChange}
-                error={formik.touched.name && Boolean(formik.errors.name)}
-                helperText={formik.touched.name && formik.errors.name}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-              />
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Chiều dài lò
+              </Typography>
+              <FieldInput formik={formik} field="name" />
             </Box>
             <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
               {["≥", "≤", "<", ">", "%", "°", "="].map((symbol) => (

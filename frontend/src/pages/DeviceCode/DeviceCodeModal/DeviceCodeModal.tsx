@@ -11,11 +11,12 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
 import { DeviceCodeType } from "../../../types";
 import { Divider } from "antd";
+import FieldInput from "../../../components/TextField/FieldInput";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã thiết bị không được để trống"),
@@ -57,7 +58,7 @@ export default function DeviceCode({
           height: "740px",
           p: "40px",
           position: "relative",
-          borderRadius: '12px'
+          borderRadius: "12px",
         },
       }}
     >
@@ -106,26 +107,7 @@ export default function DeviceCode({
         </Typography>
 
         <Box sx={{ display: "flex", justifyContent: "center" }}>
-          <TextField
-            id="code"
-            name="code"
-            placeholder="Input Text"
-            value={formik.values.code}
-            onChange={formik.handleChange}
-            error={formik.touched.code && Boolean(formik.errors.code)}
-            helperText={formik.touched.code && formik.errors.code}
-            variant="outlined"
-            sx={{
-              width: "700px",
-              "& .MuiInputBase-root": {
-                height: "32px",
-                borderRadius: "6px",
-                paddingRight: "12px",
-                paddingLeft: "12px",
-                fontSize: "14px",
-              },
-            }}
-          />
+          <FieldInput formik={formik} field="code" />
         </Box>
 
         <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
