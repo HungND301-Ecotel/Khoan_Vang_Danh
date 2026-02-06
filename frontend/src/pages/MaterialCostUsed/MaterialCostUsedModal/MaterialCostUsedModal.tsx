@@ -17,7 +17,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   FieldArray,
@@ -29,20 +29,19 @@ import {
 import api from "../../../config/api.config";
 import {
   MaterialCostUsedInputType,
-  MaterialCostUsedOutputType,
   ProductionScopeOutputType,
   Materials,
   PhaseOutputType,
   PhaseType,
-  InitialPlannedCostOutputType,
 } from "../../../types";
 import { CircleX } from "lucide-react";
-import { Add, CloudUpload, Delete } from "@mui/icons-material";
+import { CloudUpload } from "@mui/icons-material";
 import dayjs from "dayjs";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
+import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
 
 export default function MaterialCostUsedModal({
   open,
@@ -612,56 +611,31 @@ export default function MaterialCostUsedModal({
                   </Button>
                 </Box>
                 <Box sx={{ display: "flex", justifyContent: "center" }}>
-                  <Autocomplete
-                    multiple
-                    fullWidth
-                    options={materialassignments.data}
+                  <AppMultiAutocomplete
+                    allowDuplicate={true} // Cho phép chọn 1 chip nhiều lần
+                    options={materialassignments.data || []}
+                    value={formik.values.selectedMaterials || []}
                     getOptionLabel={(option: Materials) => option.code || ""}
-                    value={formik.values.selectedMaterials}
-                    isOptionEqualToValue={(option, value) => false}
-                    onChange={(event, newValue) => {
-                      // setSelectedMaterials(newValue);
+                    placeholder="Chọn vật tư..."
+                    onChange={(newValue) => {
                       const updated = newValue.map((item, i) => {
+                        // Tìm vật tư cũ dựa trên cả ID và Index để tránh lấy nhầm dữ liệu của chip trùng tên
                         const existing = (formik.values.materials || []).find(
                           (n: any, index: number) =>
                             n.material === item._id && i === index,
                         );
+
                         return {
                           material: item._id,
-                          quantity: existing?.quantity ?? undefined, // CHANGED (fix nhầm norm)
+                          quantity: existing?.quantity ?? undefined,
                         };
                       });
-                      formik.setFieldValue(`materials`, updated);
-                      formik.setFieldValue(`selectedMaterials`, newValue);
+
+                      formik.setFieldValue("materials", updated);
+                      formik.setFieldValue("selectedMaterials", newValue);
                     }}
-                    renderInput={(params) => (
-                      <TextField {...params} variant="outlined" size="small" />
-                    )}
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        minHeight: "32px",
-                        borderRadius: "6px",
-                        px: "12px",
-                        fontSize: "14px",
-                        backgroundColor:
-                          formik.values.selectedMaterials?.length > 0
-                            ? "#F2F2F2"
-                            : "#FFFFFF",
-                        display: "flex",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                      },
-                      "& .MuiChip-root": {
-                        height: "20px",
-                        fontSize: "12px",
-                        margin: "2px",
-                        lineHeight: "20px",
-                        verticalAlign: "middle",
-                      },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#D9D9D9",
-                      },
-                    }}
+                    // Đồng bộ styling cũ của bạn
+                    width="100%"
                   />
                 </Box>
 

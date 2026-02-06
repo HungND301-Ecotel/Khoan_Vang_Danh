@@ -13,6 +13,7 @@ interface AppMultiAutocompleteProps<T> {
   helperText?: string;
   width?: string | number;
   backgroundColor?: string;
+  allowDuplicate?: boolean;
 }
 
 export const AppMultiAutocomplete = <T extends { _id?: string }>({
@@ -27,6 +28,7 @@ export const AppMultiAutocomplete = <T extends { _id?: string }>({
   helperText,
   width = "700px",
   backgroundColor = "#F2F2F2",
+  allowDuplicate = false,
 }: AppMultiAutocompleteProps<T>) => {
   // 1. Quản lý nội dung search bằng state riêng
   const [searchInput, setSearchInput] = useState("");
@@ -53,8 +55,11 @@ export const AppMultiAutocomplete = <T extends { _id?: string }>({
         onBlur={() => {
           // Không làm gì cả, giữ nguyên searchInput hiện tại
         }}
+        // Nếu allowDuplicate = true, trả về false để MUI không lọc bỏ/xóa item đã chọn
         isOptionEqualToValue={
-          isOptionEqualToValue || ((opt, val) => opt._id === val._id)
+          allowDuplicate
+            ? () => false
+            : isOptionEqualToValue || ((opt, val) => opt._id === val._id)
         }
         getOptionLabel={getOptionLabel}
         onChange={(_, newValue) => onChange(newValue)}

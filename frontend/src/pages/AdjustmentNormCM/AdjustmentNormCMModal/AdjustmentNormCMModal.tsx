@@ -9,20 +9,17 @@ import {
   TextField,
   Typography,
   MenuItem,
-  Autocomplete,
-  Chip,
   DialogTitle,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import * as yup from "yup";
-import { FieldArray, FormikProvider, useFormik } from "formik";
+import { FormikProvider, useFormik } from "formik";
 import api from "../../../config/api.config";
 import {
   AssignmentCodeOutputType,
   AdjustmentNormInputType,
   AdjustmentNormOutputType,
-  HardnessType,
   StepType,
 } from "../../../types";
 import { Divider } from "antd";
@@ -31,6 +28,7 @@ import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import { CloudUpload } from "@mui/icons-material";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
+import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã định mức không được để trống"),
@@ -101,8 +99,6 @@ export default function AdjustmentNormCMModal({
   });
 
   useEffect(() => {
-    // if (assignmentcodes.totalDocs === 0) return;
-
     if (selected && selected.norms.length > 0) {
       const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
@@ -306,19 +302,21 @@ export default function AdjustmentNormCMModal({
                   Tải lên
                 </Button>
               </Box>
-              <Autocomplete
-                multiple
-                options={assignmentcodes.data.filter(
-                  (opt: AssignmentCodeOutputType) =>
-                    !selectedAssignmentCodes.some(
-                      (selected) => selected._id === opt._id,
-                    ),
-                )}
+              <AppMultiAutocomplete
+                options={
+                  assignmentcodes.data?.filter(
+                    (opt: AssignmentCodeOutputType) =>
+                      !selectedAssignmentCodes.some(
+                        (selected) => selected._id === opt._id,
+                      ),
+                  ) || []
+                }
+                value={selectedAssignmentCodes}
                 getOptionLabel={(option: AssignmentCodeOutputType) =>
                   option.code || ""
                 }
-                value={selectedAssignmentCodes}
-                onChange={(event, newValue) => {
+                placeholder="Chọn..."
+                onChange={(newValue) => {
                   setSelectedAssignmentCodes(newValue);
                   const updatedNorms = newValue.map((item) => {
                     const existing = formik.values.norms.find(
@@ -331,44 +329,16 @@ export default function AdjustmentNormCMModal({
                   });
                   formik.setFieldValue("norms", updatedNorms);
                 }}
-                renderTags={(tagValue, getTagProps) =>
-                  tagValue.map((option, index) => {
-                    const { key, ...chipProps } = getTagProps({ index });
-                    return (
-                      <Chip
-                        key={option._id}
-                        label={option.code}
-                        size="small"
-                        {...chipProps}
-                      />
-                    );
-                  })
+                error={
+                  formik.touched.norms &&
+                  typeof formik.errors.norms === "string"
                 }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Chọn..."
-                    variant="outlined"
-                    size="small"
-                    error={
-                      formik.touched.norms &&
-                      Boolean(formik.errors.norms) &&
-                      typeof formik.errors.norms === "string" // CHỈ BÁO LỖI NẾU LÀ CHUỖI
-                    }
-                    helperText={
-                      formik.touched.norms &&
-                      typeof formik.errors.norms === "string"
-                        ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
-                        : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
-                    }
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        minHeight: "36px",
-                        fontSize: "14px",
-                      },
-                    }}
-                  />
-                )}
+                helperText={
+                  formik.touched.norms &&
+                  typeof formik.errors.norms === "string"
+                    ? formik.errors.norms
+                    : undefined
+                }
               />
             </Box>
 

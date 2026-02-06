@@ -36,9 +36,6 @@ import { CloudUpload } from "@mui/icons-material";
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
-import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
-import FieldInput from "../../../components/TextField/FieldInput";
-import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -127,10 +124,10 @@ export default function CuttingNormModal({
   const formik = useFormik({
     initialValues: {
       phaseGroup: phaseGroup || "",
-      phase: "",
-      hardness: "",
-      code: "",
-      crossSection: "",
+      phase: selected?.phase?._id || "",
+      hardness: selected?.hardness?._id || "",
+      code: selected?.code || "",
+      crossSection: selected?.crossSection?._id || "",
       type: "cutting",
       interpolationMethod: "",
       predictingPoint: "",
@@ -159,35 +156,25 @@ export default function CuttingNormModal({
           | "coal_kb"
           | "coal_zh"
           | "coal_zry",
-        norms: [],
+        norms: values?.norms
+          ?.filter((item) => item.assignmentCode && item.norm)
+          .map((item) => ({
+            assignmentCode: item.assignmentCode,
+            norm: item?.norm,
+          })),
       });
     },
   });
   useEffect(() => {
+    // if (assignmentcodes.length === 0) return;
+
     if (selected && selected.norms.length > 0) {
-      formik.setValues({
-        ...formik.values,
-        phase: selected?.phase?._id || "",
-        hardness: selected?.hardness?._id || "",
-        code: selected?.code || "",
-        crossSection: selected?.crossSection?._id || "",
-        type: "cutting",
-        norms:
-          selected?.norms && selected.norms.length > 0
-            ? selected.norms.map((item) => ({
-                assignmentCode: item.assignmentCode?._id ?? "",
-                norm: item.norm,
-              }))
-            : [],
-      });
       const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
-    } else {
-      setSelectedAssignmentCodes([]);
     }
-  }, [selected, assignmentcodes.data, open]);
+  }, [selected, assignmentcodes.data]);
 
   // Effect to set upperLimitFirstNorm when an upper limit norm (existing norm) is chosen
   useEffect(() => {
@@ -409,18 +396,59 @@ export default function CuttingNormModal({
             Nhóm công đoạn
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldAutoCompleted
-              data={phasegroups.data}
-              formik={formik}
-              labelkey="name"
-              field="phaseGroup"
-              title=""
-              disabled
-              onChange={(newValue) => {
-                setPhaseGroup(newValue._id);
-                formik.setFieldValue("phase", "");
+            <TextField
+              select
+              value={formik.values.phaseGroup || ""}
+              onChange={(event) => {
+                setPhaseGroup(event.target.value);
+                formik.setFieldValue("phaseGroup", event.target.value);
+                formik.setFieldValue("phase", ""); // Reset phase when phase group changes
               }}
-            />
+              variant="outlined"
+              InputProps={{
+                startAdornment: formik.values.phaseGroup ? null : (
+                  <InputAdornment
+                    position="start"
+                    sx={{ color: "#D9D9D9", ml: "12px" }}
+                  >
+                    Chọn nhóm công đoạn
+                  </InputAdornment>
+                ),
+              }}
+              error={
+                formik.touched.phaseGroup && Boolean(formik.errors.phaseGroup)
+              }
+              helperText={formik.touched.phaseGroup && formik.errors.phaseGroup}
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor: formik.values.phaseGroup
+                    ? "#F2F2F2"
+                    : "#FFFFFF",
+                },
+                "& .MuiInputBase-input": {
+                  color: formik.values.phaseGroup ? "inherit" : "transparent",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+                "& .MuiSelect-select": {
+                  padding: "6px 12px",
+                },
+              }}
+            >
+              {phasegroups?.data
+                .filter((group: PhaseGroupType | null) => group)
+                .map((group: PhaseGroupType) => (
+                  <MenuItem key={group._id} value={group._id}>
+                    {group.name}
+                  </MenuItem>
+                ))}
+            </TextField>
           </Box>
 
           {/* Công đoạn */}
@@ -428,13 +456,57 @@ export default function CuttingNormModal({
             Công đoạn
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldAutoCompleted
-              data={phases.data}
-              formik={formik}
-              labelkey="name"
-              field="phase"
-              title=""
-            />
+            <TextField
+              select
+              value={formik.values.phase || ""}
+              onChange={(event) =>
+                formik.setFieldValue("phase", event.target.value)
+              }
+              variant="outlined"
+              // disabled={!formik.values.phase}
+              InputProps={{
+                startAdornment: formik.values.phase ? null : (
+                  <InputAdornment
+                    position="start"
+                    sx={{ color: "#D9D9D9", ml: "12px" }}
+                  >
+                    {formik.values.phaseGroup
+                      ? "Chọn công đoạn"
+                      : "Chọn nhóm công đoạn trước"}
+                  </InputAdornment>
+                ),
+              }}
+              error={formik.touched.phase && Boolean(formik.errors.phase)}
+              helperText={formik.touched.phase && formik.errors.phase}
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor: formik.values.phase ? "#F2F2F2" : "#FFFFFF",
+                  "&.Mui-disabled": {
+                    backgroundColor: "#F5F5F5",
+                  },
+                },
+                "& .MuiInputBase-input": {
+                  color: formik.values.phase ? "inherit" : "transparent",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+                "& .MuiSelect-select": {
+                  padding: "6px 12px",
+                },
+              }}
+            >
+              {phases?.data.map((phase: PhaseOutputType) => (
+                <MenuItem key={phase._id} value={phase._id}>
+                  {phase.name}
+                </MenuItem>
+              ))}
+            </TextField>
           </Box>
 
           {/* Tiết diện lò xén */}
@@ -442,13 +514,60 @@ export default function CuttingNormModal({
             Tiết diện lò xén
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldAutoCompleted
-              data={crosssections.data}
-              formik={formik}
-              labelkey="name"
-              field="crossSection"
-              title=""
-            />
+            <TextField
+              select
+              value={formik.values.crossSection || ""}
+              onChange={(event) =>
+                formik.setFieldValue("crossSection", event.target.value)
+              }
+              variant="outlined"
+              InputProps={{
+                startAdornment: formik.values.crossSection ? null : (
+                  <InputAdornment
+                    position="start"
+                    sx={{ color: "#D9D9D9", ml: "12px" }}
+                  >
+                    Chọn tiết diện
+                  </InputAdornment>
+                ),
+              }}
+              error={
+                formik.touched.crossSection &&
+                Boolean(formik.errors.crossSection)
+              }
+              helperText={
+                formik.touched.crossSection && formik.errors.crossSection
+              }
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor: formik.values.crossSection
+                    ? "#F2F2F2"
+                    : "#FFFFFF",
+                },
+                "& .MuiInputBase-input": {
+                  color: formik.values.crossSection ? "inherit" : "transparent",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+                "& .MuiSelect-select": {
+                  padding: "6px 12px",
+                },
+              }}
+            >
+              {crosssections?.data.map(
+                (crosssection: CrossSectionInputType) => (
+                  <MenuItem key={crosssection._id} value={crosssection._id}>
+                    {crosssection.name}
+                  </MenuItem>
+                ),
+              )}
+            </TextField>
           </Box>
 
           {/* Độ cứng */}
@@ -456,13 +575,53 @@ export default function CuttingNormModal({
             Độ cứng
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldAutoCompleted
-              data={hardness.data}
-              formik={formik}
-              labelkey="name"
-              field="hardness"
-              title=""
-            />
+            <TextField
+              select
+              value={formik.values.hardness || ""}
+              onChange={(event) =>
+                formik.setFieldValue("hardness", event.target.value)
+              }
+              variant="outlined"
+              InputProps={{
+                startAdornment: formik.values.hardness ? null : (
+                  <InputAdornment
+                    position="start"
+                    sx={{ color: "#D9D9D9", ml: "12px" }}
+                  >
+                    Chọn độ cứng
+                  </InputAdornment>
+                ),
+              }}
+              error={formik.touched.hardness && Boolean(formik.errors.hardness)}
+              helperText={formik.touched.hardness && formik.errors.hardness}
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor: formik.values.hardness
+                    ? "#F2F2F2"
+                    : "#FFFFFF",
+                },
+                "& .MuiInputBase-input": {
+                  color: formik.values.hardness ? "inherit" : "transparent",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+                "& .MuiSelect-select": {
+                  padding: "6px 12px",
+                },
+              }}
+            >
+              {hardness?.data.map((item: HardnessType) => (
+                <MenuItem key={item._id} value={item._id}>
+                  {item.name}
+                </MenuItem>
+              ))}
+            </TextField>
           </Box>
 
           {/* Mã định mức */}
@@ -470,7 +629,33 @@ export default function CuttingNormModal({
             Mã định mức
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldInput formik={formik} field="code" title="" />
+            <TextField
+              value={formik.values.code || ""}
+              placeholder="Nhập mã định mức"
+              onChange={(event) =>
+                formik.setFieldValue("code", event.target.value)
+              }
+              variant="outlined"
+              error={formik.touched.code && Boolean(formik.errors.code)}
+              helperText={formik.touched.code && formik.errors.code}
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor: formik.values.code ? "#F2F2F2" : "#FFFFFF",
+                },
+                "& input::placeholder": {
+                  color: "#000000",
+                  opacity: 1,
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+              }}
+            />
           </Box>
           {/* Checkbox for additional rows */}
           {hasExistingRecords &&
@@ -797,21 +982,14 @@ export default function CuttingNormModal({
             </Button>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <AppMultiAutocomplete
-              // 1. Cấu hình options và label (Dùng chuẩn code đồng bộ)
-              options={
-                assignmentcodes.data?.filter(
-                  (opt: AssignmentCodeOutputType) =>
-                    !selectedAssignmentCodes.some((s) => s._id === opt._id),
-                ) || []
-              }
-              value={selectedAssignmentCodes}
+            <Autocomplete
+              multiple
+              options={assignmentcodes.data}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
                 `${option.code}`
               }
-              placeholder="Chọn mã giao khoán"
-              // 2. Logic xử lý dữ liệu
-              onChange={(newValue) => {
+              value={selectedAssignmentCodes}
+              onChange={(event, newValue) => {
                 setSelectedAssignmentCodes(newValue);
                 const updatedNorms = newValue.map((item) => {
                   const existing = formik.values.norms.find(
@@ -824,15 +1002,57 @@ export default function CuttingNormModal({
                 });
                 formik.setFieldValue("norms", updatedNorms);
               }}
-              // 3. Xử lý lỗi (Loosely coupled với Formik)
-              error={
-                formik.touched.norms && typeof formik.errors.norms === "string"
-              }
-              helperText={
-                formik.touched.norms && typeof formik.errors.norms === "string"
-                  ? formik.errors.norms
-                  : undefined
-              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  error={
+                    formik.touched.norms &&
+                    Boolean(formik.errors.norms) &&
+                    typeof formik.errors.norms === "string" // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                  }
+                  helperText={
+                    formik.touched.norms &&
+                    typeof formik.errors.norms === "string"
+                      ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
+                      : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
+                  }
+                  placeholder={
+                    selectedAssignmentCodes.length === 0
+                      ? "Chọn mã giao khoán"
+                      : ""
+                  }
+                />
+              )}
+              sx={{
+                width: "700px",
+                "& .MuiInputBase-root": {
+                  minHeight: "32px",
+                  borderRadius: "6px",
+                  px: "12px",
+                  fontSize: "14px",
+                  backgroundColor:
+                    selectedAssignmentCodes.length > 0 ? "#F2F2F2" : "#FFFFFF",
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  padding: "4px 12px",
+                },
+                "& .MuiAutocomplete-input": {
+                  padding: "0 !important",
+                  flexGrow: 1,
+                  minWidth: "60px",
+                },
+                "& .MuiChip-root": {
+                  height: "20px",
+                  fontSize: "12px",
+                  margin: "2px",
+                  lineHeight: "20px",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#D9D9D9",
+                },
+              }}
             />
           </Box>
 
