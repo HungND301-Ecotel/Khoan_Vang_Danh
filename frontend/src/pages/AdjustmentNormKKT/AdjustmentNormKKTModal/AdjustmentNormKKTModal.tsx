@@ -31,7 +31,6 @@ import { Divider } from "antd";
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import { CloudUpload } from "@mui/icons-material";
-import TextFieldPrice from "../../../components/TextField/TextFieldPrice";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 
 const validationSchema = yup.object({

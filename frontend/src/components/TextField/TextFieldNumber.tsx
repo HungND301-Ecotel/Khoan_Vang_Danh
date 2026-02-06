@@ -16,8 +16,8 @@ export default function TextFieldNumber({ formik, field }: Props) {
       customInput={TextField}
       fullWidth
       value={currentValue}
-      thousandSeparator=","
-      decimalSeparator="."
+      thousandSeparator="."
+      decimalSeparator=","
       fixedDecimalScale={false}
       onValueChange={(values: any) => {
         formik.setFieldValue(
@@ -31,9 +31,10 @@ export default function TextFieldNumber({ formik, field }: Props) {
       variant="outlined"
       sx={{
         "& .MuiInputBase-root": {
-          height: "40px",
+          height: "32px",
           borderRadius: "6px",
           fontSize: "14px",
+          backgroundColor: "#FFFFFF",
         },
       }}
     />

@@ -33,7 +33,6 @@ import FieldMonthYear from "../../../ui/FieldMonth_Year";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { formatDecimal, formattedPrice } from "../../../utils/helpers";
-import TextFieldPrice from "../../../components/TextField/TextFieldPrice";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 dayjs.extend(utc);
 
@@ -278,10 +277,7 @@ export default function MaterialAssignmentModal({
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Số lượng
                 </Typography>
-                <TextFieldNumber
-                  formik={formik}
-                  field="quantity"
-                />
+                <TextFieldNumber formik={formik} field="quantity" />
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
@@ -359,7 +355,7 @@ export default function MaterialAssignmentModal({
                             >
                               Đơn giá
                             </Typography>
-                            <TextFieldPrice
+                            <TextFieldNumber
                               formik={formik}
                               field={`priceHistory.${index}.price`}
                             />

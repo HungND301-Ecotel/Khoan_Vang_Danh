@@ -38,7 +38,7 @@ import { CloudUpload } from "@mui/icons-material";
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
-import { AppMultiAutocomplete } from "../../../components/AppMultiAutocomplete/AppMultiAutocomplete";
+import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),

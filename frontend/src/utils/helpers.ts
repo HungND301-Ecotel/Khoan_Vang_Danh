@@ -6,7 +6,7 @@ export const formattedPrice = (price?: number | null) => {
 
 export const formatDecimal = (decimal?: number) => {
   if (!decimal) return "";
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-de", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   }).format(decimal);

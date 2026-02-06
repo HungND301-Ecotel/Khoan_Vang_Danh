@@ -28,7 +28,7 @@ import { Divider } from "antd";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
-import TextFieldPrice from "../../../components/TextField/TextFieldPrice";
+import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 dayjs.extend(utc);
 
 const validationSchema = yup.object({
@@ -316,7 +316,7 @@ export default function MaterialAssignmentOutPlanModal({
                             >
                               Đơn giá
                             </Typography>
-                            <TextFieldPrice
+                            <TextFieldNumber
                               formik={formik}
                               field={`priceHistory.${index}.price`}
                             />
