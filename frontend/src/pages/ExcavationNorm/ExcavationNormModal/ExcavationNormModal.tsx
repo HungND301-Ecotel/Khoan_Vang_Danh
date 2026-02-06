@@ -39,6 +39,8 @@ import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
+import FieldInput from "../../../components/TextField/FieldInput";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -163,11 +165,11 @@ export default function ExcavationNormModal({
   const formik = useFormik({
     initialValues: {
       phaseGroup: phaseGroup || "",
-      phase: selected?.phase?._id || "",
-      step: selected?.step?._id || "",
-      hardness: selected?.hardness?._id || "",
+      phase: "",
+      step: "",
+      hardness: "",
       code: selected?.code || "",
-      excavationTech: selected?.excavationTech?._id || "",
+      excavationTech: "",
       type: "excavation",
       interpolationMethod: "",
       predictingPoint: "",
@@ -176,13 +178,7 @@ export default function ExcavationNormModal({
       lowerLimitNorm: "",
       lowerLimitPoint: "",
       interpolatedNorm: "",
-      norms:
-        selected?.norms
-          ?.filter((item) => item.assignmentCode?._id)
-          .map((item) => ({
-            assignmentCode: item.assignmentCode._id ?? "",
-            norm: item.norm,
-          })) || [],
+      norms: [] as any[],
       // assignmentcodes.data.map((item: any) => ({
       //   assignmentCode: item._id,
       //   norm: "",
@@ -258,15 +254,31 @@ export default function ExcavationNormModal({
   }, [formik.values.lowerLimitNorm, existingNorms]);
 
   useEffect(() => {
-    // if (assignmentcodes.length === 0) return;
-
-    if (selected && selected.norms.length > 0) {
+    if (selected && selected.norms.length > 0 && open) {
+      formik.setValues({
+        ...formik.values,
+        phase: selected?.phase?._id || "",
+        step: selected?.step?._id || "",
+        hardness: selected?.hardness?._id || "",
+        code: selected?.code || "",
+        excavationTech: selected?.excavationTech?._id || "",
+        type: "excavation",
+        norms:
+          selected?.norms
+            ?.filter((item) => item.assignmentCode?._id)
+            .map((item) => ({
+              assignmentCode: item.assignmentCode._id ?? "",
+              norm: item.norm,
+            })) || [],
+      });
       const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
+    } else {
+      setSelectedAssignmentCodes([]);
     }
-  }, [selected, assignmentcodes.data]);
+  }, [selected, assignmentcodes.data, open]);
 
   // Khi interpolatedNorm thay đổi, tự động cập nhật toàn bộ định mức
   useEffect(() => {
@@ -394,157 +406,44 @@ export default function ExcavationNormModal({
             Nhóm công đoạn
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.phaseGroup || ""}
-              onChange={(event) => {
-                setPhaseGroup(event.target.value);
-                formik.setFieldValue("phaseGroup", event.target.value);
+            <FieldAutoCompleted
+              data={phasegroups.data}
+              formik={formik}
+              labelkey="name"
+              field="phaseGroup"
+              title=""
+              onChange={(value: string) => {
+                setPhaseGroup(value);
+                formik.setFieldValue("phase", ""); // Reset công đoạn khi nhóm công đoạn thay đổi
               }}
-              variant="outlined"
-              error={
-                formik.touched.phaseGroup && Boolean(formik.errors.phaseGroup)
-              }
-              helperText={formik.touched.phaseGroup && formik.errors.phaseGroup}
-              InputProps={{
-                startAdornment: formik.values.phaseGroup ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Placeholder
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                },
-                "& .MuiInputBase-input": {
-                  color: formik.values.phaseGroup ? "inherit" : "transparent",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: formik.values.phaseGroup ? "inherit" : "#D9D9D9",
-                },
-              }}
-            >
-              {phasegroups?.data
-                .filter((group: PhaseGroupType | null) => group)
-                .map((group: PhaseGroupType) => (
-                  <MenuItem key={group._id} value={group._id}>
-                    {group.name}
-                  </MenuItem>
-                ))}
-            </TextField>
+              disabled={true}
+            />
           </Box>
 
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Công đoạn
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.phase || ""}
-              onChange={(event) =>
-                formik.setFieldValue("phase", event.target.value)
-              }
-              variant="outlined"
-              error={formik.touched.phase && Boolean(formik.errors.phase)}
-              helperText={formik.touched.phase && formik.errors.phase}
-              InputProps={{
-                startAdornment: formik.values.phase ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Chọn công đoạn
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                },
-                "& .MuiInputBase-input": {
-                  color: formik.values.phase ? "inherit" : "transparent",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: formik.values.phase ? "inherit" : "#D9D9D9",
-                },
-              }}
-            >
-              {phases?.data.map((phase: PhaseOutputType) => (
-                <MenuItem key={phase._id} value={phase._id}>
-                  {phase.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <FieldAutoCompleted
+              data={phases.data}
+              formik={formik}
+              labelkey="name"
+              field="phase"
+              title=""
+            />
           </Box>
 
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Công nghệ xúc
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.excavationTech || ""}
-              onChange={(event) =>
-                formik.setFieldValue("excavationTech", event.target.value)
-              }
-              variant="outlined"
-              error={
-                formik.touched.excavationTech &&
-                Boolean(formik.errors.excavationTech)
-              }
-              helperText={
-                formik.touched.excavationTech && formik.errors.excavationTech
-              }
-              InputProps={{
-                startAdornment: formik.values.excavationTech ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Chọn công nghệ
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                },
-                "& .MuiInputBase-input": {
-                  color: formik.values.excavationTech
-                    ? "inherit"
-                    : "transparent",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: formik.values.excavationTech
-                    ? "inherit"
-                    : "#D9D9D9",
-                },
-              }}
-            >
-              {excavationtechs?.data.map(
-                (excavationtech: ExcavationTechType) => (
-                  <MenuItem key={excavationtech._id} value={excavationtech._id}>
-                    {excavationtech.name}
-                  </MenuItem>
-                ),
-              )}
-            </TextField>
+            <FieldAutoCompleted
+              data={excavationtechs.data}
+              formik={formik}
+              labelkey="name"
+              field="excavationTech"
+              title=""
+            />
           </Box>
 
           {/* Chống - only show when checkbox is NOT checked */}
@@ -556,47 +455,13 @@ export default function ExcavationNormModal({
               Chống
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "center" }}>
-              <TextField
-                select
-                value={formik.values.step || ""}
-                onChange={(event) =>
-                  formik.setFieldValue("step", event.target.value)
-                }
-                variant="outlined"
-                error={formik.touched.step && Boolean(formik.errors.step)}
-                helperText={formik.touched.step && formik.errors.step}
-                InputProps={{
-                  startAdornment: formik.values.step ? null : (
-                    <InputAdornment
-                      position="start"
-                      sx={{ color: "#D9D9D9", ml: "12px" }}
-                    >
-                      Placeholder
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  width: "700px",
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    px: "12px",
-                    fontSize: "14px",
-                  },
-                  "& .MuiInputBase-input": {
-                    color: formik.values.step ? "inherit" : "transparent",
-                  },
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: formik.values.step ? "inherit" : "#D9D9D9",
-                  },
-                }}
-              >
-                {steps.data?.map((step: StepType) => (
-                  <MenuItem key={step._id} value={step._id}>
-                    {step.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <FieldAutoCompleted
+                data={steps.data}
+                formik={formik}
+                labelkey="name"
+                field="step"
+                title=""
+              />
             </Box>
           </>
           {/* )} */}
@@ -606,82 +471,20 @@ export default function ExcavationNormModal({
             Độ cứng
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.hardness || ""}
-              onChange={(event) =>
-                formik.setFieldValue("hardness", event.target.value)
-              }
-              variant="outlined"
-              InputProps={{
-                startAdornment: formik.values.hardness ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Chọn độ cứng
-                  </InputAdornment>
-                ),
-              }}
-              error={formik.touched.hardness && Boolean(formik.errors.hardness)}
-              helperText={formik.touched.hardness && formik.errors.hardness}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor: formik.values.hardness
-                    ? "#F2F2F2"
-                    : "#FFFFFF",
-                },
-                "& .MuiInputBase-input": {
-                  color: formik.values.hardness ? "inherit" : "transparent",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-                "& .MuiSelect-select": {
-                  padding: "6px 12px",
-                },
-              }}
-            >
-              {hardness?.data.map((item: HardnessType) => (
-                <MenuItem key={item._id} value={item._id}>
-                  {item.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <FieldAutoCompleted
+              data={hardness.data}
+              formik={formik}
+              labelkey="name"
+              field="hardness"
+              title=""
+            />
           </Box>
 
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Mã định mức
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              value={formik.values.code || ""}
-              placeholder="Input Text"
-              onChange={(event) =>
-                formik.setFieldValue("code", event.target.value)
-              }
-              variant="outlined"
-              error={formik.touched.code && Boolean(formik.errors.code)}
-              helperText={formik.touched.code && formik.errors.code}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                },
-                "& input::placeholder": {
-                  color: "#000000",
-                  opacity: 1,
-                },
-              }}
-            />
+            <FieldInput formik={formik} field="code" />
           </Box>
 
           {/* Checkbox for additional rows */}
@@ -717,34 +520,6 @@ export default function ExcavationNormModal({
             <Box sx={{ mt: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "center" }}>
                 <Grid container spacing={2} sx={{ width: "700px" }}>
-                  {/* Phương pháp nội suy
-                  Kết quả định mức nội suy
-                  <Grid item xs={12}>
-                    <Typography sx={{ fontWeight: 600, fontSize: "14px", mb: 1 }}>
-                      Kết quả định mức nội suy
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      value={formik.values.interpolatedNorm || ""}
-                      placeholder="Tự động tính toán khi đủ dữ liệu"
-                      disabled
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                          backgroundColor: "#f5f5f5",
-                        },
-                        "& input::placeholder": {
-                          color: "#999",
-                          opacity: 1,
-                        },
-                      }}
-                    />
-                  </Grid> */}
-
                   {/* Điểm nội suy */}
                   <Grid item xs={12}>
                     <Typography
@@ -752,29 +527,16 @@ export default function ExcavationNormModal({
                     >
                       Điểm nội suy
                     </Typography>
-                    <TextField
-                      fullWidth
+                    <FieldInput
+                      formik={formik}
+                      field="predictingPoint"
+                      title=""
                       type="number"
-                      value={formik.values.predictingPoint || ""}
-                      placeholder="Input Text"
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        formik.setFieldValue("predictingPoint", value);
+                      onChange={(value) => {
                         setPredictingPoint(value);
-                        handleInterpolationChange({ predictingPoint: value });
-                      }}
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& input::placeholder": {
-                          color: "#D9D9D9",
-                          opacity: 1,
-                        },
+                        handleInterpolationChange({
+                          predictingPoint: value,
+                        });
                       }}
                     />
                   </Grid>
@@ -786,52 +548,13 @@ export default function ExcavationNormModal({
                     >
                       Định mức cận trên
                     </Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      value={formik.values.upperLimitNorm || ""}
-                      onChange={(event) =>
-                        formik.setFieldValue(
-                          "upperLimitNorm",
-                          event.target.value,
-                        )
-                      }
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: formik.values.upperLimitNorm ? null : (
-                          <InputAdornment
-                            position="start"
-                            sx={{ color: "#D9D9D9", ml: "12px" }}
-                          >
-                            Placeholder
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: formik.values.upperLimitNorm
-                            ? "inherit"
-                            : "transparent",
-                        },
-                        "& .MuiOutlinedInput-notchedOutline": {
-                          borderColor: formik.values.upperLimitNorm
-                            ? "inherit"
-                            : "#D9D9D9",
-                        },
-                      }}
-                    >
-                      {existingNorms.map((norm) => (
-                        <MenuItem key={norm._id} value={norm._id}>
-                          {norm.code}
-                        </MenuItem>
-                      ))}
-                    </TextField>
+                    <FieldAutoCompleted
+                      data={existingNorms}
+                      formik={formik}
+                      labelkey="code"
+                      field="upperLimitNorm"
+                      title=""
+                    />
                   </Grid>
 
                   {/* Điểm cận trên */}
@@ -841,61 +564,19 @@ export default function ExcavationNormModal({
                     >
                       Điểm cận trên
                     </Typography>
-                    <TextField
-                      fullWidth
+                    <FieldInput
+                      formik={formik}
+                      field="upperLimitPoint"
+                      title=""
                       type="number"
-                      value={formik.values.upperLimitPoint || ""}
-                      placeholder="Input Text"
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        formik.setFieldValue("upperLimitPoint", value);
+                      onChange={(value) => {
                         setUpperLimitPoint(value);
-                        handleInterpolationChange({ upperLimitPoint: value });
-                      }}
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& input::placeholder": {
-                          color: "#D9D9D9",
-                          opacity: 1,
-                        },
+                        handleInterpolationChange({
+                          upperLimitPoint: value,
+                        });
                       }}
                     />
                   </Grid>
-
-                  {/* Hiển thị giá trị norm đầu tiên của cận trên */}
-                  {/* <Grid item xs={12}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Tên định mức giao khoán cận trên
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      value={upperLimitFirstNorm !== null ? upperLimitFirstNorm.toLocaleString() : ""}
-                      placeholder="Chưa có giá trị"
-                      disabled
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                          backgroundColor: "#f5f5f5",
-                        },
-                        "& input::placeholder": {
-                          color: "#999",
-                          opacity: 1,
-                        },
-                      }}
-                    />
-                  </Grid> */}
 
                   {/* Định mức cận dưới */}
                   <Grid item xs={6}>
@@ -904,52 +585,13 @@ export default function ExcavationNormModal({
                     >
                       Định mức cận dưới
                     </Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      value={formik.values.lowerLimitNorm || ""}
-                      onChange={(event) => {
-                        formik.setFieldValue(
-                          "lowerLimitNorm",
-                          event.target.value,
-                        );
-                      }}
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: formik.values.lowerLimitNorm ? null : (
-                          <InputAdornment
-                            position="start"
-                            sx={{ color: "#D9D9D9", ml: "12px" }}
-                          >
-                            Placeholder
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: formik.values.lowerLimitNorm
-                            ? "inherit"
-                            : "transparent",
-                        },
-                        "& .MuiOutlinedInput-notchedOutline": {
-                          borderColor: formik.values.lowerLimitNorm
-                            ? "inherit"
-                            : "#D9D9D9",
-                        },
-                      }}
-                    >
-                      {existingNorms.map((norm) => (
-                        <MenuItem key={norm._id} value={norm._id}>
-                          {norm.code}
-                        </MenuItem>
-                      ))}
-                    </TextField>
+                    <FieldAutoCompleted
+                      data={existingNorms}
+                      formik={formik}
+                      labelkey="code"
+                      field="lowerLimitNorm"
+                      title=""
+                    />
                   </Grid>
 
                   {/* Điểm cận dưới */}
@@ -959,61 +601,48 @@ export default function ExcavationNormModal({
                     >
                       Điểm cận dưới
                     </Typography>
-                    <TextField
-                      fullWidth
+                    <FieldInput
+                      formik={formik}
+                      field="lowerLimitPoint"
+                      title=""
                       type="number"
-                      value={formik.values.lowerLimitPoint || ""}
-                      placeholder="Input Text"
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        formik.setFieldValue("lowerLimitPoint", value);
-                        setLowerLimitPoint(value);
-                        handleInterpolationChange({ lowerLimitPoint: value });
-                      }}
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& input::placeholder": {
-                          color: "#D9D9D9",
-                          opacity: 1,
-                        },
+                      onChange={(value) => {
+                        setLowerLimitPoint(Number(value));
+                        handleInterpolationChange({
+                          lowerLimitPoint: Number(value),
+                        });
                       }}
                     />
                   </Grid>
 
-                  {/* Hiển thị giá trị norm đầu tiên của cận dưới */}
+                  {/* Interpolated norm */}
                   {/* <Grid item xs={12}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Tên định mức giao khoán cận dưới
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      value={lowerLimitFirstNorm !== null ? lowerLimitFirstNorm.toLocaleString() : ""}
-                      placeholder="Chưa có giá trị"
-                      disabled
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                          backgroundColor: "#f5f5f5",
-                        },
-                        "& input::placeholder": {
-                          color: "#999",
-                          opacity: 1,
-                        },
-                      }}
-                    />
-                  </Grid> */}
+                           <Typography
+                             sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                           >
+                             Kết quả định mức nội suy
+                           </Typography>
+                           <TextField
+                             fullWidth
+                             value={formik.values.interpolatedNorm || ""}
+                             placeholder="Tự động tính toán khi đủ dữ liệu"
+                             disabled
+                             variant="outlined"
+                             sx={{
+                               "& .MuiInputBase-root": {
+                                 height: "32px",
+                                 borderRadius: "6px",
+                                 px: "12px",
+                                 fontSize: "14px",
+                                 backgroundColor: "#f5f5f5",
+                               },
+                               "& input::placeholder": {
+                                 color: "#999",
+                                 opacity: 1,
+                               },
+                             }}
+                           />
+                         </Grid> */}
                 </Grid>
               </Box>
             </Box>

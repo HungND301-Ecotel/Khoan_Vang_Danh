@@ -36,6 +36,8 @@ import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
+import FieldInput from "../../../components/TextField/FieldInput";
+import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 const validationSchema = yup.object({
   curbSlope: yup.string().required("Độ dốc vỉa không được để trống"),
   thickness: yup.string().required("Độ dày vỉa không được để trống"),
@@ -104,10 +106,10 @@ export default function CuttingNormKBModal({
 
   const formik = useFormik({
     initialValues: {
-      hardness: selected?.hardness?._id || "",
-      code: selected?.code || "",
-      curbSlope: selected?.curbSlope?._id || "",
-      thickness: selected?.thickness?._id || "",
+      hardness: "",
+      code: "",
+      curbSlope: "",
+      thickness: "",
       type: "coal_kb",
       interpolationMethod: "",
       predictingPoint: "",
@@ -116,11 +118,7 @@ export default function CuttingNormKBModal({
       lowerLimitNorm: "",
       lowerLimitPoint: "",
       interpolatedNorm: "",
-      norms:
-        selected?.norms?.map((item) => ({
-          assignmentCode: item.assignmentCode?._id ?? "",
-          norm: item.norm,
-        })) || [],
+      norms: [] as any[],
     },
     enableReinitialize: true,
     validationSchema,
@@ -146,15 +144,30 @@ export default function CuttingNormKBModal({
   });
 
   useEffect(() => {
-    // if (assignmentcodes.length === 0) return;
-
-    if (selected && selected.norms.length > 0) {
+    if (selected && selected.norms.length > 0 && open) {
+      formik.setValues({
+        ...formik.values,
+        hardness: selected?.hardness?._id || "",
+        code: selected?.code || "",
+        curbSlope: selected?.curbSlope?._id || "",
+        thickness: selected?.thickness?._id || "",
+        type: "coal_kb",
+        norms:
+          selected?.norms && selected.norms.length > 0
+            ? selected.norms.map((item) => ({
+                assignmentCode: item.assignmentCode?._id ?? "",
+                norm: item.norm,
+              }))
+            : [],
+      });
       const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
+    } else {
+      setSelectedAssignmentCodes([]);
     }
-  }, [selected, assignmentcodes.data]);
+  }, [selected, assignmentcodes.data, open]);
 
   // Effect to set upperLimitFirstNorm when an upper limit norm (existing norm) is chosen
   useEffect(() => {
@@ -377,152 +390,37 @@ export default function CuttingNormKBModal({
             Độ dày vỉa
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.thickness || ""}
-              onChange={(event) => {
-                formik.setFieldValue("thickness", event.target.value);
-              }}
-              variant="outlined"
-              InputProps={{
-                startAdornment: formik.values.thickness ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Placeholder
-                  </InputAdornment>
-                ),
-              }}
-              error={
-                formik.touched.thickness && Boolean(formik.errors.thickness)
-              }
-              helperText={formik.touched.thickness && formik.errors.thickness}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor: formik.values.thickness
-                    ? "#F2F2F2"
-                    : "#FFFFFF",
-                },
-                "& .MuiInputBase-input": {
-                  color: formik.values.thickness ? "inherit" : "transparent",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-              }}
-            >
-              {thickness?.data.map((item: ThicknessType) => (
-                <MenuItem key={item._id} value={item._id}>
-                  {item.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <FieldAutoCompleted
+              data={thickness.data}
+              formik={formik}
+              labelkey="name"
+              field="thickness"
+              title=""
+            />
           </Box>
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Độ dốc vỉa
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.curbSlope || ""}
-              onChange={(event) =>
-                formik.setFieldValue("curbSlope", event.target.value)
-              }
-              variant="outlined"
-              InputProps={{
-                startAdornment: formik.values.curbSlope ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Placeholder
-                  </InputAdornment>
-                ),
-              }}
-              error={
-                formik.touched.curbSlope && Boolean(formik.errors.curbSlope)
-              }
-              helperText={formik.touched.curbSlope && formik.errors.curbSlope}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor: formik.values.curbSlope
-                    ? "#F2F2F2"
-                    : "#FFFFFF",
-                },
-                "& .MuiInputBase-input": {
-                  color: formik.values.curbSlope ? "inherit" : "transparent",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-              }}
-            >
-              {curbslopes?.data.map((item: LengthType) => (
-                <MenuItem key={item._id} value={item._id}>
-                  {item.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <FieldAutoCompleted
+              data={curbslopes.data}
+              formik={formik}
+              labelkey="name"
+              field="curbSlope"
+              title=""
+            />
           </Box>
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Độ cứng
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              select
-              value={formik.values.hardness || ""}
-              onChange={(event) =>
-                formik.setFieldValue("hardness", event.target.value)
-              }
-              variant="outlined"
-              InputProps={{
-                startAdornment: formik.values.hardness ? null : (
-                  <InputAdornment
-                    position="start"
-                    sx={{ color: "#D9D9D9", ml: "12px" }}
-                  >
-                    Placeholder
-                  </InputAdornment>
-                ),
-              }}
-              error={formik.touched.hardness && Boolean(formik.errors.hardness)}
-              helperText={formik.touched.hardness && formik.errors.hardness}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor: formik.values.hardness
-                    ? "#F2F2F2"
-                    : "#FFFFFF",
-                },
-                "& .MuiInputBase-input": {
-                  color: formik.values.hardness ? "inherit" : "transparent",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-              }}
-            >
-              {hardness?.data.map((item: HardnessType) => (
-                <MenuItem key={item._id} value={item._id}>
-                  {item.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <FieldAutoCompleted
+              data={hardness.data}
+              formik={formik}
+              labelkey="name"
+              field="hardness"
+              title=""
+            />
           </Box>
 
           {/* Mã định mức */}
@@ -530,33 +428,7 @@ export default function CuttingNormKBModal({
             Mã định mức
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <TextField
-              value={formik.values.code || ""}
-              placeholder="Input Text"
-              onChange={(event) =>
-                formik.setFieldValue("code", event.target.value)
-              }
-              variant="outlined"
-              error={formik.touched.code && Boolean(formik.errors.code)}
-              helperText={formik.touched.code && formik.errors.code}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  height: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor: formik.values.code ? "#F2F2F2" : "#FFFFFF",
-                },
-                "& input::placeholder": {
-                  color: "#000000",
-                  opacity: 1,
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-              }}
-            />
+            <FieldInput formik={formik} field="code" />
           </Box>
           {hasExistingRecords &&
             selectedAssignmentCodes &&
@@ -597,31 +469,16 @@ export default function CuttingNormKBModal({
                     >
                       Điểm nội suy
                     </Typography>
-                    <TextField
-                      fullWidth
+                    <FieldInput
+                      formik={formik}
+                      field="predictingPoint"
+                      title=""
                       type="number"
-                      value={formik.values.predictingPoint || ""}
-                      placeholder="Input Text"
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        formik.setFieldValue("predictingPoint", value);
+                      onChange={(value) => {
                         setPredictingPoint(value);
                         handleInterpolationChange({
                           predictingPoint: value,
                         });
-                      }}
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& input::placeholder": {
-                          color: "#D9D9D9",
-                          opacity: 1,
-                        },
                       }}
                     />
                   </Grid>
@@ -633,52 +490,13 @@ export default function CuttingNormKBModal({
                     >
                       Định mức cận trên
                     </Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      value={formik.values.upperLimitNorm || ""}
-                      onChange={(event) =>
-                        formik.setFieldValue(
-                          "upperLimitNorm",
-                          event.target.value,
-                        )
-                      }
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: formik.values.upperLimitNorm ? null : (
-                          <InputAdornment
-                            position="start"
-                            sx={{ color: "#D9D9D9", ml: "12px" }}
-                          >
-                            Placeholder
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: formik.values.upperLimitNorm
-                            ? "inherit"
-                            : "transparent",
-                        },
-                        "& .MuiOutlinedInput-notchedOutline": {
-                          borderColor: formik.values.upperLimitNorm
-                            ? "inherit"
-                            : "#D9D9D9",
-                        },
-                      }}
-                    >
-                      {(existingNorms || []).map((norm) => (
-                        <MenuItem key={norm._id} value={norm._id}>
-                          {norm.code}
-                        </MenuItem>
-                      ))}
-                    </TextField>
+                    <FieldAutoCompleted
+                      data={existingNorms}
+                      formik={formik}
+                      labelkey="code"
+                      field="upperLimitNorm"
+                      title=""
+                    />
                   </Grid>
 
                   {/* Điểm cận trên */}
@@ -688,31 +506,16 @@ export default function CuttingNormKBModal({
                     >
                       Điểm cận trên
                     </Typography>
-                    <TextField
-                      fullWidth
+                    <FieldInput
+                      formik={formik}
+                      field="upperLimitPoint"
+                      title=""
                       type="number"
-                      value={formik.values.upperLimitPoint || ""}
-                      placeholder="Input Text"
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        formik.setFieldValue("upperLimitPoint", value);
+                      onChange={(value) => {
                         setUpperLimitPoint(value);
                         handleInterpolationChange({
                           upperLimitPoint: value,
                         });
-                      }}
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& input::placeholder": {
-                          color: "#D9D9D9",
-                          opacity: 1,
-                        },
                       }}
                     />
                   </Grid>
@@ -724,52 +527,13 @@ export default function CuttingNormKBModal({
                     >
                       Định mức cận dưới
                     </Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      value={formik.values.lowerLimitNorm || ""}
-                      onChange={(event) => {
-                        formik.setFieldValue(
-                          "lowerLimitNorm",
-                          event.target.value,
-                        );
-                      }}
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: formik.values.lowerLimitNorm ? null : (
-                          <InputAdornment
-                            position="start"
-                            sx={{ color: "#D9D9D9", ml: "12px" }}
-                          >
-                            Placeholder
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: formik.values.lowerLimitNorm
-                            ? "inherit"
-                            : "transparent",
-                        },
-                        "& .MuiOutlinedInput-notchedOutline": {
-                          borderColor: formik.values.lowerLimitNorm
-                            ? "inherit"
-                            : "#D9D9D9",
-                        },
-                      }}
-                    >
-                      {(existingNorms || []).map((norm) => (
-                        <MenuItem key={norm._id} value={norm._id}>
-                          {norm.code}
-                        </MenuItem>
-                      ))}
-                    </TextField>
+                    <FieldAutoCompleted
+                      data={existingNorms}
+                      formik={formik}
+                      labelkey="code"
+                      field="lowerLimitNorm"
+                      title=""
+                    />
                   </Grid>
 
                   {/* Điểm cận dưới */}
@@ -779,31 +543,16 @@ export default function CuttingNormKBModal({
                     >
                       Điểm cận dưới
                     </Typography>
-                    <TextField
-                      fullWidth
+                    <FieldInput
+                      formik={formik}
+                      field="lowerLimitPoint"
+                      title=""
                       type="number"
-                      value={formik.values.lowerLimitPoint || ""}
-                      placeholder="Input Text"
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        formik.setFieldValue("lowerLimitPoint", value);
-                        setLowerLimitPoint(value);
+                      onChange={(value) => {
+                        setLowerLimitPoint(Number(value));
                         handleInterpolationChange({
-                          lowerLimitPoint: value,
+                          lowerLimitPoint: Number(value),
                         });
-                      }}
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputBase-root": {
-                          height: "32px",
-                          borderRadius: "6px",
-                          px: "12px",
-                          fontSize: "14px",
-                        },
-                        "& input::placeholder": {
-                          color: "#D9D9D9",
-                          opacity: 1,
-                        },
                       }}
                     />
                   </Grid>
@@ -944,6 +693,7 @@ export default function CuttingNormKBModal({
                           }
                           InputLabelProps={{ shrink: true }}
                           variant="outlined"
+                          disabled
                           sx={{
                             "& .MuiInputBase-root": {
                               height: "32px",
@@ -975,6 +725,7 @@ export default function CuttingNormKBModal({
                           }
                           InputLabelProps={{ shrink: true }}
                           variant="outlined"
+                          disabled
                           sx={{
                             "& .MuiInputBase-root": {
                               height: "32px",
