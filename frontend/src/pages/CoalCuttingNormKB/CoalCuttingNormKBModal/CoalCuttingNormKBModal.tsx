@@ -18,21 +18,16 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import api from "../../../config/api.config";
 import {
   AssignmentCodeOutputType,
-  CrossSectionInputType,
   AssignmentNormInputType,
   AssignmentNormOutputType,
-  ExcavationTechType,
   HardnessType,
-  PhaseGroupType,
-  PhaseOutputType,
-  StepType,
   ThicknessType,
   LengthType,
 } from "../../../types";
@@ -40,6 +35,7 @@ import { CloudUpload } from "@mui/icons-material";
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
+import { AppMultiAutocomplete } from "../../../components/AppMultiAutocomplete/AppMultiAutocomplete";
 const validationSchema = yup.object({
   curbSlope: yup.string().required("Độ dốc vỉa không được để trống"),
   thickness: yup.string().required("Độ dày vỉa không được để trống"),
@@ -883,19 +879,16 @@ export default function CuttingNormKBModal({
             </Button>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Autocomplete
-              multiple
-              options={assignmentcodes.data.filter(
-                (opt: AssignmentCodeOutputType) =>
-                  !selectedAssignmentCodes.some(
-                    (selected) => selected._id === opt._id,
-                  ),
-              )}
-              getOptionLabel={(option: AssignmentCodeOutputType) =>
-                option.code || ""
+            <AppMultiAutocomplete
+              options={
+                assignmentcodes.data?.filter(
+                  (opt: AssignmentCodeOutputType) =>
+                    !selectedAssignmentCodes.some((s) => s._id === opt._id),
+                ) || []
               }
               value={selectedAssignmentCodes}
-              onChange={(event, newValue) => {
+              getOptionLabel={(option) => option.code || ""}
+              onChange={(newValue) => {
                 setSelectedAssignmentCodes(newValue);
                 const updatedNorms = newValue.map((item) => {
                   const existing = formik.values.norms.find(
@@ -908,58 +901,14 @@ export default function CuttingNormKBModal({
                 });
                 formik.setFieldValue("norms", updatedNorms);
               }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  variant="outlined"
-                  error={
-                    formik.touched.norms &&
-                    Boolean(formik.errors.norms) &&
-                    typeof formik.errors.norms === "string" // CHỈ BÁO LỖI NẾU LÀ CHUỖI
-                  }
-                  helperText={
-                    formik.touched.norms &&
-                    typeof formik.errors.norms === "string"
-                      ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
-                      : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
-                  }
-                />
-              )}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  minHeight: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor:
-                    selectedAssignmentCodes.length > 0 ? "#F2F2F2" : "#FFFFFF",
-                  "& .MuiAutocomplete-input": {
-                    padding: "0 !important",
-                    lineHeight: "26px",
-                    textIndent: "12px",
-                  },
-                  display: "flex",
-                  alignItems: "center",
-                },
-                "& .MuiChip-root": {
-                  height: "20px",
-                  fontSize: "12px",
-                  margin: "2px",
-                  lineHeight: "26px",
-                  verticalAlign: "middle",
-                  transform: "translateY(-6px)",
-                },
-                "& input::placeholder": {
-                  color: "#D9D9D9",
-                  opacity: 1,
-                  lineHeight: "32px",
-                  fontSize: "14px",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-              }}
+              error={
+                formik.touched.norms && typeof formik.errors.norms === "string"
+              }
+              helperText={
+                formik.touched.norms && typeof formik.errors.norms === "string"
+                  ? formik.errors.norms
+                  : undefined
+              }
             />
           </Box>
           <FieldArray name="norms">

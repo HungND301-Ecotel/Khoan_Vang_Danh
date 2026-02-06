@@ -18,21 +18,16 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import * as yup from "yup";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import api from "../../../config/api.config";
 import {
   AssignmentCodeOutputType,
-  CrossSectionInputType,
   AssignmentNormInputType,
   AssignmentNormOutputType,
-  ExcavationTechType,
   HardnessType,
-  PhaseGroupType,
-  PhaseOutputType,
-  StepType,
   ThicknessType,
   LengthType,
 } from "../../../types";
@@ -40,19 +35,23 @@ import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import { CloudUpload } from "@mui/icons-material";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
+import { AppMultiAutocomplete } from "../../../components/AppMultiAutocomplete/AppMultiAutocomplete";
 
 const validationSchema = yup.object({
   length: yup.string().required("Chiều dài không được để trống"),
   thickness: yup.string().required("Độ dày vỉa không được để trống"),
   hardness: yup.string().required("Độ cứng không được để trống"),
   code: yup.string().required("Mã định mức không được để trống"),
-  norms: yup.array().of(
-    yup.object().shape({
-      assignmentCode: yup.string().required("Bắt buộc"),
-      norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
-    })
-  ).min(1, "Chọn mã giao khoán"),
-})
+  norms: yup
+    .array()
+    .of(
+      yup.object().shape({
+        assignmentCode: yup.string().required("Bắt buộc"),
+        norm: yup.number().typeError("Phải là số").required("Bắt buộc"),
+      }),
+    )
+    .min(1, "Chọn mã giao khoán"),
+});
 
 export default function CuttingNormZRYModal({
   open,
@@ -77,10 +76,10 @@ export default function CuttingNormZRYModal({
   const [showAdditionalRows, setShowAdditionalRows] = useState(false);
   // interpolation states (mirrors ExcavationNormModal behavior)
   const [upperLimitFirstNorm, setUpperLimitFirstNorm] = useState<number | null>(
-    null
+    null,
   );
   const [lowerLimitFirstNorm, setLowerLimitFirstNorm] = useState<number | null>(
-    null
+    null,
   );
   const [upperLimitPoint, setUpperLimitPoint] = useState<number | null>(null);
   const [lowerLimitPoint, setLowerLimitPoint] = useState<number | null>(null);
@@ -120,9 +119,9 @@ export default function CuttingNormZRYModal({
       interpolatedNorm: "",
       norms:
         selected?.norms?.map((item) => ({
-          assignmentCode: item.assignmentCode?._id ?? '',
+          assignmentCode: item.assignmentCode?._id ?? "",
           norm: item.norm,
-        })) || []
+        })) || [],
     },
     enableReinitialize: true,
     validationSchema,
@@ -136,13 +135,12 @@ export default function CuttingNormZRYModal({
           | "coal_kb"
           | "coal_zh"
           | "coal_zry",
-        norms:
-          values?.norms
-            ?.filter((item) => item.assignmentCode && item.norm)
-            .map((item) => ({
-              assignmentCode: item.assignmentCode,
-              norm: item?.norm,
-            }))
+        norms: values?.norms
+          ?.filter((item) => item.assignmentCode && item.norm)
+          .map((item) => ({
+            assignmentCode: item.assignmentCode,
+            norm: item?.norm,
+          })),
       });
     },
   });
@@ -151,7 +149,7 @@ export default function CuttingNormZRYModal({
 
     if (selected && selected.norms.length > 0) {
       const selectedCodes = assignmentcodes.data.filter((ac: any) =>
-        selected.norms.some((norm) => norm.assignmentCode?._id === ac._id)
+        selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
     }
@@ -160,7 +158,7 @@ export default function CuttingNormZRYModal({
   useEffect(() => {
     if (formik.values.upperLimitNorm && existingNorms) {
       const selectedNorm = existingNorms.find(
-        (norm) => norm._id === formik.values.upperLimitNorm
+        (norm) => norm._id === formik.values.upperLimitNorm,
       );
       if (selectedNorm && selectedNorm.norms && selectedNorm.norms.length > 0) {
         const firstNorm = selectedNorm.norms[0]?.norm;
@@ -177,7 +175,7 @@ export default function CuttingNormZRYModal({
   useEffect(() => {
     if (formik.values.lowerLimitNorm && existingNorms) {
       const selectedNorm = existingNorms.find(
-        (norm) => norm._id === formik.values.lowerLimitNorm
+        (norm) => norm._id === formik.values.lowerLimitNorm,
       );
       if (selectedNorm && selectedNorm.norms && selectedNorm.norms.length > 0) {
         const firstNorm = selectedNorm.norms[0]?.norm;
@@ -186,7 +184,7 @@ export default function CuttingNormZRYModal({
         // Prefill all assignment codes norms from selected lower-limit existing norm
         const updatedNorms = formik.values.norms.map((item: any) => {
           const matchingNorm = selectedNorm.norms.find(
-            (n) => n.assignmentCode?._id === item.assignmentCode
+            (n) => n.assignmentCode?._id === item.assignmentCode,
           );
           return {
             assignmentCode: item.assignmentCode,
@@ -208,7 +206,7 @@ export default function CuttingNormZRYModal({
     // Mỗi khi selectedAssignmentCodes thay đổi → cập nhật lại formik.norms
     const updatedNorms = selectedAssignmentCodes.map((item: any) => {
       const existing = formik.values.norms.find(
-        (n: any) => n.assignmentCode === item._id
+        (n: any) => n.assignmentCode === item._id,
       );
       return {
         assignmentCode: item._id,
@@ -251,7 +249,7 @@ export default function CuttingNormZRYModal({
 
   const handleClose = () => {
     formik.resetForm();
-    setSelectedAssignmentCodes([])
+    setSelectedAssignmentCodes([]);
     setShowAdditionalRows(false);
     setUpperLimitFirstNorm(null);
     setLowerLimitFirstNorm(null);
@@ -263,9 +261,9 @@ export default function CuttingNormZRYModal({
     const validNorms: any[] = [];
     const newSelectedCodes: AssignmentCodeOutputType[] = [];
 
-    excelData.forEach(item => {
+    excelData.forEach((item) => {
       const matchingAssignmentCode = assignmentcodes.data.find(
-        (ac: AssignmentCodeOutputType) => ac.code === item.code
+        (ac: AssignmentCodeOutputType) => ac.code === item.code,
       );
 
       if (matchingAssignmentCode) {
@@ -850,19 +848,22 @@ export default function CuttingNormZRYModal({
             </Button>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Autocomplete
-              multiple
-              options={assignmentcodes.data.filter(
-                (opt: AssignmentCodeOutputType) =>
-                  !selectedAssignmentCodes.some(
-                    (selected) => selected._id === opt._id,
-                  ),
-              )}
+            <AppMultiAutocomplete
+              // 1. Dữ liệu và hiển thị
+              options={
+                assignmentcodes.data?.filter(
+                  (opt: AssignmentCodeOutputType) =>
+                    !selectedAssignmentCodes.some(
+                      (selected) => selected._id === opt._id,
+                    ),
+                ) || []
+              }
+              value={selectedAssignmentCodes}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
                 option.code || ""
               }
-              value={selectedAssignmentCodes}
-              onChange={(event, newValue) => {
+              // 2. Logic đồng bộ với Formik
+              onChange={(newValue) => {
                 setSelectedAssignmentCodes(newValue);
                 const updatedNorms = newValue.map((item) => {
                   const existing = formik.values.norms.find(
@@ -875,58 +876,15 @@ export default function CuttingNormZRYModal({
                 });
                 formik.setFieldValue("norms", updatedNorms);
               }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  variant="outlined"
-                  error={
-                    formik.touched.norms &&
-                    Boolean(formik.errors.norms) &&
-                    typeof formik.errors.norms === "string" // CHỈ BÁO LỖI NẾU LÀ CHUỖI
-                  }
-                  helperText={
-                    formik.touched.norms &&
-                    typeof formik.errors.norms === "string"
-                      ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
-                      : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
-                  }
-                />
-              )}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  minHeight: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor:
-                    selectedAssignmentCodes.length > 0 ? "#F2F2F2" : "#FFFFFF",
-                  "& .MuiAutocomplete-input": {
-                    padding: "0 !important",
-                    lineHeight: "26px",
-                    textIndent: "12px",
-                  },
-                  display: "flex",
-                  alignItems: "center",
-                },
-                "& .MuiChip-root": {
-                  height: "20px",
-                  fontSize: "12px",
-                  margin: "2px",
-                  lineHeight: "26px",
-                  verticalAlign: "middle",
-                  transform: "translateY(-6px)",
-                },
-                "& input::placeholder": {
-                  color: "#D9D9D9",
-                  opacity: 1,
-                  lineHeight: "32px",
-                  fontSize: "14px",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-              }}
+              // 3. Validation
+              error={
+                formik.touched.norms && typeof formik.errors.norms === "string"
+              }
+              helperText={
+                formik.touched.norms && typeof formik.errors.norms === "string"
+                  ? formik.errors.norms
+                  : undefined
+              }
             />
           </Box>
           <FieldArray name="norms">

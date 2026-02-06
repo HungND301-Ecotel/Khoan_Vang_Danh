@@ -36,6 +36,7 @@ import { CloudUpload } from "@mui/icons-material";
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
+import { AppMultiAutocomplete } from "../../../components/AppMultiAutocomplete/AppMultiAutocomplete";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -982,14 +983,21 @@ export default function CuttingNormModal({
             </Button>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Autocomplete
-              multiple
-              options={assignmentcodes.data}
+            <AppMultiAutocomplete
+              // 1. Cấu hình options và label (Dùng chuẩn code đồng bộ)
+              options={
+                assignmentcodes.data?.filter(
+                  (opt: AssignmentCodeOutputType) =>
+                    !selectedAssignmentCodes.some((s) => s._id === opt._id),
+                ) || []
+              }
+              value={selectedAssignmentCodes}
               getOptionLabel={(option: AssignmentCodeOutputType) =>
                 `${option.code}`
               }
-              value={selectedAssignmentCodes}
-              onChange={(event, newValue) => {
+              placeholder="Chọn mã giao khoán"
+              // 2. Logic xử lý dữ liệu
+              onChange={(newValue) => {
                 setSelectedAssignmentCodes(newValue);
                 const updatedNorms = newValue.map((item) => {
                   const existing = formik.values.norms.find(
@@ -1002,57 +1010,15 @@ export default function CuttingNormModal({
                 });
                 formik.setFieldValue("norms", updatedNorms);
               }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  variant="outlined"
-                  error={
-                    formik.touched.norms &&
-                    Boolean(formik.errors.norms) &&
-                    typeof formik.errors.norms === "string" // CHỈ BÁO LỖI NẾU LÀ CHUỖI
-                  }
-                  helperText={
-                    formik.touched.norms &&
-                    typeof formik.errors.norms === "string"
-                      ? formik.errors.norms // TRUYỀN CHUỖI VÀO helperText
-                      : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
-                  }
-                  placeholder={
-                    selectedAssignmentCodes.length === 0
-                      ? "Chọn mã giao khoán"
-                      : ""
-                  }
-                />
-              )}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  minHeight: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor:
-                    selectedAssignmentCodes.length > 0 ? "#F2F2F2" : "#FFFFFF",
-                  display: "flex",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  padding: "4px 12px",
-                },
-                "& .MuiAutocomplete-input": {
-                  padding: "0 !important",
-                  flexGrow: 1,
-                  minWidth: "60px",
-                },
-                "& .MuiChip-root": {
-                  height: "20px",
-                  fontSize: "12px",
-                  margin: "2px",
-                  lineHeight: "20px",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-              }}
+              // 3. Xử lý lỗi (Loosely coupled với Formik)
+              error={
+                formik.touched.norms && typeof formik.errors.norms === "string"
+              }
+              helperText={
+                formik.touched.norms && typeof formik.errors.norms === "string"
+                  ? formik.errors.norms
+                  : undefined
+              }
             />
           </Box>
 
