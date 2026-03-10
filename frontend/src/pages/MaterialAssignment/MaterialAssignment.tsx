@@ -440,7 +440,7 @@ export default function MaterialAssignment() {
                   <TextField
                     fullWidth
                     size="small"
-                    placeholder="Tìm kiếm theo mã vật tư hoặc tên vật tư..."
+                    placeholder="Tìm kiếm theo mã vật tư, mã giao khoán, tên vật tư..."
                     onChange={(e) => setSearchValue(e.target.value)}
                     value={searchValue}
                     sx={{

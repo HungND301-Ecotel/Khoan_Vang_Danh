@@ -274,8 +274,7 @@ export default function ExcavationNorm() {
       <Box sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle1">
-            Định mức {record.phase?.name} {record.hardness?.name} (
-            {record.excavationTech?.name})
+            Định mức {record.phase?.name} ({record.excavationTech?.name})
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {record.phaseGroup?.name} {record.step?.name}

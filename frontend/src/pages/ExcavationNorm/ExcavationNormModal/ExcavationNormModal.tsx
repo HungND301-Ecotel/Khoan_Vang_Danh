@@ -47,7 +47,6 @@ const validationSchema = yup.object({
   phase: yup.string().required("Công đoạn không được để trống"),
   excavationTech: yup.string().required("Công nghệ xúc không được để trống"),
   step: yup.string().required("Bước chống không được để trống"),
-  // hardness: yup.string().required("Độ cứng không được để trống"),
   code: yup.string().required("Mã định mức không được để trống"),
   norms: yup
     .array()
@@ -167,7 +166,6 @@ export default function ExcavationNormModal({
       phaseGroup: phaseGroup || "",
       phase: "",
       step: "",
-      hardness: "",
       code: selected?.code || "",
       excavationTech: "",
       type: "excavation",
@@ -189,7 +187,6 @@ export default function ExcavationNormModal({
     onSubmit: async (values) => {
       handleSubmit({
         ...values,
-        hardness: values.hardness || undefined,
         type: values.type as
           | "excavation"
           | "cutting"
@@ -259,7 +256,6 @@ export default function ExcavationNormModal({
         ...formik.values,
         phase: selected?.phase?._id || "",
         step: selected?.step?._id || "",
-        hardness: selected?.hardness?._id || "",
         code: selected?.code || "",
         excavationTech: selected?.excavationTech?._id || "",
         type: "excavation",
@@ -465,20 +461,6 @@ export default function ExcavationNormModal({
             </Box>
           </>
           {/* )} */}
-
-          {/* Độ cứng */}
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-            Độ cứng
-          </Typography>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldAutoCompleted
-              data={hardness.data}
-              formik={formik}
-              labelkey="name"
-              field="hardness"
-              title=""
-            />
-          </Box>
 
           <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
             Mã định mức

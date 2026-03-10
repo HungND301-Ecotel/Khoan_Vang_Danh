@@ -229,9 +229,12 @@ exports.get = async (req, res) => {
   try {
     let query = {};
     if (req.query.q) {
+      const assignments = await AssignmentCode.find({ code: req.query.q });
+      const assignmentId = assignments.map((i) => i._id);
       query.$or = [
         { code: new RegExp(req.query.q, "i") },
         { name: new RegExp(req.query.q, "i") },
+        { assignmentCode: assignmentId },
       ];
     }
     if (req.query.type === "in") {
