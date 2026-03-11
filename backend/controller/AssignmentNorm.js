@@ -189,20 +189,29 @@ exports.import = async (req, res) => {
       if (headerText === "Mã định mức") assignmentCodeStartRow = idx + 1;
     });
 
-    const [ps, techs, sts, hards, asCodes] = await Promise.all([
-      Phase.find().lean(),
-      ExcavationTech.find().lean(),
-      Step.find().lean(),
-      Hardness.find().lean(),
-      AssignmentCode.find().lean(),
-    ]);
+    const [ps, secs, techs, sts, hards, asCodes, thics, crb,lth] =
+      await Promise.all([
+        Phase.find().lean(),
+        CrossSection.find().lean(),
+        ExcavationTech.find().lean(),
+        Step.find().lean(),
+        Hardness.find().lean(),
+        AssignmentCode.find().lean(),
+        Thickness.find().lean(),
+        CurbSlope.find().lean(),
+        Length.find().lean(),
+      ]);
 
     const maps = {
       phase: new Map(ps.map((d) => [d.name.trim(), d._id])),
+      crossSection: new Map(secs.map((d) => [d.name.trim(), d._id])),
       excavationTech: new Map(techs.map((d) => [d.name.trim(), d._id])),
       step: new Map(sts.map((d) => [d.name.trim(), d._id])),
       hardness: new Map(hards.map((d) => [d.name.trim(), d._id])),
       asCode: new Map(asCodes.map((d) => [d.code.trim(), d._id])),
+      thickness: new Map(thics.map((d) => [d.name.trim(), d._id])),
+      curbSlope: new Map(crb.map((d) => [d.name.trim(), d._id])),
+      length: new Map(lth.map((d) => [d.name.trim(), d._id])),
     };
 
     const operations = [];

@@ -168,62 +168,6 @@ export default function CrossSection({
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Đơn vị tính
               </Typography>
-              <TextField
-                select
-                id="uom"
-                name="uom"
-                placeholder="Chọn đơn vị tính"
-                value={formik.values.uom}
-                onChange={formik.handleChange}
-                error={formik.touched.uom && Boolean(formik.errors.uom)}
-                helperText={formik.touched.uom && formik.errors.uom}
-                variant="outlined"
-                fullWidth
-                sx={{
-                  "& .MuiInputBase-root": {
-                    height: "32px",
-                    borderRadius: "6px",
-                    paddingRight: "12px",
-                    paddingLeft: "12px",
-                    fontSize: "14px",
-                  },
-                }}
-                SelectProps={{
-                  displayEmpty: true,
-                  renderValue: (selected) => {
-                    if (!selected) {
-                      return (
-                        <span style={{ color: "#999" }}>Chọn đơn vị tính</span>
-                      );
-                    }
-                    const selectedUnit = units.data.find(
-                      (unit: UnitType) => unit._id === selected,
-                    );
-                    return selectedUnit?.name;
-                  },
-                }}
-              >
-                {units.data.map((unit: UnitType) => (
-                  <MenuItem
-                    key={unit._id}
-                    value={unit._id}
-                    sx={{
-                      fontSize: "14px",
-                      "&:hover": {
-                        backgroundColor: "#f5f5f5",
-                      },
-                      "&.Mui-selected": {
-                        backgroundColor: "#e3f2fd",
-                        "&:hover": {
-                          backgroundColor: "#f5f5f5",
-                        },
-                      },
-                    }}
-                  >
-                    {unit.name}
-                  </MenuItem>
-                ))}
-              </TextField>
               <FieldAutoCompleted
                 formik={formik}
                 field="uom"
