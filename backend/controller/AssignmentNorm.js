@@ -209,7 +209,7 @@ exports.import = async (req, res) => {
     const invalidRows = [];
 
     // Tìm số lượng cột thực tế dựa trên hàng có dữ liệu dài nhất (thường là hàng ID hoặc Mã định mức)
-    const HIDDEN_START_INDEX = 200;
+    const HIDDEN_START_INDEX = 199;
     const totalColsInFile = matrix[idRow] ? matrix[idRow].length : 0;
 
     // Giới hạn cột quét: không bao giờ vượt quá cột thứ 199
@@ -442,6 +442,17 @@ exports.export = async (req, res) => {
     const listMap = {};
     let hiddenColIndex = 200; // Đẩy ra thật xa để không bị trùng với data
 
+    // --- MỚI: Thêm list Mã Giao Khoán vào cột ẩn ---
+    const assignmentCodeColLetter = getColumnName(hiddenColIndex);
+    const hColAC = worksheet.getColumn(hiddenColIndex);
+    hColAC.values = [
+      "Danh sách mã",
+      ...allAssignmentCodes.map((ac) => ac.code),
+    ];
+    hColAC.hidden = true;
+    const acRange = `$${assignmentCodeColLetter}$2:$${assignmentCodeColLetter}$${allAssignmentCodes.length + 1}`;
+    hiddenColIndex++;
+
     activeRows.forEach((row) => {
       if (row.list) {
         // Hàm chuyển số index thành chữ (200 -> GR)
@@ -459,6 +470,7 @@ exports.export = async (req, res) => {
 
     // 5. Điền dữ liệu và thiết lập Dropdown cho các cột từ B trở đi
     const MAX_DATA_COLS = 150;
+    const MAX_DATA_ROWS = 1000;
     for (let c = 2; c <= MAX_DATA_COLS; c++) {
       const colLetter = worksheet.getColumn(c).letter;
       activeRows.forEach((row, rIdx) => {
@@ -476,6 +488,20 @@ exports.export = async (req, res) => {
         }
       });
     }
+
+    // --- MỚI: Áp dụng Dropdown cho Cột A từ DATA_START_ROW trở xuống ---
+    for (let r = DATA_START_ROW; r <= MAX_DATA_ROWS; r++) {
+      worksheet.getCell(`A${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: [acRange],
+      };
+    }
+
+    // 6. Điền dữ liệu hiện có
+    allAssignmentCodes.forEach((ac, idx) => {
+      worksheet.getCell(`A${DATA_START_ROW + idx}`).value = ac.code;
+    });
 
     // 6. Map dữ liệu database vào đúng tọa độ
     allNorms.forEach((doc, docIdx) => {
