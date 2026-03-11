@@ -15,12 +15,10 @@ exports.create = async (req, res) => {
     const { code, mirrorRatio, hardness, rockRatio, type, norms } = req.body;
     const exitAdjustment = await AdjustmentNorm.countDocuments({ code: code });
     if (exitAdjustment > 0) {
-      return res
-        .status(409)
-        .json({
-          status: "error",
-          message: `Mã hệ số điều chỉnh định mức '${code}' đã tồn tại`,
-        });
+      return res.status(409).json({
+        status: "error",
+        message: `Mã hệ số điều chỉnh định mức '${code}' đã tồn tại`,
+      });
     }
     const newAdjustmentNorm = new AdjustmentNorm({
       code,
@@ -134,452 +132,344 @@ const parseNorms = (normsString, assignmentCodeMap) => {
 const mongoose = require("mongoose");
 exports.import = async (req, res) => {
   try {
-    const type = req.query.type;
+    const type = req.query.type; // "CKKT", "CKĐL", hoặc "CM"
+    if (!req.file)
+      return res
+        .status(400)
+        .json({ status: "error", message: "Vui lòng chọn file" });
 
-    if (!req.file) {
-      return res.status(400).json({
-        status: "error",
-        message: "Vui lòng chọn file",
-      });
-    }
-
-    // ===== READ EXCEL =====
+    // Đọc file theo dạng Matrix (header: 1 trả về mảng 2 chiều [hàng][cột])
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const matrix = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 
-    // ===== HEADER =====
-    let headers = xlsx.utils.sheet_to_json(worksheet, {
-      header: 1,
-      range: 0,
-      raw: true,
-    })[0];
-
-    headers = headers.map((h) => String(h).trim());
-
-    const allowedHeaders = Object.keys(columnMapping);
-    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
-
-    if (invalidHeaders.length > 0) {
-      return res.status(400).json({
-        status: "error",
-        message: `File không hợp lệ. Cột không cho phép: ${invalidHeaders.join(
-          ", ",
-        )}`,
-      });
+    if (!matrix || matrix.length === 0) {
+      return res.status(400).json({ status: "error", message: "File rỗng" });
     }
 
-    const mappedHeaders = headers.map((h) => columnMapping[h] || h);
+    let rowMap = {};
+    let idRow = 0; // Dòng 1 chứa ID (hidden)
+    let assignmentCodeStartRow = -1;
 
-    const data = xlsx.utils.sheet_to_json(worksheet, {
-      header: mappedHeaders,
-      range: 1,
+    // 1. Tự động ánh xạ dòng dựa trên cột A
+    // Ánh xạ các nhãn tiếng Việt sang key trong DB
+    const headerMapping = {
+      "Độ cứng f": "hardness",
+      "Tỷ lệ đá lẫn trong gương": "rockRatio",
+      "Tỷ lệ gương than mềm": "mirrorRatio",
+      "Mã định mức": "code",
+    };
+
+    matrix.forEach((row, idx) => {
+      const headerText = String(row[0] || "").trim();
+      if (headerMapping[headerText]) {
+        rowMap[headerMapping[headerText]] = idx;
+      }
+      if (headerText === "Mã định mức") assignmentCodeStartRow = idx + 1;
     });
 
-    const dataImport = data.filter((r) => r._id || r.code);
-
-    if (dataImport.length === 0) {
+    if (assignmentCodeStartRow === -1) {
       return res.status(400).json({
         status: "error",
-        message: "Không tìm thấy dữ liệu hợp lệ",
+        message: "Không tìm thấy dòng 'Mã định mức' để bắt đầu đọc dữ liệu",
       });
     }
 
-    // ===== LOAD EXISTED ADJUSTMENT NORMS (CHECK TRÙNG CODE) =====
-    const existedNorms = await AdjustmentNorm.find({}, { code: 1 }).lean();
-
-    const codeMap = new Map(
-      existedNorms.map((n) => [n.code.toLowerCase(), String(n._id)]),
+    // 2. Load Danh mục (FK) để map Name -> ObjectId
+    const [rockRatios, mirrorRatios, hardnessList, asCodes] = await Promise.all(
+      [
+        RockRatio.find().lean(),
+        MirrorRatio.find().lean(),
+        Hardness.find().lean(),
+        AssignmentCode.find().lean(),
+      ],
     );
 
-    // ===== LOAD FK =====
-    const uniqueRockRatios = [
-      ...new Set(
-        dataImport
-          .map((d) => d.rockRatio && String(d.rockRatio).trim())
-          .filter(Boolean),
+    const maps = {
+      rockRatio: new Map(
+        rockRatios.map((d) => [d.name.toString().trim(), d._id]),
       ),
-    ];
-
-    const uniqueMirrorRatios = [
-      ...new Set(
-        dataImport
-          .map((d) => d.mirrorRatio && String(d.mirrorRatio).trim())
-          .filter(Boolean),
+      mirrorRatio: new Map(
+        mirrorRatios.map((d) => [d.name.toString().trim(), d._id]),
       ),
-    ];
-
-    const uniqueHardness = [
-      ...new Set(
-        dataImport
-          .map((d) => d.hardness && String(d.hardness).trim())
-          .filter(Boolean),
+      hardness: new Map(
+        hardnessList.map((d) => [d.name.toString().trim(), d._id]),
       ),
-    ];
+      asCode: new Map(asCodes.map((d) => [d.code.toString().trim(), d._id])),
+    };
 
-    const [rockRatios, mirrorRatios, hardnessList] = await Promise.all([
-      RockRatio.find({ name: { $in: uniqueRockRatios } }).lean(),
-      MirrorRatio.find({ name: { $in: uniqueMirrorRatios } }).lean(),
-      Hardness.find({ name: { $in: uniqueHardness } }).lean(),
-    ]);
-
-    const rockRatioMap = new Map(rockRatios.map((d) => [d.name, d._id]));
-    const mirrorRatioMap = new Map(mirrorRatios.map((d) => [d.name, d._id]));
-    const hardnessMap = new Map(hardnessList.map((d) => [d.name, d._id]));
-
-    const assignmentCodes = await AssignmentCode.find().lean();
-    const assignmentCodeMap = new Map(
-      assignmentCodes.map((d) => [d.code, d._id]),
-    );
-
-    // ===== PROCESS =====
     const operations = [];
-    const invalidRows = [];
+    const invalidRows = []; // Dùng để báo lỗi theo cột
 
-    for (const item of dataImport) {
-      if (item.ignored !== undefined) delete item.ignored;
+    // Xác định giới hạn cột (bỏ qua phần dropdown ẩn từ cột 200)
+    const HIDDEN_START_INDEX = 199;
+    const totalColsInFile = matrix[idRow] ? matrix[idRow].length : 0;
+    const safeLimit = Math.min(totalColsInFile, HIDDEN_START_INDEX);
 
-      let {
-        _id,
-        code,
-        rockRatio,
-        mirrorRatio,
-        hardness,
-        norms,
-        ...updateData
-      } = item;
+    // 3. Duyệt theo CỘT (Bắt đầu từ cột B - index 1)
+    for (let c = 1; c < safeLimit; c++) {
+      const recordId = String(matrix[idRow][c] || "").trim();
+      const cleanCode =
+        rowMap.code !== undefined && matrix[rowMap.code]
+          ? String(matrix[rowMap.code][c] || "").trim()
+          : "";
 
-      // ----- CLEAN ID -----
-      if (_id) {
-        _id = String(_id).replace(/"/g, "").trim();
-        if (_id.length !== 24) {
-          invalidRows.push({ item, error: "ID không hợp lệ" });
-          continue;
+      // Bỏ qua cột trống (Cột danh mục hoặc cột chưa nhập liệu)
+      if (!recordId && !cleanCode) continue;
+
+      const colName = getColumnName(c + 1);
+
+      // Thu thập trị số định mức (Norms) cho cột này
+      const processedNorms = [];
+      for (let r = assignmentCodeStartRow; r < matrix.length; r++) {
+        if (!matrix[r]) continue;
+        const acCode = String(matrix[r][0] || "").trim();
+        const val = parseFloat(matrix[r][c]);
+
+        if (acCode && !isNaN(val)) {
+          const acId = maps.asCode.get(acCode);
+          if (acId) {
+            processedNorms.push({ assignmentCode: acId, norm: val });
+          }
         }
       }
 
-      const cleanCode = code ? String(code).trim() : null;
-
-      // ===== DELETE =====
-      if (_id && !cleanCode) {
-        operations.push({
-          deleteOne: { filter: { _id } },
-        });
+      // Logic XÓA: Có ID nhưng không còn mã định mức hoặc không còn số liệu
+      if (
+        recordId &&
+        recordId.length === 24 &&
+        !cleanCode &&
+        processedNorms.length === 0
+      ) {
+        operations.push({ deleteOne: { filter: { _id: recordId } } });
         continue;
       }
 
-      if (!cleanCode) {
-        invalidRows.push({
-          item,
-          error: "Mã là bắt buộc",
-        });
-        continue;
-      }
+      // Logic THÊM / SỬA
+      if (cleanCode) {
+        const dataObj = { type, code: cleanCode, norms: processedNorms };
+        let hasCategoryError = false;
 
-      const codeKey = cleanCode.toLowerCase();
-      const existedCodeId = codeMap.get(codeKey);
+        // Map các FK (Hardness, RockRatio, MirrorRatio)
+        for (const key of Object.keys(rowMap)) {
+          if (key === "code") continue; // Đã xử lý riêng cleanCode
+          const val = String(matrix[rowMap[key]][c] || "").trim();
 
-      // ===== TYPE =====
-      if (type) {
-        if (
-          ![
-            AdjustmentType.CKKT,
-            AdjustmentType.CKĐL,
-            AdjustmentType.CM,
-          ].includes(String(type).trim())
-        ) {
-          invalidRows.push({
-            item,
-            error: `Loại định mức không hợp lệ: ${type}`,
-          });
-          continue;
-        }
-        updateData.type = String(type).trim();
-      }
-
-      // ===== NORMS =====
-      if (norms) {
-        updateData.norms = parseNorms(String(norms), assignmentCodeMap);
-      }
-
-      // ===== FK HARDNESS =====
-      if (hardness) {
-        const hId = hardnessMap.get(String(hardness).trim());
-        if (!hId) {
-          invalidRows.push({
-            item,
-            error: `Độ cứng f không hợp lệ: ${hardness}`,
-          });
-          continue;
-        }
-        updateData.hardness = hId;
-      }
-
-      // ===== FK ROCK RATIO =====
-      if (rockRatio) {
-        const rrId = rockRatioMap.get(String(rockRatio).trim());
-        if (!rrId) {
-          invalidRows.push({
-            item,
-            error: `Tỉ lệ đá lẫn trong gương không hợp lệ: ${rockRatio}`,
-          });
-          continue;
-        }
-        updateData.rockRatio = rrId;
-      } else {
-        updateData.rockRatio = null;
-      }
-
-      // ===== FK MIRROR RATIO =====
-      if (mirrorRatio) {
-        const mrId = mirrorRatioMap.get(String(mirrorRatio).trim());
-        if (!mrId) {
-          invalidRows.push({
-            item,
-            error: `Tỉ lệ gương than mềm không hợp lệ: ${mirrorRatio}`,
-          });
-          continue;
-        }
-        updateData.mirrorRatio = mrId;
-      } else {
-        updateData.mirrorRatio = null;
-      }
-
-      // ===== UPDATE =====
-      if (_id) {
-        if (existedCodeId && existedCodeId !== _id) {
-          invalidRows.push({
-            item,
-            error: `Mã đã tồn tại: ${cleanCode}`,
-          });
-          continue;
+          if (val) {
+            const id = maps[key]?.get(val);
+            if (id) {
+              dataObj[key] = id;
+            } else {
+              invalidRows.push({
+                row: `Cột ${colName}`,
+                error: `Giá trị '${val}' không tồn tại trong danh mục của hàng '${Object.keys(headerMapping).find((k) => headerMapping[k] === key)}'`,
+              });
+              hasCategoryError = true;
+              break;
+            }
+          } else {
+            dataObj[key] = null; // Reset nếu để trống
+          }
         }
 
-        operations.push({
-          updateOne: {
-            filter: { _id },
-            update: {
-              $set: {
-                code: cleanCode,
-                ...updateData,
-              },
+        if (hasCategoryError) continue;
+
+        if (recordId && recordId.length === 24) {
+          operations.push({
+            updateOne: { filter: { _id: recordId }, update: { $set: dataObj } },
+          });
+        } else {
+          // Nếu không có ID, thực hiện upsert theo Code + Type để tránh trùng
+          operations.push({
+            updateOne: {
+              filter: { code: cleanCode, type: type },
+              update: { $set: dataObj },
+              upsert: true,
             },
-          },
-        });
-
-        codeMap.set(codeKey, _id);
-        continue;
+          });
+        }
       }
-
-      // ===== INSERT =====
-      if (existedCodeId) {
-        invalidRows.push({
-          item,
-          error: `Mã đã tồn tại: ${cleanCode}`,
-        });
-        continue;
-      }
-
-      operations.push({
-        insertOne: {
-          document: {
-            code: cleanCode,
-            ...updateData,
-          },
-        },
-      });
-
-      const fakeId = new mongoose.Types.ObjectId().toString();
-      codeMap.set(codeKey, fakeId);
     }
 
-    // ===== EXECUTE =====
-    const bulkResult =
+    // 4. Thực thi BulkWrite
+    const result =
       operations.length > 0 ? await AdjustmentNorm.bulkWrite(operations) : null;
 
-    return res.status(200).json({
+    res.status(200).json({
       status: "success",
-      message: "Import dữ liệu hoàn tất",
+      message: "Import dữ liệu ma trận thành công",
       summary: {
-        totalProcessed: dataImport.length,
-        insertedCount: bulkResult?.insertedCount || 0,
-        updatedCount: bulkResult?.modifiedCount || 0,
-        deletedCount: bulkResult?.deletedCount || 0,
-        invalidCount: invalidRows.length,
+        totalProcessed: operations.length + invalidRows.length,
+        inserted: (result?.upsertedCount || 0) + (result?.insertedCount || 0),
+        updated: result?.modifiedCount || 0,
+        deleted: result?.deletedCount || 0,
+        failed: invalidRows.length,
       },
-      invalidRows,
+      invalidRows, // Trả về chi tiết lỗi theo cột
     });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      status: "error",
-      message: error.message,
-    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: "error", message: err.message });
   }
 };
-
 exports.export = async (req, res) => {
   try {
-    let query = {};
-    if (req.query.type) {
-      query.type = new RegExp(req.query.type, "i");
-    }
-    const data = await AdjustmentNorm.find(query)
-      .populate("mirrorRatio")
-      .populate("rockRatio")
-      .populate("hardness")
-      .populate({
-        path: "norms.assignmentCode",
-        populate: "uom",
-      });
-
-    const columns = [
-      { header: "Mã định mức", key: "code", width: 20 },
-      [AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type) && {
-        header: "Độ cứng f",
-        key: "hardness",
-        width: 20,
-      },
-      [AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type) && {
-        header: "Tỷ lệ đá lẫn trong gương",
-        key: "rockRatio",
-        width: 25,
-      },
-      [AdjustmentType.CM].includes(req.query.type) && {
-        header: "Tỷ lệ gương than mềm",
-        key: "mirrorRatio",
-        width: 25,
-      },
-      { header: "Định mức", key: "norms", width: 200 },
-      { header: "_id", key: "_id", width: 20 }, // Thêm cột _id
-    ].filter(Boolean);
-
-    const formatNorm = (norms = []) =>
-      norms.map((p) => `${p.assignmentCode?.code}=${p.norm}`).join(",");
-
-    const formated = (data || []).map((i) => ({
-      code: i?.code || "",
-      ...([AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type)
-        ? { hardness: i?.hardness?.name || "" }
-        : {}),
-      ...([AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type)
-        ? { rockRatio: i?.rockRatio?.name || "" }
-        : {}),
-      ...([AdjustmentType.CM].includes(req.query.type)
-        ? { mirrorRatio: i?.mirrorRatio?.name || "" }
-        : {}),
-      norms: formatNorm(i?.norms || []),
-      _id: i?._id || "", // Thêm _id
-    }));
-
-    const hardness = await Hardness.find();
-    const rockRatios = await RockRatio.find();
-    const mirrorRatios = await MirrorRatio.find();
-
-    const hardnessList = [
-      ...new Set(hardness.map((d) => d.name).filter(Boolean)),
-    ];
-    const rockRatioList = [
-      ...new Set(rockRatios.map((d) => d.name).filter(Boolean)),
-    ];
-    const mirrorRatioList = [
-      ...new Set(mirrorRatios.map((d) => d.name).filter(Boolean)),
-    ];
+    const type = req.query.type;
+    const [
+      allAssignmentCodes,
+      allNorms,
+      hardnessList,
+      rockRatioList,
+      mirrorRatioList,
+    ] = await Promise.all([
+      AssignmentCode.find().sort({ code: 1 }).lean(),
+      AdjustmentNorm.find({ type: new RegExp(type, "i") })
+        .populate("mirrorRatio rockRatio hardness norms.assignmentCode")
+        .lean(),
+      Hardness.find().lean(),
+      RockRatio.find().lean(),
+      MirrorRatio.find().lean(),
+    ]);
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("he_so_dieu_chinh_dinh_muc");
+    const worksheet = workbook.addWorksheet("Matrix");
 
-    worksheet.columns = columns;
-    worksheet.addRows(formated);
+    const rowConfigs = [
+      {
+        label: "Độ cứng f",
+        key: "hardness",
+        list: hardnessList,
+        types: ["CKKT", "CKĐL"],
+      },
+      {
+        label: "Tỷ lệ đá lẫn trong gương",
+        key: "rockRatio",
+        list: rockRatioList,
+        types: ["CKKT", "CKĐL"],
+      },
+      {
+        label: "Tỷ lệ gương than mềm",
+        key: "mirrorRatio",
+        list: mirrorRatioList,
+        types: ["CM"],
+      },
+      { label: "Mã định mức", key: "code", isCodeRow: true },
+    ];
 
-    const MAX = Math.max(worksheet.rowCount + 100, 1000); // Ẩn cột id
-
-    const idCol = worksheet.columns.findIndex((c) => c && c.key === "_id") + 1;
-    if (idCol > 0) worksheet.getColumn(idCol).hidden = true;
-
-    const editableKeys = ["code", "norms"];
-    // --- KHỐI LOGIC DROP DOWN BẮT ĐẦU ---
-
-    if ([AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type)) {
-      // Cột ĐVT luôn được thêm vào cột Y
-      const hardnessColIndex = columns.findIndex(
-        (c) => c && c.key === "hardness",
-      ); // Cột ĐVT
-      const hardnessolLetter = worksheet.getColumn(hardnessColIndex + 1).letter;
-
-      worksheet.getColumn("Y").values = ["hardness", ...hardnessList];
-      worksheet.getColumn("Y").hidden = true;
-
-      // Áp dụng Data Validation cho cột ĐVT (luôn luôn)
-      worksheet.dataValidations.add(
-        `${hardnessolLetter}2:${hardnessolLetter}${MAX}`,
-        {
-          type: "list",
-          allowBlank: true,
-          formulae: [`=$Y$2:$Y$${hardnessList.length + 1}`],
-        },
-      );
-      editableKeys.push("hardness");
-    }
-
-    if ([AdjustmentType.CKKT, AdjustmentType.CKĐL].includes(req.query.type)) {
-      const rockRatioColIndex = columns.findIndex(
-        (c) => c && c.key === "rockRatio",
-      );
-      const rockRatioColLetter = worksheet.getColumn(
-        rockRatioColIndex + 1,
-      ).letter;
-
-      // Thêm cột X cho Mã giao khoán
-      worksheet.getColumn("X").values = ["rockRatios", ...rockRatioList];
-      worksheet.getColumn("X").hidden = true;
-
-      // Áp dụng Data Validation cho Mã giao khoán
-      worksheet.dataValidations.add(
-        `${rockRatioColLetter}2:${rockRatioColLetter}${MAX}`,
-        {
-          type: "list",
-          allowBlank: true,
-          formulae: [`=$X$2:$X$${rockRatioList.length + 1}`],
-        },
-      );
-
-      editableKeys.push("rockRatio"); // Cho phép sửa cột này
-    }
-
-    if ([AdjustmentType.CM].includes(req.query.type)) {
-      const mirrorRatioColIndex = columns.findIndex(
-        (c) => c && c.key === "mirrorRatio",
-      );
-      const mirrorRatioColLetter = worksheet.getColumn(
-        mirrorRatioColIndex + 1,
-      ).letter;
-
-      // Thêm cột X cho Mã giao khoán
-      worksheet.getColumn("W").values = ["mirrorRatios", ...mirrorRatioList];
-      worksheet.getColumn("W").hidden = true;
-
-      // Áp dụng Data Validation cho Mã giao khoán
-      worksheet.dataValidations.add(
-        `${mirrorRatioColLetter}2:${mirrorRatioColLetter}${MAX}`,
-        {
-          type: "list",
-          allowBlank: true,
-          formulae: [`=$W$2:$W$${mirrorRatioList.length + 1}`],
-        },
-      );
-
-      editableKeys.push("mirrorRatio"); // Cho phép sửa cột này
-    }
-
-    // --- KHỐI LOGIC DROP DOWN KẾT THÚC ---
-
-    const buffer = await configExport(
-      workbook,
-      worksheet,
-      editableKeys, // Truyền đúng editableKeys
-      MAX,
+    const activeRows = rowConfigs.filter(
+      (r) => !r.types || r.types.includes(type),
     );
+    const DATA_START_ROW = activeRows.length + 2;
+    worksheet.getRow(1).hidden = true;
+
+    // --- BẢN ĐỒ DÒNG (Row Map) ---
+    // Lấy tất cả mã duy nhất xuất hiện trong data HOẶC trong danh mục mã giao khoán
+    const usedCodeSet = new Set();
+    allNorms.forEach((doc) => {
+      (doc.norms || []).forEach((n) => {
+        if (n.assignmentCode?.code) usedCodeSet.add(n.assignmentCode.code);
+      });
+    });
+
+    // Sắp xếp mã để hiển thị đẹp mắt
+    const sortedCodes = Array.from(usedCodeSet).sort();
+    const codeToRowMap = {};
+    sortedCodes.forEach((code, idx) => {
+      const rowIndex = DATA_START_ROW + idx;
+      codeToRowMap[code] = rowIndex;
+      worksheet.getCell(`A${rowIndex}`).value = code;
+    });
+
+    // --- HEADERS CỘT A ---
+    activeRows.forEach((row, idx) => {
+      const cell = worksheet.getCell(`A${idx + 2}`);
+      cell.value = row.label;
+      cell.font = { bold: true };
+    });
+
+    // --- TẠO CỘT ẨN CHO DROPDOWN (TỪ CỘT 200) ---
+    let hiddenColIndex = 200;
+    const listMap = {};
+
+    activeRows.forEach((row) => {
+      if (row.list) {
+        const colLetter = getColumnName(hiddenColIndex);
+        const hCol = worksheet.getColumn(hiddenColIndex);
+        hCol.values = [row.label, ...row.list.map((i) => i.name)];
+        hCol.hidden = true;
+        listMap[row.key] = { letter: colLetter, length: row.list.length };
+        hiddenColIndex++;
+      }
+    });
+
+    // Dropdown cho Mã giao khoán (Cột A)
+    const acColLetter = getColumnName(hiddenColIndex);
+    const hColAC = worksheet.getColumn(hiddenColIndex);
+    hColAC.values = ["DS Mã", ...allAssignmentCodes.map((ac) => ac.code)];
+    hColAC.hidden = true;
+    const acRange = `$${acColLetter}$2:$${acColLetter}$${allAssignmentCodes.length + 1}`;
+
+    // --- ĐIỀN DỮ LIỆU ĐỊNH MỨC THEO CỘT ---
+    allNorms.forEach((doc, docIdx) => {
+      const colNumber = docIdx + 2;
+      const colLetter = getColumnName(colNumber);
+
+      // Lưu ID vào dòng 1 để phục vụ việc Import sau này
+      worksheet.getCell(`${colLetter}1`).value = doc._id.toString();
+
+      // Điền thuộc tính (Dòng 2 -> DATA_START_ROW - 1)
+      activeRows.forEach((row, rIdx) => {
+        const rowIndex = rIdx + 2;
+        const cell = worksheet.getCell(`${colLetter}${rowIndex}`);
+
+        cell.value = row.isCodeRow ? doc.code : doc[row.key]?.name || "";
+
+        if (listMap[row.key]) {
+          cell.dataValidation = {
+            type: "list",
+            allowBlank: true,
+            formulae: [
+              `$${listMap[row.key].letter}$2:$${listMap[row.key].letter}$${listMap[row.key].length + 1}`,
+            ],
+          };
+        }
+      });
+
+      // Điền giá trị định mức (Norms)
+      (doc.norms || []).forEach((n) => {
+        const acCode = n.assignmentCode?.code;
+        const targetRow = codeToRowMap[acCode];
+        if (targetRow) {
+          worksheet.getCell(`${colLetter}${targetRow}`).value = n.norm;
+        }
+      });
+    });
+
+    // --- VALIDATION CHO CỘT A (ĐỂ USER THÊM DÒNG) ---
+    for (
+      let r = DATA_START_ROW;
+      r <= DATA_START_ROW + sortedCodes.length + 50;
+      r++
+    ) {
+      worksheet.getCell(`A${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: [acRange],
+      };
+    }
+
+    // --- FORMATTING ---
+    worksheet.getColumn(1).width = 25;
+    const lastColUsed = allNorms.length + 1;
+    for (let i = 2; i <= lastColUsed; i++) {
+      const col = worksheet.getColumn(i);
+      col.width = 15;
+      col.alignment = { horizontal: "center", vertical: "middle" };
+    }
+
+    worksheet.views = [
+      { state: "frozen", xSplit: 1, ySplit: DATA_START_ROW - 1 },
+    ];
 
     res.setHeader(
       "Content-Type",
@@ -587,13 +477,27 @@ exports.export = async (req, res) => {
     );
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=he_so_dieu_chinh_dinh_muc.xlsx",
+      `attachment; filename=he_so_dieu_chinh_dinh_muc.xlsx`,
     );
+
+    const buffer = await workbook.xlsx.writeBuffer();
     res.send(buffer);
   } catch (err) {
-    console.log(err.stack);
-    res
-      .status(500)
-      .send({ status: "error", message: err.message, stack: err.stack });
+    console.error(err);
+    res.status(500).json({ status: "error", message: err.message });
   }
 };
+
+/**
+ * Hàm chuyển đổi số cột thành chữ (1 -> A, 2 -> B, 27 -> AA)
+ * Đúng chuẩn Excel
+ */
+function getColumnName(n) {
+  let s = "";
+  while (n > 0) {
+    let m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - m) / 26);
+  }
+  return s;
+}

@@ -44,6 +44,7 @@ import { parseAxiosError } from "../../utils/handleApiError";
 import { AdjustmentNormType } from "../../enum";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import { formatDecimal } from "../../utils/helpers";
+import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 
 export default function AdjustmentNormKKT() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -55,6 +56,10 @@ export default function AdjustmentNormKKT() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    messages: [] as string[],
+  });
 
   const queryClient = useQueryClient();
 
@@ -139,7 +144,16 @@ export default function AdjustmentNormKKT() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       // setIsUploading(false);
-      ShowAlertImport(data);
+      if (data.invalidRows?.length > 0) {
+        const formattedErrors = data.invalidRows.map(
+          (err: any) => `Dòng ${err.row || "?"}: ${err.error}`,
+        );
+        setErrorDialog({ open: true, messages: formattedErrors });
+      } else {
+        showSuccessAlert(
+          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated}, Xóa: ${data.summary.deleted})`,
+        );
+      }
     },
     onError: (error: any) => {
       // setIsUploading(false);
@@ -624,6 +638,11 @@ export default function AdjustmentNormKKT() {
           }
           e.target.value = "";
         }}
+      />
+      <ImportErrorDialog
+        open={errorDialog.open}
+        errors={errorDialog.messages}
+        onClose={() => setErrorDialog({ ...errorDialog, open: false })}
       />
     </Box>
   );

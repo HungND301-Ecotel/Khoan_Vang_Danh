@@ -42,19 +42,24 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import AdjustmentNormService from "../../service/AdjustmentNormService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { AdjustmentNormType } from "../../enum";
-import { ShowAlertImport } from "../../utils/AlertImport"
+import { ShowAlertImport } from "../../utils/AlertImport";
 import { formatDecimal } from "../../utils/helpers";
+import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 
 export default function AdjustmentNormCM() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
   const [selected, setSelected] = useState<AdjustmentNormOutputType | null>(
-    null
+    null,
   );
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    messages: [] as string[],
+  });
 
   const queryClient = useQueryClient();
 
@@ -68,7 +73,7 @@ export default function AdjustmentNormCM() {
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/adjustmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=${AdjustmentNormType.CM}`
+          `/adjustmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=${AdjustmentNormType.CM}`,
         );
         return response.data.data;
       } catch (error) {
@@ -96,7 +101,7 @@ export default function AdjustmentNormCM() {
       api
         .put(
           `/adjustmentnorms/${updateExcavationNorm._id}`,
-          updateExcavationNorm
+          updateExcavationNorm,
         )
         .then((res) => res.data),
     onSuccess: () => {
@@ -123,7 +128,16 @@ export default function AdjustmentNormCM() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       // setIsUploading(false);
-      ShowAlertImport(data)
+      if (data.invalidRows?.length > 0) {
+        const formattedErrors = data.invalidRows.map(
+          (err: any) => `Dòng ${err.row || "?"}: ${err.error}`,
+        );
+        setErrorDialog({ open: true, messages: formattedErrors });
+      } else {
+        showSuccessAlert(
+          `Import thành công! (Thêm: ${data.summary.inserted}, Sửa: ${data.summary.updated}, Xóa: ${data.summary.deleted})`,
+        );
+      }
     },
     onError: (error: any) => {
       // setIsUploading(false);
@@ -133,13 +147,12 @@ export default function AdjustmentNormCM() {
 
   const exportExcel = useMutation({
     mutationFn: () => AdjustmentNormService.exportFile(AdjustmentNormType.CM),
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
     },
   });
-
 
   const handleDelete = () => {
     if (selectedRows.length === 0) {
@@ -157,7 +170,7 @@ export default function AdjustmentNormCM() {
   const deleteMutation = useMutation({
     mutationFn: async (ids: React.Key[]) => {
       const deletePromises = ids.map((id) =>
-        api.delete(`/adjustmentnorms/${id}`).then((res) => res.data)
+        api.delete(`/adjustmentnorms/${id}`).then((res) => res.data),
       );
       return Promise.all(deletePromises);
     },
@@ -630,6 +643,11 @@ export default function AdjustmentNormCM() {
           }
           e.target.value = "";
         }}
+      />
+      <ImportErrorDialog
+        open={errorDialog.open}
+        errors={errorDialog.messages}
+        onClose={() => setErrorDialog({ ...errorDialog, open: false })}
       />
     </Box>
   );
