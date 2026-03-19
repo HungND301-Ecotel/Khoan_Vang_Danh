@@ -76,16 +76,16 @@ export default function CuttingNormKBModal({
     AssignmentCodeOutputType[]
   >([]);
   const [showAdditionalRows, setShowAdditionalRows] = useState(false);
-  // interpolation states (mirrors ExcavationNormModal behavior)
-  const [upperLimitFirstNorm, setUpperLimitFirstNorm] = useState<number | null>(
-    null,
+  // Maps lưu norms theo assignmentCode cho cận trên và cận dưới
+  const [upperNormsMap, setUpperNormsMap] = useState<Map<string, number>>(
+    new Map(),
   );
-  const [lowerLimitFirstNorm, setLowerLimitFirstNorm] = useState<number | null>(
-    null,
+  const [lowerNormsMap, setLowerNormsMap] = useState<Map<string, number>>(
+    new Map(),
   );
-  const [upperLimitPoint, setUpperLimitPoint] = useState<number | null>(null);
-  const [lowerLimitPoint, setLowerLimitPoint] = useState<number | null>(null);
-  const [predictingPoint, setPredictingPoint] = useState<number | null>(null);
+
+  // Danh sách norms gốc (được tạo từ union của cả hai map)
+  const [originalNorms, setOriginalNorms] = useState<any[]>([]);
 
   const { data: assignmentcodes = { data: [] } } = useQuery({
     queryKey: ["assignmentcodes"],
@@ -142,64 +142,6 @@ export default function CuttingNormKBModal({
       });
     },
   });
-
-  useEffect(() => {
-    // if (assignmentcodes.length === 0) return;
-
-    if (selected && selected.norms.length > 0) {
-      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
-        selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
-      );
-      setSelectedAssignmentCodes(selectedCodes);
-    }
-  }, [selected, assignmentcodes.data]);
-
-  // Effect to set upperLimitFirstNorm when an upper limit norm (existing norm) is chosen
-  useEffect(() => {
-    if (formik.values.upperLimitNorm && existingNorms) {
-      const selectedNorm = existingNorms.find(
-        (norm) => norm._id === formik.values.upperLimitNorm,
-      );
-      if (selectedNorm && selectedNorm.norms && selectedNorm.norms.length > 0) {
-        const firstNorm = selectedNorm.norms[0]?.norm;
-        setUpperLimitFirstNorm(firstNorm ?? null);
-      } else {
-        setUpperLimitFirstNorm(null);
-      }
-    } else {
-      setUpperLimitFirstNorm(null);
-    }
-  }, [formik.values.upperLimitNorm, existingNorms]);
-
-  // Effect to set lowerLimitFirstNorm and prefill norms when a lower limit norm is chosen
-  useEffect(() => {
-    if (formik.values.lowerLimitNorm && existingNorms) {
-      const selectedNorm = existingNorms.find(
-        (norm) => norm._id === formik.values.lowerLimitNorm,
-      );
-      if (selectedNorm && selectedNorm.norms && selectedNorm.norms.length > 0) {
-        const firstNorm = selectedNorm.norms[0]?.norm;
-        setLowerLimitFirstNorm(firstNorm ?? null);
-
-        // Prefill all assignment codes norms from selected lower-limit existing norm
-        const updatedNorms = formik.values.norms.map((item: any) => {
-          const matchingNorm = selectedNorm.norms.find(
-            (n) => n.assignmentCode?._id === item.assignmentCode,
-          );
-          return {
-            assignmentCode: item.assignmentCode,
-            norm: matchingNorm?.norm ?? item.norm,
-          };
-        });
-        formik.setFieldValue("norms", updatedNorms);
-      } else {
-        setLowerLimitFirstNorm(null);
-      }
-    } else {
-      setLowerLimitFirstNorm(null);
-    }
-  }, [formik.values.lowerLimitNorm, existingNorms]);
-
   useEffect(() => {
     if (selected && selected.norms.length > 0 && open) {
       formik.setValues({
@@ -225,47 +167,212 @@ export default function CuttingNormKBModal({
       setSelectedAssignmentCodes([]);
     }
   }, [selected, assignmentcodes.data, open]);
-  // Interpolation helper: compute interpolated norm and set to formik
-  const handleInterpolationChange = (next?: {
-    lowerLimitPoint?: number | null;
-    upperLimitPoint?: number | null;
-    lowerLimitFirstNorm?: number | null;
-    upperLimitFirstNorm?: number | null;
-    predictingPoint?: number | null;
-  }) => {
-    const x1 = next?.lowerLimitPoint ?? lowerLimitPoint;
-    const y1 = next?.lowerLimitFirstNorm ?? lowerLimitFirstNorm;
-    const x2 = next?.upperLimitPoint ?? upperLimitPoint;
-    const y2 = next?.upperLimitFirstNorm ?? upperLimitFirstNorm;
-    const x = next?.predictingPoint ?? predictingPoint;
 
-    if (
-      x1 != null &&
-      y1 != null &&
-      x2 != null &&
-      y2 != null &&
-      x != null &&
-      x2 !== x1
-    ) {
-      const interpolated = y1 + ((x - x1) * (y2 - y1)) / (x2 - x1);
-      const rounded = Number(interpolated);
-      formik.setFieldValue("interpolatedNorm", rounded);
+  // Effect khi chọn cận trên
+  useEffect(() => {
+    if (formik.values.upperLimitNorm) {
+      const selectedNorm = existingNorms.find(
+        (norm) => norm._id === formik.values.upperLimitNorm,
+      );
+      if (selectedNorm?.norms) {
+        // Tạo map từ assignmentCode._id -> norm
+        const map = new Map(
+          selectedNorm.norms
+            .filter(
+              (n): n is typeof n & { assignmentCode: { _id: string } } =>
+                !!n.assignmentCode?._id && n.norm != null,
+            )
+            .map((n) => [n.assignmentCode!._id, n.norm!]),
+        );
+        setUpperNormsMap(map);
+
+        // Lấy danh sách mã giao khoán từ định mức cận trên
+        const upperNormCodes = selectedNorm.norms
+          .filter((n) => n.assignmentCode?._id)
+          .map((n) => n.assignmentCode);
+
+        // Cập nhật selectedAssignmentCodes với mã từ cận trên
+        setSelectedAssignmentCodes((prev) => {
+          if (formik.values.lowerLimitNorm) {
+            const lowerNorm = existingNorms.find(
+              (norm) => norm._id === formik.values.lowerLimitNorm,
+            );
+            const lowerNormCodes =
+              lowerNorm?.norms
+                .filter((n) => n.assignmentCode?._id)
+                .map((n) => n.assignmentCode) || [];
+            const allCodes = [...upperNormCodes, ...lowerNormCodes];
+            const uniqueCodes = allCodes.filter(
+              (code, index, self) =>
+                index === self.findIndex((c) => c._id === code._id),
+            );
+            return uniqueCodes;
+          }
+          return upperNormCodes;
+        });
+
+        updateNormsFromSelectedNorms();
+      } else {
+        setUpperNormsMap(new Map());
+      }
+    } else {
+      setUpperNormsMap(new Map());
+    }
+  }, [formik.values.upperLimitNorm, existingNorms]);
+
+  // Effect khi chọn cận dưới
+  useEffect(() => {
+    if (formik.values.lowerLimitNorm) {
+      const selectedNorm = existingNorms.find(
+        (norm) => norm._id === formik.values.lowerLimitNorm,
+      );
+      if (selectedNorm?.norms) {
+        const map = new Map(
+          selectedNorm.norms
+            .filter(
+              (n): n is typeof n & { assignmentCode: { _id: string } } =>
+                !!n.assignmentCode?._id && n.norm != null,
+            )
+            .map((n) => [n.assignmentCode!._id, n.norm!]),
+        );
+        setLowerNormsMap(map);
+
+        const lowerNormCodes = selectedNorm.norms
+          .filter((n) => n.assignmentCode?._id)
+          .map((n) => n.assignmentCode);
+
+        setSelectedAssignmentCodes((prev) => {
+          if (formik.values.upperLimitNorm) {
+            const upperNorm = existingNorms.find(
+              (norm) => norm._id === formik.values.upperLimitNorm,
+            );
+            const upperNormCodes =
+              upperNorm?.norms
+                .filter((n) => n.assignmentCode?._id)
+                .map((n) => n.assignmentCode) || [];
+            const allCodes = [...upperNormCodes, ...lowerNormCodes];
+            const uniqueCodes = allCodes.filter(
+              (code, index, self) =>
+                index === self.findIndex((c) => c._id === code._id),
+            );
+            return uniqueCodes;
+          }
+          return lowerNormCodes;
+        });
+
+        updateNormsFromSelectedNorms();
+      } else {
+        setLowerNormsMap(new Map());
+      }
+    } else {
+      setLowerNormsMap(new Map());
+    }
+  }, [formik.values.lowerLimitNorm, existingNorms]);
+
+  // Hàm cập nhật originalNorms từ cả hai map
+  const updateNormsFromSelectedNorms = () => {
+    const allCodes = new Set([
+      ...Array.from(upperNormsMap.keys()),
+      ...Array.from(lowerNormsMap.keys()),
+    ]);
+
+    const normsArray = Array.from(allCodes).map((codeId) => {
+      // Lấy norm từ cận dưới nếu có, nếu không thì từ cận trên
+      const norm = lowerNormsMap.get(codeId) ?? upperNormsMap.get(codeId) ?? 0;
+      return {
+        assignmentCode: codeId,
+        norm,
+      };
+    });
+
+    setOriginalNorms(normsArray);
+    formik.setFieldValue("norms", normsArray);
+  };
+
+  // Effect đồng bộ norms khi selectedAssignmentCodes thay đổi (chọn thủ công)
+  useEffect(() => {
+    if (selectedAssignmentCodes.length > 0) {
+      const updatedNorms = selectedAssignmentCodes.map((code) => {
+        const existingNorm = formik.values.norms.find(
+          (n) => n.assignmentCode === code._id,
+        );
+        return {
+          assignmentCode: code._id,
+          norm: existingNorm?.norm || "",
+        };
+      });
+      formik.setFieldValue("norms", updatedNorms);
+    }
+  }, [selectedAssignmentCodes]);
+
+  // Hàm xử lý nội suy
+  const handleInterpolationChange = () => {
+    const x1 =
+      formik.values.lowerLimitPoint !== ""
+        ? Number(formik.values.lowerLimitPoint)
+        : null;
+    const x2 =
+      formik.values.upperLimitPoint !== ""
+        ? Number(formik.values.upperLimitPoint)
+        : null;
+    const x =
+      formik.values.predictingPoint !== ""
+        ? Number(formik.values.predictingPoint)
+        : null;
+
+    if (x1 == null || x2 == null || x == null || x2 === x1) {
+      formik.setFieldValue("interpolatedNorm", "");
+      return;
+    }
+
+    const interpolatedNorms = originalNorms.map((item) => {
+      const codeId = item.assignmentCode;
+      const y1 = lowerNormsMap.get(codeId); // norm cận dưới (có thể undefined)
+      const y2 = upperNormsMap.get(codeId); // norm cận trên (có thể undefined)
+
+      // Nếu một trong hai giá trị bị thiếu → đặt norm = 0
+      if (y1 == null || y2 == null) {
+        return { ...item, norm: 0 };
+      }
+
+      // Cả hai đều có → nội suy tuyến tính
+      const y = y1 + ((x - x1) * (y2 - y1)) / (x2 - x1);
+      return { ...item, norm: Number(y.toFixed(2)) };
+    });
+
+    formik.setFieldValue("norms", interpolatedNorms);
+
+    // Cập nhật giá trị hiển thị (lấy norm đầu tiên)
+    if (interpolatedNorms.length > 0) {
+      formik.setFieldValue("interpolatedNorm", interpolatedNorms[0].norm);
     } else {
       formik.setFieldValue("interpolatedNorm", "");
     }
   };
 
+  // Gọi lại interpolation khi các giá trị đầu vào thay đổi
+  useEffect(() => {
+    handleInterpolationChange();
+  }, [
+    formik.values.lowerLimitPoint,
+    formik.values.upperLimitPoint,
+    formik.values.predictingPoint,
+    lowerNormsMap,
+    upperNormsMap,
+    originalNorms,
+  ]);
+
   const handleClose = () => {
     formik.resetForm();
     setSelectedAssignmentCodes([]);
     setShowAdditionalRows(false);
-    setUpperLimitFirstNorm(null);
-    setLowerLimitFirstNorm(null);
+    setUpperNormsMap(new Map());
+    setLowerNormsMap(new Map());
+    setOriginalNorms([]);
     setOpen(false);
   };
 
   const handleImportData = (excelData: { code: string; norm: number }[]) => {
-    // 1. Chuẩn hóa dữ liệu từ Excel: Lọc các mã giao khoán (code) có tồn tại
     const validNorms: any[] = [];
     const newSelectedCodes: AssignmentCodeOutputType[] = [];
 
@@ -275,7 +382,6 @@ export default function CuttingNormKBModal({
       );
 
       if (matchingAssignmentCode) {
-        // Chỉ thêm nếu mã có tồn tại trong hệ thống
         validNorms.push({
           assignmentCode: matchingAssignmentCode._id,
           norm: item.norm,
@@ -284,11 +390,9 @@ export default function CuttingNormKBModal({
       }
     });
 
-    // 2. Cập nhật State và Formik
     setSelectedAssignmentCodes(newSelectedCodes);
+    setOriginalNorms(validNorms); // cập nhật originalNorms
     formik.setFieldValue("norms", validNorms);
-
-    // Đóng modal import sau khi hoàn tất
     setIsImportModalOpen(false);
   };
   return (
@@ -401,39 +505,36 @@ export default function CuttingNormKBModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <FieldInput formik={formik} field="code" />
           </Box>
-          {hasExistingRecords &&
-            selectedAssignmentCodes &&
-            selectedAssignmentCodes.length > 0 && (
-              <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={showAdditionalRows}
-                      onChange={(e) => setShowAdditionalRows(e.target.checked)}
-                      sx={{
+          {hasExistingRecords && (
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showAdditionalRows}
+                    onChange={(e) => setShowAdditionalRows(e.target.checked)}
+                    sx={{
+                      color: "#007BFF",
+                      "&.Mui-checked": {
                         color: "#007BFF",
-                        "&.Mui-checked": {
-                          color: "#007BFF",
-                        },
-                      }}
-                    />
-                  }
-                  label={
-                    <Typography sx={{ fontSize: "14px" }}>
-                      Tạo định mức bảng phương pháp nội suy
-                    </Typography>
-                  }
-                  sx={{ width: "700px" }}
-                />
-              </Box>
-            )}
+                      },
+                    }}
+                  />
+                }
+                label={
+                  <Typography sx={{ fontSize: "14px" }}>
+                    Tạo định mức bảng phương pháp nội suy
+                  </Typography>
+                }
+                sx={{ width: "700px" }}
+              />
+            </Box>
+          )}
 
           {/* Additional rows - shown when checkbox is checked */}
           {showAdditionalRows && (
             <Box sx={{ mt: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "center" }}>
                 <Grid container spacing={2} sx={{ width: "700px" }}>
-                  {/* Điểm nội suy */}
                   <Grid item xs={12}>
                     <Typography
                       sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -445,16 +546,8 @@ export default function CuttingNormKBModal({
                       field="predictingPoint"
                       title=""
                       type="number"
-                      onChange={(value) => {
-                        setPredictingPoint(value);
-                        handleInterpolationChange({
-                          predictingPoint: value,
-                        });
-                      }}
                     />
                   </Grid>
-
-                  {/* Định mức cận trên */}
                   <Grid item xs={6}>
                     <Typography
                       sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -469,8 +562,6 @@ export default function CuttingNormKBModal({
                       title=""
                     />
                   </Grid>
-
-                  {/* Điểm cận trên */}
                   <Grid item xs={6}>
                     <Typography
                       sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -482,16 +573,8 @@ export default function CuttingNormKBModal({
                       field="upperLimitPoint"
                       title=""
                       type="number"
-                      onChange={(value) => {
-                        setUpperLimitPoint(value);
-                        handleInterpolationChange({
-                          upperLimitPoint: value,
-                        });
-                      }}
                     />
                   </Grid>
-
-                  {/* Định mức cận dưới */}
                   <Grid item xs={6}>
                     <Typography
                       sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -506,8 +589,6 @@ export default function CuttingNormKBModal({
                       title=""
                     />
                   </Grid>
-
-                  {/* Điểm cận dưới */}
                   <Grid item xs={6}>
                     <Typography
                       sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -519,43 +600,8 @@ export default function CuttingNormKBModal({
                       field="lowerLimitPoint"
                       title=""
                       type="number"
-                      onChange={(value) => {
-                        setLowerLimitPoint(Number(value));
-                        handleInterpolationChange({
-                          lowerLimitPoint: Number(value),
-                        });
-                      }}
                     />
                   </Grid>
-
-                  {/* Interpolated norm */}
-                  {/* <Grid item xs={12}>
-                  <Typography
-                    sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                  >
-                    Kết quả định mức nội suy
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    value={formik.values.interpolatedNorm || ""}
-                    placeholder="Tự động tính toán khi đủ dữ liệu"
-                    disabled
-                    variant="outlined"
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        height: "32px",
-                        borderRadius: "6px",
-                        px: "12px",
-                        fontSize: "14px",
-                        backgroundColor: "#f5f5f5",
-                      },
-                      "& input::placeholder": {
-                        color: "#999",
-                        opacity: 1,
-                      },
-                    }}
-                  />
-                </Grid> */}
                 </Grid>
               </Box>
             </Box>
