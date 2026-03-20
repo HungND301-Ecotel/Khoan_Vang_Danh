@@ -374,6 +374,7 @@ export default function InitialPlannedCostModal({
 
                         return (
                           <Paper
+                            key={index}
                             elevation={0}
                             sx={{
                               border: "1px solid #d0d7de",
@@ -564,7 +565,7 @@ export default function InitialPlannedCostModal({
                                 </Typography>
                                 <FieldAutoCompleted
                                   formik={formik}
-                                  field="assignmentNormCode"
+                                  field={`phases[${index}].assignmentNormCode`}
                                   title=""
                                   labelkey="code"
                                   data={assignmentnorms.data}
@@ -585,7 +586,7 @@ export default function InitialPlannedCostModal({
                                 </Typography>
                                 <FieldAutoCompleted
                                   formik={formik}
-                                  field="adjustmentNormCode"
+                                  field={`phases[${index}].adjustmentNormCode`}
                                   title=""
                                   labelkey="code"
                                   data={adjustmentnorms.data}
