@@ -38,6 +38,7 @@ import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
 import FieldInput from "../../../components/TextField/FieldInput";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
+import BaseModal from "../../../components/Common/BaseModal";
 const validationSchema = yup.object({
   curbSlope: yup.string().required("Độ dốc vỉa không được để trống"),
   thickness: yup.string().required("Độ dày vỉa không được để trống"),
@@ -397,67 +398,48 @@ export default function CuttingNormKBModal({
     setIsImportModalOpen(false);
   };
   return (
-    <Dialog
+    <BaseModal
       open={open}
       onClose={handleClose}
-      PaperProps={{
-        sx: {
-          width: "800px",
-          height: "740px",
-          p: "40px",
-          backgroundColor: "#F1F2F5",
-          borderRadius: "12px",
-        },
-      }}
-    >
-      {/* Nút X góc trên phải */}
-      <IconButton
-        onClick={handleClose}
-        sx={{
-          position: "absolute",
-          top: "40px",
-          right: "40px",
-          width: "16px",
-          height: "16px",
-          opacity: 1,
-        }}
-      >
-        <CloseIcon sx={{ fontSize: "16px" }} />
-      </IconButton>
-
-      <DialogTitle sx={{ p: 0 }}>
-        <Breadcrumbs
-          aria-label="breadcrumb"
-          sx={{ fontSize: "14px", mb: "12px" }}
-        >
-          <Typography>Định mức</Typography>
-          <Typography>Khấu than</Typography>
-          <Typography>KB</Typography>
-        </Breadcrumbs>
-
-        <Divider
-          sx={{
-            mb: "12px",
-            borderColor: "#6592B7",
-            opacity: 0.3,
-            borderWidth: "1px",
-          }}
-        />
-
-        {selected ? (
-          <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-            Chỉnh sửa định mức khấu than
-          </Typography>
-        ) : (
-          <Typography
-            sx={{ fontSize: "24px", color: "#2B4A82", fontWeight: 400 }}
+      title={
+        selected
+          ? "Chỉnh sửa định mức khấu than"
+          : "Tạo mới định mức khấu than"
+      }
+      breadcrumbs={["Danh mục","Khấu than","KB"]}
+      showZoom={true}
+      actions={
+        <>
+          <Button
+            onClick={handleClose}
+            sx={{
+              backgroundColor: "#DFE2EA",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
           >
-            Tạo mới định mức khấu than
-          </Typography>
-        )}
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 0 }}>
+            Hủy
+          </Button>
+          <Button
+            onClick={() => formik.submitForm()}
+            variant="contained"
+            sx={{
+              backgroundColor: "#007BFF",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
+          >
+            {selected ? "Cập nhật" : "Xác nhận"}
+          </Button>
+        </>
+      }
+    >
         <FormikProvider value={formik}>
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
             Độ dày vỉa
@@ -504,7 +486,7 @@ export default function CuttingNormKBModal({
             <FieldInput formik={formik} field="code" />
           </Box>
           {hasExistingRecords && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+            <Box sx={{ display: "flex",mt: 2 }}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -523,7 +505,6 @@ export default function CuttingNormKBModal({
                     Tạo định mức bảng phương pháp nội suy
                   </Typography>
                 }
-                sx={{ width: "700px" }}
               />
             </Box>
           )}
@@ -531,7 +512,7 @@ export default function CuttingNormKBModal({
           {showAdditionalRows && (
             <Box sx={{ mt: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "center" }}>
-                <Grid container spacing={2} sx={{ width: "700px" }}>
+                <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <Typography
                       sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -689,7 +670,7 @@ export default function CuttingNormKBModal({
                     key={index}
                     sx={{ display: "flex", justifyContent: "center" }}
                   >
-                    <Grid container spacing={2} sx={{ width: "700px" }}>
+                    <Grid container spacing={2}>
                       <Grid item xs={12} sm={4}>
                         <Typography
                           sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -782,43 +763,13 @@ export default function CuttingNormKBModal({
             }}
           />
         </FormikProvider>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 0, gap: "10px" }}>
-        <Button
-          onClick={handleClose}
-          sx={{
-            backgroundColor: "#DFE2EA",
-            borderRadius: "8px",
-            height: "32px",
-            minWidth: "91px",
-            fontSize: "14px",
-            textTransform: "none",
-          }}
-        >
-          Hủy
-        </Button>
-        <Button
-          onClick={() => formik.submitForm()}
-          variant="contained"
-          sx={{
-            backgroundColor: "#007BFF",
-            borderRadius: "8px",
-            height: "32px",
-            minWidth: "91px",
-            fontSize: "14px",
-            textTransform: "none",
-          }}
-        >
-          {selected ? "Cập nhật" : "Xác nhận"}
-        </Button>
-      </DialogActions>
+      
       <SimpleImportModal
         open={isImportModalOpen}
         setOpen={setIsImportModalOpen}
         onImport={handleImportData}
         readExcelFile={readExcelFile}
       />
-    </Dialog>
+    </BaseModal>
   );
 }

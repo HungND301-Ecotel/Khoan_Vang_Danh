@@ -41,6 +41,7 @@ import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 import FieldInput from "../../../components/TextField/FieldInput";
+import BaseModal from "../../../components/Common/BaseModal";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -427,66 +428,46 @@ export default function ExcavationNormModal({
     setIsImportModalOpen(false);
   };
   return (
-    <Dialog
+    <BaseModal
       open={open}
       onClose={handleClose}
-      PaperProps={{
-        sx: {
-          width: "800px",
-          maxHeight: "90vh",
-          p: "40px",
-          backgroundColor: "#F1F2F5",
-          borderRadius: "12px",
-        },
-      }}
-    >
-      <IconButton
-        onClick={handleClose}
-        sx={{
-          position: "absolute",
-          top: "40px",
-          right: "40px",
-          width: "16px",
-          height: "16px",
-          opacity: 1,
-        }}
-      >
-        <CloseIcon sx={{ fontSize: "16px" }} />
-      </IconButton>
-
-      <DialogTitle sx={{ p: 0 }}>
-        <Breadcrumbs
-          aria-label="breadcrumb"
-          sx={{ fontSize: "14px", mb: "12px" }}
-        >
-          <Typography>Định mức</Typography>
-          <Typography>Đào lò</Typography>
-        </Breadcrumbs>
-
-        <Divider
-          sx={{
-            mb: "12px",
-            borderColor: "#6592B7",
-            opacity: 0.3,
-            borderWidth: "1px",
-          }}
-        />
-
-        {selected ? (
-          <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-            Chỉnh sửa định mức đào lò
-          </Typography>
-        ) : (
-          <Typography
-            sx={{ fontSize: "24px", color: "#2B4A82", fontWeight: 400 }}
+      title={selected ? "Chỉnh sửa định mức đào lò" : "Tạo mới định mức đào lò"}
+      breadcrumbs={["Danh mục", "Thông số", "Định mức đào lò"]}
+      showZoom={true}
+      actions={
+        <>
+          <Button
+            onClick={handleClose}
+            sx={{
+              backgroundColor: "#DFE2EA",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
           >
-            Tạo mới định mức đào lò
-          </Typography>
-        )}
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 0, overflowY: "auto" }}>
-        <FormikProvider value={formik}>
+            Hủy
+          </Button>
+          <Button
+            onClick={() => formik.submitForm()}
+            variant="contained"
+            sx={{
+              backgroundColor: "#007BFF",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
+          >
+            {selected ? "Cập nhật" : "Xác nhận"}
+          </Button>
+        </>
+      }
+    >
+      <FormikProvider value={formik}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
             Nhóm công đoạn
           </Typography>
@@ -505,7 +486,7 @@ export default function ExcavationNormModal({
             />
           </Box>
 
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+          <Typography sx={{ fontWeight: 500, fontSize: "14px" }}>
             Công đoạn
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
@@ -518,7 +499,7 @@ export default function ExcavationNormModal({
             />
           </Box>
 
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+          <Typography sx={{ fontWeight: 500, fontSize: "14px" }}>
             Công nghệ xúc
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
@@ -534,9 +515,7 @@ export default function ExcavationNormModal({
           {/* Chống - only show when checkbox is NOT checked */}
           {/* {!showAdditionalRows && ( */}
           <>
-            <Typography
-              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
-            >
+            <Typography sx={{ fontWeight: 500, fontSize: "14px" }}>
               Chống
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "center" }}>
@@ -551,7 +530,7 @@ export default function ExcavationNormModal({
           </>
           {/* )} */}
 
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+          <Typography sx={{ fontWeight: 500, fontSize: "14px" }}>
             Mã định mức
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
@@ -560,109 +539,93 @@ export default function ExcavationNormModal({
 
           {/* Checkbox for additional rows */}
           {hasExistingRecords && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showAdditionalRows}
-                    onChange={(e) => setShowAdditionalRows(e.target.checked)}
-                    sx={{
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showAdditionalRows}
+                  onChange={(e) => setShowAdditionalRows(e.target.checked)}
+                  sx={{
+                    color: "#007BFF",
+                    "&.Mui-checked": {
                       color: "#007BFF",
-                      "&.Mui-checked": {
-                        color: "#007BFF",
-                      },
-                    }}
-                  />
-                }
-                label={
-                  <Typography sx={{ fontSize: "14px" }}>
-                    Tạo định mức bảng phương pháp nội suy
-                  </Typography>
-                }
-                sx={{ width: "700px" }}
-              />
-            </Box>
+                    },
+                  }}
+                />
+              }
+              label={
+                <Typography sx={{ fontSize: "14px" }}>
+                  Tạo định mức bảng phương pháp nội suy
+                </Typography>
+              }
+            />
           )}
 
           {/* Additional rows - shown when checkbox is checked */}
           {showAdditionalRows && (
-            <Box sx={{ mt: 2 }}>
-              <Box sx={{ display: "flex", justifyContent: "center" }}>
-                <Grid container spacing={2} sx={{ width: "700px" }}>
-                  <Grid item xs={12}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Điểm nội suy
-                    </Typography>
-                    <FieldInput
-                      formik={formik}
-                      field="predictingPoint"
-                      title=""
-                      type="number"
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Định mức cận trên
-                    </Typography>
-                    <FieldAutoCompleted
-                      data={existingNorms}
-                      formik={formik}
-                      labelkey="code"
-                      field="upperLimitNorm"
-                      title=""
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Điểm cận trên
-                    </Typography>
-                    <FieldInput
-                      formik={formik}
-                      field="upperLimitPoint"
-                      title=""
-                      type="number"
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Định mức cận dưới
-                    </Typography>
-                    <FieldAutoCompleted
-                      data={existingNorms}
-                      formik={formik}
-                      labelkey="code"
-                      field="lowerLimitNorm"
-                      title=""
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Điểm cận dưới
-                    </Typography>
-                    <FieldInput
-                      formik={formik}
-                      field="lowerLimitPoint"
-                      title=""
-                      type="number"
-                    />
-                  </Grid>
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Điểm nội suy
+                  </Typography>
+                  <FieldInput
+                    formik={formik}
+                    field="predictingPoint"
+                    title=""
+                    type="number"
+                  />
                 </Grid>
-              </Box>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Định mức cận trên
+                  </Typography>
+                  <FieldAutoCompleted
+                    data={existingNorms}
+                    formik={formik}
+                    labelkey="code"
+                    field="upperLimitNorm"
+                    title=""
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Điểm cận trên
+                  </Typography>
+                  <FieldInput
+                    formik={formik}
+                    field="upperLimitPoint"
+                    title=""
+                    type="number"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Định mức cận dưới
+                  </Typography>
+                  <FieldAutoCompleted
+                    data={existingNorms}
+                    formik={formik}
+                    labelkey="code"
+                    field="lowerLimitNorm"
+                    title=""
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Điểm cận dưới
+                  </Typography>
+                  <FieldInput
+                    formik={formik}
+                    field="lowerLimitPoint"
+                    title=""
+                    type="number"
+                  />
+                </Grid>
+              </Grid>
             </Box>
           )}
           <Divider
             sx={{
-              mt: "12px",
               mb: "12px",
               borderColor: "#6592B7",
               opacity: 0.3,
@@ -756,7 +719,7 @@ export default function ExcavationNormModal({
                     key={index}
                     sx={{ display: "flex", justifyContent: "center" }}
                   >
-                    <Grid container spacing={2} sx={{ width: "700px" }}>
+                    <Grid container spacing={2}>
                       <Grid item xs={12} sm={4}>
                         <Typography
                           sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
@@ -846,44 +809,15 @@ export default function ExcavationNormModal({
               borderWidth: "1px",
             }}
           />
-        </FormikProvider>
-      </DialogContent>
+        </Box>
+      </FormikProvider>
 
-      <DialogActions sx={{ px: 0, gap: "10px" }}>
-        <Button
-          onClick={handleClose}
-          sx={{
-            backgroundColor: "#DFE2EA",
-            borderRadius: "8px",
-            height: "32px",
-            minWidth: "91px",
-            fontSize: "14px",
-            textTransform: "none",
-          }}
-        >
-          Hủy
-        </Button>
-        <Button
-          onClick={() => formik.submitForm()}
-          variant="contained"
-          sx={{
-            backgroundColor: "#007BFF",
-            borderRadius: "8px",
-            height: "32px",
-            minWidth: "91px",
-            fontSize: "14px",
-            textTransform: "none",
-          }}
-        >
-          {selected ? "Cập nhật" : "Xác nhận"}
-        </Button>
-      </DialogActions>
       <SimpleImportModal
         open={isImportModalOpen}
         setOpen={setIsImportModalOpen}
         onImport={handleImportData}
         readExcelFile={readExcelFile}
       />
-    </Dialog>
+    </BaseModal>
   );
 }

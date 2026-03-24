@@ -1,22 +1,11 @@
-import {
-  Box,
-  Breadcrumbs,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  TextField,
-  Typography,
-} from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+// UnitModal.tsx
+import { Box, Button, Typography } from "@mui/material";
 import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
 import { UnitType } from "../../../types";
-import { Divider } from "antd";
 import FieldInput from "../../../components/TextField/FieldInput";
+import BaseModal from "../../../components/Common/BaseModal";
 
 const validationSchema = yup.object({
   name: yup.string().required("Đơn vị tính không được để trống"),
@@ -49,63 +38,17 @@ export default function UnitModal({
     setOpen(false);
   };
 
+  const title = selectedUnit ? "Chỉnh sửa đơn vị tính" : "Tạo mới đơn vị tính";
+
   return (
-    <Dialog
+    <BaseModal
       open={open}
       onClose={handleClose}
-      PaperProps={{
-        sx: {
-          width: "800px",
-          height: "740px",
-          p: "40px",
-          position: "relative",
-          borderRadius: "12px",
-        },
-      }}
-    >
-      <IconButton
-        onClick={handleClose}
-        sx={{
-          position: "absolute",
-          top: "40px",
-          right: "40px",
-          width: "16px",
-          height: "16px",
-          opacity: 1,
-        }}
-      >
-        <CloseIcon sx={{ fontSize: "16px" }} />
-      </IconButton>
-
-      <DialogTitle sx={{ p: 0, mt: "16px" }}>
-        <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "14px" }}>
-          <Typography>Danh mục</Typography>
-          <Typography>Đơn vị tính</Typography>
-        </Breadcrumbs>
-        <Divider
-          style={{
-            margin: "10px 0",
-            borderBlockWidth: 1,
-            opacity: "30%",
-            borderColor: "#6592B7",
-          }}
-        />
-
-        <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-          {selectedUnit ? "Chỉnh sửa đơn vị tính" : "Tạo mới đơn vị tính"}
-        </Typography>
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 0, mt: 3 }}>
-        <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-          Đơn vị tính
-        </Typography>
-
-        <Box sx={{ display: "flex", justifyContent: "center" }}>
-          <FieldInput formik={formik} field="name" />
-        </Box>
-
-        <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
+      title={title}
+      breadcrumbs={["Danh mục", "Đơn vị tính"]}
+      showZoom={true}
+      actions={
+        <>
           <Button
             onClick={handleClose}
             sx={{
@@ -133,8 +76,15 @@ export default function UnitModal({
           >
             {selectedUnit ? "Cập nhật" : "Xác nhận"}
           </Button>
-        </DialogActions>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+        Đơn vị tính
+      </Typography>
+      <Box sx={{ display: "flex", justifyContent: "center" }}>
+        <FieldInput formik={formik} field="name" />
+      </Box>
+    </BaseModal>
   );
 }

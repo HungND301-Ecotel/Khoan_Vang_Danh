@@ -66,6 +66,7 @@ export const AppMultiAutocomplete = <T extends { _id?: string }>({
         renderInput={(params) => (
           <TextField
             {...params}
+            fullWidth
             label={label}
             variant="outlined"
             error={error}
@@ -74,7 +75,7 @@ export const AppMultiAutocomplete = <T extends { _id?: string }>({
           />
         )}
         sx={{
-          width: width,
+          minWidth: "100%",
           "& .MuiInputBase-root": {
             minHeight: "32px",
             borderRadius: "6px",

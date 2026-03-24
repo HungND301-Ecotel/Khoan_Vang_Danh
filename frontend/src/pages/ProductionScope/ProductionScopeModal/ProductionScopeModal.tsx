@@ -23,13 +23,13 @@ import {
   PhaseInputType,
 } from "../../../types";
 import { useQuery } from "@tanstack/react-query";
+import BaseModal from "../../../components/Common/BaseModal";
+import FieldInput from "../../../components/TextField/FieldInput";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã diện sản xuất không được để trống"),
   name: yup.string().required("Tên diện sản xuất không được để trống"),
-  phases: yup
-    .array()
-    .min(1, "Phải chọn ít nhất một công đoạn")
+  phases: yup.array().min(1, "Phải chọn ít nhất một công đoạn"),
 });
 
 export default function ProductionScopeModal({
@@ -72,7 +72,7 @@ export default function ProductionScopeModal({
 
     if (selected && selected.phases.length > 0) {
       const selectedCodes = phases.data.filter((ac: any) =>
-        selected.phases.some((norm) => norm.phase?._id === ac._id)
+        selected.phases.some((norm) => norm.phase?._id === ac._id),
       );
       setSelectedPhases(selectedCodes);
     }
@@ -81,258 +81,195 @@ export default function ProductionScopeModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    setSelectedPhases([]);
   };
 
   return (
-    <Dialog
+    <BaseModal
       open={open}
       onClose={handleClose}
-      PaperProps={{
-        sx: {
-          // width: "817px",
-          maxWidth: "817px",
-          height: "740px",
-          p: "40px",
-          position: "relative",
-          borderRadius: '12px'
-        },
-      }}
-    >
-      <IconButton
-        onClick={handleClose}
-        sx={{
-          position: "absolute",
-          top: "40px",
-          right: "40px",
-          width: "16px",
-          height: "16px",
-          opacity: 1,
-        }}
-      >
-        <CloseIcon sx={{ fontSize: "16px" }} />
-      </IconButton>
-
-      <DialogTitle sx={{ p: 0, mt: "16px" }}>
-        <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: "14px" }}>
-          <Typography>Danh mục</Typography>
-          <Typography>Diện sản xuất</Typography>
-        </Breadcrumbs>
-        <Divider
-          style={{
-            margin: "10px 0",
-            borderBlockWidth: 1,
-            opacity: "30%",
-            borderColor: "#6592B7",
-          }}
-        />
-        <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-          {selected ? "Sửa diện sản xuất" : "Tạo mới diện sản xuất"}
-        </Typography>
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 0, mt: 3 }}>
-        <FormikProvider value={formik}>
-          <Box
-            component="form"
-            onSubmit={formik.handleSubmit}
-            sx={{ display: "flex", justifyContent: "center" }}
+      title={selected ? "Chỉnh sửa diện sản xuất" : "Tạo mới diện sản xuất"}
+      breadcrumbs={["Danh mục", "Thông số", "Diện sản xuất"]}
+      showZoom={true}
+      actions={
+        <>
+          <Button
+            onClick={handleClose}
+            sx={{
+              backgroundColor: "#DFE2EA",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-                width: "700px",
-              }}
-            >
-              <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                  Mã diện sản xuất <span style={{ color: "red" }}>*</span>
-                </Typography>
-                <TextField
-                  fullWidth
-                  id="code"
-                  name="code"
-                  placeholder="Input Text"
-                  value={formik.values.code}
-                  onChange={formik.handleChange}
-                  error={formik.touched.code && Boolean(formik.errors.code)}
-                  helperText={formik.touched.code && formik.errors.code}
-                  variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      minHeight: "32px",
-                      borderRadius: "6px",
-                      paddingRight: "12px",
-                      paddingLeft: "12px",
-                      fontSize: "14px",
-                    },
-                  }}
-                />
-              </Box>
+            Hủy
+          </Button>
+          <Button
+            onClick={() => formik.submitForm()}
+            variant="contained"
+            sx={{
+              backgroundColor: "#007BFF",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
+          >
+            {selected ? "Cập nhật" : "Xác nhận"}
+          </Button>
+        </>
+      }
+    >
+      <FormikProvider value={formik}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          <Box>
+            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+              Mã diện sản xuất <span style={{ color: "red" }}>*</span>
+            </Typography>
+            <FieldInput formik={formik} field="code" />
+          </Box>
 
-              {/* Tên diện sản xuất */}
-              <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                  Tên diện sản xuất <span style={{ color: "red" }}>*</span>
-                </Typography>
+          {/* Tên diện sản xuất */}
+          <Box>
+            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+              Tên diện sản xuất <span style={{ color: "red" }}>*</span>
+            </Typography>
+            <FieldInput formik={formik} field="name" />
+          </Box>
+          <Box>
+            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+              Công đoạn
+            </Typography>
+            <Autocomplete
+              multiple
+              size="small"
+              options={phases.data.filter(
+                (opt: PhaseInputType) =>
+                  !selectedPhases.some((selected) => selected._id === opt._id),
+              )}
+              getOptionLabel={(option: PhaseInputType) => option.code || ""}
+              value={selectedPhases}
+              onChange={(event, newValue) => {
+                setSelectedPhases(newValue);
+                const updatedNorms = newValue.map((item) => {
+                  const existing = formik.values.phases.find(
+                    (n: any) => n.phase === item._id,
+                  );
+                  return {
+                    phase: item._id,
+                    // production: existing?.production || undefined,
+                  };
+                });
+                formik.setFieldValue("phases", updatedNorms);
+              }}
+              renderInput={(params) => (
                 <TextField
-                  fullWidth
-                  id="name"
-                  name="name"
-                  placeholder="Input Text"
-                  value={formik.values.name}
-                  onChange={formik.handleChange}
-                  error={formik.touched.name && Boolean(formik.errors.name)}
-                  helperText={formik.touched.name && formik.errors.name}
+                  {...params}
+                  placeholder="Chọn công đoạn"
                   variant="outlined"
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      minHeight: "32px",
-                      borderRadius: "6px",
-                      paddingRight: "12px",
-                      paddingLeft: "12px",
-                      fontSize: "14px",
-                    },
-                  }}
+                  size="small"
+                  error={
+                    formik.touched.phases &&
+                    Boolean(formik.errors.phases) &&
+                    typeof formik.errors.phases === "string" // CHỈ BÁO LỖI NẾU LÀ CHUỖI
+                  }
+                  helperText={
+                    formik.touched.phases &&
+                    typeof formik.errors.phases === "string"
+                      ? formik.errors.phases // TRUYỀN CHUỖI VÀO helperText
+                      : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
+                  }
                 />
-              </Box>
-              <Box>
-                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                  Công đoạn
-                </Typography>
-                <Autocomplete
-                  multiple
-                  options={phases.data.filter(
-                    (opt: PhaseInputType) =>
-                      !selectedPhases.some(
-                        (selected) => selected._id === opt._id
-                      )
-                  )}
-                  getOptionLabel={(option: PhaseInputType) => option.code || ""}
-                  value={selectedPhases}
-                  onChange={(event, newValue) => {
-                    setSelectedPhases(newValue);
-                    const updatedNorms = newValue.map((item) => {
-                      const existing = formik.values.phases.find(
-                        (n: any) => n.phase === item._id
-                      );
-                      return {
-                        phase: item._id,
-                        // production: existing?.production || undefined,
-                      };
-                    });
-                    formik.setFieldValue("phases", updatedNorms);
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      placeholder="Chọn công đoạn"
-                      variant="outlined"
+              )}
+            />
+          </Box>
+          <FieldArray name="phases">
+            {({ push, remove }) => (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {formik.values.phases.map((item: any, index: number) => {
+                  const phase = phases.data.find(
+                    (pg: PhaseInputType) => pg._id === item.phase,
+                  );
+                  return (
+                    <Box
+                      key={index}
                       sx={{
-                        "& .MuiInputBase-root": {
-                          minHeight: "32px",
-                          borderRadius: "6px",
-                          paddingRight: "12px",
-                          paddingLeft: "12px",
-                          fontSize: "14px",
-                        },
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr auto",
+                        gap: 1.5,
+                        alignItems: "center",
+                        width: "100%",
+                        paddingLeft: "20px", // Thêm padding bên trái để lùi vào
                       }}
-                      error={
-                        formik.touched.phases &&
-                        Boolean(formik.errors.phases) &&
-                        typeof formik.errors.phases === 'string' // CHỈ BÁO LỖI NẾU LÀ CHUỖI
-                      }
-                      helperText={
-                        formik.touched.phases &&
-                          typeof formik.errors.phases === 'string'
-                          ? formik.errors.phases // TRUYỀN CHUỖI VÀO helperText
-                          : undefined // Nếu là mảng lỗi, không truyền gì cả (tránh lỗi Type)
-                      }
-                    />
-                  )}
-                />
-              </Box>
-              <FieldArray name="phases">
-                {({ push, remove }) => (
-                  <Box
-                    sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
-                  >
-                    {formik.values.phases.map((item: any, index: number) => {
-                      const phase = phases.data.find(
-                        (pg: PhaseInputType) => pg._id === item.phase
-                      );
-                      return (
-                        <Box
-                          key={index}
+                    >
+                      {/* Mã công đoạn */}
+                      <Box sx={{ marginLeft: "10px" }}>
+                        {" "}
+                        {/* Thêm margin-left để lùi vào thêm */}
+                        <Typography
                           sx={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr auto",
-                            gap: 1.5,
-                            alignItems: "center",
-                            width: "100%",
-                            paddingLeft: "20px", // Thêm padding bên trái để lùi vào
+                            fontWeight: 500,
+                            fontSize: "14px",
+                            mb: 0.5,
                           }}
                         >
-                          {/* Mã công đoạn */}
-                          <Box sx={{ marginLeft: "10px" }}>
-                            {" "}
-                            {/* Thêm margin-left để lùi vào thêm */}
-                            <Typography
-                              sx={{
-                                fontWeight: 500,
-                                fontSize: "14px",
-                                mb: 0.5,
-                              }}
-                            >
-                              Mã công đoạn
-                            </Typography>
-                            <TextField
-                              fullWidth
-                              size="small"
-                              value={phase?.code || ""}
-                              InputLabelProps={{ shrink: true }}
-                              disabled
-                              sx={{
-                                "& .MuiInputBase-root": {
-                                  height: "32px",
-                                  borderRadius: "6px",
-                                  paddingRight: "12px",
-                                  paddingLeft: "12px",
-                                  fontSize: "14px",
-                                },
-                              }}
-                            />
-                          </Box>
-                          <Box>
-                            <Typography
-                              sx={{
-                                fontWeight: 500,
-                                fontSize: "14px",
-                                mb: 0.5,
-                              }}
-                            >
-                              Tên công đoạn
-                            </Typography>
-                            <TextField
-                              fullWidth
-                              size="small"
-                              value={phase?.name || ""}
-                              InputLabelProps={{ shrink: true }}
-                              disabled
-                              sx={{
-                                "& .MuiInputBase-root": {
-                                  height: "32px",
-                                  borderRadius: "6px",
-                                  paddingRight: "12px",
-                                  paddingLeft: "12px",
-                                  fontSize: "14px",
-                                },
-                              }}
-                            />
-                          </Box>
+                          Mã công đoạn
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={phase?.code || ""}
+                          InputLabelProps={{ shrink: true }}
+                          disabled
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              paddingRight: "12px",
+                              paddingLeft: "12px",
+                              fontSize: "14px",
+                            },
+                          }}
+                        />
+                      </Box>
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "14px",
+                            mb: 0.5,
+                          }}
+                        >
+                          Tên công đoạn
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={phase?.name || ""}
+                          InputLabelProps={{ shrink: true }}
+                          disabled
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              height: "32px",
+                              borderRadius: "6px",
+                              paddingRight: "12px",
+                              paddingLeft: "12px",
+                              fontSize: "14px",
+                            },
+                          }}
+                        />
+                      </Box>
 
-                          {/* Sản lượng
+                      {/* Sản lượng
                           <Box>
                             <Typography
                               sx={{
@@ -369,7 +306,7 @@ export default function ProductionScopeModal({
                             />
                           </Box> */}
 
-                          {/* Đơn vị tính
+                      {/* Đơn vị tính
                           <Box>
                             <Typography
                               sx={{
@@ -398,69 +335,36 @@ export default function ProductionScopeModal({
                             />
                           </Box> */}
 
-                          {/* Nút xóa */}
-                          <IconButton
-                            onClick={() => {
-                              const updatedPhases = selectedPhases.filter(
-                                (phase) =>
-                                  phase._id !==
-                                  formik.values.phases[index].phase
-                              );
-                              setSelectedPhases(updatedPhases);
-                              remove(index);
-                            }}
-                            sx={{
-                              mt: 2.5,
-                              width: 24,
-                              height: 24,
-                              color: "#666",
-                              "&:hover": {
-                                backgroundColor: "#f5f5f5",
-                              },
-                            }}
-                          >
-                            <CloseIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                )}
-              </FieldArray>
-
-            </Box>
-          </Box>
-        </FormikProvider>
-      </DialogContent>
-      <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
-        <Button
-          onClick={handleClose}
-          sx={{
-            backgroundColor: "#DFE2EA",
-            borderRadius: "8px",
-            height: "32px",
-            minWidth: "91px",
-            fontSize: "14px",
-            textTransform: "none",
-          }}
-        >
-          Hủy
-        </Button>
-        <Button
-          onClick={() => formik.submitForm()}
-          variant="contained"
-          sx={{
-            backgroundColor: "#007BFF",
-            borderRadius: "8px",
-            height: "32px",
-            minWidth: "91px",
-            fontSize: "14px",
-            textTransform: "none",
-          }}
-        >
-          {selected ? "Cập nhật" : "Xác nhận"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+                      {/* Nút xóa */}
+                      <IconButton
+                        onClick={() => {
+                          const updatedPhases = selectedPhases.filter(
+                            (phase) =>
+                              phase._id !== formik.values.phases[index].phase,
+                          );
+                          setSelectedPhases(updatedPhases);
+                          remove(index);
+                        }}
+                        sx={{
+                          mt: 2.5,
+                          width: 24,
+                          height: 24,
+                          color: "#666",
+                          "&:hover": {
+                            backgroundColor: "#f5f5f5",
+                          },
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
+          </FieldArray>
+        </Box>
+      </FormikProvider>
+    </BaseModal>
   );
 }

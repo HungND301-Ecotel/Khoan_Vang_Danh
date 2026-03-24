@@ -33,6 +33,7 @@ import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 import FieldInput from "../../../components/TextField/FieldInput";
+import BaseModal from "../../../components/Common/BaseModal";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -411,490 +412,429 @@ export default function CuttingNormModal({
   };
 
   return (
-    <Dialog
+    <BaseModal
       open={open}
       onClose={handleClose}
-      PaperProps={{
-        sx: {
-          width: "800px",
-          height: "740px",
-          p: "40px",
-          backgroundColor: "#F1F2F5",
-          borderRadius: "12px",
-        },
-      }}
+      title={
+        selected
+          ? "Chỉnh sửa định mức xén lò"
+          : "Tạo mới định mức xén lò"
+      }
+      breadcrumbs={["Danh mục", "Thông số", "Định mức xén lò"]}
+      showZoom={true}
+      actions={
+        <>
+          <Button
+            onClick={handleClose}
+            sx={{
+              backgroundColor: "#DFE2EA",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={() => formik.submitForm()}
+            variant="contained"
+            sx={{
+              backgroundColor: "#007BFF",
+              borderRadius: "8px",
+              height: "32px",
+              minWidth: "91px",
+              fontSize: "14px",
+              textTransform: "none",
+            }}
+          >
+            {selected ? "Cập nhật" : "Xác nhận"}
+          </Button>
+        </>
+      }
     >
-      <IconButton
-        onClick={handleClose}
-        sx={{
-          position: "absolute",
-          top: "40px",
-          right: "40px",
-          width: "16px",
-          height: "16px",
-          opacity: 1,
-        }}
-      >
-        <CloseIcon sx={{ fontSize: "16px" }} />
-      </IconButton>
+      <FormikProvider value={formik}>
+        {/* Nhóm công đoạn */}
+        <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
+          Nhóm công đoạn
+        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <FieldAutoCompleted
+            data={phasegroups.data}
+            formik={formik}
+            labelkey="name"
+            field="phaseGroup"
+            title=""
+            disabled={true}
+            onChange={(newValue) => {
+              setPhaseGroup(newValue._id);
+              formik.setFieldValue("phase", "");
+            }}
+          />
+        </Box>
 
-      <DialogTitle sx={{ p: 0 }}>
-        <Breadcrumbs
-          aria-label="breadcrumb"
-          sx={{ fontSize: "14px", mb: "12px" }}
-        >
-          <Typography>Định mức</Typography>
-          <Typography>Xén lò</Typography>
-        </Breadcrumbs>
+        {/* Công đoạn */}
+        <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+          Công đoạn
+        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <FieldAutoCompleted
+            data={phases.data}
+            formik={formik}
+            labelkey="name"
+            field="phase"
+            title=""
+          />
+        </Box>
+
+        {/* Tiết diện lò xén */}
+        <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+          Tiết diện lò xén
+        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <FieldAutoCompleted
+            data={crosssections.data}
+            formik={formik}
+            labelkey="name"
+            field="crossSection"
+            title=""
+          />
+        </Box>
+
+        {/* Độ cứng */}
+        <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+          Độ cứng
+        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <FieldAutoCompleted
+            data={hardness.data}
+            formik={formik}
+            labelkey="name"
+            field="hardness"
+            title=""
+          />
+        </Box>
+
+        {/* Mã định mức */}
+        <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+          Mã định mức
+        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <FieldInput formik={formik} field="code" />
+        </Box>
+
+        {/* Checkbox cho nội suy */}
+        {hasExistingRecords && (
+          <Box sx={{ display: "flex", mt: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showAdditionalRows}
+                  onChange={(e) => setShowAdditionalRows(e.target.checked)}
+                  sx={{
+                    color: "#007BFF",
+                    "&.Mui-checked": { color: "#007BFF" },
+                  }}
+                />
+              }
+              label={
+                <Typography sx={{ fontSize: "14px" }}>
+                  Tạo định mức bằng phương pháp nội suy
+                </Typography>
+              }
+            />
+          </Box>
+        )}
+
+        {/* Các ô nhập nội suy */}
+        {showAdditionalRows && (
+          <Box sx={{ mt: 2 }}>
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Điểm nội suy
+                  </Typography>
+                  <FieldInput
+                    formik={formik}
+                    field="predictingPoint"
+                    title=""
+                    type="number"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Định mức cận trên
+                  </Typography>
+                  <FieldAutoCompleted
+                    data={existingNorms}
+                    formik={formik}
+                    labelkey="code"
+                    field="upperLimitNorm"
+                    title=""
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Điểm cận trên
+                  </Typography>
+                  <FieldInput
+                    formik={formik}
+                    field="upperLimitPoint"
+                    title=""
+                    type="number"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Định mức cận dưới
+                  </Typography>
+                  <FieldAutoCompleted
+                    data={existingNorms}
+                    formik={formik}
+                    labelkey="code"
+                    field="lowerLimitNorm"
+                    title=""
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                    Điểm cận dưới
+                  </Typography>
+                  <FieldInput
+                    formik={formik}
+                    field="lowerLimitPoint"
+                    title=""
+                    type="number"
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          </Box>
+        )}
+
         <Divider
           sx={{
+            mt: "12px",
             mb: "12px",
             borderColor: "#6592B7",
             opacity: 0.3,
             borderWidth: "1px",
           }}
         />
-        {selected ? (
-          <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-            Chỉnh sửa định mức xén lò
+
+        {/* Mã giao khoán */}
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+            Mã giao khoán
           </Typography>
-        ) : (
-          <Typography
-            sx={{ fontSize: "24px", color: "#2B4A82", fontWeight: 400 }}
-          >
-            Tạo mới định mức xén lò
-          </Typography>
-        )}
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 0 }}>
-        <FormikProvider value={formik}>
-          {/* Nhóm công đoạn */}
-          <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
-            Nhóm công đoạn
-          </Typography>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldAutoCompleted
-              data={phasegroups.data}
-              formik={formik}
-              labelkey="name"
-              field="phaseGroup"
-              title=""
-              disabled={true}
-              onChange={(newValue) => {
-                setPhaseGroup(newValue._id);
-                formik.setFieldValue("phase", "");
-              }}
-            />
-          </Box>
-
-          {/* Công đoạn */}
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-            Công đoạn
-          </Typography>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldAutoCompleted
-              data={phases.data}
-              formik={formik}
-              labelkey="name"
-              field="phase"
-              title=""
-            />
-          </Box>
-
-          {/* Tiết diện lò xén */}
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-            Tiết diện lò xén
-          </Typography>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldAutoCompleted
-              data={crosssections.data}
-              formik={formik}
-              labelkey="name"
-              field="crossSection"
-              title=""
-            />
-          </Box>
-
-          {/* Độ cứng */}
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-            Độ cứng
-          </Typography>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldAutoCompleted
-              data={hardness.data}
-              formik={formik}
-              labelkey="name"
-              field="hardness"
-              title=""
-            />
-          </Box>
-
-          {/* Mã định mức */}
-          <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-            Mã định mức
-          </Typography>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <FieldInput formik={formik} field="code" />
-          </Box>
-
-          {/* Checkbox cho nội suy */}
-          {hasExistingRecords && (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showAdditionalRows}
-                    onChange={(e) => setShowAdditionalRows(e.target.checked)}
-                    sx={{
-                      color: "#007BFF",
-                      "&.Mui-checked": { color: "#007BFF" },
-                    }}
-                  />
-                }
-                label={
-                  <Typography sx={{ fontSize: "14px" }}>
-                    Tạo định mức bằng phương pháp nội suy
-                  </Typography>
-                }
-                sx={{ width: "700px" }}
-              />
-            </Box>
-          )}
-
-          {/* Các ô nhập nội suy */}
-          {showAdditionalRows && (
-            <Box sx={{ mt: 2 }}>
-              <Box sx={{ display: "flex", justifyContent: "center" }}>
-                <Grid container spacing={2} sx={{ width: "700px" }}>
-                  <Grid item xs={12}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Điểm nội suy
-                    </Typography>
-                    <FieldInput
-                      formik={formik}
-                      field="predictingPoint"
-                      title=""
-                      type="number"
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Định mức cận trên
-                    </Typography>
-                    <FieldAutoCompleted
-                      data={existingNorms}
-                      formik={formik}
-                      labelkey="code"
-                      field="upperLimitNorm"
-                      title=""
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Điểm cận trên
-                    </Typography>
-                    <FieldInput
-                      formik={formik}
-                      field="upperLimitPoint"
-                      title=""
-                      type="number"
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Định mức cận dưới
-                    </Typography>
-                    <FieldAutoCompleted
-                      data={existingNorms}
-                      formik={formik}
-                      labelkey="code"
-                      field="lowerLimitNorm"
-                      title=""
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography
-                      sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                    >
-                      Điểm cận dưới
-                    </Typography>
-                    <FieldInput
-                      formik={formik}
-                      field="lowerLimitPoint"
-                      title=""
-                      type="number"
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            </Box>
-          )}
-
-          <Divider
+          <Button
+            size="small"
+            onClick={() => setIsImportModalOpen(true)}
+            startIcon={<CloudUpload />}
+            variant="outlined"
             sx={{
-              mt: "12px",
-              mb: "12px",
-              borderColor: "#6592B7",
-              opacity: 0.3,
-              borderWidth: "1px",
+              textTransform: "none",
+              fontSize: "12px",
+              padding: "4px 8px",
+              minWidth: "auto",
+              borderColor: "#1976d2",
+              color: "#1976d2",
+              "&:hover": {
+                backgroundColor: "#e3f2fd",
+                borderColor: "#1976d2",
+              },
+            }}
+          >
+            Tải lên
+          </Button>
+        </Box>
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <Autocomplete
+            multiple
+            options={assignmentcodes.data}
+            getOptionLabel={(option: AssignmentCodeOutputType) =>
+              `${option.code}`
+            }
+            value={selectedAssignmentCodes}
+            isOptionEqualToValue={(option, value) => option._id === value._id}
+            onChange={(event, newValue) => {
+              setSelectedAssignmentCodes(newValue);
+              const updatedNorms = newValue.map((item) => {
+                const existing = formik.values.norms.find(
+                  (n: any) => n.assignmentCode === item._id,
+                );
+                return {
+                  assignmentCode: item._id,
+                  norm: existing?.norm || undefined,
+                };
+              });
+              formik.setFieldValue("norms", updatedNorms);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="outlined"
+                error={
+                  formik.touched.norms &&
+                  Boolean(formik.errors.norms) &&
+                  typeof formik.errors.norms === "string"
+                }
+                helperText={
+                  formik.touched.norms &&
+                  typeof formik.errors.norms === "string"
+                    ? formik.errors.norms
+                    : undefined
+                }
+                placeholder={
+                  selectedAssignmentCodes.length === 0
+                    ? "Chọn mã giao khoán"
+                    : ""
+                }
+              />
+            )}
+            sx={{
+              minWidth:"100%",
+              "& .MuiInputBase-root": {
+                minHeight: "32px",
+                borderRadius: "6px",
+                px: "12px",
+                fontSize: "14px",
+                backgroundColor:
+                  selectedAssignmentCodes.length > 0 ? "#F2F2F2" : "#FFFFFF",
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                padding: "4px 12px",
+              },
+              "& .MuiAutocomplete-input": {
+                padding: "0 !important",
+                flexGrow: 1,
+                minWidth: "60px",
+              },
+              "& .MuiChip-root": {
+                height: "20px",
+                fontSize: "12px",
+                margin: "2px",
+                lineHeight: "20px",
+              },
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#D9D9D9",
+              },
             }}
           />
+        </Box>
 
-          {/* Mã giao khoán */}
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-              Mã giao khoán
-            </Typography>
-            <Button
-              size="small"
-              onClick={() => setIsImportModalOpen(true)}
-              startIcon={<CloudUpload />}
-              variant="outlined"
+        {/* Danh sách định mức */}
+        <FieldArray name="norms">
+          {() => (
+            <Box
               sx={{
-                textTransform: "none",
-                fontSize: "12px",
-                padding: "4px 8px",
-                minWidth: "auto",
-                borderColor: "#1976d2",
-                color: "#1976d2",
-                "&:hover": {
-                  backgroundColor: "#e3f2fd",
-                  borderColor: "#1976d2",
-                },
+                mt: "12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
               }}
             >
-              Tải lên
-            </Button>
-          </Box>
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Autocomplete
-              multiple
-              options={assignmentcodes.data}
-              getOptionLabel={(option: AssignmentCodeOutputType) =>
-                `${option.code}`
-              }
-              value={selectedAssignmentCodes}
-              isOptionEqualToValue={(option, value) => option._id === value._id}
-              onChange={(event, newValue) => {
-                setSelectedAssignmentCodes(newValue);
-                const updatedNorms = newValue.map((item) => {
-                  const existing = formik.values.norms.find(
-                    (n: any) => n.assignmentCode === item._id,
-                  );
-                  return {
-                    assignmentCode: item._id,
-                    norm: existing?.norm || undefined,
-                  };
-                });
-                formik.setFieldValue("norms", updatedNorms);
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  variant="outlined"
-                  error={
-                    formik.touched.norms &&
-                    Boolean(formik.errors.norms) &&
-                    typeof formik.errors.norms === "string"
-                  }
-                  helperText={
-                    formik.touched.norms &&
-                    typeof formik.errors.norms === "string"
-                      ? formik.errors.norms
-                      : undefined
-                  }
-                  placeholder={
-                    selectedAssignmentCodes.length === 0
-                      ? "Chọn mã giao khoán"
-                      : ""
-                  }
-                />
-              )}
-              sx={{
-                width: "700px",
-                "& .MuiInputBase-root": {
-                  minHeight: "32px",
-                  borderRadius: "6px",
-                  px: "12px",
-                  fontSize: "14px",
-                  backgroundColor:
-                    selectedAssignmentCodes.length > 0 ? "#F2F2F2" : "#FFFFFF",
-                  display: "flex",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  padding: "4px 12px",
-                },
-                "& .MuiAutocomplete-input": {
-                  padding: "0 !important",
-                  flexGrow: 1,
-                  minWidth: "60px",
-                },
-                "& .MuiChip-root": {
-                  height: "20px",
-                  fontSize: "12px",
-                  margin: "2px",
-                  lineHeight: "20px",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#D9D9D9",
-                },
-              }}
-            />
-          </Box>
-
-          {/* Danh sách định mức */}
-          <FieldArray name="norms">
-            {() => (
-              <Box
-                sx={{
-                  mt: "12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2,
-                }}
-              >
-                {formik.values.norms.map((item: any, index: number) => (
-                  <Box
-                    key={index}
-                    sx={{ display: "flex", justifyContent: "center" }}
-                  >
-                    <Grid container spacing={2} sx={{ width: "700px" }}>
-                      <Grid item xs={12} sm={4}>
-                        <Typography
-                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                        >
-                          Mã giao khoán
-                        </Typography>
-                        <TextField
-                          fullWidth
-                          value={
-                            assignmentcodes.data.find(
-                              (ac: AssignmentCodeOutputType) =>
-                                ac._id ===
-                                formik.values.norms[index].assignmentCode,
-                            )?.code || ""
-                          }
-                          InputLabelProps={{ shrink: true }}
-                          variant="outlined"
-                          disabled
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              height: "32px",
-                              borderRadius: "6px",
-                              px: "12px",
-                              fontSize: "14px",
-                              backgroundColor: "#F2F2F2",
-                            },
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#D9D9D9",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={5}>
-                        <Typography
-                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                        >
-                          Tên vật tư, tài sản
-                        </Typography>
-                        <TextField
-                          fullWidth
-                          value={
-                            assignmentcodes.data.find(
-                              (ac: AssignmentCodeOutputType) =>
-                                ac._id ===
-                                formik.values.norms[index].assignmentCode,
-                            )?.name || ""
-                          }
-                          InputLabelProps={{ shrink: true }}
-                          variant="outlined"
-                          disabled
-                          sx={{
-                            "& .MuiInputBase-root": {
-                              height: "32px",
-                              borderRadius: "6px",
-                              px: "12px",
-                              fontSize: "14px",
-                              backgroundColor: "#F2F2F2",
-                            },
-                            "& .MuiOutlinedInput-notchedOutline": {
-                              borderColor: "#D9D9D9",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={3}>
-                        <Typography
-                          sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
-                        >
-                          Định mức
-                        </Typography>
-                        <TextFieldNumber
-                          formik={formik}
-                          field={`norms.${index}.norm`}
-                        />
-                      </Grid>
+              {formik.values.norms.map((item: any, index: number) => (
+                <Box
+                  key={index}
+                  sx={{ display: "flex", justifyContent: "center" }}
+                >
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={4}>
+                      <Typography
+                        sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                      >
+                        Mã giao khoán
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        value={
+                          assignmentcodes.data.find(
+                            (ac: AssignmentCodeOutputType) =>
+                              ac._id ===
+                              formik.values.norms[index].assignmentCode,
+                          )?.code || ""
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        variant="outlined"
+                        disabled
+                        sx={{
+                          "& .MuiInputBase-root": {
+                            height: "32px",
+                            borderRadius: "6px",
+                            px: "12px",
+                            fontSize: "14px",
+                            backgroundColor: "#F2F2F2",
+                          },
+                          "& .MuiOutlinedInput-notchedOutline": {
+                            borderColor: "#D9D9D9",
+                          },
+                        }}
+                      />
                     </Grid>
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </FieldArray>
+                    <Grid item xs={12} sm={5}>
+                      <Typography
+                        sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                      >
+                        Tên vật tư, tài sản
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        value={
+                          assignmentcodes.data.find(
+                            (ac: AssignmentCodeOutputType) =>
+                              ac._id ===
+                              formik.values.norms[index].assignmentCode,
+                          )?.name || ""
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        variant="outlined"
+                        disabled
+                        sx={{
+                          "& .MuiInputBase-root": {
+                            height: "32px",
+                            borderRadius: "6px",
+                            px: "12px",
+                            fontSize: "14px",
+                            backgroundColor: "#F2F2F2",
+                          },
+                          "& .MuiOutlinedInput-notchedOutline": {
+                            borderColor: "#D9D9D9",
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <Typography
+                        sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}
+                      >
+                        Định mức
+                      </Typography>
+                      <TextFieldNumber
+                        formik={formik}
+                        field={`norms.${index}.norm`}
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </FieldArray>
 
-          <Divider
-            sx={{
-              mt: "12px",
-              mb: "12px",
-              borderColor: "#6592B7",
-              opacity: 0.3,
-              borderWidth: "1px",
-            }}
-          />
-        </FormikProvider>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 0, gap: "10px" }}>
-        <Button
-          onClick={handleClose}
+        <Divider
           sx={{
-            backgroundColor: "#DFE2EA",
-            borderRadius: "8px",
-            height: "32px",
-            minWidth: "91px",
-            fontSize: "14px",
-            textTransform: "none",
+            mt: "12px",
+            mb: "12px",
+            borderColor: "#6592B7",
+            opacity: 0.3,
+            borderWidth: "1px",
           }}
-        >
-          Hủy
-        </Button>
-        <Button
-          onClick={() => formik.submitForm()}
-          variant="contained"
-          sx={{
-            backgroundColor: "#007BFF",
-            borderRadius: "8px",
-            height: "32px",
-            minWidth: "91px",
-            fontSize: "14px",
-            textTransform: "none",
-          }}
-        >
-          {selected ? "Cập nhật" : "Xác nhận"}
-        </Button>
-      </DialogActions>
+        />
+      </FormikProvider>
 
       <SimpleImportModal
         open={isImportModalOpen}
@@ -902,6 +842,6 @@ export default function CuttingNormModal({
         onImport={handleImportData}
         readExcelFile={readExcelFile}
       />
-    </Dialog>
+    </BaseModal>
   );
 }

@@ -41,26 +41,6 @@ require('./utils/cron')
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 require('dotenv').config()
 
 const app = express()
@@ -103,19 +83,6 @@ app.use('/api/materialcostuseds', MaterialCostUsedRouter)
 app.use('/api/initialplannedcosts', InitialPlannedCostRouter)
 app.use('/api/contractsettlements', ContractSettlementRouter)
 app.use('/api/users', UserRouter)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
