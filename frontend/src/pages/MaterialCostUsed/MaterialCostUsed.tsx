@@ -220,9 +220,7 @@ export default function MaterialCostUsed() {
       dataIndex: "code",
       key: "code",
       render: (_, record) => (
-        <Typography sx={{ fontWeight: "bold" }}>
-          {record.productionScope?.code}
-        </Typography>
+        <Typography>{record.productionScope?.code}</Typography>
       ),
       sorter: (a, b) =>
         (a.productionScope?.code ?? "").localeCompare(

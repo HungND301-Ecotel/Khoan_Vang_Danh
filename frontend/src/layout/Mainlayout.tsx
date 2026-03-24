@@ -20,7 +20,7 @@ import {
   CircleUserRound,
   ClipboardList,
   FileChartColumn,
-  LineChart
+  LineChart,
 } from "lucide-react";
 import {
   Settings as SettingsIcon,
@@ -42,19 +42,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
   const [user, setUser] = useAtom(userAtom);
 
-  const [openProfile, setOpenProfile] = useState(false)
-  const [openChangePass, setOpenChangePass] = useState(false)
-
+  const [openProfile, setOpenProfile] = useState(false);
+  const [openChangePass, setOpenChangePass] = useState(false);
 
   const [menuDanhMucEl, setMenuDanhMucEl] = useState<HTMLElement | null>(null);
   const [menuDonGiaEl, setMenuDonGiaEl] = useState<HTMLElement | null>(null);
   const [menuThongKeEl, setMenuThongKeEl] = useState<HTMLElement | null>(null);
   const [menuSettingsEl, setMenuSettingsEl] = useState<HTMLElement | null>(
-    null
+    null,
   );
-  const [menuReport, setMenuReport] = useState<HTMLElement | null>(
-    null
-  );
+  const [menuReport, setMenuReport] = useState<HTMLElement | null>(null);
   const [materialSubMenuEl, setMaterialSubMenuEl] =
     useState<null | HTMLElement>(null);
 
@@ -141,11 +138,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               THỐNG KÊ VẬN HÀNH
             </Button>
             <Button
-              startIcon={<LineChart strokeWidth="1" style={{ color: "#f35816ff" }} />}
+              startIcon={
+                <LineChart strokeWidth="1" style={{ color: "#f35816ff" }} />
+              }
               sx={{ color: "black" }}
-              onClick={(e) => setMenuReport(e.currentTarget)}
+              onClick={() => navigate("/report/technologykpireport")}
             >
-              Báo cáo
+              BÁO CÁO
             </Button>
           </Box>
           <Box
@@ -447,56 +446,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
       </Menu>
 
-      {/* bao cao */}
-      <Menu
-        anchorEl={menuReport}
-        open={Boolean(menuReport)}
-        onClose={() => setMenuReport(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-      >
-        <MenuItem
-          onClick={() => {
-            navigate("/report/technologykpireport");
-            setMenuReport(null);
-          }}
-        >
-          B/c thực hiện các chỉ tiêu công nghệ
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            navigate("/report/costreport");
-            setMenuReport(null);
-          }}
-        >
-          B/c thực hiện kế hoạch điều hành chi phí theo yếu tố
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            navigate("/report/materialconsumptionreport");
-            setMenuReport(null);
-          }}
-        >
-          B/c thực hiện định mức vật tư theo phân xưởng
-        </MenuItem>
-
-        <MenuItem
-          onClick={() => {
-            navigate("/report/settlementreport");
-            setMenuReport(null);
-          }}
-        >
-          B/c biên bản tổng hợp quyết toán giao khoán
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            navigate("/report/productionphasereport");
-            setMenuReport(null);
-          }}
-        >
-          B/c công đoạn sản xuất
-        </MenuItem>
-      </Menu>
-
       <Menu
         anchorEl={menuSettingsEl}
         open={Boolean(menuSettingsEl)}
@@ -512,10 +461,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <Typography>{user?.fullName}</Typography>
           <Typography>Kế toán</Typography>
         </Box>
-        <MenuItem onClick={() => {
-          setOpenProfile(true)
-          setMenuSettingsEl(null)
-        }}>
+        <MenuItem
+          onClick={() => {
+            setOpenProfile(true);
+            setMenuSettingsEl(null);
+          }}
+        >
           <ListItemIcon>
             <Person2 fontSize="small" />
           </ListItemIcon>
@@ -524,7 +475,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <MenuItem
           onClick={() => {
             setOpenChangePass(true);
-            setMenuSettingsEl(null)
+            setMenuSettingsEl(null);
           }}
         >
           <ListItemIcon>

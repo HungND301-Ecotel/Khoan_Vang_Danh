@@ -1,55 +1,60 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import Login from './pages/Auth/Login';
-import api from './config/api.config';
-import { userAtom } from './atoms/userAtoms';
-import { useAtom } from 'jotai'
-import MainLayout from './layout/Mainlayout';
-import Dashboard from './pages/Dashboard/Dashboard';
-import AssignmentCode from './pages/AssignmentCode/AssignmentCode';
+import React, { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
+import Login from "./pages/Auth/Login";
+import api from "./config/api.config";
+import { userAtom } from "./atoms/userAtoms";
+import { useAtom } from "jotai";
+import MainLayout from "./layout/Mainlayout";
+import Dashboard from "./pages/Dashboard/Dashboard";
+import AssignmentCode from "./pages/AssignmentCode/AssignmentCode";
 
-import Unit from './pages/Unit/Unit';
-import MaterialAssignment from './pages/MaterialAssignment/MaterialAssignment';
-import MaterialAssignmentOutPlan from './pages/MaterialAssignmentOutPlan/MaterialAssignmentOutPlan';
-import PhaseGroup from './pages/PhaseGroup/PhaseGroup';
-import Phase from './pages/Phase/Phase';
-import ExcavationTech from './pages/ExcavationTech/ExcavationTech';
-import Hardness from './pages/Hardness/Hardness';
-import CrossSection from './pages/CrossSection/CrossSection';
-import CurbSlope from './pages/CurbSlope/CurbSlope';
-import Thickness from './pages/Thickness/Thickness';
-import Length from './pages/Length/Length';
-import MiningTech from './pages/MiningTech/MiningTech';
-import Materialunitprice from './pages/MaterialUnitPrice/Materialunitprice';
-import Step from './pages/Step/Step';
-import ExcavationNorm from './pages/ExcavationNorm/ExcavationNorm';
-import CuttingNorm from './pages/CuttingNorm/CuttingNorm';
-import CoalCuttingNormZRY from './pages/CoalCuttingNormZRY/CoalCuttingNormZRY';
-import CoalCuttingNormZH from './pages/CoalCuttingNormZH/CoalCuttingNormZH';
-import CoalCuttingNormKB from './pages/CoalCuttingNormKB/CoalCuttingNormKB';
-import RockRatio from './pages/RockRatio/RockRatio';
-import MirrorRatio from './pages/MirrorRatio/MirrorRatio';
-import AdjustmentNormKKT from './pages/AdjustmentNormKKT/AdjustmentNormKKT';
-import AdjustmentNormKDL from './pages/AdjustmentNormKDL/AdjustmentNormKDL';
-import AdjustmentNormCM from './pages/AdjustmentNormCM/AdjustmentNormCM';
-import ProductScope from './pages/ProductionScope/ProductionScope';
-import DeviceCode from './pages/DeviceCode/DeviceCode';
-import MaterialBudget from './pages/MaterialBudget/MaterialBudget';
-import MaterialCostUsed from './pages/MaterialCostUsed/MaterialCostUsed';
-import Setttlementreport from './pages/SettlementReport/SettlementReport';
-import Ratedadjustmentfactor from './pages/Ratedadjustmentfactor/Ratedadjustmentfactor';
-import Adjustmentfactorfornorms from './pages/Adjustmentfactorfornorms/Adjustmentfactorfornorms';
-import Parameter from './pages/Parameter/Parameter';
-import CoalCuttingNorm from './pages/CoalCuttingNorm/CoalCuttingNorm';
+import Unit from "./pages/Unit/Unit";
+import MaterialAssignment from "./pages/MaterialAssignment/MaterialAssignment";
+import MaterialAssignmentOutPlan from "./pages/MaterialAssignmentOutPlan/MaterialAssignmentOutPlan";
+import PhaseGroup from "./pages/PhaseGroup/PhaseGroup";
+import Phase from "./pages/Phase/Phase";
+import ExcavationTech from "./pages/ExcavationTech/ExcavationTech";
+import Hardness from "./pages/Hardness/Hardness";
+import CrossSection from "./pages/CrossSection/CrossSection";
+import CurbSlope from "./pages/CurbSlope/CurbSlope";
+import Thickness from "./pages/Thickness/Thickness";
+import Length from "./pages/Length/Length";
+import MiningTech from "./pages/MiningTech/MiningTech";
+import Materialunitprice from "./pages/MaterialUnitPrice/Materialunitprice";
+import Step from "./pages/Step/Step";
+import ExcavationNorm from "./pages/ExcavationNorm/ExcavationNorm";
+import CuttingNorm from "./pages/CuttingNorm/CuttingNorm";
+import CoalCuttingNormZRY from "./pages/CoalCuttingNormZRY/CoalCuttingNormZRY";
+import CoalCuttingNormZH from "./pages/CoalCuttingNormZH/CoalCuttingNormZH";
+import CoalCuttingNormKB from "./pages/CoalCuttingNormKB/CoalCuttingNormKB";
+import RockRatio from "./pages/RockRatio/RockRatio";
+import MirrorRatio from "./pages/MirrorRatio/MirrorRatio";
+import AdjustmentNormKKT from "./pages/AdjustmentNormKKT/AdjustmentNormKKT";
+import AdjustmentNormKDL from "./pages/AdjustmentNormKDL/AdjustmentNormKDL";
+import AdjustmentNormCM from "./pages/AdjustmentNormCM/AdjustmentNormCM";
+import ProductScope from "./pages/ProductionScope/ProductionScope";
+import DeviceCode from "./pages/DeviceCode/DeviceCode";
+import MaterialBudget from "./pages/MaterialBudget/MaterialBudget";
+import MaterialCostUsed from "./pages/MaterialCostUsed/MaterialCostUsed";
+import Setttlementreport from "./pages/SettlementReport/SettlementReport";
+import Ratedadjustmentfactor from "./pages/Ratedadjustmentfactor/Ratedadjustmentfactor";
+import Adjustmentfactorfornorms from "./pages/Adjustmentfactorfornorms/Adjustmentfactorfornorms";
+import Parameter from "./pages/Parameter/Parameter";
+import CoalCuttingNorm from "./pages/CoalCuttingNorm/CoalCuttingNorm";
 // import Quarterlycontractsettlement from './pages/Quarterlycontractsettlement/Quarterlycontractsettlement';
-import SettlementReportSummary from './pages/SettlementReportSummary/SettlementReportSummary';
-import InitialPlannedCosts from './pages/InitialPlannedCosts/InitialPlannedCosts';
-import TechnologyKPIReport from './pages/Report/TechnologyKPIReport';
-import CostReport from './pages/Report/CostReport';
-import MaterialConsumptionReport from './pages/Report/MaterialConsumptionReport';
-import SettlementReport from './pages/Report/SettlementReport';
-import ProductionPhaseReport from './pages/Report/ProductionPhaseReport';
+import SettlementReportSummary from "./pages/SettlementReportSummary/SettlementReportSummary";
+import InitialPlannedCosts from "./pages/InitialPlannedCosts/InitialPlannedCosts";
+import TechnologyKPIReport from "./pages/Report/TechnologyKPIReport";
+import CostReport from "./pages/Report/CostReport";
+import MaterialConsumptionReport from "./pages/Report/MaterialConsumptionReport";
+import SettlementReport from "./pages/Report/SettlementReport";
+import ProductionPhaseReport from "./pages/Report/ProductionPhaseReport";
+import ReportLayout from "./layout/ReportLayout";
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -72,6 +77,28 @@ const App = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+
+        <Route
+          path="/report"
+          element={
+            <PrivateRoute>
+              <ReportLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route path="technologykpireport" element={<TechnologyKPIReport />} />
+          <Route path="costreport" element={<CostReport />} />
+          <Route
+            path="materialconsumptionreport"
+            element={<MaterialConsumptionReport />}
+          />
+          <Route path="settlementreport" element={<SettlementReport />} />
+          <Route
+            path="productionphasereport"
+            element={<ProductionPhaseReport />}
+          />
+        </Route>
+
         <Route
           path="/"
           element={
@@ -341,46 +368,6 @@ const App = () => {
           element={
             <PrivateRoute>
               <InitialPlannedCosts />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/report/technologykpireport"
-          element={
-            <PrivateRoute>
-              <TechnologyKPIReport />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/report/costreport"
-          element={
-            <PrivateRoute>
-              <CostReport />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/report/materialconsumptionreport"
-          element={
-            <PrivateRoute>
-              <MaterialConsumptionReport />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/report/settlementreport"
-          element={
-            <PrivateRoute>
-              <SettlementReport />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/report/productionphasereport"
-          element={
-            <PrivateRoute>
-              <ProductionPhaseReport />
             </PrivateRoute>
           }
         />
