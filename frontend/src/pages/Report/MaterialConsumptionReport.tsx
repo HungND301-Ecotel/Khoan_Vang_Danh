@@ -26,7 +26,7 @@ import { showErrorAlert } from "../../components/Alert";
 
 export default function MaterialConsumptionReport() {
   const [selectedMonth, setSelectedMonth] = useState<string>(
-    dayjs(new Date()).format("YYYY-MM")
+    dayjs(new Date()).format("YYYY-MM"),
   );
   const [selectedPhase, setSelectedPhase] = useState("");
   const [selectedProductionScope, setSelectedProductionScope] = useState("");
@@ -47,7 +47,7 @@ export default function MaterialConsumptionReport() {
       queryFn: () =>
         api
           .get(
-            `/contractsettlements/getMonth?month=${selectedMonth}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`
+            `/contractsettlements/getMonth?month=${selectedMonth}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`,
           )
           .then((res) => res.data.data),
       enabled: !!selectedMonth && !!selectedPhase,
@@ -73,7 +73,7 @@ export default function MaterialConsumptionReport() {
   });
 
   return (
-    <Paper sx={{ p: 3, width: "calc(100vw - 10rem)", margin: "auto" }}>
+    <Paper sx={{ p: 3, width: "100%", boxSizing: "border-box" }}>
       <Button
         variant="contained"
         onClick={() => exportExcel.mutate()}
@@ -144,7 +144,7 @@ export default function MaterialConsumptionReport() {
                   <MenuItem key={item._id} value={item._id}>
                     {item.code}
                   </MenuItem>
-                )
+                ),
               )}
             </TextField>
           </Grid>
@@ -161,7 +161,13 @@ export default function MaterialConsumptionReport() {
 
       <TableContainer
         component={Paper}
-        sx={{ width: "100%", overflowX: "auto" }}
+        sx={{
+          width: "100%",
+          overflowX: "auto",
+          border: "1px solid #e0e0e0",
+          "&::-webkit-scrollbar": { height: 8 },
+          "&::-webkit-scrollbar-thumb": { bgcolor: "#ccc", borderRadius: 8 },
+        }}
       >
         <Table size="small" stickyHeader>
           <TableHead>
@@ -336,7 +342,7 @@ export default function MaterialConsumptionReport() {
                     {assignment?.assignmentCode ||
                     assignment.assignmentCode === null
                       ? Number(
-                          assignment?.plan_Quantity.toFixed(1)
+                          assignment?.plan_Quantity.toFixed(1),
                         ).toLocaleString()
                       : ""}
                   </TableCell>
@@ -348,7 +354,7 @@ export default function MaterialConsumptionReport() {
                     assignment.assignmentCode === null
                       ? assignment?.plan_Cost
                         ? Number(
-                            assignment?.plan_Cost.toFixed(0)
+                            assignment?.plan_Cost.toFixed(0),
                           ).toLocaleString()
                         : ""
                       : ""}
@@ -366,7 +372,7 @@ export default function MaterialConsumptionReport() {
                     assignment.assignmentCode === null
                       ? assignment?.used_Quantity
                         ? Number(
-                            assignment?.used_Quantity.toFixed(1)
+                            assignment?.used_Quantity.toFixed(1),
                           ).toLocaleString()
                         : ""
                       : ""}
@@ -383,7 +389,7 @@ export default function MaterialConsumptionReport() {
                     assignment.assignmentCode === null
                       ? assignment?.used_Cost
                         ? Number(
-                            assignment?.used_Cost.toFixed(1)
+                            assignment?.used_Cost.toFixed(1),
                           ).toLocaleString()
                         : ""
                       : ""}
@@ -402,7 +408,7 @@ export default function MaterialConsumptionReport() {
                     assignment.assignmentCode === null
                       ? assignment?.varianceQuantity
                         ? Number(
-                            assignment?.varianceQuantity.toFixed(1)
+                            assignment?.varianceQuantity.toFixed(1),
                           ).toLocaleString()
                         : ""
                       : ""}
@@ -419,7 +425,7 @@ export default function MaterialConsumptionReport() {
                     assignment.assignmentCode === null
                       ? assignment?.varianceCost
                         ? Number(
-                            assignment?.varianceCost.toFixed(0)
+                            assignment?.varianceCost.toFixed(0),
                           ).toLocaleString()
                         : ""
                       : ""}
@@ -470,7 +476,7 @@ export default function MaterialConsumptionReport() {
                         >
                           {materialUsed?.price
                             ? Number(
-                                materialUsed?.price.toFixed(0)
+                                materialUsed?.price.toFixed(0),
                               ).toLocaleString()
                             : ""}
                         </TableCell>
@@ -511,7 +517,7 @@ export default function MaterialConsumptionReport() {
                         >
                           {materialUsed?.quantity
                             ? Number(
-                                materialUsed?.quantity.toFixed(1)
+                                materialUsed?.quantity.toFixed(1),
                               ).toLocaleString()
                             : ""}
                         </TableCell>
@@ -524,7 +530,7 @@ export default function MaterialConsumptionReport() {
                         >
                           {materialUsed?.cost
                             ? Number(
-                                materialUsed?.cost.toFixed(0)
+                                materialUsed?.cost.toFixed(0),
                               ).toLocaleString()
                             : ""}
                         </TableCell>
@@ -550,7 +556,7 @@ export default function MaterialConsumptionReport() {
                           }}
                         ></TableCell>
                       </TableRow>
-                    )
+                    ),
                   )}
               </>
             ))}

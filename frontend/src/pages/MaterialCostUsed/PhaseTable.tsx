@@ -53,6 +53,7 @@ export default function PhaseTable({
       title: <Typography>ĐVT</Typography>,
       dataIndex: "unit",
       key: "unit",
+      render: (text: string) => <Typography>{text}</Typography>,
       align: "center" as const,
     },
     {
