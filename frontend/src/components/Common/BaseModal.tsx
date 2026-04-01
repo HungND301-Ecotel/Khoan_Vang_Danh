@@ -30,6 +30,7 @@ interface BaseModalProps {
   customWidth?: string | number;
   customHeight?: string | number;
   sx?: SxProps<Theme>;
+  titleExtra?: ReactNode;
 }
 
 export default function BaseModal({
@@ -45,6 +46,7 @@ export default function BaseModal({
   customWidth = "800px",
   customHeight = "740px",
   sx,
+  titleExtra,
 }: BaseModalProps) {
   const [isZoomed, setIsZoomed] = useState(false);
 
@@ -139,9 +141,12 @@ export default function BaseModal({
             }}
           />
           {title && (
-            <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
-              {title}
-            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography sx={{ fontSize: "24px", color: "#2B4A82" }}>
+                {title}
+              </Typography>
+              {titleExtra && <Box>{titleExtra}</Box>}
+            </Box>
           )}
         </DialogTitle>
       )}

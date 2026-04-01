@@ -24,12 +24,10 @@ const MaterialCostUsed = new mongoose.Schema(
         assignmentNormCode: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "AssignmentNorm",
-          required: [true, "AssignmentNorm is required"],
         },
         adjustmentNormCode: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "AdjustmentNorm",
-          required: [true, "AdjustmentNorm is required"],
         },
       },
     ],

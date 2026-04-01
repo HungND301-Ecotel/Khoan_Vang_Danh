@@ -1,12 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   Box,
-  Breadcrumbs,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   IconButton,
   InputAdornment,
@@ -15,8 +10,12 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 import {
   FieldArray,
   FormikProvider,
@@ -27,8 +26,6 @@ import {
 import api from "../../../config/api.config";
 import {
   ProductionScopeOutputType,
-  AssignmentNormOutputType,
-  AdjustmentNormOutputType,
   PhaseOutputType,
   PhaseType,
   InitialPlannedCostInputType,
@@ -42,22 +39,26 @@ import BaseModal from "../../../components/Common/BaseModal";
 
 const validationSchema = yup.object({
   productionScope: yup.string().required("Diện sản xuất không được để trống"),
-  month: yup.date().required("Bắt buộc"),
-
-  phases: yup
+  groups: yup
     .array()
     .of(
       yup.object().shape({
-        production: yup
-          .number()
-          .min(1, "Sản lượng phải lớn hơn 0")
-          .required("Bắt buộc"),
-        unit: yup.string().required("Bắt buộc"),
-        assignmentNormCode: yup.string().required("Bắt buộc"),
-        adjustmentNormCode: yup.string().required("Bắt buộc"),
+        month: yup.date().required("Bắt buộc"),
+        phases: yup
+          .array()
+          .of(
+            yup.object().shape({
+              production: yup
+                .number()
+                .min(1, "Sản lượng phải lớn hơn 0")
+                .required("Bắt buộc"),
+              unit: yup.string().required("Bắt buộc"),
+            }),
+          )
+          .min(1, "Cần ít nhất một công đoạn"),
       }),
     )
-    .min(1, "Cần ít nhất một công đoạn"),
+    .min(1, "Cần ít nhất một tháng"),
 });
 
 export default function InitialPlannedCostModal({
@@ -68,13 +69,10 @@ export default function InitialPlannedCostModal({
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
-  handleSubmit: (values: Partial<InitialPlannedCostInputType>) => void;
+  handleSubmit: (values: any) => void;
   selected: any | null;
 }) {
-  const [phaseGroupsForQuery, setPhaseGroupsForQuery] = useState<{
-    [key: number]: string;
-  }>({});
-  const [selectedMonth, setSelectedMonth] = useState<dayjs.Dayjs | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<number[]>([0]);
 
   const { data: productionscopes = { data: [] } } = useQuery({
     queryKey: ["productionscopes"],
@@ -97,90 +95,137 @@ export default function InitialPlannedCostModal({
     queryFn: async () =>
       api.get("/adjustmentnorms").then((res) => res.data.data),
   });
-  // Initial values
+
+  const toggleExpand = (index: number) => {
+    setExpandedGroups((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
+    );
+  };
+
   const formik = useFormik({
     initialValues: {
       _id: selected?._id || "",
       productionScope: selected?.productionScope?._id
         ? String(selected.productionScope._id)
         : "",
-      month: dayjs(selected?.month || new Date()).format("YYYY-MM"),
-      phases: (selected?.phases || selected?.productionScope?.phases || []).map(
-        (p: any) => ({
-          phase: p.phase?._id ? String(p.phase._id) : "",
-          production: Number(p.production ?? 0), // CHANGED
-          unit:
-            p.phase?.unit ??
-            (p.phase?.name?.toLowerCase()?.includes("khấu than")
-              ? "tấn"
-              : "mét"), // CHANGED
-          assignmentNormCode: p.assignmentNormCode?._id, // CHANGED
-          adjustmentNormCode: p.adjustmentNormCode?._id, // CHANGED
-        }),
-      ),
+      groups: selected?._id
+        ? [
+            {
+              month: dayjs(selected?.month || new Date()).format("YYYY-MM"),
+              phases: (selected?.phases || []).map((p: any) => ({
+                phase: p.phase?._id ? String(p.phase._id) : "",
+                production: Number(p.production ?? 0),
+                unit:
+                  p.unit ||
+                  (p.phase?.name?.toLowerCase()?.includes("khấu than")
+                    ? "tấn"
+                    : "mét"),
+                assignmentNormCode:
+                  p.assignmentNormCode?._id ||
+                  p.assignmentNormCode ||
+                  undefined,
+                adjustmentNormCode:
+                  p.adjustmentNormCode?._id ||
+                  p.adjustmentNormCode ||
+                  undefined,
+              })),
+            },
+          ]
+        : [
+            {
+              month: dayjs(new Date()).format("YYYY-MM"),
+              phases: selected?.productionScope?.phases
+                ? selected.productionScope.phases.map((ph: any) => ({
+                    phase: ph.phase?._id ?? ph._id ?? "",
+                    production: 0,
+                    unit: (ph.phase?.phaseGroup?.name || ph.name || "")
+                      ?.toLowerCase()
+                      ?.includes("khấu than")
+                      ? "tấn"
+                      : "mét",
+                    assignmentNormCode: undefined,
+                    adjustmentNormCode: undefined,
+                  }))
+                : [],
+            },
+          ],
     },
     enableReinitialize: true,
     validationSchema,
     onSubmit: async (values) => {
-      // Đóng gói payload đảm bảo phases luôn có unit
-      const payload: Partial<InitialPlannedCostInputType> = {
-        _id: values?._id || "",
-        productionScope: values?.productionScope,
-        month: dayjs(new Date(values.month)).format("YYYY-MM"),
-        phases: (values.phases || []).map((p: any) => ({
-          phase: p.phase ?? "",
-          production: Number(p.production ?? 0),
-          unit: String(p.unit ?? ""), // CHANGED
-          assignmentNormCode: p.assignmentNormCode,
-          adjustmentNormCode: p.adjustmentNormCode,
+      const payload = {
+        productionScope: values.productionScope,
+        groups: values.groups.map((g: any) => ({
+          month: dayjs(new Date(g.month)).format("YYYY-MM"),
+          phases: g.phases.map((p: any) => ({
+            phase: p.phase,
+            production: Number(p.production),
+            unit: String(p.unit),
+            assignmentNormCode: p.assignmentNormCode,
+            adjustmentNormCode: p.adjustmentNormCode,
+          })),
         })),
       };
 
-      console.log("SUBMIT payload:", payload); // kiểm tra nhanh trên DevTools
-      handleSubmit(payload);
+      if (selected) {
+        // Nếu là edit thì vẫn gửi payload cũ cho tương thích với API edit 1 bản ghi
+        handleSubmit({
+          ...payload.groups[0],
+          _id: values._id,
+          productionScope: values.productionScope,
+        });
+      } else {
+        handleSubmit(payload);
+      }
     },
   });
+
+  // Tự động điền phases khi productionScope đã được chọn (trường hợp Thêm cho diện có sẵn hoặc chọn từ dropdown)
+  useEffect(() => {
+    if (formik.values.productionScope && !selected?._id) {
+      const scope = productionscopes.data.find(
+        (ps: any) => ps._id === formik.values.productionScope,
+      );
+      if (scope && Array.isArray(scope.phases)) {
+        const currentPhases = formik.values.groups[0]?.phases || [];
+        if (currentPhases.length === 0) {
+          const mappedPhases = scope.phases.map((ph: any) => ({
+            phase: ph.phase?._id ?? ph._id ?? "",
+            production: 0,
+            unit: (ph.phase?.phaseGroup?.name || ph.name || "")
+              ?.toLowerCase()
+              ?.includes("khấu than")
+              ? "tấn"
+              : "mét",
+            assignmentNormCode: undefined,
+            adjustmentNormCode: undefined,
+          }));
+          formik.setFieldValue(
+            "groups",
+            formik.values.groups.map((g) => ({ ...g, phases: mappedPhases })),
+          );
+        }
+      }
+    }
+  }, [formik.values.productionScope, productionscopes.data, selected?._id]);
 
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    setExpandedGroups([0]);
   };
 
-  const handlePhaseChange = (
-    index: number,
-    field: keyof PhaseType,
-    value: any,
-  ) => {
-    const newPhases = [...formik.values.phases];
-    newPhases[index] = { ...newPhases[index], [field]: value };
+  const getError = (
+    groupIndex: number,
+    phaseIndex: number,
+    field: string,
+  ): string => {
+    const groupErrors = formik.errors.groups as any;
+    const error = groupErrors?.[groupIndex]?.phases?.[phaseIndex]?.[field];
+    const groupTouched = formik.touched.groups as any;
+    const touched = groupTouched?.[groupIndex]?.phases?.[phaseIndex]?.[field];
 
-    if (field === "phaseGroup") {
-      newPhases[index].phase = "";
-
-      setPhaseGroupsForQuery({
-        ...phaseGroupsForQuery,
-        [index]: value,
-      });
-    }
-
-    formik.setFieldValue("phases", newPhases);
-  };
-  const getError = (index: number, field: keyof PhaseType): string => {
-    const phasesErrors = formik.errors.phases as
-      | FormikErrors<PhaseType>[]
-      | undefined;
-    const error = phasesErrors?.[index];
-
-    const phasesTouched = formik.touched.phases as
-      | FormikTouched<PhaseType>[]
-      | undefined;
-
-    const touched = phasesTouched?.[index];
-
-    // 3. Kiểm tra và trả về lỗi
-    if (touched?.[field] && error?.[field]) {
-      return error[field] as string;
-    }
+    if (touched && error) return error;
     return "";
   };
 
@@ -189,384 +234,342 @@ export default function InitialPlannedCostModal({
       open={open}
       onClose={handleClose}
       title={
-        selected
-          ? "Chỉnh sửa chi phí kế hoạch ban đầu"
-          : "Tạo mới chi phí kế hoạch ban đầu"
+        selected?._id
+          ? "Chỉnh sửa chi phí kế hoạch"
+          : "Tạo mới chi phí kế hoạch"
       }
-      breadcrumbs={[
-        "Danh mục",
-        "Thống kê vận hành",
-        "Chi phí kế hoạch ban đầu",
-      ]}
+      breadcrumbs={["Danh mục", "Thống kê vận hành", "Chi phí kế hoạch"]}
       showZoom={true}
+      titleExtra={
+        !selected?._id &&
+        formik.values.productionScope && (
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            size="small"
+            onClick={() => {
+              const lastGroup =
+                formik.values.groups[formik.values.groups.length - 1];
+              const newGroup = {
+                month: dayjs(lastGroup.month).add(1, "month").format("YYYY-MM"),
+                phases: [...lastGroup.phases],
+              };
+              formik.setFieldValue("groups", [
+                ...formik.values.groups,
+                newGroup,
+              ]);
+              setExpandedGroups((prev) => [
+                ...prev,
+                formik.values.groups.length,
+              ]);
+            }}
+            sx={{ textTransform: "none", borderRadius: "8px" }}
+          >
+            Thêm tháng
+          </Button>
+        )
+      }
       actions={
         <>
           <Button
             onClick={handleClose}
-            sx={{
-              backgroundColor: "#DFE2EA",
-              borderRadius: "8px",
-              height: "32px",
-              minWidth: "91px",
-              fontSize: "14px",
-              textTransform: "none",
-            }}
+            sx={{ borderRadius: "8px", textTransform: "none" }}
           >
             Hủy
           </Button>
           <Button
             onClick={() => formik.submitForm()}
             variant="contained"
-            sx={{
-              backgroundColor: "#007BFF",
-              borderRadius: "8px",
-              height: "32px",
-              minWidth: "91px",
-              fontSize: "14px",
-              textTransform: "none",
-            }}
+            sx={{ borderRadius: "8px", textTransform: "none" }}
           >
-            {selected ? "Cập nhật" : "Xác nhận"}
+            {selected?._id ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }
     >
       <FormikProvider value={formik}>
-        {/* Mã diện sản xuất */}
         <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
           Mã diện sản xuất
         </Typography>
-        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
-          <TextField
-            select
-            fullWidth
-            value={formik.values.productionScope || ""}
-            onChange={(event) => {
-              const scopeId = event.target.value;
-              formik.setFieldValue("productionScope", scopeId);
-
-              const scope = productionscopes.data.find(
-                (ps: ProductionScopeOutputType) => ps._id === scopeId,
-              );
-
-              // nếu scope có mảng phases thì map ra
-              if (scope && Array.isArray(scope.phases)) {
-                const mappedPhases = scope.phases.map((ph: any) => ({
-                  phase: ph.phase?._id ?? "",
-                  production: 0, // CHANGED
-                  unit: ph.phase?.phaseGroup?.name
-                    .toLowerCase()
-                    .includes("khấu than")
-                    ? "tấn"
-                    : "mét", // CHANGED
-                  assignmentNormCode: "",
-                  adjustmentNormCode: "",
-                }));
-                formik.setFieldValue(`phases`, mappedPhases);
-              } else {
-                formik.setFieldValue(`phases`, []);
-              }
-            }}
-            variant="outlined"
-            error={
-              formik.touched.productionScope &&
-              Boolean(formik.errors.productionScope)
+        <TextField
+          select
+          fullWidth
+          value={formik.values.productionScope || ""}
+          onChange={(event) => {
+            const scopeId = event.target.value;
+            formik.setFieldValue("productionScope", scopeId);
+            const scope = productionscopes.data.find(
+              (ps: any) => ps._id === scopeId,
+            );
+            if (scope && Array.isArray(scope.phases)) {
+              const mappedPhases = scope.phases.map((ph: any) => ({
+                phase: ph.phase?._id ?? "",
+                production: 0,
+                unit: ph.phase?.phaseGroup?.name
+                  ?.toLowerCase()
+                  ?.includes("khấu than")
+                  ? "tấn"
+                  : "mét",
+                assignmentNormCode: undefined,
+                adjustmentNormCode: undefined,
+              }));
+              // Cập nhật phases cho tất cả các groups hiện tại
+              formik.values.groups.forEach((_, idx) => {
+                formik.setFieldValue(`groups.${idx}.phases`, mappedPhases);
+              });
             }
-            helperText={
-              formik.touched.productionScope && formik.errors.productionScope
-            }
-            InputProps={{
-              startAdornment: formik.values.productionScope ? null : (
-                <InputAdornment
-                  position="start"
-                  sx={{ color: "#D9D9D9", ml: "12px" }}
-                >
-                  Chọn mã diện sản xuất
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              "& .MuiInputBase-root": {
-                height: "32px",
-                borderRadius: "6px",
-                px: "12px",
-                fontSize: "14px",
-                background: "white",
-              },
-            }}
-          >
-            {productionscopes?.data.map((item: ProductionScopeOutputType) => (
-              <MenuItem key={item._id} value={item._id}>
-                {item.code}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Box>
+          }}
+          variant="outlined"
+          error={
+            formik.touched.productionScope &&
+            Boolean(formik.errors.productionScope)
+          }
+          helperText={
+            formik.touched.productionScope && formik.errors.productionScope
+          }
+          sx={{ "& .MuiInputBase-root": { height: "32px", fontSize: "14px" } }}
+        >
+          {productionscopes?.data.map((item: any) => (
+            <MenuItem key={item._id} value={item._id}>
+              {item.code}
+            </MenuItem>
+          ))}
+        </TextField>
 
         {formik.values.productionScope && (
-          <Box sx={{ mt: 1 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                border: "1px solid #d0d7de",
-                background: "transparent",
-                borderRadius: "8px",
-                p: 2,
-                mt: 2,
-                position: "relative",
-              }}
-            >
-              <FieldMonthYear formik={formik} fieldName="month" />
-
-              {/* {visiable.some(i => i === indexParent) && */}
-              <FieldArray name="phases">
-                {() => (
-                  <Box
+          <FieldArray name="groups">
+            {({ remove }) => (
+              <Box sx={{ mt: 2 }}>
+                {formik.values.groups.map((group, gIdx) => (
+                  <Paper
+                    key={gIdx}
+                    elevation={0}
                     sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 1.5,
+                      border: "1px solid #d0d7de",
+                      borderRadius: "8px",
                       p: 2,
+                      mb: 2,
                     }}
                   >
-                    {formik.values.phases.map((item: any, index: number) => {
-                      const phase = phases.data.find(
-                        (pg: PhaseOutputType) => pg._id === item.phase,
-                      );
-
-                      return (
-                        <Paper
-                          key={index}
-                          elevation={0}
-                          sx={{
-                            border: "1px solid #d0d7de",
-                            background: "transparent",
-                            borderRadius: "8px",
-                            p: 2,
-                            mt: 2,
-                            position: "relative",
-                          }}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        mb: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          flex: 1,
+                        }}
+                      >
+                        <FieldMonthYear
+                          formik={formik}
+                          fieldName={`groups.${gIdx}.month`}
+                        />
+                        <IconButton
+                          onClick={() => toggleExpand(gIdx)}
+                          size="small"
+                          sx={{ color: "#007BFF" }}
                         >
-                          <Typography
-                            sx={{
-                              fontWeight: 600,
-                              fontSize: "15px",
-                              color: "#444",
-                              position: "absolute",
-                              top: -10,
-                              paddingInline: 2,
-                              zIndex: 999,
-                              background: "#f5f5f5",
-                            }}
-                          >
-                            Công đoạn {index + 1}
-                          </Typography>
+                          {expandedGroups.includes(gIdx) ? (
+                            <ExpandLessIcon />
+                          ) : (
+                            <ExpandMoreIcon />
+                          )}
+                        </IconButton>
+                      </Box>
+                      {!selected?._id && formik.values.groups.length > 1 && (
+                        <IconButton
+                          onClick={() => remove(gIdx)}
+                          color="error"
+                          size="small"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+
+                    {expandedGroups.includes(gIdx) && (
+                      <FieldArray name={`groups.${gIdx}.phases`}>
+                        {() => (
                           <Box
-                            key={index}
                             sx={{
-                              display: "grid",
-                              gridTemplateColumns: {
-                                xs: "1fr",
-                                sm: "1fr 1fr",
-                                md: "1fr 1fr 1fr 1fr",
-                              },
-                              gap: 1.5,
-                              alignItems: "center",
-                              width: "100%",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 2,
+                              mt: 2,
                             }}
                           >
-                            {/* Mã công đoạn */}
-                            <Box>
-                              <Typography
-                                sx={{
-                                  fontWeight: 500,
-                                  fontSize: "14px",
-                                  mb: 0.5,
-                                }}
-                              >
-                                Mã công đoạn
-                              </Typography>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                value={phase?.code || ""}
-                                InputLabelProps={{ shrink: true }}
-                                disabled
-                                sx={{
-                                  "& .MuiInputBase-root": {
-                                    height: "32px",
-                                    borderRadius: "6px",
-                                    paddingRight: "12px",
-                                    paddingLeft: "12px",
-                                    fontSize: "14px",
-                                  },
-                                }}
-                              />
-                            </Box>
-
-                            {/* Tên công đoạn */}
-                            <Box>
-                              <Typography
-                                sx={{
-                                  fontWeight: 500,
-                                  fontSize: "14px",
-                                  mb: 0.5,
-                                }}
-                              >
-                                Tên công đoạn
-                              </Typography>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                value={phase?.name || ""}
-                                InputLabelProps={{ shrink: true }}
-                                disabled
-                                sx={{
-                                  "& .MuiInputBase-root": {
-                                    height: "32px",
-                                    borderRadius: "6px",
-                                    paddingRight: "12px",
-                                    paddingLeft: "12px",
-                                    fontSize: "14px",
-                                  },
-                                }}
-                              />
-                            </Box>
-
-                            {/* Sản lượng */}
-                            <Box>
-                              <Typography
-                                sx={{
-                                  fontWeight: 500,
-                                  fontSize: "14px",
-                                  mb: 0.5,
-                                }}
-                              >
-                                Sản lượng
-                              </Typography>
-                              <TextFieldNumber
-                                formik={formik}
-                                field={`phases.${index}.production`}
-                              />
-                            </Box>
-
-                            {/* Đơn vị tính */}
-                            <Box>
-                              <Typography
-                                sx={{
-                                  fontWeight: 500,
-                                  fontSize: "14px",
-                                  mb: 0.5,
-                                }}
-                              >
-                                Đơn vị tính
-                              </Typography>
-
-                              <TextField
-                                select // Kích hoạt chế độ chọn
-                                fullWidth
-                                name={`phases[${index}].unit`}
-                                value={formik.values.phases[index]?.unit || ""} // Đảm bảo value không bị undefined
-                                onChange={(e) =>
-                                  formik.setFieldValue(
-                                    `phases[${index}].unit`,
-                                    e.target.value,
-                                  )
-                                }
-                                variant="outlined"
-                                error={Boolean(getError(index, "unit"))}
-                                helperText={getError(index, "unit")}
-                                // Giữ nguyên styling của bạn
-                                sx={{
-                                  "& .MuiInputBase-root": {
-                                    height: "32px",
-                                    borderRadius: "6px",
-                                    px: "12px",
-                                    fontSize: "14px",
-                                    background: "white",
-                                  },
-                                  "& .MuiOutlinedInput-notchedOutline": {
-                                    borderColor: "#D9D9D9",
-                                  },
-                                  // Chỉnh lại icon mũi tên cho cân đối với chiều cao 32px
-                                  "& .MuiSelect-select": {
-                                    display: "flex",
-                                    alignItems: "center",
-                                    paddingY: 0,
-                                  },
-                                }}
-                              >
-                                <MenuItem value="tấn" sx={{ fontSize: "14px" }}>
-                                  Tấn
-                                </MenuItem>
-                                <MenuItem value="mét" sx={{ fontSize: "14px" }}>
-                                  Mét
-                                </MenuItem>
-                              </TextField>
-                            </Box>
-
-                            {/* Mã định mức giao khoán */}
-                            <Box sx={{ gridColumn: "1 / -1", mb: 2 }}>
-                              <Typography
-                                sx={{
-                                  fontSize: "13px",
-                                  mb: 1,
-                                  color: "#666",
-                                  fontWeight: 500,
-                                }}
-                              >
-                                Mã định mức giao khoán
-                              </Typography>
-                              <FieldAutoCompleted
-                                formik={formik}
-                                field={`phases[${index}].assignmentNormCode`}
-                                title=""
-                                labelkey="code"
-                                data={assignmentnorms.data}
-                              />
-                            </Box>
-
-                            {/* Mã hệ số điều chỉnh định mức */}
-                            <Box sx={{ gridColumn: "1 / -1", mb: 2 }}>
-                              <Typography
-                                sx={{
-                                  fontSize: "13px",
-                                  mb: 1,
-                                  color: "#666",
-                                  fontWeight: 500,
-                                }}
-                              >
-                                Mã hệ số điều chỉnh định mức
-                              </Typography>
-                              <FieldAutoCompleted
-                                formik={formik}
-                                field={`phases[${index}].adjustmentNormCode`}
-                                title=""
-                                labelkey="code"
-                                data={adjustmentnorms.data}
-                              />
-                            </Box>
+                            {group.phases.map((item: any, pIdx: number) => {
+                              const phase = phases.data.find(
+                                (p: any) => p._id === item.phase,
+                              );
+                              return (
+                                <Paper
+                                  key={pIdx}
+                                  elevation={0}
+                                  sx={{
+                                    border: "1px dashed #d0d7de",
+                                    p: 2,
+                                    position: "relative",
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 600,
+                                      fontSize: "13px",
+                                      position: "absolute",
+                                      top: -10,
+                                      px: 1,
+                                      backgroundColor: "#fff",
+                                    }}
+                                  >
+                                    Công đoạn {pIdx + 1}
+                                  </Typography>
+                                  <Box
+                                    sx={{
+                                      display: "grid",
+                                      gridTemplateColumns: {
+                                        xs: "1fr",
+                                        sm: "1fr 1fr",
+                                        md: "1fr 1fr 1fr 1fr",
+                                      },
+                                      gap: 1.5,
+                                      mt: 1,
+                                    }}
+                                  >
+                                    <Box>
+                                      <Typography
+                                        sx={{ fontSize: "12px", mb: 0.5 }}
+                                      >
+                                        Mã công đoạn
+                                      </Typography>
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        value={phase?.code || ""}
+                                        disabled
+                                        sx={{
+                                          "& .MuiInputBase-root": {
+                                            height: "30px",
+                                            fontSize: "13px",
+                                          },
+                                        }}
+                                      />
+                                    </Box>
+                                    <Box>
+                                      <Typography
+                                        sx={{ fontSize: "12px", mb: 0.5 }}
+                                      >
+                                        Tên công đoạn
+                                      </Typography>
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        value={phase?.name || ""}
+                                        disabled
+                                        sx={{
+                                          "& .MuiInputBase-root": {
+                                            height: "30px",
+                                            fontSize: "13px",
+                                          },
+                                        }}
+                                      />
+                                    </Box>
+                                    <Box>
+                                      <Typography
+                                        sx={{ fontSize: "12px", mb: 0.5 }}
+                                      >
+                                        Sản lượng
+                                      </Typography>
+                                      <TextFieldNumber
+                                        formik={formik}
+                                        field={`groups.${gIdx}.phases.${pIdx}.production`}
+                                      />
+                                    </Box>
+                                    <Box>
+                                      <Typography
+                                        sx={{ fontSize: "12px", mb: 0.5 }}
+                                      >
+                                        ĐVT
+                                      </Typography>
+                                      <TextField
+                                        select
+                                        fullWidth
+                                        value={
+                                          formik.values.groups[gIdx].phases[
+                                            pIdx
+                                          ].unit || ""
+                                        }
+                                        onChange={(e) =>
+                                          formik.setFieldValue(
+                                            `groups.${gIdx}.phases.${pIdx}.unit`,
+                                            e.target.value,
+                                          )
+                                        }
+                                        error={Boolean(
+                                          getError(gIdx, pIdx, "unit"),
+                                        )}
+                                        sx={{
+                                          "& .MuiInputBase-root": {
+                                            height: "30px",
+                                            fontSize: "13px",
+                                          },
+                                        }}
+                                      >
+                                        <MenuItem value="tấn">Tấn</MenuItem>
+                                        <MenuItem value="mét">Mét</MenuItem>
+                                      </TextField>
+                                    </Box>
+                                    <Box sx={{ gridColumn: "1 / -1" }}>
+                                      <Typography
+                                        sx={{ fontSize: "12px", mb: 0.5 }}
+                                      >
+                                        Định mức giao khoán
+                                      </Typography>
+                                      <FieldAutoCompleted
+                                        formik={formik}
+                                        field={`groups.${gIdx}.phases.${pIdx}.assignmentNormCode`}
+                                        title=""
+                                        labelkey="code"
+                                        data={assignmentnorms.data}
+                                      />
+                                    </Box>
+                                    <Box sx={{ gridColumn: "1 / -1" }}>
+                                      <Typography
+                                        sx={{ fontSize: "12px", mb: 0.5 }}
+                                      >
+                                        Hệ số điều chỉnh
+                                      </Typography>
+                                      <FieldAutoCompleted
+                                        formik={formik}
+                                        field={`groups.${gIdx}.phases.${pIdx}.adjustmentNormCode`}
+                                        title=""
+                                        labelkey="code"
+                                        data={adjustmentnorms.data}
+                                      />
+                                    </Box>
+                                  </Box>
+                                </Paper>
+                              );
+                            })}
                           </Box>
-                        </Paper>
-                      );
-                    })}
-                  </Box>
-                )}
-              </FieldArray>
-              {/* } */}
-            </Paper>
-          </Box>
+                        )}
+                      </FieldArray>
+                    )}
+                  </Paper>
+                ))}
+              </Box>
+            )}
+          </FieldArray>
         )}
 
-        <Divider
-          sx={{
-            mt: "12px",
-            mb: "12px",
-            borderColor: "#303030",
-            opacity: 0.3,
-            borderWidth: "1px",
-          }}
-        />
+        <Divider sx={{ my: 2, opacity: 0.3 }} />
       </FormikProvider>
     </BaseModal>
   );

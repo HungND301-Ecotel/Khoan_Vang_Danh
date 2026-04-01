@@ -1,37 +1,166 @@
 const InitialPlannedCost = require('../model/InitialPlannedCost')
+const MaterialCostUsed = require('../model/MaterialCostUsed')
+const MaterialBudget = require('../model/MaterialBudget')
 const ProductionScope = require('../model/ProductionScope')
+const MaterialAssignment = require('../model/MaterialAssignment')
 const { paginateQuery } = require('../utils/pagination')
 const { recalculateAssignmentCodePrice, calculatedPhases } = require('../utils/recalculateAssignmentCodePrice')
+const { monthToNumber } = require('../utils/helpers')
 
+const syncRelatedData = async (productionScope, month, phases, oldProductionScope, oldMonth) => {
+    try {
+        const searchScope = oldProductionScope || productionScope;
+        const searchMonth = oldMonth || month;
+
+        // 1. Lấy dữ liệu hiện có từ MCU và MB dựa trên thông tin cũ (nếu có) hoặc thông tin hiện tại
+        const [existingMCU, existingMB] = await Promise.all([
+            MaterialCostUsed.findOne({ productionScope: searchScope, month: searchMonth }),
+            MaterialBudget.findOne({ productionScope: searchScope, month: searchMonth })
+        ])
+
+        // 2. Tạo mảng phases đồng bộ (ưu tiên lấy production từ MCU hiện có, nếu không có để mặc định là 0)
+        const synchronizedPhases = phases.map(p => {
+            const pObj = p.toObject ? p.toObject() : p;
+            const phaseId = (pObj.phase?._id || pObj.phase).toString();
+
+            const mcuPhase = existingMCU?.phases?.find(ph => ph.phase.toString() === phaseId);
+
+            return {
+                ...pObj,
+                production: mcuPhase?.production ?? 0
+            };
+        });
+
+        // 3. Đồng bộ sang MaterialCostUsed trước
+        if (existingMCU) {
+            existingMCU.productionScope = productionScope; // Cập nhật sang scope mới (nếu đổi)
+            existingMCU.month = month;                     // Cập nhật sang tháng mới (nếu đổi)
+            existingMCU.phases = synchronizedPhases;
+
+            // Tái tính toán giá và chi phí cho từng vật tư trong MCU dựa trên tháng mới
+            if (existingMCU.materials && existingMCU.materials.length > 0) {
+                const refreshedMaterials = await Promise.all(
+                    existingMCU.materials.map(async (doc) => {
+                        const material = await MaterialAssignment.findById(doc?.material);
+                        let matched = null;
+
+                        if (material && Array.isArray(material.priceHistory)) {
+                            matched = material.priceHistory.find(priceItem => {
+                                const start = monthToNumber(priceItem.startMonth)
+                                const end = monthToNumber(priceItem.endMonth)
+                                const checkMonth = monthToNumber(month)
+                                return start <= checkMonth && checkMonth <= end
+                            });
+                        }
+                        const priceResult = await recalculateAssignmentCodePrice(material?.assignmentCode, null, null, month);
+
+                        const price = material?.assignmentCode ? priceResult : (matched ? matched.price : 0);
+                        return {
+                            material: doc.material,
+                            quantity: Number(doc.quantity),
+                            price: price || 0,
+                            cost: (price || 0) * Number(doc.quantity || 0)
+                        };
+                    })
+                );
+                existingMCU.materials = refreshedMaterials;
+                existingMCU.totalUsedCost = refreshedMaterials.reduce((sum, item) => sum + item.cost, 0);
+            }
+
+            await existingMCU.save()
+        } else {
+            const newMCU = new MaterialCostUsed({
+                productionScope,
+                month,
+                phases: synchronizedPhases,
+                materials: [],
+                totalUsedCost: 0
+            })
+            await newMCU.save()
+        }
+
+        // 4. Tính toán phases cho MaterialBudget dựa trên synchronizedPhases
+        const budgetPhases = await calculatedPhases(synchronizedPhases, month, "budget")
+        const totalBudgetCost = budgetPhases.reduce((sum, item) => sum + (item?.totalBudgetCost || 0), 0)
+
+        // 5. Đồng bộ sang MaterialBudget sau (sử dụng findOneAndUpdate với filter cũ để cập nhật sang tháng mới)
+        await MaterialBudget.findOneAndUpdate(
+            { productionScope: searchScope, month: searchMonth },
+            {
+                productionScope: productionScope,
+                month: month,
+                phases: budgetPhases,
+                totalBudgetCost
+            },
+            { upsert: true, new: true },
+        );
+    } catch (error) {
+        console.error("Lỗi đồng bộ dữ liệu liên quan:", error.stack)
+        throw error
+    }
+}
 
 exports.create = async (req, res) => {
     try {
-        const { productionScope, month, phases } = req.body;
+        const { productionScope, groups } = req.body; // groups: [{ month, phases }]
 
+        if (groups && Array.isArray(groups)) {
+            const errors = [];
+            for (const group of groups) {
+                try {
+                    const { month, phases } = group;
+                    const result = await calculatedPhases(phases, month, "initial")
+                    const totalInitialPlannedCost = result.reduce((sum, item) => sum + item.totalInitialPlannedCost, 0)
 
-        const result = await calculatedPhases(phases, month, "initial")
+                    await InitialPlannedCost.findOneAndUpdate(
+                        { productionScope, month },
+                        { phases: result, totalInitialPlannedCost },
+                        { upsert: true, new: true }
+                    )
+                    await syncRelatedData(productionScope, month, phases)
+                } catch (err) {
+                    console.error(`Lỗi khi xử lý nhóm tháng ${group.month}:`, err.message);
+                    errors.push({ month: group.month, error: err.message });
+                }
+            }
 
-        const totalInitialPlannedCost = result.reduce((sum, item) => sum + item.totalInitialPlannedCost, 0)
+            if (errors.length > 0) {
+                return res.status(201).json({ 
+                    status: 'partial_success', 
+                    message: 'Hoàn thành với một số lỗi', 
+                    errors 
+                });
+            }
+        } else {
+            // Hỗ trợ format cũ
+            const { month, phases } = req.body;
+            const result = await calculatedPhases(phases, month, "initial")
+            const totalInitialPlannedCost = result.reduce((sum, item) => sum + item.totalInitialPlannedCost, 0)
 
+            const newInitialPlannedCost = new InitialPlannedCost({
+                productionScope,
+                month,
+                phases: result,
+                totalInitialPlannedCost
+            });
+            await newInitialPlannedCost.save();
+            await syncRelatedData(productionScope, month, phases)
+        }
 
-        // Tạo đối tượng InitialPlannedCost mới
-        const newInitialPlannedCost = new InitialPlannedCost({
-            productionScope,
-            month,
-            phases: result, // Dùng mảng đã tính toán
-            totalInitialPlannedCost
-        });
-
-        await newInitialPlannedCost.save();
-
-        res.status(201).json({ status: 'success', message: 'Tạo thành công' });
+        res.status(201).json({ status: 'success', message: 'Tạo và đồng bộ thành công' });
     } catch (err) {
-        console.error(err.stack);
+        console.error("Lỗi nghiêm trọng trong create InitialPlannedCost:", err.stack);
         res.status(500).json({ status: 'error', message: err.message });
     }
 };
+
 exports.update = async (req, res) => {
     try {
+        const oldData = await InitialPlannedCost.findById(req.params.id)
+        if (!oldData) {
+            return res.status(404).json({ status: 'error', message: 'Sửa thất bại - Không tìm thấy dữ liệu cũ' })
+        }
+
         const result = await calculatedPhases(req.body.phases, req.body.month, "initial")
 
         const totalInitialPlannedCost = result.reduce((sum, item) => sum + item.totalInitialPlannedCost, 0)
@@ -43,7 +172,11 @@ exports.update = async (req, res) => {
         if (!updateData) {
             return res.status(404).json({ status: 'error', message: 'Sửa thất bại' })
         }
-        res.status(200).json({ status: 'success', message: 'Sửa thành công' })
+
+        // Đồng bộ dữ liệu liên quan (truyền cả thông tin cũ để tìm đúng bản ghi MCU/MB)
+        await syncRelatedData(updateData.productionScope, updateData.month, updateData.phases, oldData.productionScope, oldData.month)
+
+        res.status(200).json({ status: 'success', message: 'Sửa và đồng bộ thành công' })
     } catch (err) {
         console.log(err.stack)
         res.status(500).json({ status: 'error', message: err.message })
@@ -56,11 +189,23 @@ exports.delete = async (req, res) => {
         if (!deleteData) {
             return res.status(404).json({ status: 'error', message: 'Xóa thất bại' })
         }
-        res.status(200).json({ status: 'success', message: 'Xóa thành công' })
+
+        // Xóa dữ liệu liên quan (lần lượt MCU rồi đến MB)
+        await MaterialCostUsed.findOneAndDelete({
+            productionScope: deleteData.productionScope,
+            month: deleteData.month
+        })
+        await MaterialBudget.findOneAndDelete({
+            productionScope: deleteData.productionScope,
+            month: deleteData.month
+        })
+
+        res.status(200).json({ status: 'success', message: 'Xóa và đồng bộ thành công' })
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message })
     }
 }
+
 
 exports.get = async (req, res) => {
     try {

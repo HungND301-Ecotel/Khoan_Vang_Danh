@@ -89,6 +89,11 @@ exports.update = async (req, res) => {
             })
         );
         const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
+        const oldData = await MaterialCostUsed.findById(req.params.id)
+        if (!oldData) {
+            return res.status(404).json({ status: 'error', message: 'Sửa thất bại - Không tìm thấy dữ liệu cũ' })
+        }
+
         const updateData = await MaterialCostUsed.findByIdAndUpdate(req.params.id, {
             ...req.body,
             totalUsedCost,
@@ -99,8 +104,13 @@ exports.update = async (req, res) => {
         }
 
         await MaterialBudget.findOneAndUpdate(
-            { productionScope: req.body.productionScope, month: req.body.month },
-            { phases: result, totalBudgetCost },
+            { productionScope: oldData.productionScope, month: oldData.month },
+            {
+                productionScope: req.body.productionScope,
+                month: req.body.month,
+                phases: result,
+                totalBudgetCost
+            },
             { new: true }
         );
 

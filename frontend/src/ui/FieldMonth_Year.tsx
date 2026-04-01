@@ -10,12 +10,14 @@ export default function FieldMonthYear({
   formik,
   selectedMonth,
   setSelectedMonth,
-  fieldName
+  fieldName,
+  disabled
 }: {
   formik?: any;
   selectedMonth?: string;
   setSelectedMonth?: React.Dispatch<React.SetStateAction<string>>;
-  fieldName?: string
+  fieldName?: string;
+  disabled?: boolean;
 }) {
 
   const value = formik && fieldName
@@ -35,6 +37,7 @@ export default function FieldMonthYear({
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
       <DatePicker
+        disabled={disabled}
         label="Chọn tháng"
         inputFormat="MM/YYYY" // v5 vẫn hỗ trợ
         views={["year", "month"]}

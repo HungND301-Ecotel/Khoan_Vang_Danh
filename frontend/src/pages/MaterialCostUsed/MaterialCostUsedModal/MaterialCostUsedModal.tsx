@@ -240,7 +240,11 @@ export default function MaterialCostUsedModal({
           ? "Chỉnh sửa chi phí vật tư thực hiện"
           : "Tạo mới chi phí vật tư thực hiện"
       }
-      breadcrumbs={["Danh mục", "Thống kê vận hành", "Chi phí vật tư thực hiện"]}
+      breadcrumbs={[
+        "Danh mục",
+        "Thống kê vận hành",
+        "Chi phí vật tư thực hiện",
+      ]}
       showZoom={true}
       actions={
         <>
@@ -329,7 +333,11 @@ export default function MaterialCostUsedModal({
                 position: "relative",
               }}
             >
-              <FieldMonthYear formik={formik} fieldName="month" />
+              <FieldMonthYear
+                formik={formik}
+                fieldName="month"
+                disabled={true}
+              />
 
               {/* {visiable.some(i => i === indexParent) && */}
               <FieldArray name="phases">
