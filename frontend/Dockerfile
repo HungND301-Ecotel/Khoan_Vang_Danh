@@ -3,7 +3,7 @@
 # $ docker run -d -p 3000:80 ecotel_frontend_img:latest
 
 ## Create an image based on the official Node image from dockerhub
-FROM node:18 AS development
+FROM node:20-alpine
 
 ## Create app directory
 WORKDIR /usr/src/app
