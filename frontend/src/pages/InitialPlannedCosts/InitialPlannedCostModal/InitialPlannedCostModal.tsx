@@ -235,10 +235,10 @@ export default function InitialPlannedCostModal({
       onClose={handleClose}
       title={
         selected?._id
-          ? "Chỉnh sửa chi phí kế hoạch"
-          : "Tạo mới chi phí kế hoạch"
+          ? "Chỉnh sửa chi phí kế hoạch ban đầu"
+          : "Tạo mới chi phí kế hoạch ban đầu"
       }
-      breadcrumbs={["Danh mục", "Thống kê vận hành", "Chi phí kế hoạch"]}
+      breadcrumbs={["Danh mục", "Thống kê vận hành", "Chi phí kế hoạch ban đầu"]}
       showZoom={true}
       titleExtra={
         !selected?._id &&

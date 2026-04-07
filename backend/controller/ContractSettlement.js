@@ -7,7 +7,7 @@ const ExcelJS = require("exceljs");
 function processBudgetAndUsedData(
   materialBudgetDocs,
   materialCostUsedDocs,
-  phase
+  phase,
 ) {
   const mergedGroupsMap = new Map();
 
@@ -17,7 +17,6 @@ function processBudgetAndUsedData(
     const phasesToProcess = phase
       ? budgetDoc.phases.filter((p) => String(p.phase._id) === phase)
       : budgetDoc.phases;
-
     phasesToProcess.forEach((budgetPhase) => {
       budgetPhase.budgetCostDetails.forEach((detail) => {
         const code = detail.assignmentCode?.code;
@@ -281,7 +280,7 @@ async function getMonth(res, productionScope, phase, matchQuery) {
   const data = processBudgetAndUsedData(
     materialBudgets,
     materialCostUseds,
-    phase
+    phase,
   );
   return { data, info };
 }
@@ -302,7 +301,7 @@ exports.getMonth = async (req, res) => {
       res,
       productionScope,
       phase,
-      matchQuery
+      matchQuery,
     );
 
     res.status(200).json({
@@ -357,7 +356,7 @@ exports.getExcel = async (req, res) => {
       `I2:U2`,
       isQuarter
         ? `Quyết toán giao khoán quý ${quarter} năm ${year}`
-        : `Quyết toán giao khoán tháng ${new Date(month).getMonth()}`
+        : `Quyết toán giao khoán tháng ${new Date(month).getMonth()}`,
     );
 
     if (isQuarter) {
@@ -366,12 +365,12 @@ exports.getExcel = async (req, res) => {
       setMergeCellHeader(
         worksheet,
         "I3:U3",
-        (info.phases || []).map((i) => i.code).join(", ")
+        (info.phases || []).map((i) => i.code).join(", "),
       );
       setMergeCellHeader(
         worksheet,
         "I4:U4",
-        (info.productionScopes || []).map((i) => i.code).join(", ")
+        (info.productionScopes || []).map((i) => i.code).join(", "),
       );
     }
 
@@ -406,7 +405,7 @@ exports.getExcel = async (req, res) => {
       "L7",
       info.totalCoal ? Number(info.totalCoal.toFixed(1)).toLocaleString() : "",
       true,
-      "center"
+      "center",
     );
     setCellHeader(worksheet, "A8", "2", true, "center");
     setCellHeader(worksheet, "F8", "Mét lò đào", true, "left");
@@ -417,7 +416,7 @@ exports.getExcel = async (req, res) => {
         ? Number(info.Excavation.toFixed(1)).toLocaleString()
         : "",
       true,
-      "center"
+      "center",
     );
     setCellHeader(worksheet, "A9", "3", true, "center");
     setCellHeader(worksheet, "F9", "Mét lò xén", true, "left");
@@ -428,7 +427,7 @@ exports.getExcel = async (req, res) => {
         ? Number(info.totalCutting.toFixed(1)).toLocaleString()
         : "",
       true,
-      "center"
+      "center",
     );
     setCellHeader(worksheet, "A10", "4", true, "center");
     setCellHeader(
@@ -436,7 +435,7 @@ exports.getExcel = async (req, res) => {
       "F10",
       "Tỉ lệ đá lẫn trong gương (Ckep)",
       true,
-      "left"
+      "left",
     );
     setCellHeader(worksheet, "L10", info.rockRatio, true, "left");
     setCellHeader(worksheet, "A11", "5", true, "center");
@@ -455,7 +454,7 @@ exports.getExcel = async (req, res) => {
         `D${currentRow}`,
         group.assignmentCode?.deviceCode?.code || "",
         true,
-        "center"
+        "center",
       );
 
       // Cột E: Mã giao khoán
@@ -464,7 +463,7 @@ exports.getExcel = async (req, res) => {
         `E${currentRow}`,
         group.assignmentCode?.code || "",
         true,
-        "center"
+        "center",
       );
 
       // Cột F: Tên Vật tư / Tên Nhóm (Lấy tên Mã giao khoán)
@@ -473,7 +472,7 @@ exports.getExcel = async (req, res) => {
         `F${currentRow}`,
         group.assignmentCode?.name || "Vật tư không có định mức",
         true,
-        "left"
+        "left",
       );
 
       // Cột G: ĐVT (Lấy ĐVT của Mã giao khoán)
@@ -482,7 +481,7 @@ exports.getExcel = async (req, res) => {
         `G${currentRow}`,
         group.assignmentCode?.uom?.name || "",
         false,
-        "center"
+        "center",
       );
 
       // Cột H: Đơn giá khoán
@@ -491,7 +490,7 @@ exports.getExcel = async (req, res) => {
         `H${currentRow}`,
         group.price ? Number(group.price.toFixed(0)).toLocaleString() : "",
         false,
-        "center"
+        "center",
       );
 
       if (group.assignmentCode) {
@@ -503,7 +502,7 @@ exports.getExcel = async (req, res) => {
             ? Number(group.baseName.toFixed(3)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
@@ -512,14 +511,14 @@ exports.getExcel = async (req, res) => {
             ? Number(group.adjustmentNorm.toFixed(3)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
           `K${currentRow}`,
           group.norm ? Number(group.norm.toFixed(3)).toLocaleString() : "",
           false,
-          "center"
+          "center",
         );
 
         // Kế hoạch
@@ -530,7 +529,7 @@ exports.getExcel = async (req, res) => {
             ? Number(group.plan_Quantity.toFixed(1)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
 
         setCellHeader(
@@ -540,7 +539,7 @@ exports.getExcel = async (req, res) => {
             ? Number(group.plan_Cost.toFixed(0)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
 
         // Thực hiện (Tổng)
@@ -551,7 +550,7 @@ exports.getExcel = async (req, res) => {
             ? Number(group.used_Quantity.toFixed(1)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
 
         // S: Giá trị Thực hiện (Tổng)
@@ -562,7 +561,7 @@ exports.getExcel = async (req, res) => {
             ? Number(group.used_Cost.toFixed(0)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
 
         // So sánh Lãi/Lỗ
@@ -573,7 +572,7 @@ exports.getExcel = async (req, res) => {
             ? Number(group.varianceQuantity.toFixed(1)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
@@ -582,7 +581,7 @@ exports.getExcel = async (req, res) => {
             ? Number(group.varianceCost.toFixed(0)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
       }
 
@@ -596,16 +595,16 @@ exports.getExcel = async (req, res) => {
           `B${currentRow}`,
           matUsed.material?.code,
           false,
-          "left"
+          "left",
         );
         setCellHeader(
           worksheet,
           `C${currentRow}`,
           (group?.materialUseds || []).filter(
-            (mat) => mat.material?._id === matUsed?.material?._id
+            (mat) => mat.material?._id === matUsed?.material?._id,
           )?.length || 1,
           false,
-          "center"
+          "center",
         );
 
         // Cột F: Tên vật tư (tên chi tiết)
@@ -614,7 +613,7 @@ exports.getExcel = async (req, res) => {
           `F${currentRow}`,
           matUsed.material?.name,
           false,
-          "left"
+          "left",
         );
 
         // Cột G: ĐVT (ĐVT của vật tư chi tiết)
@@ -623,7 +622,7 @@ exports.getExcel = async (req, res) => {
           `G${currentRow}`,
           matUsed.material?.uom?.name,
           false,
-          "center"
+          "center",
         );
 
         // Cột H: Đơn giá (Chỉ điền nếu không có Mã giao khoán)
@@ -635,7 +634,7 @@ exports.getExcel = async (req, res) => {
               ? Number(matUsed.price.toFixed(0)).toLocaleString()
               : "",
             false,
-            "center"
+            "center",
           );
         }
 
@@ -647,7 +646,7 @@ exports.getExcel = async (req, res) => {
             ? Number(matUsed.quantity.toFixed(1)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
 
         // S: Giá trị thực hiện
@@ -660,7 +659,7 @@ exports.getExcel = async (req, res) => {
               ? Number(matUsed.cost.toFixed(0)).toLocaleString()
               : "",
             false,
-            "center"
+            "center",
           );
         }
 
@@ -709,7 +708,7 @@ exports.getExcel = async (req, res) => {
     // Thiết lập header để tải file về
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", "attachment; filename*=UTF-8''*.xlsx"); // Gửi buffer về client
     res.send(buffer);
@@ -739,7 +738,7 @@ exports.getExcelM3 = async (req, res) => {
     const workbook = new ExcelJS.Workbook();
 
     const worksheet = workbook.addWorksheet(
-      "BC_thuc_hien_dinh_muc_vat_tu_theo_PX"
+      "BC_thuc_hien_dinh_muc_vat_tu_theo_PX",
     );
 
     worksheet.mergeCells(`A1:M1`);
@@ -761,7 +760,7 @@ exports.getExcelM3 = async (req, res) => {
         (info?.productionScopes || []).map((i) => i?.code).join(", ") +
         " " +
         (info?.phases || []).map((i) => i?.code).join(", ")
-      }`
+      }`,
     );
     setCellHeader(worksheet, "E4", "Khối lượng", true, "center");
 
@@ -775,7 +774,7 @@ exports.getExcelM3 = async (req, res) => {
       "E5",
       `${info.totalCoal || info.totalCutting || info.totalExcavation}`,
       true,
-      "center"
+      "center",
     );
     setCellHeader(worksheet, "F5", "ĐM", true, "center");
     setCellHeader(worksheet, "G5", "Số lượng", true, "center");
@@ -795,21 +794,21 @@ exports.getExcelM3 = async (req, res) => {
           `A${currentRow}`,
           group.assignmentCode?.code || "",
           true,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
           `B${currentRow}`,
           group.assignmentCode?.name || "Không xác định",
           true,
-          "left"
+          "left",
         );
         setCellHeader(
           worksheet,
           `C${currentRow}`,
           group.assignmentCode?.uom?.name || "",
           false,
-          "center"
+          "center",
         );
 
         // Đơn giá, ĐM, Kế hoạch, Thực hiện của Nhóm
@@ -818,14 +817,14 @@ exports.getExcelM3 = async (req, res) => {
           `D${currentRow}`,
           group.price ? Number(group.price.toFixed(0)).toLocaleString() : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
           `F${currentRow}`,
           group.norm ? Number(group.norm.toFixed(3)).toLocaleString() : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
@@ -834,7 +833,7 @@ exports.getExcelM3 = async (req, res) => {
             ? Number(group.plan_Quantity.toFixed(1)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
@@ -843,7 +842,7 @@ exports.getExcelM3 = async (req, res) => {
             ? Number(group.plan_Cost.toFixed(0)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
@@ -852,7 +851,7 @@ exports.getExcelM3 = async (req, res) => {
             ? Number(group.used_Quantity.toFixed(1)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
@@ -861,7 +860,7 @@ exports.getExcelM3 = async (req, res) => {
             ? Number(group.used_Cost.toFixed(0)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
@@ -870,7 +869,7 @@ exports.getExcelM3 = async (req, res) => {
             ? Number(group.varianceQuantity.toFixed(1)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
         setCellHeader(
           worksheet,
@@ -879,7 +878,7 @@ exports.getExcelM3 = async (req, res) => {
             ? Number(group.varianceCost.toFixed(0)).toLocaleString()
             : "",
           false,
-          "center"
+          "center",
         );
 
         currentRow++; // Xong dòng nhóm, tăng dòng lên
@@ -889,7 +888,7 @@ exports.getExcelM3 = async (req, res) => {
           `B${currentRow}`,
           "Vật tư không có định mức",
           true,
-          "left"
+          "left",
         );
         currentRow++;
         // --- NGƯỢC LẠI: LẤY CHI TIẾT TỪNG VẬT TƯ (Không hiện dòng nhóm) ---
@@ -904,7 +903,7 @@ exports.getExcelM3 = async (req, res) => {
               `B${currentRow}`,
               matUsed.material?.name || "",
               false,
-              "left"
+              "left",
             );
 
             // Cột C: ĐVT của vật tư
@@ -913,7 +912,7 @@ exports.getExcelM3 = async (req, res) => {
               `C${currentRow}`,
               matUsed.material?.uom?.name || "",
               false,
-              "center"
+              "center",
             );
 
             // Cột D: Đơn giá của từng vật tư
@@ -924,7 +923,7 @@ exports.getExcelM3 = async (req, res) => {
                 ? Number(matUsed.price.toFixed(0)).toLocaleString()
                 : "",
               false,
-              "center"
+              "center",
             );
 
             // Các cột khác (ĐM, Kế hoạch thường bằng 0 hoặc trống đối với vật tư ngoài khoán)
@@ -940,7 +939,7 @@ exports.getExcelM3 = async (req, res) => {
                 ? Number(matUsed.quantity.toFixed(1)).toLocaleString()
                 : "0",
               false,
-              "center"
+              "center",
             );
             setCellHeader(
               worksheet,
@@ -949,7 +948,7 @@ exports.getExcelM3 = async (req, res) => {
                 ? Number(matUsed.cost.toFixed(0)).toLocaleString()
                 : "0",
               false,
-              "center"
+              "center",
             );
 
             currentRow++; // Mỗi vật tư 1 dòng
@@ -991,7 +990,7 @@ exports.getExcelM3 = async (req, res) => {
     // Thiết lập header để tải file về
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", "attachment; filename*=UTF-8''*.xlsx"); // Gửi buffer về client
     res.send(buffer);
@@ -1253,5 +1252,102 @@ const addTableBorders = (ws, startRow, endRow, startCol, endCol) => {
         right: lightBorder,
       };
     }
+  }
+};
+exports.getDashboardData = async (req, res) => {
+  try {
+    const { year } = req.query;
+    const months = [];
+    
+    if (year) {
+      for (let i = 1; i <= 12; i++) {
+        months.push(`${year}-${i.toString().padStart(2, "0")}`);
+      }
+    } else {
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStr = `${d.getFullYear()}-${(d.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}`;
+        months.push(monthStr);
+      }
+    }
+
+    const result = await Promise.all(
+      months.map(async (m) => {
+        const matchQuery = { month: m };
+
+        const materialCostUseds = await MaterialCostUsed.find(matchQuery)
+          .populate({
+            path: "materials.material",
+            populate: [
+              {
+                path: "assignmentCode",
+                select: "code name uom deviceCode",
+                populate: [{ path: "uom" }, { path: "deviceCode" }],
+              },
+            ],
+          })
+          .lean();
+
+        const materialBudgets = await MaterialBudget.find(matchQuery)
+          .populate({
+            path: "phases.budgetCostDetails.assignmentCode",
+            select: "code name uom deviceCode",
+            populate: [{ path: "uom" }, { path: "deviceCode" }],
+          })
+          .lean();
+
+        if (materialCostUseds.length === 0 && materialBudgets.length === 0) {
+          return {
+            month: m,
+            totalUsed: 0,
+            grossLoss: 0,
+            grossSavings: 0,
+            variance: 0,
+          };
+        }
+
+        const data = processBudgetAndUsedData(
+          materialBudgets,
+          materialCostUseds,
+          null,
+        );
+
+        let totalUsed = 0;
+        let totalPlanned = 0;
+        let grossLoss = 0;
+        let grossSavings = 0;
+
+        data.forEach((group) => {
+          totalUsed += group.used_Cost || 0;
+          totalPlanned += group.plan_Cost || 0;
+          const v = group.varianceCost || 0;
+          if (v < 0) {
+            grossLoss += v;
+          } else {
+            grossSavings += v;
+          }
+        });
+
+        return {
+          month: m,
+          totalUsed,
+          totalPlanned,
+          grossLoss,
+          grossSavings,
+          variance: grossLoss + grossSavings, // Net Variance
+        };
+      }),
+    );
+
+    res.status(200).json({
+      status: "success",
+      data: result,
+    });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
   }
 };

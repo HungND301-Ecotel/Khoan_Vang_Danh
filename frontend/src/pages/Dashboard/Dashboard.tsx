@@ -3,7 +3,6 @@ import React from 'react'
 import MaterialChart from './MaterialChart/MaterialChart'
 import CostProfitChart from './CostChart/CostChart'
 import CostCard from './CostCard/CostCard'
-import AssignmentChart from './AssignmentChart/AssignmentChart'
 
 export default function Dashboard() {
 
