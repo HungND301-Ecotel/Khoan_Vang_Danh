@@ -94,11 +94,21 @@ const calculatedPhases = async (phases, month, type) => {
     const uniqueAssignmentCodeIds = new Set(); // Lưu trữ tất cả IDs duy nhất
 
     // Thu thập Base Norms và IDs
-    if (assignmentDoc && assignmentDoc.norms) {
+    if (phaseData.assignmentCodes && Array.isArray(phaseData.assignmentCodes) && phaseData.assignmentCodes.length > 0) {
+      phaseData.assignmentCodes.forEach((n) => {
+        const id = n.assignmentCode && (n.assignmentCode._id ? n.assignmentCode._id.toString() : n.assignmentCode.toString());
+        if (id) {
+          assignmentNormsMap.set(id, n.norm || 0);
+          uniqueAssignmentCodeIds.add(id);
+        }
+      });
+    } else if (assignmentDoc && assignmentDoc.norms) {
       assignmentDoc.norms.forEach((n) => {
-        const id = n.assignmentCode && n.assignmentCode?._id.toString();
-        assignmentNormsMap.set(id, n.norm || 0);
-        uniqueAssignmentCodeIds.add(id);
+        const id = n.assignmentCode && n.assignmentCode._id ? n.assignmentCode._id.toString() : undefined;
+        if (id) {
+          assignmentNormsMap.set(id, n.norm || 0);
+          uniqueAssignmentCodeIds.add(id);
+        }
       });
     }
 
