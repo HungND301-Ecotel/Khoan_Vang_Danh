@@ -135,20 +135,29 @@ export default function InitialPlannedCostModal({
                   undefined,
                 assignmentCodes: p.assignmentNormCode?.norms
                   ? p.assignmentNormCode.norms.map((n: any) => {
-                      const isChecked =
-                        p.initialPlannedCostDetails?.some(
-                          (detail: any) =>
-                            detail.assignmentCode?._id ===
-                              (n.assignmentCode?._id || n.assignmentCode) ||
-                            detail.assignmentCode ===
-                              (n.assignmentCode?._id || n.assignmentCode),
-                        ) ?? true;
+                      const detail = p.initialPlannedCostDetails?.find(
+                        (d: any) =>
+                          (d.assignmentCode?._id || d.assignmentCode) ===
+                          (n.assignmentCode?._id || n.assignmentCode),
+                      );
+                      const isChecked = detail ? true : false;
+
+                      // Tìm hệ số điều chỉnh tương ứng từ adjustmentNormCode
+                      const adjNorm = p.adjustmentNormCode?.norms?.find(
+                        (an: any) =>
+                          (an.assignmentCode?._id || an.assignmentCode) ===
+                          (n.assignmentCode?._id || n.assignmentCode),
+                      );
+
                       return {
                         assignmentCode:
                           n.assignmentCode?._id || n.assignmentCode,
                         code: n.assignmentCode?.code || "",
                         name: n.assignmentCode?.name || "",
-                        norm: n.norm || 0,
+                        baseNorm: detail?.baseNorm ?? n.norm ?? 0,
+                        adjustmentNorm:
+                          detail?.adjustmentNorm ?? adjNorm?.norm ?? 1,
+                        norm: detail?.norm ?? (n.norm || 0) * (adjNorm?.norm || 1),
                         checked: isChecked,
                       };
                     })
@@ -189,12 +198,14 @@ export default function InitialPlannedCostModal({
             unit: String(p.unit),
             assignmentNormCode: p.assignmentNormCode,
             adjustmentNormCode: p.adjustmentNormCode,
-            assignmentCodes: (p.assignmentCodes || [])
-              .filter((ac: any) => ac.checked)
-              .map((ac: any) => ({
-                assignmentCode: ac.assignmentCode,
-                norm: ac.norm,
-              })),
+              assignmentCodes: (p.assignmentCodes || [])
+                .filter((ac: any) => ac.checked)
+                .map((ac: any) => ({
+                  assignmentCode: ac.assignmentCode,
+                  baseNorm: Number(ac.baseNorm || 0),
+                  adjustmentNorm: Number(ac.adjustmentNorm || 1),
+                  norm: Number(ac.norm || 0),
+                })),
           })),
         })),
       };
@@ -568,6 +579,53 @@ export default function InitialPlannedCostModal({
                                       <Typography
                                         sx={{ fontSize: "12px", mb: 0.5 }}
                                       >
+                                        Hệ số điều chỉnh
+                                      </Typography>
+                                      <FieldAutoCompleted
+                                        formik={formik}
+                                        field={`groups.${gIdx}.phases.${pIdx}.adjustmentNormCode`}
+                                        title=""
+                                        labelkey="code"
+                                        data={adjustmentnorms.data}
+                                        onChange={(newValue: any) => {
+                                          const currentAssignmentCodes =
+                                            formik.values.groups[gIdx].phases[
+                                              pIdx
+                                            ].assignmentCodes || [];
+
+                                          const updatedCodes =
+                                            currentAssignmentCodes.map(
+                                              (ac: any) => {
+                                                const adjNorm =
+                                                  newValue?.norms?.find(
+                                                    (n: any) =>
+                                                      (n.assignmentCode?._id ||
+                                                        n.assignmentCode) ===
+                                                      ac.assignmentCode,
+                                                  );
+                                                const newAdjFactor =
+                                                  adjNorm?.norm ?? 1;
+                                                return {
+                                                  ...ac,
+                                                  adjustmentNorm: newAdjFactor,
+                                                  norm:
+                                                    (ac.baseNorm || 0) *
+                                                    newAdjFactor,
+                                                };
+                                              },
+                                            );
+
+                                          formik.setFieldValue(
+                                            `groups.${gIdx}.phases.${pIdx}.assignmentCodes`,
+                                            updatedCodes,
+                                          );
+                                        }}
+                                      />
+                                    </Box>
+                                    <Box sx={{ gridColumn: "1 / -1" }}>
+                                      <Typography
+                                        sx={{ fontSize: "12px", mb: 0.5 }}
+                                      >
                                         Định mức giao khoán
                                       </Typography>
                                       <FieldAutoCompleted
@@ -578,18 +636,44 @@ export default function InitialPlannedCostModal({
                                         data={assignmentnorms.data}
                                         onChange={(newValue: any) => {
                                           if (newValue && newValue.norms) {
+                                            const adjustmentNormCode =
+                                              formik.values.groups[gIdx].phases[
+                                                pIdx
+                                              ].adjustmentNormCode;
+                                            const adjustmentDoc =
+                                              adjustmentnorms.data.find(
+                                                (a: any) =>
+                                                  a._id === adjustmentNormCode,
+                                              );
+
                                             const codes = newValue.norms.map(
-                                              (n: any) => ({
-                                                assignmentCode:
-                                                  n.assignmentCode?._id ||
-                                                  n.assignmentCode,
-                                                code:
-                                                  n.assignmentCode?.code || "",
-                                                name:
-                                                  n.assignmentCode?.name || "",
-                                                norm: n.norm || 0,
-                                                checked: true,
-                                              }),
+                                              (n: any) => {
+                                                const adjNorm =
+                                                  adjustmentDoc?.norms?.find(
+                                                    (an: any) =>
+                                                      (an.assignmentCode?._id ||
+                                                        an.assignmentCode) ===
+                                                      (n.assignmentCode?._id ||
+                                                        n.assignmentCode),
+                                                  );
+                                                const adjFactor =
+                                                  adjNorm?.norm ?? 1;
+                                                return {
+                                                  assignmentCode:
+                                                    n.assignmentCode?._id ||
+                                                    n.assignmentCode,
+                                                  code:
+                                                    n.assignmentCode?.code ||
+                                                    "",
+                                                  name:
+                                                    n.assignmentCode?.name ||
+                                                    "",
+                                                  baseNorm: n.norm || 0,
+                                                  adjustmentNorm: adjFactor,
+                                                  norm: (n.norm || 0) * adjFactor,
+                                                  checked: true,
+                                                };
+                                              },
                                             );
                                             formik.setFieldValue(
                                               `groups.${gIdx}.phases.${pIdx}.assignmentCodes`,
@@ -694,28 +778,55 @@ export default function InitialPlannedCostModal({
                                                         "1px solid #E0E0E0",
                                                     }}
                                                   >
-                                                    <Box sx={{ width: "30%" }}>
+                                                    <Box sx={{ width: "15%" }}>
+                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>Mã GK</Typography>
                                                       <FieldInput
                                                         field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.code`}
-                                                        title="Mã giao khoán"
                                                         formik={formik}
                                                         disabled
                                                       />
                                                     </Box>
-                                                    <Box sx={{ width: "40%" }}>
+                                                    <Box sx={{ width: "25%" }}>
+                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>Tên GK</Typography>
                                                       <FieldInput
                                                         field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.name`}
-                                                        title="Tên giao khoán"
                                                         formik={formik}
                                                         disabled
+                                                      />
+                                                    </Box>
+                                                    <Box sx={{ width: "15%" }}>
+                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>ĐM gốc</Typography>
+                                                      <TextFieldNumber
+                                                        field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.baseNorm`}
+                                                        formik={formik}
+                                                        disabled
+                                                      />
+                                                    </Box>
+                                                    <Box sx={{ width: "15%" }}>
+                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>Hệ số ĐC</Typography>
+                                                      <TextFieldNumber
+                                                        field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.adjustmentNorm`}
+                                                        formik={formik}
+                                                        onValueChange={(val) => {
+                                                          const baseNorm =
+                                                            formik.values
+                                                              .groups[gIdx]
+                                                              .phases[pIdx]
+                                                              .assignmentCodes[
+                                                              cIdx
+                                                            ].baseNorm || 0;
+                                                          formik.setFieldValue(
+                                                            `groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.norm`,
+                                                            baseNorm * val,
+                                                          );
+                                                        }}
                                                       />
                                                     </Box>
                                                     <Box sx={{ flex: 1 }}>
-                                                      <FieldInput
+                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>Định mức</Typography>
+                                                      <TextFieldNumber
                                                         field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.norm`}
-                                                        title="Định mức"
                                                         formik={formik}
-                                                        disabled
                                                       />
                                                     </Box>
                                                     <IconButton
@@ -738,20 +849,6 @@ export default function InitialPlannedCostModal({
                                         )}
                                       </Box>
                                     )}
-                                    <Box sx={{ gridColumn: "1 / -1" }}>
-                                      <Typography
-                                        sx={{ fontSize: "12px", mb: 0.5 }}
-                                      >
-                                        Hệ số điều chỉnh
-                                      </Typography>
-                                      <FieldAutoCompleted
-                                        formik={formik}
-                                        field={`groups.${gIdx}.phases.${pIdx}.adjustmentNormCode`}
-                                        title=""
-                                        labelkey="code"
-                                        data={adjustmentnorms.data}
-                                      />
-                                    </Box>
                                   </Box>
                                 </Paper>
                               );

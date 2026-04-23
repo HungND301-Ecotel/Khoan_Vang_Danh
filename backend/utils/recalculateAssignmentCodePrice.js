@@ -98,7 +98,7 @@ const calculatedPhases = async (phases, month, type) => {
       phaseData.assignmentCodes.forEach((n) => {
         const id = n.assignmentCode && (n.assignmentCode._id ? n.assignmentCode._id.toString() : n.assignmentCode.toString());
         if (id) {
-          assignmentNormsMap.set(id, n.norm || 0);
+          assignmentNormsMap.set(id, n.baseNorm ?? n.norm ?? 0);
           uniqueAssignmentCodeIds.add(id);
         }
       });
@@ -126,12 +126,21 @@ const calculatedPhases = async (phases, month, type) => {
 
     // 2. Lặp qua tất cả AssignmentCode IDs duy nhất (Sử dụng for...of để dùng await)
     for (const assignmentId of uniqueAssignmentCodeIds) {
-      const baseNorm = assignmentNormsMap.get(assignmentId) || 1;
+      // Tìm dữ liệu từ frontend gửi lên (nếu có)
+      const inputCodeData = phaseData.assignmentCodes?.find(
+        (ac) =>
+          (ac.assignmentCode?._id || ac.assignmentCode)?.toString() ===
+          assignmentId,
+      );
+
+      const baseNorm = inputCodeData?.baseNorm ?? (assignmentNormsMap.get(assignmentId) || 1);
       // Nếu adjustmentFactor không tồn tại trong Adjustment Map, mặc định là 1
-      const adjustmentNorm = adjustmentFactorsMap.get(assignmentId) || 1;
+      const adjustmentNorm = inputCodeData?.adjustmentNorm ?? (adjustmentFactorsMap.get(assignmentId) || 1);
 
       // A. Tính Định mức cuối cùng (Norm)
-      const norm = baseNorm * adjustmentNorm;
+      // Ưu tiên dùng norm từ frontend, nếu không có mới tính toán
+      const norm = inputCodeData?.norm ?? baseNorm * adjustmentNorm;
+      // const norm = baseNorm * adjustmentNorm;
 
       // B. Tính Số lượng (Quantity)
       // Giả định: Số lượng = Định mức * Sản lượng/Số lượng của Phase

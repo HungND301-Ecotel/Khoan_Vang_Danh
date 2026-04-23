@@ -6,11 +6,13 @@ interface Props {
   formik?: any;
   field?: string;
   disabled?: boolean;
+  onValueChange?: (value: number) => void;
 }
 export default function TextFieldNumber({
   formik,
   field,
   disabled = false,
+  onValueChange,
 }: Props) {
   const currentValue = formik && field ? getIn(formik.values, field) : "";
   const touched = formik && field ? getIn(formik.touched, field) : false;
@@ -25,10 +27,11 @@ export default function TextFieldNumber({
       decimalSeparator=","
       fixedDecimalScale={false}
       onValueChange={(values: any) => {
-        formik.setFieldValue(
-          field,
-          values.floatValue === undefined ? 0 : values.floatValue,
-        );
+        const val = values.floatValue === undefined ? 0 : values.floatValue;
+        formik.setFieldValue(field, val);
+        if (onValueChange) {
+          onValueChange(val);
+        }
       }}
       // Giữ nguyên style của bạn
       error={Boolean(touched && error)}

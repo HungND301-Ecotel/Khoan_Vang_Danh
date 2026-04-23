@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "../../../config/api.config";
 
 // Màu chủ đạo
-const chartColor = '#1a237e';
+const chartColor = "#1a237e";
 
 export default function MaterialChart() {
   const {
@@ -21,7 +21,11 @@ export default function MaterialChart() {
         const response = await api.get(`/materialAssignments/getCount`);
         return response.data.data;
       } catch (error) {
-        return [];
+        return {
+          countWithAssignment: 0,
+          countWithoutAssignment: 0,
+          totalCount: 0,
+        };
       }
     },
   });
@@ -58,9 +62,20 @@ export default function MaterialChart() {
         }}
       />
 
-      <Stack sx={{ position: "relative", zIndex: 1, height: "100%", justifyContent: "space-between" }}>
+      <Stack
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          height: "100%",
+          justifyContent: "space-between",
+        }}
+      >
         {/* Header: Title and Main Value */}
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="flex-start"
+        >
           <Stack spacing={0.5}>
             <Typography
               variant="overline"
@@ -90,7 +105,14 @@ export default function MaterialChart() {
           </Stack>
         </Box>
 
-        <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Box
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <PieChart
             series={[
               {
