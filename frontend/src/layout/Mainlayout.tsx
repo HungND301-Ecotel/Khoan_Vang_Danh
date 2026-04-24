@@ -36,6 +36,8 @@ import { PhaseOutputType } from "../types";
 import { MainLayoutProps } from "../types";
 import Profile from "../components/Profile/Profile";
 import ChangePass from "../components/ChangePass/ChangePass";
+import { systemConfigsAtom } from "../atoms/systemConfigAtoms";
+import SystemConfigModal from "../components/SystemConfig/SystemConfigModal";
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
@@ -44,6 +46,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const [openProfile, setOpenProfile] = useState(false);
   const [openChangePass, setOpenChangePass] = useState(false);
+  const [openSystemConfig, setOpenSystemConfig] = useState(false);
+  const [, setSystemConfigs] = useAtom(systemConfigsAtom);
 
   const [menuDanhMucEl, setMenuDanhMucEl] = useState<HTMLElement | null>(null);
   const [menuDonGiaEl, setMenuDonGiaEl] = useState<HTMLElement | null>(null);
@@ -59,6 +63,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     queryKey: ["phases"],
     queryFn: () => api.get("/phases").then((res) => res.data.data),
   });
+
+  useEffect(() => {
+    const fetchSystemConfigs = async () => {
+      try {
+        const res = await api.get("/system-configs");
+        setSystemConfigs(res.data.data);
+      } catch (error) {
+        console.error("Lỗi khi fetch cấu hình hệ thống:", error);
+      }
+    };
+    fetchSystemConfigs();
+  }, [setSystemConfigs]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -483,6 +499,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </ListItemIcon>
           Đổi mật khẩu
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setOpenSystemConfig(true);
+            setMenuSettingsEl(null);
+          }}
+        >
+          <ListItemIcon>
+            <SettingsIcon fontSize="small" />
+          </ListItemIcon>
+          Cấu hình hệ thống
+        </MenuItem>
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>
             <LogoutIcon fontSize="small" />
@@ -492,6 +519,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </Menu>
       <Profile open={openProfile} setOpen={setOpenProfile} />
       <ChangePass open={openChangePass} setOpen={setOpenChangePass} />
+      <SystemConfigModal
+        open={openSystemConfig}
+        onClose={() => setOpenSystemConfig(false)}
+      />
     </Box>
   );
 };

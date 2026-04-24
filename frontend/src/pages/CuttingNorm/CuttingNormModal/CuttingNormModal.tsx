@@ -16,7 +16,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import api from "../../../config/api.config";
@@ -34,6 +34,9 @@ import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 import FieldInput from "../../../components/TextField/FieldInput";
 import BaseModal from "../../../components/Common/BaseModal";
+import { useAtomValue } from "jotai";
+import { systemConfigsAtom } from "../../../atoms/systemConfigAtoms";
+import { SYSTEM_KEYS } from "../../../utils/constant";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -111,13 +114,20 @@ export default function CuttingNormModal({
     queryFn: () => api.get("/crosssections").then((res) => res.data.data),
   });
 
+  const systemConfigs = useAtomValue(systemConfigsAtom);
+  const cuttingPhaseGroupKey = useMemo(() => {
+    return systemConfigs.find((c) => c.key === SYSTEM_KEYS.XEN_LO)?.value || "";
+  }, [systemConfigs]);
   useEffect(() => {
-    setPhaseGroup(
-      phasegroups.data.find(
-        (p: PhaseGroupType) => p.name?.toLowerCase() === "xén lò".toLowerCase(),
-      )?._id,
-    );
-  }, [phasegroups]);
+    if (phasegroups.data && cuttingPhaseGroupKey) {
+      const found = phasegroups.data.find(
+        (p: PhaseGroupType) => p.code === cuttingPhaseGroupKey,
+      );
+      if (found && found._id !== phaseGroup) {
+        setPhaseGroup(found._id);
+      }
+    }
+  }, [phasegroups.data, cuttingPhaseGroupKey, phaseGroup]);
 
   const formik = useFormik({
     initialValues: {
@@ -415,11 +425,7 @@ export default function CuttingNormModal({
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selected
-          ? "Chỉnh sửa định mức xén lò"
-          : "Tạo mới định mức xén lò"
-      }
+      title={selected ? "Chỉnh sửa định mức xén lò" : "Tạo mới định mức xén lò"}
       breadcrumbs={["Danh mục", "Thông số", "Định mức xén lò"]}
       showZoom={true}
       actions={
@@ -695,7 +701,7 @@ export default function CuttingNormModal({
               />
             )}
             sx={{
-              minWidth:"100%",
+              minWidth: "100%",
               "& .MuiInputBase-root": {
                 minHeight: "32px",
                 borderRadius: "6px",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Box, Typography, Breadcrumbs, Tabs, Tab } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -8,6 +8,9 @@ import CoalCuttingNormKB from "../CoalCuttingNormKB/CoalCuttingNormKB";
 import CoalCuttingNormZH from "../CoalCuttingNormZH/CoalCuttingNormZH";
 import CoalCuttingNormZRY from "../CoalCuttingNormZRY/CoalCuttingNormZRY";
 import custom_theme from "../../theme";
+import { useAtomValue } from "jotai";
+import { systemConfigsAtom } from "../../atoms/systemConfigAtoms";
+import { SYSTEM_KEYS } from "../../utils/constant";
 
 export default function CoalCuttingNorm() {
   const { data: phases = { data: [] } } = useQuery({
@@ -20,8 +23,16 @@ export default function CoalCuttingNorm() {
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
+
+  const systemConfigs = useAtomValue(systemConfigsAtom);
+  const cuttingPhaseGroupKey = useMemo(() => {
+    return (
+      systemConfigs.find((c) => c.key === SYSTEM_KEYS.KHAU_THAN)?.value || ""
+    );
+  }, [systemConfigs]);
+
   const coalPhases = phases.data.filter(
-    (i: PhaseOutputType) => i.phaseGroup?.name?.toLowerCase() === "khấu than"
+    (i: PhaseOutputType) => i.phaseGroup?.code === cuttingPhaseGroupKey,
   );
 
   return (
@@ -68,7 +79,8 @@ export default function CoalCuttingNorm() {
             {phases.data
               .filter(
                 (i: PhaseOutputType) =>
-                  i.phaseGroup?.name?.toLowerCase() === "khấu than"
+                  i.phaseGroup?.code?.toLowerCase() ===
+                  cuttingPhaseGroupKey.toLowerCase(),
               )
               .map((p: PhaseOutputType, idx: number) => (
                 <Tab

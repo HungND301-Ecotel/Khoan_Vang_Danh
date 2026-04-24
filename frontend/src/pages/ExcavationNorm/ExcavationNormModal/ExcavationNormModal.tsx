@@ -19,8 +19,10 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import React, { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
+import { useAtomValue, useAtom } from "jotai";
 import { FieldArray, FormikProvider, useFormik } from "formik";
+import { systemConfigsAtom } from "../../../atoms/systemConfigAtoms";
 import api from "../../../config/api.config";
 import {
   AssignmentCodeOutputType,
@@ -42,6 +44,7 @@ import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAuto
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 import FieldInput from "../../../components/TextField/FieldInput";
 import BaseModal from "../../../components/Common/BaseModal";
+import { SYSTEM_KEYS } from "../../../utils/constant";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -81,6 +84,10 @@ export default function ExcavationNormModal({
     AssignmentCodeOutputType[]
   >([]);
   const [showAdditionalRows, setShowAdditionalRows] = useState(false);
+  const systemConfigs = useAtomValue(systemConfigsAtom);
+  const excavationPhaseGroupKey = useMemo(() => {
+    return systemConfigs.find((c) => c.key === SYSTEM_KEYS.DAO_LO)?.value || "";
+  }, [systemConfigs]);
 
   // Maps lưu norms theo assignmentCode cho cận trên và cận dưới
   const [upperNormsMap, setUpperNormsMap] = useState<Map<string, number>>(
@@ -126,12 +133,15 @@ export default function ExcavationNormModal({
   });
 
   useEffect(() => {
-    setPhaseGroup(
-      phasegroups.data.find(
-        (p: PhaseGroupType) => p.name?.toLowerCase() === "đào lò".toLowerCase(),
-      )?._id,
-    );
-  }, [phasegroups]);
+    if (phasegroups.data && excavationPhaseGroupKey) {
+      const found = phasegroups.data.find(
+        (p: PhaseGroupType) => p.code === excavationPhaseGroupKey,
+      );
+      if (found && found._id !== phaseGroup) {
+        setPhaseGroup(found._id);
+      }
+    }
+  }, [phasegroups.data, excavationPhaseGroupKey, phaseGroup]);
 
   const formik = useFormik({
     initialValues: {

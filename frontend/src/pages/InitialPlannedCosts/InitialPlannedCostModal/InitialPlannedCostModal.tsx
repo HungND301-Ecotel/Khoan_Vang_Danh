@@ -13,7 +13,7 @@ import {
   FormControlLabel,
   FormGroup,
 } from "@mui/material";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -41,6 +41,9 @@ import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
 import BaseModal from "../../../components/Common/BaseModal";
 import FieldInput from "../../../components/TextField/FieldInput";
+import { systemConfigsAtom } from "../../../atoms/systemConfigAtoms";
+import { useAtomValue } from "jotai";
+import { SYSTEM_KEYS } from "../../../utils/constant";
 
 const validationSchema = yup.object({
   productionScope: yup.string().required("Diện sản xuất không được để trống"),
@@ -78,6 +81,11 @@ export default function InitialPlannedCostModal({
   selected: any | null;
 }) {
   const [expandedGroups, setExpandedGroups] = useState<number[]>([0]);
+
+  const systemConfigs = useAtomValue(systemConfigsAtom);
+  const cuttingPhaseGroupKey = useMemo(() => {
+    return systemConfigs.find((c) => c.key === SYSTEM_KEYS.KHAU_THAN)?.value || "";
+  }, [systemConfigs]);
 
   const { data: productionscopes = { data: [] } } = useQuery({
     queryKey: ["productionscopes"],
@@ -122,7 +130,7 @@ export default function InitialPlannedCostModal({
                 production: Number(p.production ?? 0),
                 unit:
                   p.unit ||
-                  (p.phase?.name?.toLowerCase()?.includes("khấu than")
+                  (p.phase?.code?.toLowerCase()?.includes(cuttingPhaseGroupKey?.toLowerCase())
                     ? "tấn"
                     : "mét"),
                 assignmentNormCode:
@@ -157,7 +165,8 @@ export default function InitialPlannedCostModal({
                         baseNorm: detail?.baseNorm ?? n.norm ?? 0,
                         adjustmentNorm:
                           detail?.adjustmentNorm ?? adjNorm?.norm ?? 1,
-                        norm: detail?.norm ?? (n.norm || 0) * (adjNorm?.norm || 1),
+                        norm:
+                          detail?.norm ?? (n.norm || 0) * (adjNorm?.norm || 1),
                         checked: isChecked,
                       };
                     })
@@ -172,9 +181,9 @@ export default function InitialPlannedCostModal({
                 ? selected.productionScope.phases.map((ph: any) => ({
                     phase: ph.phase?._id ?? ph._id ?? "",
                     production: 0,
-                    unit: (ph.phase?.phaseGroup?.name || ph.name || "")
+                    unit: (ph.phase?.phaseGroup?.code || ph.code || "")
                       ?.toLowerCase()
-                      ?.includes("khấu than")
+                      ?.includes(cuttingPhaseGroupKey?.toLowerCase())
                       ? "tấn"
                       : "mét",
                     assignmentNormCode: undefined,
@@ -198,14 +207,14 @@ export default function InitialPlannedCostModal({
             unit: String(p.unit),
             assignmentNormCode: p.assignmentNormCode,
             adjustmentNormCode: p.adjustmentNormCode,
-              assignmentCodes: (p.assignmentCodes || [])
-                .filter((ac: any) => ac.checked)
-                .map((ac: any) => ({
-                  assignmentCode: ac.assignmentCode,
-                  baseNorm: Number(ac.baseNorm || 0),
-                  adjustmentNorm: Number(ac.adjustmentNorm || 1),
-                  norm: Number(ac.norm || 0),
-                })),
+            assignmentCodes: (p.assignmentCodes || [])
+              .filter((ac: any) => ac.checked)
+              .map((ac: any) => ({
+                assignmentCode: ac.assignmentCode,
+                baseNorm: Number(ac.baseNorm || 0),
+                adjustmentNorm: Number(ac.adjustmentNorm || 1),
+                norm: Number(ac.norm || 0),
+              })),
           })),
         })),
       };
@@ -235,9 +244,9 @@ export default function InitialPlannedCostModal({
           const mappedPhases = scope.phases.map((ph: any) => ({
             phase: ph.phase?._id ?? ph._id ?? "",
             production: 0,
-            unit: (ph.phase?.phaseGroup?.name || ph.name || "")
+            unit: (ph.phase?.phaseGroup?.code || ph.code || "")
               ?.toLowerCase()
-              ?.includes("khấu than")
+              ?.includes(cuttingPhaseGroupKey?.toLowerCase())
               ? "tấn"
               : "mét",
             assignmentNormCode: undefined,
@@ -353,9 +362,9 @@ export default function InitialPlannedCostModal({
               const mappedPhases = scope.phases.map((ph: any) => ({
                 phase: ph.phase?._id ?? "",
                 production: 0,
-                unit: ph.phase?.phaseGroup?.name
+                unit: ph.phase?.phaseGroup?.code
                   ?.toLowerCase()
-                  ?.includes("khấu than")
+                  ?.includes(cuttingPhaseGroupKey?.toLowerCase())
                   ? "tấn"
                   : "mét",
                 assignmentNormCode: undefined,
@@ -579,53 +588,6 @@ export default function InitialPlannedCostModal({
                                       <Typography
                                         sx={{ fontSize: "12px", mb: 0.5 }}
                                       >
-                                        Hệ số điều chỉnh
-                                      </Typography>
-                                      <FieldAutoCompleted
-                                        formik={formik}
-                                        field={`groups.${gIdx}.phases.${pIdx}.adjustmentNormCode`}
-                                        title=""
-                                        labelkey="code"
-                                        data={adjustmentnorms.data}
-                                        onChange={(newValue: any) => {
-                                          const currentAssignmentCodes =
-                                            formik.values.groups[gIdx].phases[
-                                              pIdx
-                                            ].assignmentCodes || [];
-
-                                          const updatedCodes =
-                                            currentAssignmentCodes.map(
-                                              (ac: any) => {
-                                                const adjNorm =
-                                                  newValue?.norms?.find(
-                                                    (n: any) =>
-                                                      (n.assignmentCode?._id ||
-                                                        n.assignmentCode) ===
-                                                      ac.assignmentCode,
-                                                  );
-                                                const newAdjFactor =
-                                                  adjNorm?.norm ?? 1;
-                                                return {
-                                                  ...ac,
-                                                  adjustmentNorm: newAdjFactor,
-                                                  norm:
-                                                    (ac.baseNorm || 0) *
-                                                    newAdjFactor,
-                                                };
-                                              },
-                                            );
-
-                                          formik.setFieldValue(
-                                            `groups.${gIdx}.phases.${pIdx}.assignmentCodes`,
-                                            updatedCodes,
-                                          );
-                                        }}
-                                      />
-                                    </Box>
-                                    <Box sx={{ gridColumn: "1 / -1" }}>
-                                      <Typography
-                                        sx={{ fontSize: "12px", mb: 0.5 }}
-                                      >
                                         Định mức giao khoán
                                       </Typography>
                                       <FieldAutoCompleted
@@ -670,7 +632,8 @@ export default function InitialPlannedCostModal({
                                                     "",
                                                   baseNorm: n.norm || 0,
                                                   adjustmentNorm: adjFactor,
-                                                  norm: (n.norm || 0) * adjFactor,
+                                                  norm:
+                                                    (n.norm || 0) * adjFactor,
                                                   checked: true,
                                                 };
                                               },
@@ -685,6 +648,53 @@ export default function InitialPlannedCostModal({
                                               [],
                                             );
                                           }
+                                        }}
+                                      />
+                                    </Box>
+                                    <Box sx={{ gridColumn: "1 / -1" }}>
+                                      <Typography
+                                        sx={{ fontSize: "12px", mb: 0.5 }}
+                                      >
+                                        Hệ số điều chỉnh
+                                      </Typography>
+                                      <FieldAutoCompleted
+                                        formik={formik}
+                                        field={`groups.${gIdx}.phases.${pIdx}.adjustmentNormCode`}
+                                        title=""
+                                        labelkey="code"
+                                        data={adjustmentnorms.data}
+                                        onChange={(newValue: any) => {
+                                          const currentAssignmentCodes =
+                                            formik.values.groups[gIdx].phases[
+                                              pIdx
+                                            ].assignmentCodes || [];
+
+                                          const updatedCodes =
+                                            currentAssignmentCodes.map(
+                                              (ac: any) => {
+                                                const adjNorm =
+                                                  newValue?.norms?.find(
+                                                    (n: any) =>
+                                                      (n.assignmentCode?._id ||
+                                                        n.assignmentCode) ===
+                                                      ac.assignmentCode,
+                                                  );
+                                                const newAdjFactor =
+                                                  adjNorm?.norm ?? 1;
+                                                return {
+                                                  ...ac,
+                                                  adjustmentNorm: newAdjFactor,
+                                                  norm:
+                                                    (ac.baseNorm || 0) *
+                                                    newAdjFactor,
+                                                };
+                                              },
+                                            );
+
+                                          formik.setFieldValue(
+                                            `groups.${gIdx}.phases.${pIdx}.assignmentCodes`,
+                                            updatedCodes,
+                                          );
                                         }}
                                       />
                                     </Box>
@@ -779,7 +789,15 @@ export default function InitialPlannedCostModal({
                                                     }}
                                                   >
                                                     <Box sx={{ width: "15%" }}>
-                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>Mã GK</Typography>
+                                                      <Typography
+                                                        sx={{
+                                                          fontSize: "11px",
+                                                          color:
+                                                            "text.secondary",
+                                                        }}
+                                                      >
+                                                        Mã GK
+                                                      </Typography>
                                                       <FieldInput
                                                         field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.code`}
                                                         formik={formik}
@@ -787,7 +805,15 @@ export default function InitialPlannedCostModal({
                                                       />
                                                     </Box>
                                                     <Box sx={{ width: "25%" }}>
-                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>Tên GK</Typography>
+                                                      <Typography
+                                                        sx={{
+                                                          fontSize: "11px",
+                                                          color:
+                                                            "text.secondary",
+                                                        }}
+                                                      >
+                                                        Tên GK
+                                                      </Typography>
                                                       <FieldInput
                                                         field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.name`}
                                                         formik={formik}
@@ -795,7 +821,15 @@ export default function InitialPlannedCostModal({
                                                       />
                                                     </Box>
                                                     <Box sx={{ width: "15%" }}>
-                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>ĐM gốc</Typography>
+                                                      <Typography
+                                                        sx={{
+                                                          fontSize: "11px",
+                                                          color:
+                                                            "text.secondary",
+                                                        }}
+                                                      >
+                                                        ĐM gốc
+                                                      </Typography>
                                                       <TextFieldNumber
                                                         field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.baseNorm`}
                                                         formik={formik}
@@ -803,11 +837,21 @@ export default function InitialPlannedCostModal({
                                                       />
                                                     </Box>
                                                     <Box sx={{ width: "15%" }}>
-                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>Hệ số ĐC</Typography>
+                                                      <Typography
+                                                        sx={{
+                                                          fontSize: "11px",
+                                                          color:
+                                                            "text.secondary",
+                                                        }}
+                                                      >
+                                                        Hệ số ĐC
+                                                      </Typography>
                                                       <TextFieldNumber
                                                         field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.adjustmentNorm`}
                                                         formik={formik}
-                                                        onValueChange={(val) => {
+                                                        onValueChange={(
+                                                          val,
+                                                        ) => {
                                                           const baseNorm =
                                                             formik.values
                                                               .groups[gIdx]
@@ -823,7 +867,15 @@ export default function InitialPlannedCostModal({
                                                       />
                                                     </Box>
                                                     <Box sx={{ flex: 1 }}>
-                                                      <Typography sx={{ fontSize: "11px", color: "text.secondary" }}>Định mức</Typography>
+                                                      <Typography
+                                                        sx={{
+                                                          fontSize: "11px",
+                                                          color:
+                                                            "text.secondary",
+                                                        }}
+                                                      >
+                                                        Định mức
+                                                      </Typography>
                                                       <TextFieldNumber
                                                         field={`groups.${gIdx}.phases.${pIdx}.assignmentCodes.${cIdx}.norm`}
                                                         formik={formik}

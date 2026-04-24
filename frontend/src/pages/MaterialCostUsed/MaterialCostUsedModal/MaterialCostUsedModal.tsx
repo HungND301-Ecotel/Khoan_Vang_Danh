@@ -17,7 +17,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   FieldArray,
@@ -44,6 +44,9 @@ import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 import BaseModal from "../../../components/Common/BaseModal";
+import { useAtomValue } from "jotai";
+import { systemConfigsAtom } from "../../../atoms/systemConfigAtoms";
+import { SYSTEM_KEYS } from "../../../utils/constant";
 
 export default function MaterialCostUsedModal({
   open,
@@ -57,6 +60,13 @@ export default function MaterialCostUsedModal({
   selected: any | null;
 }) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const systemConfigs = useAtomValue(systemConfigsAtom);
+  const cuttingPhaseGroupKey = useMemo(() => {
+    return (
+      systemConfigs.find((c) => c.key === SYSTEM_KEYS.KHAU_THAN)?.value || ""
+    );
+  }, [systemConfigs]);
 
   const { data: productionscopes = { data: [] } } = useQuery({
     queryKey: ["productionscopes"],
@@ -87,7 +97,9 @@ export default function MaterialCostUsedModal({
           production: Number(p.production ?? 0), // CHANGED
           unit:
             p.phase?.unit ??
-            (p.phase?.name?.toLowerCase()?.includes("khấu than")
+            (p.phase?.code
+              ?.toLowerCase()
+              ?.includes(cuttingPhaseGroupKey?.toLowerCase())
               ? "tấn"
               : "mét"),
           assignmentNormCode: p?.assignmentNormCode,
@@ -191,7 +203,11 @@ export default function MaterialCostUsedModal({
         production: 0,
         unit:
           g.unit ??
-          (g.phase?.name.toLowerCase().includes("khấu than") ? "tấn" : "mét"),
+          (g.phase?.code
+            .toLowerCase()
+            .includes(cuttingPhaseGroupKey?.toLowerCase())
+            ? "tấn"
+            : "mét"),
         assignmentNormCode: g.assignmentNormCode?._id,
         adjustmentNormCode: g.adjustmentNormCode?._id,
       };
@@ -290,6 +306,10 @@ export default function MaterialCostUsedModal({
             title=""
             labelkey="code"
             data={productionscopes.data}
+            onChange={() => {
+              formik.setFieldValue("groupIndexes", null);
+              formik.setFieldValue("phases", []);
+            }}
           />
         </Box>
         {initialplannedcost && (
