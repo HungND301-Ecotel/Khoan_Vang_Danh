@@ -88,7 +88,7 @@ export default function SettlementReport() {
             `/contractsettlements/getMonth?month=${selectedMonth}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`,
           )
           .then((res) => res.data.data),
-      enabled: !!selectedMonth && !!selectedPhase,
+      enabled: !!selectedMonth && !!selectedProductionScope,
     });
 
   const { data: productionscopes = [] } = useQuery({
@@ -173,15 +173,12 @@ export default function SettlementReport() {
     mutationFn: async () => {
       await Promise.all(
         pendingChanges.map((change) =>
-          api.patch(
-            "/contractsettlements/updateMaterialAssignmentCode",
-            {
-              materialCostId: change.materialCostId,
-              materialItemId: change.materialItemId,
-              newAssignmentCodeId: change.newAssignmentCodeId,
-              newPrice: change.newPrice ?? null,
-            },
-          ),
+          api.patch("/contractsettlements/updateMaterialAssignmentCode", {
+            materialCostId: change.materialCostId,
+            materialItemId: change.materialItemId,
+            newAssignmentCodeId: change.newAssignmentCodeId,
+            newPrice: change.newPrice ?? null,
+          }),
         ),
       );
     },
@@ -247,38 +244,6 @@ export default function SettlementReport() {
                   variant="body2"
                   sx={{ mb: 1, fontWeight: 500, color: "#333" }}
                 >
-                  Chọn công đoạn
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Placeholder"
-                  onChange={(e) => setSelectedPhase(e.target.value)}
-                  sx={{
-                    // width: 168,
-                    // height: 32,
-                    // "& .MuiOutlinedInput-root": {
-                    //   backgroundColor: "#f8f9fa",
-                    //   "& fieldset": { borderColor: "#e0e0e0" },
-                    //   "&:hover fieldset": { borderColor: "#bdbdbd" },
-                    // },
-                    backgroundColor: "#fff",
-                  }}
-                  select
-                  variant="outlined"
-                >
-                  {phases?.data?.map((item: PhaseOutputType) => (
-                    <MenuItem key={item._id} value={item._id}>
-                      {item.code}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={4}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                >
                   Chọn diện sản xuất
                 </Typography>
                 <TextField
@@ -306,6 +271,38 @@ export default function SettlementReport() {
                       </MenuItem>
                     ),
                   )}
+                </TextField>
+              </Grid>
+              <Grid item xs={4}>
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+                >
+                  Chọn công đoạn
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Placeholder"
+                  onChange={(e) => setSelectedPhase(e.target.value)}
+                  sx={{
+                    // width: 168,
+                    // height: 32,
+                    // "& .MuiOutlinedInput-root": {
+                    //   backgroundColor: "#f8f9fa",
+                    //   "& fieldset": { borderColor: "#e0e0e0" },
+                    //   "&:hover fieldset": { borderColor: "#bdbdbd" },
+                    // },
+                    backgroundColor: "#fff",
+                  }}
+                  select
+                  variant="outlined"
+                >
+                  {phases?.data?.map((item: PhaseOutputType) => (
+                    <MenuItem key={item._id} value={item._id}>
+                      {item.code}
+                    </MenuItem>
+                  ))}
                 </TextField>
               </Grid>
             </Grid>
@@ -1140,7 +1137,7 @@ export default function SettlementReport() {
                 key={
                   (
                     assignment?.assignmentCode ||
-                   assignment.assignmentCode !== null
+                    assignment.assignmentCode !== null
                   )?._id
                 }
               >
@@ -1168,8 +1165,7 @@ export default function SettlementReport() {
                       );
                       const newAssignmentCodeId =
                         assignment?.assignmentCode?._id ?? null;
-                      const newPrice: number | null =
-                        assignment?.price ?? null;
+                      const newPrice: number | null = assignment?.price ?? null;
                       handleDrop(
                         newAssignmentCodeId,
                         payload.fromAssignmentCodeId,
@@ -1249,7 +1245,7 @@ export default function SettlementReport() {
                     {
                       (
                         assignment?.assignmentCode ||
-                       assignment.assignmentCode !== null
+                        assignment.assignmentCode !== null
                       )?.code
                     }
                   </TableCell>
@@ -1287,7 +1283,7 @@ export default function SettlementReport() {
                     }}
                   >
                     {assignment?.assignmentCode ||
-                   assignment.assignmentCode !== null
+                    assignment.assignmentCode !== null
                       ? formattedPrice(assignment?.price)
                       : ""}
                   </TableCell>
@@ -1303,7 +1299,7 @@ export default function SettlementReport() {
                       }}
                     >
                       {assignment?.assignmentCode ||
-                     assignment.assignmentCode !== null
+                      assignment.assignmentCode !== null
                         ? formatDecimal(assignment?.baseNorm)
                         : ""}
                     </TableCell>
@@ -1320,7 +1316,7 @@ export default function SettlementReport() {
                       }}
                     >
                       {assignment?.assignmentCode ||
-                     assignment.assignmentCode !== null
+                      assignment.assignmentCode !== null
                         ? formatDecimal(assignment?.adjustmentNorm)
                         : ""}
                     </TableCell>
@@ -1337,7 +1333,7 @@ export default function SettlementReport() {
                       }}
                     >
                       {assignment?.assignmentCode ||
-                     assignment.assignmentCode !== null
+                      assignment.assignmentCode !== null
                         ? formatDecimal(assignment?.norm)
                         : ""}
                     </TableCell>

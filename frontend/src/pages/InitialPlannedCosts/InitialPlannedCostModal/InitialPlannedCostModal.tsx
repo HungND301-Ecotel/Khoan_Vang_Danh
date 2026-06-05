@@ -13,7 +13,7 @@ import {
   FormControlLabel,
   FormGroup,
 } from "@mui/material";
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useMemo, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -28,9 +28,6 @@ import {
 } from "formik";
 import api from "../../../config/api.config";
 import {
-  ProductionScopeOutputType,
-  PhaseOutputType,
-  PhaseType,
   InitialPlannedCostInputType,
 } from "../../../types";
 import * as yup from "yup";
@@ -115,6 +112,15 @@ export default function InitialPlannedCostModal({
     );
   };
 
+  const emptyPhase = () => ({
+    phase: "",
+    production: 0,
+    unit: "mét",
+    assignmentNormCode: undefined,
+    adjustmentNormCode: undefined,
+    assignmentCodes: [],
+  });
+
   const formik = useFormik({
     initialValues: {
       _id: selected?._id || "",
@@ -149,14 +155,11 @@ export default function InitialPlannedCostModal({
                           (n.assignmentCode?._id || n.assignmentCode),
                       );
                       const isChecked = detail ? true : false;
-
-                      // Tìm hệ số điều chỉnh tương ứng từ adjustmentNormCode
                       const adjNorm = p.adjustmentNormCode?.norms?.find(
                         (an: any) =>
                           (an.assignmentCode?._id || an.assignmentCode) ===
                           (n.assignmentCode?._id || n.assignmentCode),
                       );
-
                       return {
                         assignmentCode:
                           n.assignmentCode?._id || n.assignmentCode,
@@ -177,20 +180,7 @@ export default function InitialPlannedCostModal({
         : [
             {
               month: dayjs(new Date()).format("YYYY-MM"),
-              phases: selected?.productionScope?.phases
-                ? selected.productionScope.phases.map((ph: any) => ({
-                    phase: ph.phase?._id ?? ph._id ?? "",
-                    production: 0,
-                    unit: (ph.phase?.phaseGroup?.code || ph.code || "")
-                      ?.toLowerCase()
-                      ?.includes(cuttingPhaseGroupKey?.toLowerCase())
-                      ? "tấn"
-                      : "mét",
-                    assignmentNormCode: undefined,
-                    adjustmentNormCode: undefined,
-                    assignmentCodes: [],
-                  }))
-                : [],
+              phases: [],
             },
           ],
     },
@@ -232,35 +222,7 @@ export default function InitialPlannedCostModal({
     },
   });
 
-  // Tự động điền phases khi productionScope đã được chọn (trường hợp Thêm cho diện có sẵn hoặc chọn từ dropdown)
-  useEffect(() => {
-    if (formik.values.productionScope && !selected?._id) {
-      const scope = productionscopes.data.find(
-        (ps: any) => ps._id === formik.values.productionScope,
-      );
-      if (scope && Array.isArray(scope.phases)) {
-        const currentPhases = formik.values.groups[0]?.phases || [];
-        if (currentPhases.length === 0) {
-          const mappedPhases = scope.phases.map((ph: any) => ({
-            phase: ph.phase?._id ?? ph._id ?? "",
-            production: 0,
-            unit: (ph.phase?.phaseGroup?.code || ph.code || "")
-              ?.toLowerCase()
-              ?.includes(cuttingPhaseGroupKey?.toLowerCase())
-              ? "tấn"
-              : "mét",
-            assignmentNormCode: undefined,
-            adjustmentNormCode: undefined,
-            assignmentCodes: [],
-          }));
-          formik.setFieldValue(
-            "groups",
-            formik.values.groups.map((g) => ({ ...g, phases: mappedPhases })),
-          );
-        }
-      }
-    }
-  }, [formik.values.productionScope, productionscopes.data, selected?._id]);
+
 
   const handleClose = () => {
     formik.resetForm();
@@ -353,29 +315,7 @@ export default function InitialPlannedCostModal({
           fullWidth
           value={formik.values.productionScope || ""}
           onChange={(event) => {
-            const scopeId = event.target.value;
-            formik.setFieldValue("productionScope", scopeId);
-            const scope = productionscopes.data.find(
-              (ps: any) => ps._id === scopeId,
-            );
-            if (scope && Array.isArray(scope.phases)) {
-              const mappedPhases = scope.phases.map((ph: any) => ({
-                phase: ph.phase?._id ?? "",
-                production: 0,
-                unit: ph.phase?.phaseGroup?.code
-                  ?.toLowerCase()
-                  ?.includes(cuttingPhaseGroupKey?.toLowerCase())
-                  ? "tấn"
-                  : "mét",
-                assignmentNormCode: undefined,
-                adjustmentNormCode: undefined,
-                assignmentCodes: [],
-              }));
-              // Cập nhật phases cho tất cả các groups hiện tại
-              formik.values.groups.forEach((_, idx) => {
-                formik.setFieldValue(`groups.${idx}.phases`, mappedPhases);
-              });
-            }
+            formik.setFieldValue("productionScope", event.target.value);
           }}
           variant="outlined"
           error={
@@ -429,6 +369,30 @@ export default function InitialPlannedCostModal({
                           formik={formik}
                           fieldName={`groups.${gIdx}.month`}
                         />
+                        {/* Nút + thêm công đoạn */}
+                        <IconButton
+                          onClick={() => {
+                            const currentPhases =
+                              formik.values.groups[gIdx].phases || [];
+                            formik.setFieldValue(
+                              `groups.${gIdx}.phases`,
+                              [...currentPhases, emptyPhase()],
+                            );
+                            if (!expandedGroups.includes(gIdx)) {
+                              setExpandedGroups((prev) => [...prev, gIdx]);
+                            }
+                          }}
+                          size="small"
+                          sx={{
+                            color: "#007BFF",
+                            border: "1px dashed #007BFF",
+                            borderRadius: "6px",
+                            p: 0.5,
+                          }}
+                          title="Thêm công đoạn"
+                        >
+                          <AddIcon fontSize="small" />
+                        </IconButton>
                         <IconButton
                           onClick={() => toggleExpand(gIdx)}
                           size="small"
@@ -454,7 +418,7 @@ export default function InitialPlannedCostModal({
 
                     {expandedGroups.includes(gIdx) && (
                       <FieldArray name={`groups.${gIdx}.phases`}>
-                        {() => (
+                        {({ remove: removePhase }) => (
                           <Box
                             sx={{
                               display: "flex",
@@ -463,10 +427,20 @@ export default function InitialPlannedCostModal({
                               mt: 2,
                             }}
                           >
+                            {group.phases.length === 0 && (
+                              <Typography
+                                sx={{
+                                  fontSize: "13px",
+                                  color: "text.secondary",
+                                  textAlign: "center",
+                                  py: 1,
+                                }}
+                              >
+                                Chưa có công đoạn. Nhấn{" "}
+                                <strong>+</strong> để thêm.
+                              </Typography>
+                            )}
                             {group.phases.map((item: any, pIdx: number) => {
-                              const phase = phases.data.find(
-                                (p: any) => p._id === item.phase,
-                              );
                               return (
                                 <Paper
                                   key={pIdx}
@@ -477,18 +451,31 @@ export default function InitialPlannedCostModal({
                                     position: "relative",
                                   }}
                                 >
-                                  <Typography
+                                  {/* Label + nút xóa */}
+                                  <Box
                                     sx={{
-                                      fontWeight: 600,
-                                      fontSize: "13px",
-                                      position: "absolute",
-                                      top: -10,
-                                      px: 1,
-                                      backgroundColor: "#fff",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      mb: 1,
                                     }}
                                   >
-                                    Công đoạn {pIdx + 1}
-                                  </Typography>
+                                    <Typography
+                                      sx={{
+                                        fontWeight: 600,
+                                        fontSize: "13px",
+                                      }}
+                                    >
+                                      Công đoạn {pIdx + 1}
+                                    </Typography>
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={() => removePhase(pIdx)}
+                                    >
+                                      <CloseIcon fontSize="small" />
+                                    </IconButton>
+                                  </Box>
                                   <Box
                                     sx={{
                                       display: "grid",
@@ -501,43 +488,37 @@ export default function InitialPlannedCostModal({
                                       mt: 1,
                                     }}
                                   >
-                                    <Box>
+                                    {/* Dropdown chọn công đoạn (span 2 cột) */}
+                                    <Box sx={{ gridColumn: "span 2" }}>
                                       <Typography
                                         sx={{ fontSize: "12px", mb: 0.5 }}
                                       >
-                                        Mã công đoạn
+                                        Chọn công đoạn
                                       </Typography>
                                       <TextField
+                                        select
                                         fullWidth
                                         size="small"
-                                        value={phase?.code || ""}
-                                        disabled
+                                        value={item.phase || ""}
+                                        onChange={(e) =>
+                                          formik.setFieldValue(
+                                            `groups.${gIdx}.phases.${pIdx}.phase`,
+                                            e.target.value,
+                                          )
+                                        }
                                         sx={{
                                           "& .MuiInputBase-root": {
                                             height: "30px",
                                             fontSize: "13px",
                                           },
                                         }}
-                                      />
-                                    </Box>
-                                    <Box>
-                                      <Typography
-                                        sx={{ fontSize: "12px", mb: 0.5 }}
                                       >
-                                        Tên công đoạn
-                                      </Typography>
-                                      <TextField
-                                        fullWidth
-                                        size="small"
-                                        value={phase?.name || ""}
-                                        disabled
-                                        sx={{
-                                          "& .MuiInputBase-root": {
-                                            height: "30px",
-                                            fontSize: "13px",
-                                          },
-                                        }}
-                                      />
+                                        {phases.data.map((p: any) => (
+                                          <MenuItem key={p._id} value={p._id}>
+                                            {p.code} – {p.name}
+                                          </MenuItem>
+                                        ))}
+                                      </TextField>
                                     </Box>
                                     <Box>
                                       <Typography

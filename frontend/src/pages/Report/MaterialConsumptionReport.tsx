@@ -50,7 +50,7 @@ export default function MaterialConsumptionReport() {
             `/contractsettlements/getMonth?month=${selectedMonth}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`,
           )
           .then((res) => res.data.data),
-      enabled: !!selectedMonth && !!selectedPhase,
+      enabled: !!selectedMonth && !!selectedProductionScope,
     });
 
   const { data: productionscopes = [] } = useQuery({
@@ -101,31 +101,6 @@ export default function MaterialConsumptionReport() {
               variant="body2"
               sx={{ mb: 1, fontWeight: 500, color: "#333" }}
             >
-              Chọn công đoạn
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Placeholder"
-              onChange={(e) => setSelectedPhase(e.target.value)}
-              sx={{
-                backgroundColor: "#fff",
-              }}
-              select
-              variant="outlined"
-            >
-              {phases?.data?.map((item: PhaseOutputType) => (
-                <MenuItem key={item._id} value={item._id}>
-                  {item.code}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={4}>
-            <Typography
-              variant="body2"
-              sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-            >
               Chọn diện sản xuất
             </Typography>
             <TextField
@@ -146,6 +121,31 @@ export default function MaterialConsumptionReport() {
                   </MenuItem>
                 ),
               )}
+            </TextField>
+          </Grid>
+          <Grid item xs={4}>
+            <Typography
+              variant="body2"
+              sx={{ mb: 1, fontWeight: 500, color: "#333" }}
+            >
+              Chọn công đoạn
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Placeholder"
+              onChange={(e) => setSelectedPhase(e.target.value)}
+              sx={{
+                backgroundColor: "#fff",
+              }}
+              select
+              variant="outlined"
+            >
+              {phases?.data?.map((item: PhaseOutputType) => (
+                <MenuItem key={item._id} value={item._id}>
+                  {item.code}
+                </MenuItem>
+              ))}
             </TextField>
           </Grid>
         </Grid>

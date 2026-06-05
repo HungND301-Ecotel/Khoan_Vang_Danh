@@ -313,11 +313,6 @@ exports.get = async (req, res) => {
                 model: 'Phase', // <--- THÊM KHAI BÁO MODEL TƯỜNG MINH
             },
             {
-                path: 'productionScope.phases.phase',
-                select: 'code name', // Chọn các trường bạn muốn lấy
-                model: 'Phase', // <--- THÊM KHAI BÁO MODEL TƯỜNG MINH
-            },
-            {
                 path: 'group.phases.assignmentNormCode',
                 select: 'norms code',
                 model: 'AssignmentNorm',
@@ -379,10 +374,7 @@ exports.getOne = async (req, res) => {
         const modelQuery = InitialPlannedCost.find({ productionScope: scopeId })
             .populate({
                 path: 'productionScope',
-                select: 'code name phases',
-                populate: [
-                    { path: 'phases.phase', populate: 'code name' }
-                ]
+                select: 'code name',
             })
             .populate('phases.phase', 'code name')
             .populate({

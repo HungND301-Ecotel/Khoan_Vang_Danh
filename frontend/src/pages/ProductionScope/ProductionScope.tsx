@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   Add,
   ArrowDropDown,
@@ -10,7 +10,6 @@ import {
   Mail,
   Print,
   Search,
-  Visibility,
 } from "@mui/icons-material";
 import {
   Box,
@@ -21,9 +20,6 @@ import {
   TextField,
   Typography,
   CircularProgress,
-  Skeleton,
-  Card,
-  CardContent,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -37,7 +33,7 @@ import {
   showErrorAlert,
   showSuccessAlert,
 } from "../../components/Alert";
-import { Table, TableProps } from "antd";
+import { TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
@@ -47,7 +43,6 @@ import { ShowAlertImport } from "../../utils/AlertImport"
 
 
 export default function ProductScope() {
-  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
   const [selected, setSelected] = useState<ProductionScopeOutputType | null>(
     null
   );
@@ -193,15 +188,6 @@ export default function ProductScope() {
     setOpen(true);
   };
 
-  const handleView = (record: ProductionScopeOutputType) => {
-    const key = record._id;
-    if (key && expandedRowKeys.includes(key)) {
-      setExpandedRowKeys(expandedRowKeys.filter((k) => k !== key));
-    } else if (key) {
-      setExpandedRowKeys([...expandedRowKeys, key]);
-    }
-  };
-
   // Clear search function
   const handleClearSearch = () => {
     setSearchValue("");
@@ -244,27 +230,6 @@ export default function ProductScope() {
         }),
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
-      dataIndex: "view",
-      key: "view",
-      width: 80,
-      align: "center",
-      render: (_, record) => (
-        <IconButton
-          onClick={() => handleView(record)}
-          sx={{
-            color: "#666",
-            "&:hover": {
-              color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)",
-            },
-          }}
-        >
-          <Visibility />
-        </IconButton>
-      ),
-    },
-    {
       title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
       dataIndex: "edit",
       key: "edit",
@@ -286,54 +251,6 @@ export default function ProductScope() {
       ),
     },
   ];
-
-  // Expanded row render
-  const expandedRowRender = (record: ProductionScopeOutputType) => {
-    const innerColumns = [
-      {
-        width: "200px",
-        title: (
-          <Typography sx={{ fontWeight: "bold", pl: 2 }} align="center">
-            Mã công đoạn
-          </Typography>
-        ),
-        dataIndex: "code",
-        key: "code",
-        render: (_: any, record: any) => (
-          <Typography sx={{ color: "blue", pl: 2 }} align="center">
-            {record?.phase?.code}
-          </Typography>
-        ),
-      },
-      {
-        title: (
-          <Typography sx={{ fontWeight: "bold", pl: 2 }}>Công đoạn</Typography>
-        ),
-        dataIndex: "phase",
-        key: "phase",
-        render: (phase: any) => (
-          <Typography sx={{ color: "blue", pl: 2 }}>{phase?.name}</Typography>
-        ),
-      },
-    ];
-
-    return (
-      <Box sx={{ backgroundColor: "#f5f5f5", p: 0, borderRadius: 1 }}>
-        <Table
-          columns={innerColumns}
-          dataSource={record.phases}
-          pagination={false}
-          size="small"
-          rowKey={(item, index) => `${record._id}-${index}`}
-          showHeader={true} // ✅ show header now
-          style={{
-            marginLeft: 0,
-            marginRight: 0,
-          }}
-        />
-      </Box>
-    );
-  };
 
   const rowSelection: TableRowSelection<ProductionScopeOutputType> = {
     selectedRowKeys: selectedRows,
@@ -632,13 +549,6 @@ export default function ProductScope() {
             isLoading={isLoading}
             searchValue={searchValue}
             handleClearSearch={handleClearSearch}
-            expandable={{
-              expandedRowKeys,
-              onExpandedRowsChange: (keys) =>
-                setExpandedRowKeys(keys as React.Key[]),
-              expandedRowRender,
-              showExpandColumn: false,
-            }}
           />
         </Box>
       </Box>

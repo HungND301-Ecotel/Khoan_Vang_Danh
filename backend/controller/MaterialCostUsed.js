@@ -166,10 +166,7 @@ exports.get = async (req, res) => {
 
         // C. Populate thông tin ProductionScope cho các ID đã phân trang
         const targetScopes = await ProductionScope.find({ _id: { $in: paginatedScopeIds } })
-            .select('code name phases')
-            .populate([
-                { path: 'phases.phase', select: 'code name' }
-            ])
+            .select('code name')
             .lean()
             .exec();
 
@@ -181,8 +178,7 @@ exports.get = async (req, res) => {
         const allDocs = await MaterialCostUsed.find(initialPlannedCostQuery)
             .populate({
                 path: 'productionScope',
-                select: 'code name phases',
-                // Không cần populate phases ở đây vì đã populate ở targetScopes
+                select: 'code name',
             })
             .populate('phases.phase', 'code name')
             .populate({

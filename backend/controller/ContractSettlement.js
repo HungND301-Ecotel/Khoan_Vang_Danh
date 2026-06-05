@@ -53,7 +53,8 @@ function processBudgetAndUsedData(
     // Lặp qua tất cả vật tư trong document Used này
     usedDoc.materials.forEach((mat) => {
       // Ưu tiên assignmentCode trực tiếp trên material item, fallback về assignmentCode từ material reference
-      const assignmentCodeDoc = mat.assignmentCode || mat.material?.assignmentCode;
+      const assignmentCodeDoc =
+        mat.assignmentCode || mat.material?.assignmentCode;
       const code = assignmentCodeDoc?.code || "";
       const matPrice = mat.price || 0;
       const quantity = mat.quantity || 0;
@@ -137,8 +138,7 @@ async function getMonth(res, productionScope, phase, matchQuery) {
   const materialCostUseds = await MaterialCostUsed.find(matchQuery)
     .populate({
       path: "productionScope",
-      select: "code name phases",
-      populate: [{ path: "phases.phase", populate: "code name" }],
+      select: "code name",
     })
     .populate({
       path: "phases.phase",
@@ -173,8 +173,7 @@ async function getMonth(res, productionScope, phase, matchQuery) {
   const materialBudgets = await MaterialBudget.find(matchQuery)
     .populate({
       path: "productionScope",
-      select: "code name phases",
-      populate: [{ path: "phases.phase", populate: "code name" }],
+      select: "code name",
     })
     .populate({
       path: "phases.phase",
@@ -296,19 +295,28 @@ exports.getMonth = async (req, res) => {
   try {
     const { productionScope, month, phase } = req.query;
 
+    if (!productionScope) {
+      return res.status(400).json({
+        status: "error",
+        message: "Tham số diện sản xuất là bắt buộc.",
+      });
+    }
+
+    // Luôn lọc theo tháng và diện sản xuất
     const matchQuery = {
       month: month,
-      "phases.phase": phase,
-    }; // Bắt buộc lọc theo month
+      productionScope: productionScope,
+    };
 
-    if (productionScope) {
-      matchQuery.productionScope = productionScope;
+    // Chỉ lọc theo công đoạn khi có chọn
+    if (phase) {
+      matchQuery["phases.phase"] = phase;
     }
 
     const { data, info } = await getMonth(
       res,
       productionScope,
-      phase,
+      phase || null,
       matchQuery,
     );
 
@@ -364,7 +372,7 @@ exports.getExcel = async (req, res) => {
       `I2:U2`,
       isQuarter
         ? `Quyết toán giao khoán quý ${quarter} năm ${year}`
-        : `Quyết toán giao khoán tháng ${new Date(month).getMonth()}`,
+        : `Quyết toán giao khoán tháng ${new Date(month).getMonth() + 1}`,
     );
 
     if (isQuarter) {
@@ -1048,6 +1056,11 @@ async function getQuarterData(res, quarter, year) {
           },
         ],
       })
+      .populate({
+        path: "materials.assignmentCode",
+        select: "code name uom deviceCode",
+        populate: [{ path: "uom" }, { path: "deviceCode" }],
+      })
       .lean();
 
     const materialBudgets = await MaterialBudget.find(matchQuery)
@@ -1127,7 +1140,10 @@ async function getQuarterData(res, quarter, year) {
     // Hợp nhất Used (Thực hiện)
     materialCostUseds.forEach((usedDoc) => {
       usedDoc.materials.forEach((mat) => {
-        const assignmentCodeDoc = mat.material?.assignmentCode;
+        // Ưu tiên assignmentCode trực tiếp trên material item (đã cập nhật qua kéo thả),
+        // fallback về assignmentCode từ material reference — giống logic processBudgetAndUsedData
+        const assignmentCodeDoc =
+          mat.assignmentCode || mat.material?.assignmentCode;
         const code = assignmentCodeDoc?.code || "";
         const matPrice = mat.price || 0;
         const quantity = mat.quantity || 0;
@@ -1160,6 +1176,8 @@ async function getQuarterData(res, quarter, year) {
 
         // Lưu vật tư chi tiết vào nhóm (cần thiết cho phần Excel sau này)
         group.materialUseds.push({
+          materialCostId: usedDoc._id,
+          materialItemId: mat._id,
           material: mat.material,
           quantity: quantity,
           price: matPrice,
@@ -1266,7 +1284,7 @@ exports.getDashboardData = async (req, res) => {
   try {
     const { year } = req.query;
     const months = [];
-    
+
     if (year) {
       for (let i = 1; i <= 12; i++) {
         months.push(`${year}-${i.toString().padStart(2, "0")}`);

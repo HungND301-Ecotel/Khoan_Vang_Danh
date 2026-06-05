@@ -1,5 +1,4 @@
 const ProductionScope = require("../model/ProductionScope");
-const Phase = require('../model/Phase')
 const { paginateQuery } = require("../utils/pagination");
 const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
@@ -7,12 +6,12 @@ const { configExport } = require("../utils/config_export");
 
 exports.create = async (req, res) => {
   try {
-    const { code, name, phases } = req.body;
+    const { code, name } = req.body;
     const exitData = await ProductionScope.countDocuments({ code: code })
     if (exitData > 0) {
       return res.status(409).json({ status: 'error', message: `Mã diện sản xuất '${code}' đã tồn tại` })
     }
-    const newProductionScope = new ProductionScope({ code, name, phases });
+    const newProductionScope = new ProductionScope({ code, name });
     await newProductionScope.save();
     res.status(201).json({ status: "success", message: "Tạo thành công" });
   } catch (err) {
@@ -25,8 +24,6 @@ const columnMapping = {
   Code: "code",
   Tên: "name",
   Name: "name",
-  "Công đoạn": "phase",
-  Phase: "phase",
   id: "_id",
   _id: "_id",
 };
@@ -70,14 +67,6 @@ exports.import = async (req, res) => {
       });
     }
 
-    /** ===== LOAD PHASE ===== */
-    const phases = await Phase.find({}, { code: 1 }).lean();
-    const phaseMap = new Map(
-      phases
-        .filter(p => p.code)
-        .map(p => [p.code.trim().toLowerCase(), p._id])
-    );
-
     /** ===== LOAD EXISTED PRODUCTION SCOPE ===== */
     const existed = await ProductionScope.find(
       {},
@@ -101,7 +90,7 @@ exports.import = async (req, res) => {
     const invalidRows = [];
 
     for (const item of dataImport) {
-      let { _id, code, name, phase, ...updateData } = item;
+      let { _id, code, name, ...updateData } = item;
 
       /** CLEAN STRING */
       const cleanCode = code ? String(code).trim() : null;
@@ -112,31 +101,6 @@ exports.import = async (req, res) => {
         _id = String(_id).replace(/"/g, "").trim();
         if (_id.length !== 24) {
           invalidRows.push({ item, error: "ID không hợp lệ" });
-          continue;
-        }
-      }
-
-      /** PARSE PHASE */
-      let phaseIds = [];
-      if (phase) {
-        try {
-          let phaseCodes = [];
-          if (typeof phase === "string" && phase.startsWith("[")) {
-            phaseCodes = JSON.parse(phase.replace(/'/g, '"'));
-          } else if (Array.isArray(phase)) {
-            phaseCodes = phase;
-          } else {
-            phaseCodes = [phase];
-          }
-
-          phaseIds = phaseCodes
-            .map(p => phaseMap.get(String(p).trim().toLowerCase()))
-            .filter(Boolean);
-        } catch {
-          invalidRows.push({
-            item,
-            error: `Công đoạn không hợp lệ: ${phase}`,
-          });
           continue;
         }
       }
@@ -188,10 +152,7 @@ exports.import = async (req, res) => {
               $set: {
                 ...(cleanCode ? { code: cleanCode } : {}),
                 ...(cleanName ? { name: cleanName } : {}),
-                ...(phaseIds.length
-                  ? { phases: phaseIds.map(id => ({ phase: id })) }
-                  : {}),
-                ...updateData, // GIỮ price + field khác
+                ...updateData,
               },
             },
           },
@@ -224,9 +185,6 @@ exports.import = async (req, res) => {
           document: {
             ...(cleanCode ? { code: cleanCode } : {}),
             ...(cleanName ? { name: cleanName } : {}),
-            ...(phaseIds.length
-              ? { phases: phaseIds.map(id => ({ phase: id })) }
-              : {}),
             ...updateData,
           },
         },
@@ -267,17 +225,15 @@ exports.import = async (req, res) => {
 
 exports.export = async (req, res) => {
   try {
-    const data = await ProductionScope.find().populate('phases.phase', 'code');
+    const data = await ProductionScope.find();
     const columns = [
       { header: "Mã", key: "code", width: 20 },
       { header: "Tên", key: "name", width: 30 },
-      { header: "Công đoạn", key: "phase", width: 30 },
       { header: "_id", key: "_id", width: 20 },
     ];
     const formated = (data || []).map((d) => ({
       code: d?.code || "",
       name: d?.name || "",
-      phase: d?.phases.map(i => i.phase?.code) || "",
       _id: d?._id || "",
     }));
     const workbook = new ExcelJS.Workbook();
@@ -290,7 +246,7 @@ exports.export = async (req, res) => {
     const buffer = await configExport(
       workbook,
       worksheet,
-      ["code", "name", 'phase'],
+      ["code", "name"],
       MAX
     );
     res.setHeader(
@@ -346,10 +302,7 @@ exports.get = async (req, res) => {
         { name: new RegExp(req.query.q, "i") },
       ];
     }
-    const modelQuery = ProductionScope.find(query).populate({
-      path: "phases.phase",
-      populate: 'phaseGroup',
-    });
+    const modelQuery = ProductionScope.find(query);
     const pagination = await paginateQuery(
       ProductionScope,
       modelQuery,
