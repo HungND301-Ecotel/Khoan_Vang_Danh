@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -17,6 +17,8 @@ import {
   Tab,
   Checkbox,
   Button,
+  Badge,
+  Tooltip,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -32,6 +34,8 @@ import {
   FileDownload,
   Mail,
   Print,
+  Save,
+  Undo,
 } from "@mui/icons-material";
 import custom_theme from "../../theme";
 import FieldMonthYear from "../../ui/FieldMonth_Year";
@@ -47,6 +51,22 @@ export default function SettlementReport() {
   );
   const [selectedPhase, setSelectedPhase] = useState("");
   const [selectedProductionScope, setSelectedProductionScope] = useState("");
+  const [dragOverAssignmentId, setDragOverAssignmentId] = useState<
+    string | null
+  >(null);
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [localData, setLocalData] = useState<any[]>([]);
+  const [pendingChanges, setPendingChanges] = useState<
+    Array<{
+      materialCostId: string;
+      materialItemId: string;
+      newAssignmentCodeId: string | null;
+      newPrice: number | null;
+    }>
+  >([]);
+  const [discardHighlight, setDiscardHighlight] = useState<Set<string>>(
+    new Set(),
+  );
 
   const queryClient = useQueryClient();
 
@@ -76,6 +96,65 @@ export default function SettlementReport() {
     queryFn: () => api.get("/productionscopes").then((res) => res.data.data),
   });
 
+  // Sync localData khi server data thay đổi (sau khi lưu hoặc query mới)
+  useEffect(() => {
+    if (contractsettlements.data) {
+      setLocalData(contractsettlements.data);
+      setPendingChanges([]);
+    }
+  }, [contractsettlements.data]);
+
+  // Kéo thả: chỉ cập nhật UI local, chưa gọi API
+  const handleDrop = (
+    newAssignmentCodeId: string | null,
+    fromAssignmentCodeId: string,
+    payload: { materialCostId: string; materialItemId: string },
+    newPrice: number | null,
+  ) => {
+    const targetKey = newAssignmentCodeId ?? "NO_ASSIGNMENTCODE";
+    if (fromAssignmentCodeId === targetKey) return;
+
+    setLocalData((prev) => {
+      let draggedItem: any = null;
+      // Tách item ra khỏi nhóm cũ
+      const cleaned = prev.map((group) => {
+        const found = group.materialUseds.find(
+          (m: any) => m.materialItemId === payload.materialItemId,
+        );
+        if (found) draggedItem = found;
+        return {
+          ...group,
+          materialUseds: group.materialUseds.filter(
+            (m: any) => m.materialItemId !== payload.materialItemId,
+          ),
+        };
+      });
+      if (!draggedItem) return prev;
+      // Thêm vào nhóm mới
+      return cleaned.map((group) => {
+        const groupKey = group?.assignmentCode?._id ?? "NO_ASSIGNMENTCODE";
+        if (groupKey === targetKey) {
+          return {
+            ...group,
+            materialUseds: [...group.materialUseds, draggedItem],
+          };
+        }
+        return group;
+      });
+    });
+
+    // Track pending (deduplicate: 1 item chỉ có 1 change mới nhất)
+    setPendingChanges((prev) => [
+      ...prev.filter((c) => c.materialItemId !== payload.materialItemId),
+      {
+        materialCostId: payload.materialCostId,
+        materialItemId: payload.materialItemId,
+        newAssignmentCodeId,
+        newPrice,
+      },
+    ]);
+  };
+
   const exportExcel = useMutation({
     mutationFn: () =>
       SettlementService.exportFile({
@@ -89,6 +168,51 @@ export default function SettlementReport() {
       showErrorAlert(message);
     },
   });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      await Promise.all(
+        pendingChanges.map((change) =>
+          api.patch(
+            "/contractsettlements/updateMaterialAssignmentCode",
+            {
+              materialCostId: change.materialCostId,
+              materialItemId: change.materialItemId,
+              newAssignmentCodeId: change.newAssignmentCodeId,
+              newPrice: change.newPrice ?? null,
+            },
+          ),
+        ),
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          "contractsettlements",
+          selectedMonth,
+          selectedPhase,
+          selectedProductionScope,
+        ],
+      });
+    },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
+    },
+  });
+
+  const handleDiscard = () => {
+    // 1. Ghi nhớ các id sắp bị hoàn tác để highlight
+    const ids = new Set(pendingChanges.map((c) => c.materialItemId));
+    // 2. Reset data về server (item nhảy về vị trí cũ)
+    setLocalData(contractsettlements.data ?? []);
+    setPendingChanges([]);
+    // 3. Bật highlight rồi tắt sau 700ms (fade out qua CSS transition)
+    setDiscardHighlight(ids);
+    setTimeout(() => setDiscardHighlight(new Set()), 700);
+  };
+
+  const hasPending = pendingChanges.length > 0;
 
   const isShow = selectedPhase && selectedProductionScope;
 
@@ -187,6 +311,54 @@ export default function SettlementReport() {
             </Grid>
           </Box>
           <Box display="flex" gap={2} alignItems="center">
+            {hasPending && (
+              <>
+                <Tooltip title={`${pendingChanges.length} thay đổi chưa lưu`}>
+                  <Badge badgeContent={pendingChanges.length} color="warning">
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<Save />}
+                      onClick={() => saveMutation.mutate()}
+                      disabled={saveMutation.isPending}
+                      sx={{
+                        fontFamily: "Roboto, sans-serif",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        textTransform: "none",
+                        borderRadius: "4px",
+                        px: 2,
+                        py: 0.5,
+                        height: 32,
+                      }}
+                    >
+                      {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+                    </Button>
+                  </Badge>
+                </Tooltip>
+                <Tooltip title="Hủy tất cả thay đổi chưa lưu">
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<Undo />}
+                    onClick={handleDiscard}
+                    sx={{
+                      fontFamily: "Roboto, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      borderRadius: "4px",
+                      px: 2,
+                      py: 0.5,
+                      height: 32,
+                      borderColor: "#ccc",
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                </Tooltip>
+              </>
+            )}
             <Button
               variant="outlined"
               color="inherit"
@@ -963,16 +1135,67 @@ export default function SettlementReport() {
                 </TableCell>
               ))}
             </TableRow>
-            {contractsettlements.data.map((assignment: any, index: number) => (
+            {localData.map((assignment: any, index: number) => (
               <Fragment
                 key={
                   (
                     assignment?.assignmentCode ||
-                    assignment.assignmentCode === null
+                   assignment.assignmentCode !== null
                   )?._id
                 }
               >
-                <TableRow>
+                {/* ── GROUP HEADER ROW – drop target ── */}
+                <TableRow
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    const targetId =
+                      assignment?.assignmentCode?._id ?? "NO_ASSIGNMENTCODE";
+                    setDragOverAssignmentId(targetId);
+                  }}
+                  onDragLeave={(e) => {
+                    // chỉ clear khi rời khỏi hẳn row (không phải child element)
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      setDragOverAssignmentId(null);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverAssignmentId(null);
+                    try {
+                      const payload = JSON.parse(
+                        e.dataTransfer.getData("application/json"),
+                      );
+                      const newAssignmentCodeId =
+                        assignment?.assignmentCode?._id ?? null;
+                      const newPrice: number | null =
+                        assignment?.price ?? null;
+                      handleDrop(
+                        newAssignmentCodeId,
+                        payload.fromAssignmentCodeId,
+                        {
+                          materialCostId: payload.materialCostId,
+                          materialItemId: payload.materialItemId,
+                        },
+                        newPrice,
+                      );
+                    } catch {}
+                  }}
+                  sx={{
+                    outline:
+                      dragOverAssignmentId ===
+                      (assignment?.assignmentCode?._id ?? "NO_ASSIGNMENTCODE")
+                        ? "2px dashed #1976d2"
+                        : "none",
+                    outlineOffset: "-2px",
+                    bgcolor:
+                      dragOverAssignmentId ===
+                      (assignment?.assignmentCode?._id ?? "NO_ASSIGNMENTCODE")
+                        ? "#e3f2fd"
+                        : "inherit",
+                    transition: "background-color 0.15s, outline 0.15s",
+                  }}
+                >
                   <TableCell
                     align="center"
                     sx={{
@@ -1026,7 +1249,7 @@ export default function SettlementReport() {
                     {
                       (
                         assignment?.assignmentCode ||
-                        assignment.assignmentCode === null
+                       assignment.assignmentCode !== null
                       )?.code
                     }
                   </TableCell>
@@ -1038,9 +1261,9 @@ export default function SettlementReport() {
                       p: 0.5,
                     }}
                   >
-                    {assignment?.assignmentCode ||
-                    assignment.assignmentCode === null
-                      ? assignment?.assignmentCode?.name || "Không xác định"
+                    {assignment?.assignmentCode &&
+                    assignment.assignmentCode !== null
+                      ? assignment?.assignmentCode?.name
                       : "Vật tư không có định mức"}
                   </TableCell>
                   <TableCell
@@ -1064,7 +1287,7 @@ export default function SettlementReport() {
                     }}
                   >
                     {assignment?.assignmentCode ||
-                    assignment.assignmentCode === null
+                   assignment.assignmentCode !== null
                       ? formattedPrice(assignment?.price)
                       : ""}
                   </TableCell>
@@ -1080,7 +1303,7 @@ export default function SettlementReport() {
                       }}
                     >
                       {assignment?.assignmentCode ||
-                      assignment.assignmentCode === null
+                     assignment.assignmentCode !== null
                         ? formatDecimal(assignment?.baseNorm)
                         : ""}
                     </TableCell>
@@ -1097,7 +1320,7 @@ export default function SettlementReport() {
                       }}
                     >
                       {assignment?.assignmentCode ||
-                      assignment.assignmentCode === null
+                     assignment.assignmentCode !== null
                         ? formatDecimal(assignment?.adjustmentNorm)
                         : ""}
                     </TableCell>
@@ -1114,7 +1337,7 @@ export default function SettlementReport() {
                       }}
                     >
                       {assignment?.assignmentCode ||
-                      assignment.assignmentCode === null
+                     assignment.assignmentCode !== null
                         ? formatDecimal(assignment?.norm)
                         : ""}
                     </TableCell>
@@ -1180,7 +1403,50 @@ export default function SettlementReport() {
                 </TableRow>
                 {assignment?.materialUseds.map(
                   (materialUsed: any, i: number) => (
-                    <TableRow key={materialUsed?._id}>
+                    <TableRow
+                      key={materialUsed?.materialItemId ?? i}
+                      draggable={!assignment?.assignmentCode}
+                      onDragStart={
+                        !assignment?.assignmentCode
+                          ? (e) => {
+                              setDraggingItemId(materialUsed?.materialItemId);
+                              e.dataTransfer.effectAllowed = "move";
+                              e.dataTransfer.setData(
+                                "application/json",
+                                JSON.stringify({
+                                  materialCostId: materialUsed?.materialCostId,
+                                  materialItemId: materialUsed?.materialItemId,
+                                  fromAssignmentCodeId: "NO_ASSIGNMENTCODE",
+                                }),
+                              );
+                            }
+                          : undefined
+                      }
+                      onDragEnd={
+                        !assignment?.assignmentCode
+                          ? () => setDraggingItemId(null)
+                          : undefined
+                      }
+                      sx={{
+                        opacity:
+                          draggingItemId === materialUsed?.materialItemId
+                            ? 0.4
+                            : 1,
+                        cursor: !assignment?.assignmentCode
+                          ? "grab"
+                          : "default",
+                        "&:active": !assignment?.assignmentCode
+                          ? { cursor: "grabbing" }
+                          : {},
+                        transition: "opacity 0.15s, background-color 0.7s ease",
+                        "&:hover": { bgcolor: "#f5f5f5" },
+                        bgcolor: discardHighlight.has(
+                          materialUsed?.materialItemId,
+                        )
+                          ? "#fff3cd"
+                          : "transparent",
+                      }}
+                    >
                       <TableCell
                         align="center"
                         sx={{
@@ -1263,7 +1529,7 @@ export default function SettlementReport() {
                         }}
                       >
                         {assignment?.assignmentCode ||
-                        assignment.assignmentCode === null
+                        assignment.assignmentCode !== null
                           ? ""
                           : formattedPrice(materialUsed?.price)}
                       </TableCell>

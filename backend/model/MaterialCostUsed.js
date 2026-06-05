@@ -38,6 +38,10 @@ const MaterialCostUsed = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "MaterialAssignment",
         },
+        assignmentCode: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "AssignmentCode",
+        },
         quantity: {
           type: Number,
         },

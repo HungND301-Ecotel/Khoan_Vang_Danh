@@ -52,7 +52,8 @@ function processBudgetAndUsedData(
   materialCostUsedDocs.forEach((usedDoc) => {
     // Lặp qua tất cả vật tư trong document Used này
     usedDoc.materials.forEach((mat) => {
-      const assignmentCodeDoc = mat.material?.assignmentCode;
+      // Ưu tiên assignmentCode trực tiếp trên material item, fallback về assignmentCode từ material reference
+      const assignmentCodeDoc = mat.assignmentCode || mat.material?.assignmentCode;
       const code = assignmentCodeDoc?.code || "";
       const matPrice = mat.price || 0;
       const quantity = mat.quantity || 0;
@@ -87,6 +88,8 @@ function processBudgetAndUsedData(
 
       // Thêm chi tiết vật tư vào nhóm (Có thể có chi tiết từ các Used Docs khác nhau)
       group.materialUseds.push({
+        materialCostId: usedDoc._id,
+        materialItemId: mat._id,
         material: mat.material,
         quantity: quantity,
         price: matPrice,
@@ -152,6 +155,11 @@ async function getMonth(res, productionScope, phase, matchQuery) {
           populate: [{ path: "uom" }, { path: "deviceCode" }],
         },
       ],
+    })
+    .populate({
+      path: "materials.assignmentCode",
+      select: "code name uom deviceCode",
+      populate: [{ path: "uom" }, { path: "deviceCode" }],
     })
     .lean();
 
@@ -799,7 +807,7 @@ exports.getExcelM3 = async (req, res) => {
         setCellHeader(
           worksheet,
           `B${currentRow}`,
-          group.assignmentCode?.name || "Không xác định",
+          group.assignmentCode?.name || "Vật tư không không có định mức",
           true,
           "left",
         );
@@ -1348,6 +1356,66 @@ exports.getDashboardData = async (req, res) => {
     });
   } catch (err) {
     console.error(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+exports.updateMaterialAssignmentCode = async (req, res) => {
+  try {
+    const { materialCostId, materialItemId, newAssignmentCodeId, newPrice } =
+      req.body;
+
+    if (!materialCostId || !materialItemId) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu materialCostId hoặc materialItemId.",
+      });
+    }
+
+    // Xây dựng $set fields
+    const setFields = {
+      "materials.$.assignmentCode": newAssignmentCodeId || null,
+    };
+
+    // Nếu có giá mới (lấy từ group đích trên FE), tính lại price và cost
+    if (newPrice != null) {
+      // Lấy quantity hiện tại của item
+      const doc = await MaterialCostUsed.findOne(
+        { _id: materialCostId, "materials._id": materialItemId },
+        { "materials.$": 1 },
+      ).lean();
+
+      if (!doc || !doc.materials || doc.materials.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Không tìm thấy vật tư cần cập nhật.",
+        });
+      }
+
+      const quantity = doc.materials[0].quantity || 0;
+      setFields["materials.$.price"] = newPrice;
+      setFields["materials.$.cost"] = quantity * newPrice;
+    }
+
+    // Dùng positional operator để update đúng subdocument theo _id
+    const result = await MaterialCostUsed.updateOne(
+      { _id: materialCostId, "materials._id": materialItemId },
+      { $set: setFields },
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Không tìm thấy vật tư cần cập nhật.",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Cập nhật mã giao khoán, đơn giá và chi phí thành công.",
+    });
+  } catch (err) {
+    console.log(err.stack);
     res.status(500).json({ status: "error", message: err.message });
   }
 };

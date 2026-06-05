@@ -292,9 +292,9 @@ export default function MaterialConsumptionReport() {
                   </TableCell>
                   <TableCell sx={{ border: "1px solid #a8a8a4ff" }}>
                     {" "}
-                    {assignment?.assignmentCode ||
-                    assignment.assignmentCode === null
-                      ? assignment?.assignmentCode?.name || "Không xác định"
+                    {assignment?.assignmentCode &&
+                    assignment.assignmentCode !== null
+                      ? assignment?.assignmentCode?.name
                       : "Vật tư không có định mức"}
                   </TableCell>
                   <TableCell

@@ -97,7 +97,9 @@ export default function PhaseTable({
                 <TableRow>
                   <TableCell>{m?.assignmentCode?.code}</TableCell>
                   <TableCell></TableCell>
-                  <TableCell>{m?.assignmentCode?.name}</TableCell>
+                  <TableCell>
+                    {m?.assignmentCode?.name || "Vật tư không có định mức"}
+                  </TableCell>
                   <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
                   <TableCell>
                     {formattedPrice(

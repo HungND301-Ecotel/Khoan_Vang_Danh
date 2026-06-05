@@ -950,9 +950,9 @@ export default function Quarterlycontractsettlement() {
                       p: 0.5,
                     }}
                   >
-                    {assignment?.assignmentCode ||
-                    assignment.assignmentCode === null
-                      ? assignment?.assignmentCode?.name || "Không xác định"
+                    {assignment?.assignmentCode &&
+                    assignment.assignmentCode !== null
+                      ? assignment?.assignmentCode?.name
                       : "Vật tư không có định mức"}
                   </TableCell>
                   <TableCell
