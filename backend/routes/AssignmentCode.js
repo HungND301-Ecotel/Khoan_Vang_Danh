@@ -1,5 +1,5 @@
 const router = require('express').Router()
-const AssignmentCodeController = require('../controller/AssignmentCode')
+const AssignmentCodeController = require('../controller/assignmentCode.controller')
 const multer = require('multer')
 const upload = multer({ storage: multer.memoryStorage() })
 

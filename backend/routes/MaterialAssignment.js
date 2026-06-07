@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const materialAssignmentController = require("../controller/MaterialAssignment");
+const materialAssignmentController = require("../controller/materialAssignment.controller");
 const multer = require("multer");
 const upload = multer({ storage: multer.memoryStorage() });
 
