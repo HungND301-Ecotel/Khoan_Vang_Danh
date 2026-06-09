@@ -1,5 +1,6 @@
 import { Autocomplete, TextField, Box } from "@mui/material";
 import { getIn } from "formik";
+import { Dispatch, SetStateAction } from "react";
 
 interface Props {
   title: string;
@@ -13,6 +14,8 @@ interface Props {
   onSearch?: (value: string) => void;
   componentsProps?: any;
   autocompleteSx?: any;
+  value?: string;
+  setValue?: Dispatch<SetStateAction<string>>;
 }
 
 export default function FieldAutoCompleted({
@@ -27,8 +30,10 @@ export default function FieldAutoCompleted({
   labelOption,
   componentsProps,
   autocompleteSx,
+  value,
+  setValue,
 }: Props) {
-  const currentValue = formik && field ? getIn(formik.values, field) : null;
+  const currentValue = formik && field ? getIn(formik.values, field) : value;
 
   const selectedOption =
     data.find((i) => i._id?.toString() === currentValue?.toString()) || null;
@@ -58,6 +63,9 @@ export default function FieldAutoCompleted({
         }
         if (onChange) {
           onChange(newValue);
+        }
+        if (setValue) {
+          setValue(newValue?._id || "");
         }
       }}
       onInputChange={(_, value) => onSearch?.(value)}

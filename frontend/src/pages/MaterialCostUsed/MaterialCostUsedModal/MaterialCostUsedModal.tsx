@@ -1,24 +1,34 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Autocomplete,
   Box,
-  Breadcrumbs,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   Grid,
   IconButton,
-  InputAdornment,
-  MenuItem,
   Paper,
   TextField,
   Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
-import CloseIcon from "@mui/icons-material/Close";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import * as XLSX from "xlsx";
 import {
   FieldArray,
   FormikProvider,
@@ -28,17 +38,16 @@ import {
 } from "formik";
 import api from "../../../config/api.config";
 import {
+  MaterialAssignmentInputType,
   MaterialCostUsedInputType,
-  ProductionScopeOutputType,
   Materials,
   PhaseOutputType,
   PhaseType,
 } from "../../../types";
 import { CircleX } from "lucide-react";
-import { CloudUpload } from "@mui/icons-material";
+import { CloudUpload, AddCircle } from "@mui/icons-material";
 import dayjs from "dayjs";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
-import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
@@ -59,7 +68,10 @@ export default function MaterialCostUsedModal({
   handleSubmit: (values: Partial<MaterialCostUsedInputType>) => void;
   selected: any | null;
 }) {
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<any[]>([]);
 
   const systemConfigs = useAtomValue(systemConfigsAtom);
   const cuttingPhaseGroupKey = useMemo(() => {
@@ -77,7 +89,41 @@ export default function MaterialCostUsedModal({
     queryKey: ["phases"],
     queryFn: async () => api.get("/phases").then((res) => res.data.data),
   });
-  const { data: materialassignments = { data: [] } } = useQuery({
+
+  const createMutation = useMutation({
+    mutationFn: (newMaterialAssignment: Partial<MaterialAssignmentInputType>) =>
+      api
+        .post("/materialassignments", newMaterialAssignment)
+        .then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["materialassignments"],
+      });
+    },
+    onError: (error: any) => {
+      console.log(error.response?.data?.message || error.response || "Lỗi");
+    },
+  });
+  const {
+    data: assignmentcodes = {
+      totalDocs: 0,
+      results: 0,
+      data: [],
+    },
+    isLoading,
+    isFetching,
+  } = useQuery({
+    queryKey: ["assignmentcodes", "all"],
+    queryFn: async () => {
+      try {
+        const response = await api.get(`/assignmentcodes`);
+        return response.data.data;
+      } catch (error) {
+        return [];
+      }
+    },
+  });
+  const { data: materialassignments = { data: [] }, refetch: refetchMaterialAssignments } = useQuery({
     queryKey: ["materialassignments"],
     queryFn: async () =>
       api.get("/materialassignments").then((res) => res.data.data),
@@ -219,32 +265,177 @@ export default function MaterialCostUsedModal({
     formik.setFieldValue("phases", mapped);
   };
 
-  const handleImportData = (excelData: { code: string; norm: number }[]) => {
-    // 1. Chuẩn hóa dữ liệu từ Excel: Lọc các mã giao khoán (code) có tồn tại
-    const validMaterial: any[] = [];
-    const newSelected: any[] = [];
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    excelData.forEach((item) => {
-      const matchingmaterial = materialassignments.data.find(
-        (ac: any) => ac.code === item.code,
-      );
+    try {
+      const rawData = await readExcelFile(file);
+      // Giả định: Bỏ qua hàng đầu tiên (header)
+      const dataRows = rawData.slice(1);
 
-      if (matchingmaterial) {
-        // Chỉ thêm nếu mã có tồn tại trong hệ thống
-        validMaterial.push({
-          material: matchingmaterial._id,
-          quantity: item.norm,
+      const parsedData: any[] = [];
+
+      dataRows.forEach((row, index) => {
+        if (!row[0]) return;
+        const code = String(row[0] || "").trim();
+        const assignmentCode = String(row[1] || "").trim();
+        const quantity = Number(row[2] || 0);
+
+        let status = "valid";
+        let message = "Hợp lệ";
+        let matchingmaterial: any = null;
+        let matchingassignment: any = null;
+
+        if (assignmentCode) {
+          matchingassignment = assignmentcodes?.data.find(
+            (ac: any) => ac.code === assignmentCode,
+          );
+
+          if (!matchingassignment) {
+            status = "error_assignment";
+            message = "Mã giao khoán không hợp lệ";
+          } else {
+            console.log(
+              "matchingassignment",
+              matchingassignment,
+              code,
+              assignmentCode,
+            );
+            matchingmaterial = materialassignments.data.find(
+              (ac: any) =>
+                ac.code === code && ac.assignmentCode?.code === assignmentCode,
+            );
+            if (!matchingmaterial) {
+              status = "missing_material";
+              message = "Cần tạo vật tư giao khoán";
+            }
+          }
+        } else {
+          matchingmaterial = materialassignments.data.find(
+            (ac: any) => ac.code === code && !ac.assignmentNormCode,
+          );
+          if (!matchingmaterial) {
+            status = "missing_material";
+            message = "Cần tạo vật tư";
+          }
+        }
+
+        parsedData.push({
+          id: index,
+          code,
+          assignmentCode,
+          quantity,
+          status,
+          message,
+          matchingmaterial,
+          matchingassignment,
         });
-        newSelected.push(matchingmaterial);
+      });
+
+      setPreviewData(parsedData);
+      setPreviewOpen(true);
+    } catch (error) {
+      console.error("Lỗi xử lý file Excel:", error);
+    } finally {
+      // Reset input file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
+    }
+  };
+
+  const handleCreateMaterial = async (row: any, index: number) => {
+    try {
+      const res: any = await createMutation.mutateAsync({
+        code: row.code,
+        name: row.code,
+        quantity: row.quantity,
+        assignmentCode: row.matchingassignment?._id,
+      });
+
+      const createdMaterial = res?.data || res;
+
+      if (createdMaterial.status === "success" || createdMaterial.message) {
+        // Lấy dữ liệu mới nhất từ server
+        const { data: newMaterialsRes } = await refetchMaterialAssignments();
+        const latestMaterials = newMaterialsRes?.data || [];
+
+        const newData = [...previewData];
+        // Cập nhật tất cả các dòng có cùng mã code và mã giao khoán
+        newData.forEach((r) => {
+          if (r.code === row.code && r.assignmentCode === row.assignmentCode) {
+            r.status = "valid";
+            r.message = "Đã tạo thành công";
+            r.matchingmaterial = latestMaterials.find(
+              (ac: any) =>
+                ac.code === row.code &&
+                (row.assignmentCode
+                  ? ac.assignmentCode?.code === row.assignmentCode
+                  : !ac.assignmentCode),
+            );
+          }
+        });
+        setPreviewData(newData);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleSavePreview = () => {
+    const validRows = previewData.filter(
+      (r) => r.status === "valid" && r.matchingmaterial,
+    );
+
+    const validMaterial = validRows.map((r) => ({
+      material: r.matchingmaterial._id,
+      quantity: r.quantity,
+    }));
+
+    const newSelected = validRows.map((r) => r.matchingmaterial);
+
+    formik.setFieldValue(`materials`, [
+      ...(formik.values.materials || []),
+      ...validMaterial,
+    ]);
+    formik.setFieldValue(`selectedMaterials`, [
+      ...(formik.values.selectedMaterials || []),
+      ...newSelected,
+    ]);
+
+    setPreviewOpen(false);
+  };
+
+  const handleExportTemplate = () => {
+    const dataToExport: any[] = [
+      {
+        code: "Mã vật tư",
+        assignmentCode: "Mã giao khoán",
+        value: "Số lượng",
+      },
+    ];
+
+    if (materialassignments?.data && Array.isArray(materialassignments.data)) {
+      materialassignments.data.forEach((m: any) => {
+        dataToExport.push({
+          code: m.code || "",
+          assignmentCode: m.assignmentCode?.code || "",
+          value: "",
+        });
+      });
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport, {
+      skipHeader: true,
     });
 
-    // 2. Cập nhật State và Formik
-    formik.setFieldValue(`materials`, validMaterial);
-    formik.setFieldValue(`selectedMaterials`, newSelected);
+    const columnWidths = [{ wch: 30 }, { wch: 30 }, { wch: 20 }];
+    worksheet["!cols"] = columnWidths;
 
-    // Đóng modal import sau khi hoàn tất
-    setIsImportModalOpen(false);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Mẫu");
+    XLSX.writeFile(workbook, "Danh_sach_vat_tu.xlsx");
   };
 
   return (
@@ -547,33 +738,66 @@ export default function MaterialCostUsedModal({
                 <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                   Vật tư, tài sản
                 </Typography>
-                <Button
-                  size="small"
-                  onClick={() => setIsImportModalOpen(true)}
-                  startIcon={<CloudUpload />}
-                  variant="outlined" // Sử dụng outlined hoặc text để tránh quá nổi bật
-                  sx={{
-                    textTransform: "none",
-                    fontSize: "12px",
-                    padding: "4px 8px",
-                    minWidth: "auto",
-                    borderColor: "#1976d2", // Màu primary của MUI
-                    color: "#1976d2",
-                    "&:hover": {
-                      backgroundColor: "#e3f2fd", // Light blue background on hover
+                <Box display="flex" gap={1}>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    hidden
+                    onChange={handleFileUpload}
+                    accept=".xlsx, .xls, .csv"
+                  />
+                  <Button
+                    size="small"
+                    onClick={() => fileInputRef.current?.click()}
+                    startIcon={<CloudUpload />}
+                    variant="outlined"
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "12px",
+                      padding: "4px 8px",
+                      minWidth: "auto",
                       borderColor: "#1976d2",
-                    },
-                  }}
-                >
-                  Tải lên
-                </Button>
+                      color: "#1976d2",
+                      "&:hover": {
+                        backgroundColor: "#e3f2fd",
+                        borderColor: "#1976d2",
+                      },
+                    }}
+                  >
+                    Tải lên
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={handleExportTemplate}
+                    startIcon={<CloudUpload />}
+                    variant="outlined"
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "12px",
+                      padding: "4px 8px",
+                      minWidth: "auto",
+                      borderColor: "#1976d2",
+                      color: "#1976d2",
+                      "&:hover": {
+                        backgroundColor: "#e3f2fd",
+                        borderColor: "#1976d2",
+                      },
+                    }}
+                  >
+                    Tải xuống
+                  </Button>
+                </Box>
               </Box>
               <Box sx={{ display: "flex", justifyContent: "center" }}>
                 <AppMultiAutocomplete
                   allowDuplicate={true} // Cho phép chọn 1 chip nhiều lần
                   options={materialassignments.data || []}
                   value={formik.values.selectedMaterials || []}
-                  getOptionLabel={(option: Materials) => option.code || ""}
+                  getOptionLabel={(option: Materials) =>
+                    option.code +
+                      " - " +
+                      `${option.assignmentCode?.code || ""}` || ""
+                  }
                   placeholder="Chọn vật tư..."
                   onChange={(newValue) => {
                     const updated = newValue.map((item, i) => {
@@ -638,7 +862,16 @@ export default function MaterialCostUsedModal({
                                   (ac: Materials) =>
                                     ac._id ===
                                     formik.values.materials[index]?.material,
-                                )?.code || ""
+                                )?.code +
+                                  " - " +
+                                  `${
+                                    materialassignments.data.find(
+                                      (ac: Materials) =>
+                                        ac._id ===
+                                        formik.values.materials[index]
+                                          ?.material,
+                                    )?.assignmentCode?.code || ""
+                                  }` || ""
                               }
                               InputLabelProps={{ shrink: true }}
                               variant="outlined"
@@ -811,13 +1044,78 @@ export default function MaterialCostUsedModal({
         />
       </FormikProvider>
 
-      <SimpleImportModal
-        open={isImportModalOpen}
-        setOpen={setIsImportModalOpen}
-        onImport={handleImportData}
-        readExcelFile={readExcelFile}
-        type="material"
-      />
+      {/* Import Preview Dialog */}
+      <Dialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Xem trước kết quả tải lên</DialogTitle>
+        <DialogContent dividers>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Mã vật tư</TableCell>
+                  <TableCell>Mã giao khoán</TableCell>
+                  <TableCell>Số lượng</TableCell>
+                  <TableCell>Trạng thái</TableCell>
+                  <TableCell>Hành động</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {previewData.map((row, index) => (
+                  <TableRow
+                    key={index}
+                    sx={{
+                      backgroundColor:
+                        row.status === "valid" ? "#e8f5e9" : "#ffebee",
+                    }}
+                  >
+                    <TableCell>{row.code}</TableCell>
+                    <TableCell>{row.assignmentCode}</TableCell>
+                    <TableCell>{row.quantity}</TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="body2"
+                        color={
+                          row.status === "valid" ? "success.main" : "error.main"
+                        }
+                      >
+                        {row.message}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {row.status === "missing_material" && (
+                        <IconButton
+                          color="primary"
+                          size="small"
+                          onClick={() => handleCreateMaterial(row, index)}
+                          title="Tạo vật tư"
+                        >
+                          <AddCircle />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPreviewOpen(false)}>Hủy</Button>
+          <Button
+            onClick={handleSavePreview}
+            variant="contained"
+            color="primary"
+            disabled={previewData.every((r) => r.status !== "valid")}
+          >
+            Lưu vào danh sách
+          </Button>
+        </DialogActions>
+      </Dialog>
     </BaseModal>
   );
 }

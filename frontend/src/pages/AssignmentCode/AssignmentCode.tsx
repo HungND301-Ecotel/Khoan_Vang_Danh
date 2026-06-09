@@ -45,8 +45,6 @@ import { Table, TableProps } from "antd";
 import custom_theme from "../../theme";
 import AssignmentCodeService from "../../service/AssignmentCodeService";
 import { parseAxiosError } from "../../utils/handleApiError";
-import LoadingSkeleton from "../../ui/LoadingSkeleton";
-import EmptyState from "../../ui/EmptyState";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import { formattedPrice } from "../../utils/helpers";

@@ -19,6 +19,7 @@ import {
   Button,
   Badge,
   Tooltip,
+  Autocomplete,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
@@ -228,82 +229,52 @@ export default function SettlementReport() {
           <Box display={"flex"} gap={2}>
             <Grid container spacing={2} mb={3} alignItems="center">
               <Grid item xs={4}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                >
-                  Chọn tháng
-                </Typography>
                 <FieldMonthYear
                   selectedMonth={selectedMonth}
                   setSelectedMonth={setSelectedMonth}
                 />
               </Grid>
               <Grid item xs={4}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                >
-                  Chọn diện sản xuất
-                </Typography>
-                <TextField
-                  fullWidth
+                <Autocomplete
+                  disablePortal
                   size="small"
-                  placeholder="Placeholder"
-                  onChange={(e) => setSelectedProductionScope(e.target.value)}
-                  sx={{
-                    // width: 168,
-                    // height: 32,
-                    // "& .MuiOutlinedInput-root": {
-                    //   backgroundColor: "#f8f9fa",
-                    //   "& fieldset": { borderColor: "#e0e0e0" },
-                    //   "&:hover fieldset": { borderColor: "#bdbdbd" },
-                    // },
-                    backgroundColor: "#fff",
-                  }}
-                  select
-                  variant="outlined"
-                >
-                  {productionscopes?.data?.map(
-                    (item: ProductionScopeOutputType) => (
-                      <MenuItem key={item._id} value={item._id}>
-                        {item.code}
-                      </MenuItem>
-                    ),
+                  options={productionscopes?.data || []}
+                  getOptionLabel={(option: any) => option.code}
+                  value={productionscopes?.data?.find(
+                    (i: any) => i._id === selectedProductionScope,
                   )}
-                </TextField>
+                  onChange={(e, value: any) =>
+                    setSelectedProductionScope(value?._id || "")
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Chọn diện sản xuất"
+                      size="small"
+                    />
+                  )}
+                />
               </Grid>
               <Grid item xs={4}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                >
-                  Chọn công đoạn
-                </Typography>
-                <TextField
-                  fullWidth
+                <Autocomplete
+                  disablePortal
                   size="small"
-                  placeholder="Placeholder"
-                  onChange={(e) => setSelectedPhase(e.target.value)}
-                  sx={{
-                    // width: 168,
-                    // height: 32,
-                    // "& .MuiOutlinedInput-root": {
-                    //   backgroundColor: "#f8f9fa",
-                    //   "& fieldset": { borderColor: "#e0e0e0" },
-                    //   "&:hover fieldset": { borderColor: "#bdbdbd" },
-                    // },
-                    backgroundColor: "#fff",
-                  }}
-                  select
-                  variant="outlined"
-                >
-                  {phases?.data?.map((item: PhaseOutputType) => (
-                    <MenuItem key={item._id} value={item._id}>
-                      {item.code}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  options={phases?.data || []}
+                  getOptionLabel={(option: any) => option.code}
+                  value={phases?.data?.find(
+                    (i: any) => i._id === selectedPhase,
+                  )}
+                  onChange={(e, value: any) =>
+                    setSelectedPhase(value?._id || "")
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Chọn công đoạn"
+                      size="small"
+                    />
+                  )}
+                />
               </Grid>
             </Grid>
           </Box>
@@ -1398,84 +1369,86 @@ export default function SettlementReport() {
                   ))}
                 </TableRow>
                 {assignment?.materialUseds.map(
-                  (materialUsed: any, i: number) => (
-                    <TableRow
-                      key={materialUsed?.materialItemId ?? i}
-                      draggable={!assignment?.assignmentCode}
-                      onDragStart={
-                        !assignment?.assignmentCode
-                          ? (e) => {
-                              setDraggingItemId(materialUsed?.materialItemId);
-                              e.dataTransfer.effectAllowed = "move";
-                              e.dataTransfer.setData(
-                                "application/json",
-                                JSON.stringify({
-                                  materialCostId: materialUsed?.materialCostId,
-                                  materialItemId: materialUsed?.materialItemId,
-                                  fromAssignmentCodeId: "NO_ASSIGNMENTCODE",
-                                }),
-                              );
-                            }
-                          : undefined
-                      }
-                      onDragEnd={
-                        !assignment?.assignmentCode
-                          ? () => setDraggingItemId(null)
-                          : undefined
-                      }
-                      sx={{
-                        opacity:
-                          draggingItemId === materialUsed?.materialItemId
-                            ? 0.4
-                            : 1,
-                        cursor: !assignment?.assignmentCode
-                          ? "grab"
-                          : "default",
-                        "&:active": !assignment?.assignmentCode
-                          ? { cursor: "grabbing" }
-                          : {},
-                        transition: "opacity 0.15s, background-color 0.7s ease",
-                        "&:hover": { bgcolor: "#f5f5f5" },
-                        bgcolor: discardHighlight.has(
-                          materialUsed?.materialItemId,
-                        )
-                          ? "#fff3cd"
-                          : "transparent",
-                      }}
-                    >
-                      <TableCell
-                        align="center"
-                        sx={{
-                          border: "1px solid #ddd",
-                          fontSize: "14px",
-                          p: 0.5,
-                        }}
-                      ></TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          border: "1px solid #ddd",
-                          fontSize: "14px",
-                          p: 0.5,
-                        }}
-                      >
-                        {materialUsed?.material?.code}
-                      </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          border: "1px solid #ddd",
-                          fontWeight: "bold",
-                          color: "black",
-                          fontSize: "14px",
-                          p: 0.5,
-                        }}
-                      >
-                        {(assignment?.materialUseds || []).filter(
+                  (materialUsed: any, i: number) => {
+                    const duplicateCount = localData.reduce(
+                      (acc: number, asg: any) =>
+                        acc +
+                        (asg?.materialUseds || []).filter(
                           (mat: any) =>
                             mat.material?._id === materialUsed?.material?._id,
-                        )?.length || 1}
-                      </TableCell>
+                        ).length,
+                      0,
+                    );
+                    const isDuplicate = duplicateCount > 1;
+
+                    return (
+                      <TableRow
+                        key={materialUsed?.materialItemId ?? i}
+                        draggable={true}
+                        onDragStart={(e) => {
+                          setDraggingItemId(materialUsed?.materialItemId);
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData(
+                            "application/json",
+                            JSON.stringify({
+                              materialCostId: materialUsed?.materialCostId,
+                              materialItemId: materialUsed?.materialItemId,
+                              fromAssignmentCodeId:
+                                assignment?.assignmentCode?._id ??
+                                "NO_ASSIGNMENTCODE",
+                            }),
+                          );
+                        }}
+                        onDragEnd={() => setDraggingItemId(null)}
+                        sx={{
+                          opacity:
+                            draggingItemId === materialUsed?.materialItemId
+                              ? 0.4
+                              : 1,
+                          cursor: "grab",
+                          "&:active": { cursor: "grabbing" },
+                          transition:
+                            "opacity 0.15s, background-color 0.7s ease",
+                          "&:hover": { bgcolor: "#f5f5f5" },
+                          bgcolor: discardHighlight.has(
+                            materialUsed?.materialItemId,
+                          )
+                            ? "#fff3cd"
+                            : isDuplicate
+                              ? "#ffebee"
+                              : "transparent",
+                        }}
+                      >
+                        <TableCell
+                          align="center"
+                          sx={{
+                            border: "1px solid #ddd",
+                            fontSize: "14px",
+                            p: 0.5,
+                          }}
+                        ></TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            border: "1px solid #ddd",
+                            fontSize: "14px",
+                            p: 0.5,
+                          }}
+                        >
+                          {materialUsed?.material?.code}
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            border: "1px solid #ddd",
+                            fontWeight: "bold",
+                            color: "black",
+                            fontSize: "14px",
+                            p: 0.5,
+                          }}
+                        >
+                          {duplicateCount}
+                        </TableCell>
                       <TableCell
                         align="center"
                         sx={{
@@ -1610,8 +1583,8 @@ export default function SettlementReport() {
                         </TableCell>
                       ))}
                     </TableRow>
-                  ),
-                )}
+                  );
+                })}
               </Fragment>
             ))}
           </TableBody>
