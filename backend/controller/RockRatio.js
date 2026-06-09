@@ -7,9 +7,14 @@ const xlsx = require("xlsx");
 exports.create = async (req, res) => {
   try {
     const { name } = req.body;
-    const exitRockratio = await RockRatio.countDocuments({ name: name })
+    const exitRockratio = await RockRatio.countDocuments({ name: name });
     if (exitRockratio > 0) {
-      return res.status(409).json({ status: 'error', message: `Tỉ lệ đá lẫn trog gương '${name}' đã tồn tại` })
+      return res
+        .status(409)
+        .json({
+          status: "error",
+          message: `Tỉ lệ đá lẫn trog gương '${name}' đã tồn tại`,
+        });
     }
     const newRockRatio = new RockRatio({ name });
     await newRockRatio.save();
@@ -24,7 +29,7 @@ exports.update = async (req, res) => {
     const updateData = await RockRatio.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true },
     );
     if (!updateData) {
       return res.status(404).json({ status: "error", message: "Sửa thất bại" });
@@ -37,11 +42,24 @@ exports.update = async (req, res) => {
 
 exports.delete = async (req, res) => {
   try {
-    const deleteData = await RockRatio.findByIdAndDelete(req.params.id);
-    if (!deleteData) {
-      return res.status(404).json({ status: "error", message: "Xóa thất bại" });
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res
+        .status(400)
+        .send({ status: "error", message: "Vui lòng chọn bản ghi cần xóa" });
     }
-    res.status(200).json({ status: "success", message: "Xóa thành công" });
+
+    const result = await RockRatio.deleteMany({ _id: { $in: ids } });
+    if (result.deletedCount === 0) {
+      return res
+        .status(200)
+        .send({ status: "error", message: "Không tìm thấy bản ghi để xóa" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: `Đã xóa ${result.deletedCount} bản ghi`,
+    });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
@@ -58,7 +76,7 @@ exports.get = async (req, res) => {
       RockRatio,
       queryModel,
       query,
-      req.query
+      req.query,
     );
 
     res.status(200).json({ status: "success", data: pagination });
@@ -73,7 +91,7 @@ const columnMapping = {
   id: "_id", // Bổ sung ánh xạ id
   _id: "_id", // Bổ sung ánh xạ _id để đọc dữ liệu từ Excel
 };
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 exports.import = async (req, res) => {
   try {
     if (!req.file) {
@@ -95,22 +113,18 @@ exports.import = async (req, res) => {
     })[0];
 
     const allowedHeaders = Object.keys(columnMapping);
-    const invalidHeaders = headers.filter(
-      (h) => !allowedHeaders.includes(h)
-    );
+    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
 
     if (invalidHeaders.length > 0) {
       return res.status(400).json({
         status: "error",
         message: `File không hợp lệ. Cột không cho phép: ${invalidHeaders.join(
-          ", "
+          ", ",
         )}`,
       });
     }
 
-    const mappedHeaders = headers.map(
-      (h) => columnMapping[h] || h
-    );
+    const mappedHeaders = headers.map((h) => columnMapping[h] || h);
 
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
@@ -127,16 +141,10 @@ exports.import = async (req, res) => {
     }
 
     // ===== LOAD EXISTED NAME =====
-    const existed = await RockRatio.find(
-      {},
-      { name: 1 }
-    ).lean();
+    const existed = await RockRatio.find({}, { name: 1 }).lean();
 
     const nameMap = new Map(
-      existed.map((r) => [
-        r.name.toLowerCase(),
-        String(r._id),
-      ])
+      existed.map((r) => [r.name.toLowerCase(), String(r._id)]),
     );
 
     // ===== PROCESS =====
@@ -229,9 +237,7 @@ exports.import = async (req, res) => {
 
     // ===== EXECUTE =====
     const bulkResult =
-      operations.length > 0
-        ? await RockRatio.bulkWrite(operations)
-        : null;
+      operations.length > 0 ? await RockRatio.bulkWrite(operations) : null;
 
     return res.status(200).json({
       status: "success",
@@ -253,7 +259,6 @@ exports.import = async (req, res) => {
     });
   }
 };
-
 
 exports.export = async (req, res) => {
   try {
@@ -282,11 +287,11 @@ exports.export = async (req, res) => {
     const buffer = await configExport(workbook, worksheet, ["name"], MAX);
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=" + `ti_le_da_lan_trong_guong.xlsx`
+      "attachment; filename=" + `ti_le_da_lan_trong_guong.xlsx`,
     );
     res.send(buffer);
   } catch (err) {

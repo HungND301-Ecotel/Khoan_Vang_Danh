@@ -43,6 +43,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import FieldMonthYear from "../../ui/FieldMonth_Year";
 import { formatDecimal, formattedPrice } from "../../utils/helpers";
 import { render } from "react-dom";
+import PageAction from "../../components/Common/PageAction";
 
 export default function Materialunitprice() {
   const queryClient = useQueryClient();
@@ -175,162 +176,21 @@ export default function Materialunitprice() {
       </Typography>
       <Box mt={3}>
         <Box sx={{ mb: 2 }}>
-          <Box
-            display={"flex"}
-            gap={4}
-            mt={2}
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box display={"flex"} flex={1} gap={2}>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<FilterList />}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Lọc
-              </Button>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Tìm kiếm"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                sx={{
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_filter_box.main,
-                }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Search sx={{ fontSize: 24 }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <FieldMonthYear
-                selectedMonth={selectedMonth}
-                setSelectedMonth={setSelectedMonth}
-              />
-            </Box>
-
-            <Box display={"flex"} gap={2}>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<FileUpload />}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Tải lên
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<FileDownload />}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Xuất file
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<Print />}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                In
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<Mail />}
-                endIcon={<ArrowDropDown />}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Gửi
-              </Button>
-            </Box>
-          </Box>
+          <PageAction
+            selectedIds={[]}
+            handleDelete={undefined}
+            deleteMutation={undefined}
+            searchValue={searchValue}
+            setSearchValue={setSearchValue}
+            exportExcel={undefined}
+            importFile={undefined}
+            handleOpen={undefined}
+            handleClearSearch={handleClearSearch}
+            isLoading={isLoading}
+            totalItems={materialAssignments.totalDocs}
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+          />
         </Box>
 
         <CustomTable<any>

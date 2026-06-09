@@ -36,6 +36,7 @@ import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 import { formatDecimal } from "../../utils/helpers";
+import PageAction from "../../components/Common/PageAction";
 
 export default function ExcavationNorm() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -176,16 +177,16 @@ export default function ExcavationNorm() {
     setOpen(true);
   };
 
-  const handleExport = async () => {
-    try {
-      const res = await api.post(
+  const handleExport = useMutation({
+    mutationFn: () =>
+      api.post(
         "/assignmentnorms/exportFile?type=excavation",
         {},
         {
           responseType: "blob",
         },
-      );
-
+      ),
+    onSuccess: (res: any) => {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -196,28 +197,11 @@ export default function ExcavationNorm() {
       window.URL.revokeObjectURL(url);
 
       showSuccessAlert("Xuất file thành công");
-    } catch (error) {
-      console.error(error);
-      showErrorAlert("Không thể xuất file");
-    }
-  };
-
-  const handleImportClick = () => {
-    const fileInput = document.getElementById("import-file-input");
-    if (fileInput) fileInput.click();
-  };
-
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    importMutation.mutate(formData);
-
-    e.target.value = "";
-  };
+    },
+    onError: (error: any) => {
+      showErrorAlert(error.response?.data?.message || "Lỗi khi xuất file");
+    },
+  });
 
   const expandedRowRender = (record: AssignmentNormOutputType) => {
     const innerColumns = [
@@ -397,221 +381,19 @@ export default function ExcavationNorm() {
               >
                 Định mức đào lò
               </Typography>
-              <Box
-                display={"flex"}
-                gap={4}
-                mt={2}
-                justifyContent="space-between"
-              >
-                <Box display={"flex"} gap={2}>
-                  <Button
-                    variant="contained"
-                    endIcon={<Add />}
-                    onClick={() => handleOpen()}
-                    sx={{
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_add_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_add_button.dark,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Tạo mới
-                  </Button>
-                  <Button
-                    variant="contained"
-                    endIcon={<Delete />}
-                    onClick={() => handleDelete()}
-                    disabled={selectedRows.length === 0}
-                    sx={{
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_delete_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_delete_button.dark,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    {deleteMutation.isPending
-                      ? "Đang xóa..."
-                      : `Xóa (${selectedRows.length})`}
-                  </Button>
-                </Box>
-                <Box display={"flex"} flex={1} gap={2}>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FilterList />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Lọc
-                  </Button>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Tìm kiếm"
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    sx={{
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_filter_box.main,
-                    }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <Search sx={{ fontSize: 24 }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
-                <Box display={"flex"} gap={2}>
-                  {/* Input ẩn để chọn file */}
-                  <input
-                    type="file"
-                    id="import-file-input"
-                    style={{ display: "none" }}
-                    accept=".xlsx, .xls"
-                    onChange={onFileChange}
-                  />
-
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FileUpload />}
-                    onClick={handleImportClick} // Gọi hàm trigger input file (thường là document.getElementById('import-file-input').click())
-                    disabled={importMutation.isPending}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    {importMutation.isPending ? "Đang tải..." : "Tải lên"}
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FileDownload />}
-                    onClick={handleExport}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Xuất file
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<Print />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    In
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<Mail />}
-                    endIcon={<ArrowDropDown />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Gửi
-                  </Button>
-                </Box>
-              </Box>
+              <PageAction
+                selectedIds={selectedRows}
+                handleDelete={handleDelete}
+                deleteMutation={deleteMutation}
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                exportExcel={handleExport}
+                importFile={importMutation}
+                handleOpen={handleOpen}
+                handleClearSearch={handleClearSearch}
+                isLoading={isLoading}
+                totalItems={assignmentnorms.totalDocs}
+              />
             </Box>
             <CustomTable<AssignmentNormOutputType>
               data={assignmentnorms.data}

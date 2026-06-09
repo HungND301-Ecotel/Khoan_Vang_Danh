@@ -5,7 +5,7 @@ const excavationTechController = require("../controller/ExcavationTech");
 
 router.post("/", excavationTechController.create);
 router.put("/:id", excavationTechController.update);
-router.delete("/:id", excavationTechController.delete);
+router.delete("/", excavationTechController.delete);
 router.get("/", excavationTechController.get);
 router.post(
   "/importFile",

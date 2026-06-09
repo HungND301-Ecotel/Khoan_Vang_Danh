@@ -5,7 +5,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/", curbSlopeController.create);
 router.put("/:id", curbSlopeController.update);
-router.delete("/:id", curbSlopeController.delete);
+router.delete("/", curbSlopeController.delete);
 router.get("/", curbSlopeController.get);
 router.post("/exportFile", curbSlopeController.export);
 router.post("/importFile", upload.single("file"), curbSlopeController.import);

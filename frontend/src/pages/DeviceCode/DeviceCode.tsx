@@ -36,13 +36,14 @@ import DeviceCodeService from "../../service/DeviceCodeService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport";
+import PageAction from "../../components/Common/PageAction";
 
 export default function DeviceCode() {
   const [open, setOpen] = useState(false);
   const [selectedDeviceCode, setSelectedDeviceCode] =
     useState<DeviceCodeType | null>(null);
   const [selectedDeviceCodes, setSelectedDeviceCodes] = useState<React.Key[]>(
-    []
+    [],
   );
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
@@ -79,7 +80,7 @@ export default function DeviceCode() {
 
   const exportExcel = useMutation({
     mutationFn: DeviceCodeService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -108,7 +109,7 @@ export default function DeviceCode() {
       return;
     }
     showConfirmAlert(
-      `Bạn có muốn xóa ${selectedDeviceCodes.length} bản ghi? hành động này không thể hoàn tác.`
+      `Bạn có muốn xóa ${selectedDeviceCodes.length} bản ghi? hành động này không thể hoàn tác.`,
     ).then((result) => {
       if (result.isConfirmed) {
         deleteMutation.mutate(selectedDeviceCodes);
@@ -158,7 +159,7 @@ export default function DeviceCode() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["devicecodes"] });
       setIsUploading(false);
-      ShowAlertImport(data)
+      ShowAlertImport(data);
     },
     onError: (error: any) => {
       setIsUploading(false);
@@ -192,15 +193,15 @@ export default function DeviceCode() {
                 </thead>
                 <tbody>
                   ${devicecodes
-            .map(
-              (devicecode: DeviceCodeType, index: number) => `
+                    .map(
+                      (devicecode: DeviceCodeType, index: number) => `
                     <tr>
                       <td>${index + 1}</td>
                       <td>${devicecode.code || ""}</td>
                     </tr>
-                  `
-            )
-            .join("")}
+                  `,
+                    )
+                    .join("")}
                 </tbody>
               </table>
             </body>
@@ -226,12 +227,12 @@ export default function DeviceCode() {
     }
 
     showConfirmAlert(
-      "Bạn có muốn gửi danh sách mã thiết bị đã chọn qua email?"
+      "Bạn có muốn gửi danh sách mã thiết bị đã chọn qua email?",
     ).then((result) => {
       if (result.isConfirmed) {
         const selectedDeviceCodeData = devicecodes.filter(
           (devicecode: DeviceCodeType) =>
-            selectedDeviceCodes.includes(devicecode._id as React.Key)
+            selectedDeviceCodes.includes(devicecode._id as React.Key),
         );
 
         api
@@ -241,7 +242,7 @@ export default function DeviceCode() {
           })
           .catch((error) => {
             showErrorAlert(
-              error.response?.data?.message || "Gửi email thất bại"
+              error.response?.data?.message || "Gửi email thất bại",
             );
           });
       }
@@ -262,9 +263,7 @@ export default function DeviceCode() {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã thiết bị</Typography>,
       dataIndex: "code",
       key: "code",
-      render: (_, record) => (
-        <Typography >{record.code}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.code}</Typography>,
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
@@ -292,11 +291,6 @@ export default function DeviceCode() {
   const handleClearSearch = () => {
     setSearchValue("");
   };
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleUploadClick = () => {
-    // Gọi trực tiếp click() trên phần tử input bị ẩn
-    fileInputRef.current?.click();
-  };
 
   return (
     <Box
@@ -318,224 +312,21 @@ export default function DeviceCode() {
             >
               Mã thiết bị
             </Typography>
-            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="contained"
-                  endIcon={<Add />}
-                  onClick={() => handleOpen()}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_add_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_add_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tạo mới
-                </Button>
-                <Button
-                  variant="contained"
-                  endIcon={<Delete />}
-                  onClick={() => handleDelete()}
-                  disabled={selectedDeviceCodes.length === 0}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_delete_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_delete_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  {deleteMutation.isPending
-                    ? "Đang xóa..."
-                    : `Xóa (${selectedDeviceCodes.length})`}
-                </Button>
-              </Box>
-              <Box display={"flex"} flex={1} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FilterList />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Lọc
-                </Button>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm kiếm"
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_filter_box.main,
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-              <Box display={"flex"} gap={2}>
-                <input
-                  ref={fileInputRef}
-                  id="upload-excel"
-                  type="file"
-                  accept=".xlsx, .xls"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const formData = new FormData();
-                      formData.append("file", file);
-                      importFile.mutate(formData);
-                    }
-                    e.target.value = "";
-                  }}
-                />
-
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileUpload />}
-                  onClick={handleUploadClick}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tải lên
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileDownload />}
-                  onClick={() => exportExcel.mutate()}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Xuất file
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Print />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                  onClick={handlePrint}
-                >
-                  In
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Mail />}
-                  endIcon={<ArrowDropDown />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                  onClick={handleSendEmail}
-                >
-                  Gửi
-                </Button>
-              </Box>
-            </Box>
+            <PageAction
+              selectedIds={selectedDeviceCodes}
+              handleDelete={handleDelete}
+              deleteMutation={deleteMutation}
+              searchValue={searchValue}
+              setSearchValue={setSearchValue}
+              exportExcel={exportExcel}
+              importFile={importFile}
+              handleOpen={handleOpen}
+              handleSendEmail={handleSendEmail}
+              handlePrint={handlePrint}
+              isLoading={isLoading}
+              totalItems={devicecodes.totalDocs}
+              handleClearSearch={handleClearSearch}
+            />
           </Box>
           <CustomTable<DeviceCodeType>
             data={devicecodes.data}

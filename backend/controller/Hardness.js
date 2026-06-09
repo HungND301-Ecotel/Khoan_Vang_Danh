@@ -231,11 +231,24 @@ exports.update = async (req, res) => {
 
 exports.delete = async (req, res) => {
   try {
-    const deleteData = await Hardness.findByIdAndDelete(req.params.id);
-    if (!deleteData) {
-      return res.status(404).json({ status: "error", message: "Xóa thất bại" });
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res
+        .status(400)
+        .send({ status: "error", message: "Vui lòng chọn bản ghi cần xóa" });
     }
-    res.status(200).json({ status: "success", message: "Xóa thành công" });
+
+    const result = await Hardness.deleteMany({ _id: { $in: ids } });
+    if (result.deletedCount === 0) {
+      return res
+        .status(200)
+        .send({ status: "error", message: "Không tìm thấy bản ghi để xóa" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: `Đã xóa ${result.deletedCount} bản ghi`,
+    });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }

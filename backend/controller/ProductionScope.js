@@ -7,9 +7,14 @@ const { configExport } = require("../utils/config_export");
 exports.create = async (req, res) => {
   try {
     const { code, name } = req.body;
-    const exitData = await ProductionScope.countDocuments({ code: code })
+    const exitData = await ProductionScope.countDocuments({ code: code });
     if (exitData > 0) {
-      return res.status(409).json({ status: 'error', message: `Mã diện sản xuất '${code}' đã tồn tại` })
+      return res
+        .status(409)
+        .json({
+          status: "error",
+          message: `Mã diện sản xuất '${code}' đã tồn tại`,
+        });
     }
     const newProductionScope = new ProductionScope({ code, name });
     await newProductionScope.save();
@@ -51,14 +56,14 @@ exports.import = async (req, res) => {
       raw: true,
     })[0];
 
-    const mappedHeaders = headers.map(h => columnMapping[h] || h);
+    const mappedHeaders = headers.map((h) => columnMapping[h] || h);
 
     const rows = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
     });
 
-    const dataImport = rows.filter(r => r._id || r.code || r.name);
+    const dataImport = rows.filter((r) => r._id || r.code || r.name);
 
     if (!dataImport.length) {
       return res.status(400).json({
@@ -68,21 +73,18 @@ exports.import = async (req, res) => {
     }
 
     /** ===== LOAD EXISTED PRODUCTION SCOPE ===== */
-    const existed = await ProductionScope.find(
-      {},
-      { code: 1, name: 1 }
-    ).lean();
+    const existed = await ProductionScope.find({}, { code: 1, name: 1 }).lean();
 
     const codeMap = new Map(
       existed
-        .filter(i => i.code)
-        .map(i => [i.code.toLowerCase(), String(i._id)])
+        .filter((i) => i.code)
+        .map((i) => [i.code.toLowerCase(), String(i._id)]),
     );
 
     const nameMap = new Map(
       existed
-        .filter(i => i.name)
-        .map(i => [i.name.toLowerCase(), String(i._id)])
+        .filter((i) => i.name)
+        .map((i) => [i.name.toLowerCase(), String(i._id)]),
     );
 
     /** ===== PROCESS ===== */
@@ -222,7 +224,6 @@ exports.import = async (req, res) => {
   }
 };
 
-
 exports.export = async (req, res) => {
   try {
     const data = await ProductionScope.find();
@@ -247,15 +248,15 @@ exports.export = async (req, res) => {
       workbook,
       worksheet,
       ["code", "name"],
-      MAX
+      MAX,
     );
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=" + `production_scope.xlsx`
+      "attachment; filename=" + `production_scope.xlsx`,
     );
     res.send(buffer);
   } catch (err) {
@@ -270,7 +271,7 @@ exports.update = async (req, res) => {
     const updateData = await ProductionScope.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true },
     );
     if (!updateData) {
       return res.status(404).json({ status: "error", message: "Sửa thất bại" });
@@ -292,6 +293,30 @@ exports.delete = async (req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 };
+exports.deleteMany = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res
+        .status(400)
+        .send({ status: "error", message: "Vui lòng chọn bản ghi cần xóa" });
+    }
+
+    const result = await ProductionScope.deleteMany({ _id: { $in: ids } });
+    if (result.deletedCount === 0) {
+      return res
+        .status(200)
+        .send({ status: "error", message: "Không tìm thấy bản ghi để xóa" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: `Đã xóa ${result.deletedCount} bản ghi`,
+    });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
 
 exports.get = async (req, res) => {
   try {
@@ -307,7 +332,7 @@ exports.get = async (req, res) => {
       ProductionScope,
       modelQuery,
       query,
-      req.query
+      req.query,
     );
 
     res.status(200).json({ status: "success", data: pagination });

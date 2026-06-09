@@ -5,7 +5,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/", hardnessController.create);
 router.put("/:id", hardnessController.update);
-router.delete("/:id", hardnessController.delete);
+router.delete("/", hardnessController.delete);
 router.get("/", hardnessController.get);
 router.post("/exportFile", hardnessController.export);
 router.post("/importFile", upload.single("file"), hardnessController.import);

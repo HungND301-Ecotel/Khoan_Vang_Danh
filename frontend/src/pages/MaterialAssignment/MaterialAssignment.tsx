@@ -39,6 +39,7 @@ import { parseAxiosError } from "../../utils/handleApiError";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import { formatDecimal, formattedPrice } from "../../utils/helpers";
+import PageAction from "../../components/Common/PageAction";
 
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
@@ -319,22 +320,6 @@ export default function MaterialAssignment() {
   const handleClearSearch = () => {
     setSearchValue("");
   };
-  // Show loading skeleton on initial load
-  // if (isLoading) {
-  //   return (
-  //     <Box>
-  //       <Box mt={3}>
-  //         <LoadingSkeleton />
-  //       </Box>
-  //     </Box>
-  //   );
-  // }
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleUploadClick = () => {
-    // Gọi trực tiếp click() trên phần tử input bị ẩn
-    fileInputRef.current?.click();
-  };
 
   return (
     <>
@@ -358,275 +343,17 @@ export default function MaterialAssignment() {
               >
                 Vật tư tài sản trong khoán
               </Typography>
-              <Box
-                display={"flex"}
-                gap={4}
-                mt={2}
-                justifyContent="space-between"
-              >
-                <Box display={"flex"} gap={2}>
-                  <Button
-                    variant="contained"
-                    endIcon={<Add />}
-                    onClick={() => handleOpen()}
-                    sx={{
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_add_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_add_button.dark,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Tạo mới
-                  </Button>
-                  <Button
-                    variant="contained"
-                    endIcon={<Delete />}
-                    onClick={handleDeleteMultiple}
-                    disabled={selectedMaterialAssignments.length === 0}
-                    sx={{
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_delete_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_delete_button.dark,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    {deleteMutation.isPending
-                      ? "Đang xóa..."
-                      : `Xóa (${selectedMaterialAssignments.length})`}
-                  </Button>
-                </Box>
-                <Box display={"flex"} flex={1} gap={2}>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FilterList />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Lọc
-                  </Button>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Tìm kiếm theo mã vật tư, mã giao khoán, tên vật tư..."
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    value={searchValue}
-                    sx={{
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_filter_box.main,
-                    }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          {searchValue && (
-                            <IconButton
-                              onClick={handleClearSearch}
-                              size="small"
-                              sx={{ mr: 1 }}
-                            >
-                              ×
-                            </IconButton>
-                          )}
-                          {isLoading && searchValue !== "" ? (
-                            <CircularProgress size={20} sx={{ mr: 1 }} />
-                          ) : (
-                            <Search sx={{ fontSize: 24 }} />
-                          )}
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
-                <Box display={"flex"} gap={2}>
-                  <input
-                    ref={fileInputRef}
-                    id="upload-excel"
-                    type="file"
-                    accept=".xlsx, .xls"
-                    style={{ display: "none" }}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        importFile.mutate(formData);
-                      }
-                      e.target.value = "";
-                    }}
-                  />
-
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FileUpload />}
-                    onClick={handleUploadClick}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Tải lên
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<FileDownload />}
-                    onClick={() => exportExcel.mutate("in")}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Xuất file
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<Print />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    In
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<Mail />}
-                    endIcon={<ArrowDropDown />}
-                    sx={{
-                      border: "none",
-                      boxShadow: custom_theme.customShadows.tableFunctional,
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.main,
-                      "&:hover": {
-                        backgroundColor: (theme) =>
-                          custom_theme.palette.table_functional_button.dark,
-                        boxShadow:
-                          custom_theme.customShadows.tableFunctionalHover,
-                      },
-                      fontFamily: "Roboto, sans-serif",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textTransform: "none",
-                      borderRadius: "8px",
-                      px: 3,
-                    }}
-                  >
-                    Gửi
-                  </Button>
-                </Box>
-              </Box>
+              <PageAction
+                selectedIds={selectedMaterialAssignments}
+                handleDelete={handleDelete}
+                deleteMutation={deleteMutation}
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                exportExcel={exportExcel}
+                importFile={importFile}
+                handleOpen={handleOpen}
+              />
             </Box>
-            {/* Enhanced Search Results Info with Loading State */}
-            {searchValue && (
-              <Box
-                sx={{
-                  mb: 2,
-                  p: 1,
-                  backgroundColor: "#f0f7ff",
-                  borderRadius: 1,
-                }}
-              >
-                <Typography variant="body2" color="primary">
-                  {isLoading && searchValue !== "" ? (
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <CircularProgress size={16} sx={{ mr: 1 }} />
-                      Đang tìm kiếm "{searchValue}"...
-                    </Box>
-                  ) : (
-                    <>
-                      Tìm thấy {materialAssignments.totalDocs} kết quả cho "
-                      {searchValue}"
-                      {materialAssignments.totalDocs > 0 && (
-                        <Button
-                          size="small"
-                          onClick={handleClearSearch}
-                          sx={{ ml: 2 }}
-                        >
-                          Xóa bộ lọc
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </Typography>
-              </Box>
-            )}
             <CustomTable<Materials>
               data={materialAssignments.data}
               total={materialAssignments.totalDocs}

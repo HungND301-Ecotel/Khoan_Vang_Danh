@@ -40,6 +40,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import StepService from "../../service/StepService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
+import PageAction from "../../components/Common/PageAction";
 
 export default function Step() {
   const [open, setOpen] = useState(false);
@@ -52,8 +53,7 @@ export default function Step() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleUploadClick = () => fileInputRef.current?.click();
+
   const {
     data: steps = [],
     isLoading,
@@ -99,8 +99,7 @@ export default function Step() {
     },
   });
 
-  const handleDelete = (id?: string) => {
-    if (!id) {
+  const handleDelete = () => {
       if (selectedSteps.length === 0) {
         showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
         return;
@@ -110,27 +109,18 @@ export default function Step() {
         `Bạn có muốn xóa ${selectedSteps.length} bản ghi đã chọn?`,
       ).then((result) => {
         if (result.isConfirmed) {
-          selectedSteps.forEach((stepId) => {
-            deleteMutation.mutate(stepId as string);
-          });
-          setSelectedSteps([]);
+          deleteMutation.mutate(selectedSteps);
         }
       });
-    } else {
-      showConfirmAlert("Bạn có muốn xóa bản ghi này?").then((result) => {
-        if (result.isConfirmed) {
-          deleteMutation.mutate(id);
-        }
-      });
-    }
   };
-
+  
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/steps/${id}`).then((res) => res.data),
+    mutationFn: (ids: React.Key[]) =>
+      api.delete(`/steps`, { data: { ids } }).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["steps"] });
       showSuccessAlert("Xóa thành công");
+      setSelectedSteps([]);
     },
     onError: (error: any) => {
       showErrorAlert(error.response.data.message || error.response || "Lỗi");
@@ -233,203 +223,19 @@ export default function Step() {
             {/* <Typography variant="h4" sx={{ color: 'blue' }}>
               Bước chống
             </Typography> */}
-            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="contained"
-                  endIcon={<Add />}
-                  onClick={() => handleOpen()}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_add_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_add_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tạo mới
-                </Button>
-                <Button
-                  variant="contained"
-                  endIcon={<Delete />}
-                  onClick={() => handleDelete()}
-                  disabled={selectedSteps.length === 0}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_delete_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_delete_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Xóa ({selectedSteps.length})
-                </Button>
-              </Box>
-              <Box display={"flex"} flex={1} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FilterList />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Lọc
-                </Button>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm kiếm"
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_filter_box.main,
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Search sx={{ fontSize: 24 }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileUpload />}
-                  onClick={handleUploadClick}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tải lên
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileDownload />}
-                  onClick={() => exportExcel.mutate()}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Xuất file
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Print />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  In
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Mail />}
-                  endIcon={<ArrowDropDown />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Gửi
-                </Button>
-              </Box>
-            </Box>
+            <PageAction
+              selectedIds={selectedSteps}
+              handleDelete={handleDelete}
+              deleteMutation={deleteMutation}
+              searchValue={searchValue}
+              setSearchValue={setSearchValue}
+              exportExcel={exportExcel}
+              importFile={importFile}
+              handleOpen={handleOpen}
+              handleClearSearch={handleClearSearch}
+              isLoading={isLoading}
+              totalItems={steps.totalDocs}
+            />
           </Box>
           <CustomTable<StepType>
             data={steps.data}
@@ -453,21 +259,6 @@ export default function Step() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedStep={selectedStep}
-      />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx, .xls"
-        style={{ display: "none" }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const formData = new FormData();
-            formData.append("file", file);
-            importFile.mutate(formData);
-          }
-          e.target.value = "";
-        }}
       />
     </Box>
   );

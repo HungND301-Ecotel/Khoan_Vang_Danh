@@ -45,6 +45,7 @@ import { AdjustmentNormType } from "../../enum";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import { formatDecimal } from "../../utils/helpers";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
+import PageAction from "../../components/Common/PageAction";
 
 export default function AdjustmentNormKKT() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -131,9 +132,6 @@ export default function AdjustmentNormKKT() {
     },
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleUploadClick = () => fileInputRef.current?.click();
-
   const importFile = useMutation({
     mutationFn: (formData: FormData) =>
       AdjustmentNormService.importFile(formData, AdjustmentNormType.CKKT),
@@ -171,8 +169,8 @@ export default function AdjustmentNormKKT() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/adjustmentnorms/${id}`).then((res) => res.data),
+    mutationFn: (ids: string[]) =>
+      api.delete(`/adjustmentnorms`, { data: { ids } }).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       showSuccessAlert("Xóa thành công");
@@ -192,11 +190,7 @@ export default function AdjustmentNormKKT() {
 
     showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
-        selectedItems.forEach((id) => {
-          if (typeof id === "string") {
-            deleteMutation.mutate(id);
-          }
-        });
+        deleteMutation.mutate(selectedItems as string[]);
       }
     });
   };
@@ -345,254 +339,20 @@ export default function AdjustmentNormKKT() {
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="contained"
-                  endIcon={<Add />}
-                  onClick={() => handleOpen()}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_add_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_add_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tạo mới
-                </Button>
-                <Button
-                  variant="contained"
-                  endIcon={<Delete />}
-                  onClick={handleDelete}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_delete_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_delete_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                  disabled={
-                    selectedItems.length === 0 || deleteMutation.isPending
-                  }
-                >
-                  {deleteMutation.isPending
-                    ? "Đang xóa..."
-                    : `Xóa (${selectedItems.length})`}
-                </Button>
-              </Box>
-              <Box display={"flex"} flex={1} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FilterList />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Lọc
-                </Button>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm kiếm theo mã định mức, độ cứng, tỷ lệ đá, mã giao khoán..."
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_filter_box.main,
-                    "& .MuiInputBase-root": {
-                      fontSize: "14px",
-                    },
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        {searchValue && (
-                          <IconButton
-                            onClick={handleClearSearch}
-                            size="small"
-                            sx={{ mr: 1 }}
-                          >
-                            ×
-                          </IconButton>
-                        )}
-                        {isLoading && searchValue ? (
-                          <CircularProgress size={20} sx={{ mr: 1 }} />
-                        ) : (
-                          <Search sx={{ fontSize: 24 }} />
-                        )}
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileUpload />}
-                  onClick={handleUploadClick}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tải lên
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileDownload />}
-                  onClick={() => exportExcel.mutate()}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Xuất file
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Print />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  In
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Mail />}
-                  endIcon={<ArrowDropDown />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Gửi
-                </Button>
-              </Box>
-            </Box>
+            <PageAction
+              selectedIds={selectedItems}
+              handleDelete={handleDelete}
+              deleteMutation={deleteMutation}
+              searchValue={searchValue}
+              setSearchValue={setSearchValue}
+              exportExcel={exportExcel}
+              importFile={importFile}
+              handleOpen={handleOpen}
+              handleClearSearch={handleClearSearch}
+              isLoading={isLoading}
+              totalItems={adjustmentnorms.totalDocs}
+            />
           </Box>
-
-          {/* Enhanced Search Results Info with Loading State */}
-          {searchValue && (
-            <Box
-              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
-            >
-              <Typography variant="body2" color="primary">
-                {isLoading && searchValue ? (
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Đang tìm kiếm "{searchValue}"...
-                  </Box>
-                ) : (
-                  <>
-                    Tìm thấy {adjustmentnorms.totalDocs} kết quả cho "
-                    {searchValue}"
-                    {adjustmentnorms.totalDocs > 0 && (
-                      <Button
-                        size="small"
-                        onClick={handleClearSearch}
-                        sx={{ ml: 2 }}
-                      >
-                        Xóa bộ lọc
-                      </Button>
-                    )}
-                  </>
-                )}
-              </Typography>
-            </Box>
-          )}
 
           <CustomTable<AdjustmentNormOutputType>
             data={adjustmentnorms.data}
@@ -623,21 +383,6 @@ export default function AdjustmentNormKKT() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
-      />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx, .xls"
-        style={{ display: "none" }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const formData = new FormData();
-            formData.append("file", file);
-            importFile.mutate(formData);
-          }
-          e.target.value = "";
-        }}
       />
       <ImportErrorDialog
         open={errorDialog.open}

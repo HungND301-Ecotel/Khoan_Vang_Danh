@@ -37,7 +37,8 @@ import custom_theme from "../../theme";
 import PhaseGroupService from "../../service/PhaseGroupService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
-import { ShowAlertImport } from "../../utils/AlertImport"
+import { ShowAlertImport } from "../../utils/AlertImport";
+import PageAction from "../../components/Common/PageAction";
 
 interface PhaseGroupProps {
   searchValue?: string;
@@ -50,7 +51,7 @@ export default function PhaseGroup({
   const [selectedPhaseGroup, setSelectedPhaseGroup] =
     useState<PhaseGroupType | null>(null);
   const [selectedPhaseGroups, setSelectedPhaseGroups] = useState<React.Key[]>(
-    []
+    [],
   );
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
@@ -71,7 +72,7 @@ export default function PhaseGroup({
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/phasegroups?q=${searchValue}&page=${page}&limit=${limit}`
+          `/phasegroups?q=${searchValue}&page=${page}&limit=${limit}`,
         );
         return response.data.data;
       } catch (error) {
@@ -95,7 +96,7 @@ export default function PhaseGroup({
 
   const exportExcel = useMutation({
     mutationFn: PhaseGroupService.exportFile,
-    onSuccess: () => { },
+    onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
       showErrorAlert(message);
@@ -114,7 +115,7 @@ export default function PhaseGroup({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["phasegroups"] });
       setIsUploading(false);
-      ShowAlertImport(data)
+      ShowAlertImport(data);
     },
     onError: (error: any) => {
       setIsUploading(false);
@@ -139,13 +140,8 @@ export default function PhaseGroup({
   });
 
   const deleteMultipleMutation = useMutation({
-    mutationFn: (ids: string[]) => {
-      return Promise.all(
-        ids.map((id) =>
-          api.delete(`/phasegroups/${id}`).then((res) => res.data)
-        )
-      );
-    },
+    mutationFn: (ids: React.Key[]) =>
+      api.delete(`/phasegroups`, { data: { ids } }).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["phasegroups"] });
       setSelectedPhaseGroups([]);
@@ -157,41 +153,17 @@ export default function PhaseGroup({
     },
   });
 
-  const deleteSingleMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/phasegroups/${id}`).then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["phasegroups"] });
-      showSuccessAlert("Xóa thành công");
-    },
-    onError: (error: any) => {
-      console.error("Lỗi khi xóa:", error);
-      showErrorAlert(error.response?.data?.message || error.response || "Lỗi");
-    },
-  });
-
   const handleDeleteMultiple = () => {
     if (selectedPhaseGroups.length === 0) {
       showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
       return;
     }
 
-    const confirmMessage =
-      selectedPhaseGroups.length === 1
-        ? "Bạn có muốn xóa 1 bản ghi? Hành động này không thể hoàn tác."
-        : `Bạn có muốn xóa ${selectedPhaseGroups.length} bản ghi? Hành động này không thể hoàn tác.`;
+    const confirmMessage = `Bạn có muốn xóa ${selectedPhaseGroups.length} bản ghi? Hành động này không thể hoàn tác.`;
 
     showConfirmAlert(confirmMessage).then((result) => {
       if (result.isConfirmed) {
         deleteMultipleMutation.mutate(selectedPhaseGroups as string[]);
-      }
-    });
-  };
-
-  const handleDeleteSingle = (id: string) => {
-    showConfirmAlert("Bạn có muốn xóa bản ghi này?").then((result) => {
-      if (result.isConfirmed) {
-        deleteSingleMutation.mutate(id);
       }
     });
   };
@@ -216,12 +188,6 @@ export default function PhaseGroup({
   const handleClearSearch = () => {
     setSearchValue("");
   };
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const columns: TableProps<PhaseGroupType>["columns"] = [
     {
       title: "",
@@ -238,9 +204,7 @@ export default function PhaseGroup({
       ),
       dataIndex: "code",
       key: "code",
-      render: (_, record) => (
-        <Typography>{record.code}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.code}</Typography>,
       sorter: (a, b) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
@@ -252,9 +216,7 @@ export default function PhaseGroup({
       ),
       dataIndex: "name",
       key: "name",
-      render: (_, record) => (
-        <Typography>{record.name}</Typography>
-      ),
+      render: (_, record) => <Typography>{record.name}</Typography>,
       sorter: (a, b) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {
           sensitivity: "base",
@@ -286,249 +248,20 @@ export default function PhaseGroup({
       <Box mt={3}>
         <Box>
           <Box sx={{ mb: 2 }}>
-            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="contained"
-                  endIcon={<Add />}
-                  onClick={() => handleOpen()}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_add_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_add_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tạo mới
-                </Button>
-                <Button
-                  variant="contained"
-                  endIcon={<Delete />}
-                  onClick={handleDeleteMultiple}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_delete_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_delete_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                  disabled={selectedPhaseGroups.length === 0}
-                >
-                  Xóa ({selectedPhaseGroups.length})
-                </Button>
-              </Box>
-              <Box display={"flex"} flex={1} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FilterList />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Lọc
-                </Button>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm kiếm theo mã hoặc tên nhóm công đoạn..."
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_filter_box.main,
-                    "& .MuiInputBase-root": {
-                      fontSize: "14px",
-                    },
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        {searchValue && (
-                          <IconButton
-                            onClick={handleClearSearch}
-                            size="small"
-                            sx={{ mr: 1 }}
-                          >
-                            ×
-                          </IconButton>
-                        )}
-                        {isLoading && searchValue ? (
-                          <CircularProgress size={20} sx={{ mr: 1 }} />
-                        ) : (
-                          <Search sx={{ fontSize: 24 }} />
-                        )}
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileUpload />}
-                  onClick={handleUploadClick}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tải lên
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileDownload />}
-                  onClick={() => exportExcel.mutate()}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Xuất file
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Print />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  In
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Mail />}
-                  endIcon={<ArrowDropDown />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Gửi
-                </Button>
-              </Box>
-            </Box>
+            <PageAction
+              selectedIds={selectedPhaseGroups}
+              handleDelete={handleDeleteMultiple}
+              deleteMutation={deleteMultipleMutation}
+              searchValue={searchValue}
+              setSearchValue={setSearchValue}
+              exportExcel={exportExcel}
+              importFile={importFile}
+              handleOpen={handleOpen}
+              handleClearSearch={handleClearSearch}
+              isLoading={isLoading}
+              totalItems={phasegroups.totalDocs}
+            />
           </Box>
-
-          {/* Enhanced Search Results Info with Loading State */}
-          {searchValue && (
-            <Box
-              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
-            >
-              <Typography variant="body2" color="primary">
-                {isLoading && searchValue ? (
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Đang tìm kiếm "{searchValue}"...
-                  </Box>
-                ) : (
-                  <>
-                    Tìm thấy {phasegroups.totalDocs} kết quả cho "{searchValue}"
-                    {phasegroups.totalDocs > 0 && (
-                      <Button
-                        size="small"
-                        onClick={handleClearSearch}
-                        sx={{ ml: 2 }}
-                      >
-                        Xóa bộ lọc
-                      </Button>
-                    )}
-                  </>
-                )}
-              </Typography>
-            </Box>
-          )}
 
           <CustomTable<PhaseGroupType>
             data={phasegroups.data}
@@ -552,22 +285,6 @@ export default function PhaseGroup({
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedPhaseGroup={selectedPhaseGroup}
-      />
-      <input
-        ref={fileInputRef}
-        id="upload-excel"
-        type="file"
-        accept=".xlsx, .xls"
-        style={{ display: "none" }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const formData = new FormData();
-            formData.append("file", file);
-            importFile.mutate(formData);
-          }
-          e.target.value = "";
-        }}
       />
     </Box>
   );

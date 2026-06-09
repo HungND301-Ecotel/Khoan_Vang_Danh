@@ -6,6 +6,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.post("/", productionScopeController.create);
 router.put("/:id", productionScopeController.update);
 router.delete("/:id", productionScopeController.delete);
+router.delete("/", productionScopeController.deleteMany);
 router.get("/", productionScopeController.get);
 router.post("/exportFile", productionScopeController.export);
 router.post(

@@ -40,6 +40,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import LengthService from "../../service/LengthService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
+import PageAction from "../../components/Common/PageAction";
 
 export default function Length() {
   const [open, setOpen] = useState(false);
@@ -52,8 +53,6 @@ export default function Length() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleUploadClick = () => fileInputRef.current?.click();
 
   const {
     data: length = { totalDocs: 0, data: [] },
@@ -132,56 +131,23 @@ export default function Length() {
   });
 
   const handleDelete = (id?: string) => {
-    // Xóa nhiều bản ghi
-    if (!id && selectedLengths.length > 0) {
-      showConfirmAlert(
-        `Bạn có muốn xóa ${selectedLengths.length} bản ghi đã chọn?`,
-      ).then((result) => {
-        if (result.isConfirmed) {
-          // Gọi API xóa nhiều
-          const deletePromises = selectedLengths.map((lengthId) =>
-            api.delete(`/length/${lengthId}`),
-          );
-
-          Promise.all(deletePromises)
-            .then(() => {
-              queryClient.invalidateQueries({ queryKey: ["length"] });
-              setSelectedLengths([]);
-              showSuccessAlert(
-                `Đã xóa ${selectedLengths.length} bản ghi thành công`,
-              );
-            })
-            .catch((error) => {
-              console.log(
-                error.response?.data?.message || error.response || "Lỗi",
-              );
-              showErrorAlert(
-                error.response?.data?.message ||
-                  error.response ||
-                  "Lỗi khi xóa nhiều bản ghi",
-              );
-            });
-        }
-      });
+    if (selectedLengths.length === 0) {
+      showErrorAlert("Vui lòng chọn ít nhất một bản ghi để xóa");
       return;
     }
 
-    // Xóa một bản ghi
-    if (!id) {
-      showErrorAlert("Không tìm thấy bản ghi");
-      return;
-    }
-
-    showConfirmAlert("Bạn có muốn xóa bản ghi này?").then((result) => {
+    showConfirmAlert(
+      `Bạn có muốn xóa ${selectedLengths.length} bản ghi đã chọn?`,
+    ).then((result) => {
       if (result.isConfirmed) {
-        deleteMutation.mutate(id);
+        deleteMutation.mutate(selectedLengths);
       }
     });
   };
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.delete(`/length/${id}`).then((res) => res.data),
+    mutationFn: (ids: React.Key[]) =>
+      api.delete(`/length`, { data: { ids } }).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["length"] });
       setSelectedLengths([]);
@@ -266,245 +232,21 @@ export default function Length() {
             {/* <Typography variant="h4" sx={{ color: 'blue' }}>
               Chiều dài lò
             </Typography> */}
-            <Box display={"flex"} gap={4} mt={2} justifyContent="space-between">
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="contained"
-                  endIcon={<Add />}
-                  onClick={() => handleOpen()}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_add_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_add_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tạo mới
-                </Button>
-                <Button
-                  variant="contained"
-                  endIcon={<Delete />}
-                  onClick={() => handleDelete()}
-                  disabled={selectedLengths.length === 0}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_delete_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_delete_button.dark,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Xóa ({selectedLengths.length})
-                </Button>
-              </Box>
-              <Box display={"flex"} flex={1} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FilterList />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Lọc
-                </Button>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Tìm kiếm theo độ dài..."
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_filter_box.main,
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        {searchValue && (
-                          <IconButton
-                            onClick={handleClearSearch}
-                            size="small"
-                            sx={{ mr: 1 }}
-                          >
-                            ×
-                          </IconButton>
-                        )}
-                        {isLoading && searchValue ? (
-                          <CircularProgress size={20} sx={{ mr: 1 }} />
-                        ) : (
-                          <Search sx={{ fontSize: 24 }} />
-                        )}
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-              <Box display={"flex"} gap={2}>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileUpload />}
-                  onClick={handleUploadClick}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Tải lên
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<FileDownload />}
-                  onClick={() => exportExcel.mutate()}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Xuất file
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Print />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  In
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<Mail />}
-                  endIcon={<ArrowDropDown />}
-                  sx={{
-                    border: "none",
-                    boxShadow: custom_theme.customShadows.tableFunctional,
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.main,
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        custom_theme.palette.table_functional_button.dark,
-                      boxShadow:
-                        custom_theme.customShadows.tableFunctionalHover,
-                    },
-                    fontFamily: "Roboto, sans-serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    px: 3,
-                  }}
-                >
-                  Gửi
-                </Button>
-              </Box>
-            </Box>
+            <PageAction
+              selectedIds={selectedLengths}
+              handleDelete={handleDelete}
+              deleteMutation={deleteMutation}
+              searchValue={searchValue}
+              setSearchValue={setSearchValue}
+              exportExcel={exportExcel}
+              importFile={importFile}
+              handleOpen={handleOpen}
+              handleClearSearch={handleClearSearch}
+              isLoading={isLoading}
+              totalItems={length.totalDocs}
+            />
           </Box>
-          {/* Enhanced Search Results Info with Loading State */}
-          {searchValue && (
-            <Box
-              sx={{ mb: 2, p: 1, backgroundColor: "#f0f7ff", borderRadius: 1 }}
-            >
-              <Typography variant="body2" color="primary">
-                {isLoading && searchValue ? (
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                    Đang tìm kiếm "{searchValue}"...
-                  </Box>
-                ) : (
-                  <>
-                    Tìm thấy {length.totalDocs} kết quả cho "{searchValue}"
-                    {length.totalDocs > 0 && (
-                      <Button
-                        size="small"
-                        onClick={handleClearSearch}
-                        sx={{ ml: 2 }}
-                      >
-                        Xóa bộ lọc
-                      </Button>
-                    )}
-                  </>
-                )}
-              </Typography>
-            </Box>
-          )}
+
           <CustomTable<LengthType>
             data={length.data}
             total={length.totalDocs}
@@ -527,21 +269,6 @@ export default function Length() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedLength={selectedLength}
-      />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx, .xls"
-        style={{ display: "none" }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const formData = new FormData();
-            formData.append("file", file);
-            importFile.mutate(formData);
-          }
-          e.target.value = "";
-        }}
       />
     </Box>
   );

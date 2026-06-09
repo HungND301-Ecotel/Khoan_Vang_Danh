@@ -38,6 +38,7 @@ import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 import { formatDecimal } from "../../utils/helpers";
+import PageAction from "../../components/Common/PageAction";
 
 export default function CoalCuttingNormZRY() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -178,29 +179,15 @@ export default function CoalCuttingNormZRY() {
       showErrorAlert(error.response?.data?.message || "Lỗi khi import"),
   });
 
-  // Kích hoạt chọn file
-  const handleImportClick = () => {
-    const input = document.getElementById("import-file-zry");
-    if (input) (input as HTMLInputElement).click();
-  };
-
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    importMutation.mutate(formData);
-    e.target.value = "";
-  };
-
   // Hàm Export ZRY
-  const handleExport = async () => {
-    try {
-      const res = await api.post(
+  const exportMutation = useMutation({
+    mutationFn: async () =>
+      api.post(
         "/assignmentnorms/exportFile?type=coal_zry",
         {},
         { responseType: "blob" },
-      );
+      ),
+    onSuccess: (res: any) => {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -208,10 +195,10 @@ export default function CoalCuttingNormZRY() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
-      showErrorAlert("Lỗi khi xuất file");
-    }
-  };
+    },
+    onError: (error: any) =>
+      showErrorAlert(error.response?.data?.message || "Lỗi khi xuất file"),
+  });
 
   const columns: TableProps<AssignmentNormOutputType>["columns"] = [
     {
@@ -386,213 +373,19 @@ export default function CoalCuttingNormZRY() {
     <>
       <Box mt={3}>
         <Box sx={{ mb: 2 }}>
-          <Box
-            display={"flex"}
-            gap={4}
-            mt={2}
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box display={"flex"} gap={2}>
-              <Button
-                variant="contained"
-                endIcon={<Add />}
-                onClick={() => handleOpen()}
-                sx={{
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_add_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_add_button.dark,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Tạo mới
-              </Button>
-              <Button
-                variant="contained"
-                endIcon={<Delete />}
-                onClick={() => handleDelete()}
-                disabled={selectedRowKeys.length === 0}
-                sx={{
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_delete_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_delete_button.dark,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Xóa ({selectedRowKeys.length})
-              </Button>
-            </Box>
-
-            <Box display={"flex"} flex={1} gap={2}>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<FilterList />}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Lọc
-              </Button>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Tìm kiếm"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                sx={{
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_filter_box.main,
-                }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Search sx={{ fontSize: 24 }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-
-            <Box display={"flex"} gap={2}>
-              <input
-                type="file"
-                id="import-file-zry"
-                style={{ display: "none" }}
-                accept=".xlsx, .xls"
-                onChange={onFileChange}
-              />
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<FileUpload />}
-                onClick={handleImportClick}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Tải lên
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<FileDownload />}
-                onClick={handleExport}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Xuất file
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<Print />}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                In
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<Mail />}
-                endIcon={<ArrowDropDown />}
-                sx={{
-                  border: "none",
-                  boxShadow: custom_theme.customShadows.tableFunctional,
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.main,
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      custom_theme.palette.table_functional_button.dark,
-                    boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                  },
-                  fontFamily: "Roboto, sans-serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  textTransform: "none",
-                  borderRadius: "8px",
-                  px: 3,
-                }}
-              >
-                Gửi
-              </Button>
-            </Box>
-          </Box>
+          <PageAction
+            selectedIds={selectedRowKeys}
+            handleDelete={handleDelete}
+            deleteMutation={deleteMutation}
+            searchValue={searchValue}
+            setSearchValue={setSearchValue}
+            exportExcel={exportMutation}
+            importFile={importMutation}
+            handleOpen={handleOpen}
+            handleClearSearch={handleClearSearch}
+            isLoading={isLoading}
+            totalItems={assignmentnorms.totalDocs}
+          />
         </Box>
 
         <CustomTable<AssignmentNormOutputType>

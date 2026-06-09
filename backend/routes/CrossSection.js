@@ -5,7 +5,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/", CrossSectionController.create);
 router.put("/:id", CrossSectionController.update);
-router.delete("/:id", CrossSectionController.delete);
+router.delete("/", CrossSectionController.delete);
 router.get("/", CrossSectionController.get);
 router.post(
   "/importFile",

@@ -5,7 +5,7 @@ const phaseGroupController = require("../controller/PhaseGroup");
 
 router.post("/", phaseGroupController.create);
 router.put("/:id", phaseGroupController.update);
-router.delete("/:id", phaseGroupController.delete);
+router.delete("/", phaseGroupController.delete);
 router.get("/", phaseGroupController.get);
 router.post("/importFile", upload.single("file"), phaseGroupController.import);
 router.post("/exportFile", phaseGroupController.export);

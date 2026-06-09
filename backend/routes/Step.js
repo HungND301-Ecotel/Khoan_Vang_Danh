@@ -6,6 +6,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.post("/", stepController.create);
 router.put("/:id", stepController.update);
 router.delete("/:id", stepController.delete);
+router.delete("/", stepController.deleteMany);
 router.get("/", stepController.get);
 router.post("/exportFile", stepController.export);
 router.post("/importFile", upload.single("file"), stepController.import);

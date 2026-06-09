@@ -5,6 +5,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/", thicknessController.create);
 router.put("/:id", thicknessController.update);
+router.delete("/", thicknessController.deleteMany);
 router.delete("/:id", thicknessController.delete);
 router.get("/", thicknessController.get);
 router.post("/exportFile", thicknessController.export);

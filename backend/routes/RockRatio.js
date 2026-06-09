@@ -5,7 +5,7 @@ const RockRatioController = require("../controller/RockRatio");
 
 router.post("/", RockRatioController.create);
 router.put("/:id", RockRatioController.update);
-router.delete("/:id", RockRatioController.delete);
+router.delete("/", RockRatioController.delete);
 router.get("/", RockRatioController.get);
 router.post("/importFile", upload.single("file"), RockRatioController.import);
 router.post("/exportFile", RockRatioController.export);
