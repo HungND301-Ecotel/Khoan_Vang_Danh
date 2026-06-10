@@ -28,7 +28,8 @@ import {
   useRef,
   useState,
 } from "react";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import {
   FieldArray,
   FormikProvider,
@@ -407,35 +408,64 @@ export default function MaterialCostUsedModal({
     setPreviewOpen(false);
   };
 
-  const handleExportTemplate = () => {
-    const dataToExport: any[] = [
-      {
-        code: "Mã vật tư",
-        assignmentCode: "Mã giao khoán",
-        value: "Số lượng",
-      },
-    ];
+  const handleExportTemplate = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Mẫu");
+      const dataSheet = workbook.addWorksheet("Data");
 
-    if (materialassignments?.data && Array.isArray(materialassignments.data)) {
-      materialassignments.data.forEach((m: any) => {
-        dataToExport.push({
-          code: m.code || "",
-          assignmentCode: m.assignmentCode?.code || "",
-          value: "",
-        });
+      // Lấy danh sách mã giao khoán
+      const allAssignmentCodes = Array.isArray(assignmentcodes?.data) 
+        ? Array.from(new Set(assignmentcodes.data.map((ac: any) => ac.code).filter(Boolean)))
+        : [];
+      
+      allAssignmentCodes.forEach((code: any, index: number) => {
+        dataSheet.getCell(`A${index + 1}`).value = code;
       });
+      dataSheet.state = "hidden";
+
+      worksheet.columns = [
+        { header: "Mã vật tư", key: "code", width: 30 },
+        { header: "Mã giao khoán", key: "assignmentCode", width: 30 },
+        { header: "Số lượng", key: "value", width: 20 },
+      ];
+
+      // Format header
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Xuất các vật tư đã được chọn trong form
+      if (formik.values.materials && Array.isArray(formik.values.materials)) {
+        formik.values.materials.forEach((m: any) => {
+          const matDetail = materialassignments?.data?.find((ac: any) => ac._id === m.material);
+          if (matDetail) {
+            worksheet.addRow({
+              code: matDetail.code || "",
+              assignmentCode: matDetail.assignmentCode?.code || "",
+              value: m.quantity || "",
+            });
+          }
+        });
+      }
+
+      const totalRows = Math.max((formik.values.materials?.length || 0) + 1000, 1000);
+      for (let i = 2; i <= totalRows; i++) {
+        worksheet.getCell(`B${i}`).dataValidation = {
+          type: "list",
+          allowBlank: true,
+          formulae: [`Data!$A$1:$A$${allAssignmentCodes.length > 0 ? allAssignmentCodes.length : 1}`],
+          showErrorMessage: true,
+          errorTitle: "Lỗi",
+          error: "Vui lòng chọn mã giao khoán từ danh sách",
+        };
+      }
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      saveAs(blob, "Danh_sach_vat_tu.xlsx");
+    } catch (error) {
+      console.error("Lỗi khi tải mẫu:", error);
     }
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport, {
-      skipHeader: true,
-    });
-
-    const columnWidths = [{ wch: 30 }, { wch: 30 }, { wch: 20 }];
-    worksheet["!cols"] = columnWidths;
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Mẫu");
-    XLSX.writeFile(workbook, "Danh_sach_vat_tu.xlsx");
   };
 
   return (
