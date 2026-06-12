@@ -19,6 +19,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Dispatch,
@@ -280,57 +282,47 @@ export default function MaterialCostUsedModal({
       dataRows.forEach((row, index) => {
         if (!row[0]) return;
         const code = String(row[0] || "").trim();
-        const assignmentCode = String(row[1] || "").trim();
-        const quantity = Number(row[2] || 0);
+        const quantity = Number(row[1] || 0);
 
         let status = "valid";
         let message = "Hợp lệ";
         let matchingmaterial: any = null;
         let matchingassignment: any = null;
 
-        if (assignmentCode) {
-          matchingassignment = assignmentcodes?.data.find(
-            (ac: any) => ac.code === assignmentCode,
-          );
+        const matchingMaterials = materialassignments.data.filter(
+          (ac: any) => ac.code === code
+        );
 
-          if (!matchingassignment) {
-            status = "error_assignment";
-            message = "Mã giao khoán không hợp lệ";
-          } else {
-            console.log(
-              "matchingassignment",
-              matchingassignment,
-              code,
-              assignmentCode,
-            );
-            matchingmaterial = materialassignments.data.find(
-              (ac: any) =>
-                ac.code === code && ac.assignmentCode?.code === assignmentCode,
-            );
-            if (!matchingmaterial) {
-              status = "missing_material";
-              message = "Cần tạo vật tư giao khoán";
-            }
-          }
+        let availableAssignments: any[] = [];
+        if (matchingMaterials.length > 0) {
+           availableAssignments = matchingMaterials.map((m: any) => m.assignmentCode ? { _id: m.assignmentCode._id, code: m.assignmentCode.code } : { _id: "none", code: "Không có" });
+           availableAssignments = availableAssignments.filter((v, i, a) => a.findIndex(t => (t._id === v._id)) === i);
         } else {
-          matchingmaterial = materialassignments.data.find(
-            (ac: any) => ac.code === code && !ac.assignmentNormCode,
-          );
-          if (!matchingmaterial) {
-            status = "missing_material";
-            message = "Cần tạo vật tư";
-          }
+           availableAssignments = [ { _id: "none", code: "Không có" }, ...(assignmentcodes?.data || []).map((ac: any) => ({ _id: ac._id, code: ac.code })) ];
+        }
+
+        if (matchingMaterials.length === 1) {
+          matchingmaterial = matchingMaterials[0];
+          matchingassignment = matchingmaterial.assignmentCode;
+        } else if (matchingMaterials.length > 1) {
+          status = "need_assignment";
+          message = "Vui lòng chọn mã giao khoán";
+        } else {
+          status = "missing_material";
+          message = "Cần tạo vật tư";
         }
 
         parsedData.push({
           id: index,
           code,
-          assignmentCode,
           quantity,
           status,
           message,
           matchingmaterial,
           matchingassignment,
+          matchingMaterials,
+          availableAssignments,
+          selectedAssignmentId: matchingMaterials.length === 1 ? (matchingassignment?._id || "none") : "",
         });
       });
 
@@ -348,16 +340,17 @@ export default function MaterialCostUsedModal({
 
   const handleCreateMaterial = async (row: any, index: number) => {
     try {
+      const assignmentId = row.selectedAssignmentId === "none" ? null : row.selectedAssignmentId;
       const res: any = await createMutation.mutateAsync({
         code: row.code,
         name: row.code,
         quantity: row.quantity,
-        assignmentCode: row.matchingassignment?._id,
+        assignmentCode: assignmentId,
       });
 
       const createdMaterial = res?.data || res;
 
-      if (createdMaterial.status === "success" || createdMaterial.message) {
+      if (createdMaterial.status === "success" || createdMaterial.message || createdMaterial._id) {
         // Lấy dữ liệu mới nhất từ server
         const { data: newMaterialsRes } = await refetchMaterialAssignments();
         const latestMaterials = newMaterialsRes?.data || [];
@@ -365,16 +358,17 @@ export default function MaterialCostUsedModal({
         const newData = [...previewData];
         // Cập nhật tất cả các dòng có cùng mã code và mã giao khoán
         newData.forEach((r) => {
-          if (r.code === row.code && r.assignmentCode === row.assignmentCode) {
+          if (r.code === row.code && r.selectedAssignmentId === row.selectedAssignmentId) {
             r.status = "valid";
             r.message = "Đã tạo thành công";
             r.matchingmaterial = latestMaterials.find(
               (ac: any) =>
                 ac.code === row.code &&
-                (row.assignmentCode
-                  ? ac.assignmentCode?.code === row.assignmentCode
+                (assignmentId
+                  ? ac.assignmentCode?._id === assignmentId
                   : !ac.assignmentCode),
             );
+            r.matchingassignment = r.matchingmaterial?.assignmentCode || null;
           }
         });
         setPreviewData(newData);
@@ -412,21 +406,9 @@ export default function MaterialCostUsedModal({
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Mẫu");
-      const dataSheet = workbook.addWorksheet("Data");
-
-      // Lấy danh sách mã giao khoán
-      const allAssignmentCodes = Array.isArray(assignmentcodes?.data) 
-        ? Array.from(new Set(assignmentcodes.data.map((ac: any) => ac.code).filter(Boolean)))
-        : [];
-      
-      allAssignmentCodes.forEach((code: any, index: number) => {
-        dataSheet.getCell(`A${index + 1}`).value = code;
-      });
-      dataSheet.state = "hidden";
 
       worksheet.columns = [
         { header: "Mã vật tư", key: "code", width: 30 },
-        { header: "Mã giao khoán", key: "assignmentCode", width: 30 },
         { header: "Số lượng", key: "value", width: 20 },
       ];
 
@@ -441,23 +423,10 @@ export default function MaterialCostUsedModal({
           if (matDetail) {
             worksheet.addRow({
               code: matDetail.code || "",
-              assignmentCode: matDetail.assignmentCode?.code || "",
               value: m.quantity || "",
             });
           }
         });
-      }
-
-      const totalRows = Math.max((formik.values.materials?.length || 0) + 1000, 1000);
-      for (let i = 2; i <= totalRows; i++) {
-        worksheet.getCell(`B${i}`).dataValidation = {
-          type: "list",
-          allowBlank: true,
-          formulae: [`Data!$A$1:$A$${allAssignmentCodes.length > 0 ? allAssignmentCodes.length : 1}`],
-          showErrorMessage: true,
-          errorTitle: "Lỗi",
-          error: "Vui lòng chọn mã giao khoán từ danh sách",
-        };
       }
 
       const buffer = await workbook.xlsx.writeBuffer();
@@ -1104,7 +1073,39 @@ export default function MaterialCostUsedModal({
                     }}
                   >
                     <TableCell>{row.code}</TableCell>
-                    <TableCell>{row.assignmentCode}</TableCell>
+                    <TableCell>
+                      {row.matchingMaterials?.length > 1 || row.status === "missing_material" || row.status === "need_assignment" ? (
+                        <Select
+                          size="small"
+                          value={row.selectedAssignmentId || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const newData = [...previewData];
+                            newData[index].selectedAssignmentId = val;
+                            
+                            if (newData[index].matchingMaterials?.length > 1) {
+                               const mat = newData[index].matchingMaterials.find((m: any) => (m.assignmentCode?._id || "none") === val);
+                               if (mat) {
+                                 newData[index].matchingmaterial = mat;
+                                 newData[index].matchingassignment = mat.assignmentCode;
+                                 newData[index].status = "valid";
+                                 newData[index].message = "Hợp lệ";
+                               }
+                            }
+                            setPreviewData(newData);
+                          }}
+                          displayEmpty
+                          sx={{ minWidth: 140, height: 32 }}
+                        >
+                          <MenuItem value="" disabled>Chọn mã</MenuItem>
+                          {row.availableAssignments?.map((a: any) => (
+                             <MenuItem key={a._id} value={a._id}>{a.code}</MenuItem>
+                          ))}
+                        </Select>
+                      ) : (
+                        row.matchingassignment?.code || "Không có"
+                      )}
+                    </TableCell>
                     <TableCell>{row.quantity}</TableCell>
                     <TableCell>
                       <Typography
