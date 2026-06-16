@@ -1,19 +1,18 @@
-import React, { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React from "react";
 import {
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-} from "@tanstack/react-query";
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import Login from "./pages/Auth/Login";
-import api from "./config/api.config";
-import { userAtom } from "./atoms/userAtoms";
-import { useAtom } from "jotai";
 import MainLayout from "./layout/Mainlayout";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import AssignmentCode from "./pages/AssignmentCode/AssignmentCode";
 
 import Unit from "./pages/Unit/Unit";
+import Department from "./pages/Department/Department";
 import MaterialAssignment from "./pages/MaterialAssignment/MaterialAssignment";
 import MaterialAssignmentOutPlan from "./pages/MaterialAssignmentOutPlan/MaterialAssignmentOutPlan";
 import PhaseGroup from "./pages/PhaseGroup/PhaseGroup";
@@ -29,9 +28,6 @@ import Materialunitprice from "./pages/MaterialUnitPrice/Materialunitprice";
 import Step from "./pages/Step/Step";
 import ExcavationNorm from "./pages/ExcavationNorm/ExcavationNorm";
 import CuttingNorm from "./pages/CuttingNorm/CuttingNorm";
-import CoalCuttingNormZRY from "./pages/CoalCuttingNormZRY/CoalCuttingNormZRY";
-import CoalCuttingNormZH from "./pages/CoalCuttingNormZH/CoalCuttingNormZH";
-import CoalCuttingNormKB from "./pages/CoalCuttingNormKB/CoalCuttingNormKB";
 import RockRatio from "./pages/RockRatio/RockRatio";
 import MirrorRatio from "./pages/MirrorRatio/MirrorRatio";
 import AdjustmentNormKKT from "./pages/AdjustmentNormKKT/AdjustmentNormKKT";
@@ -56,321 +52,95 @@ import SettlementReport from "./pages/Report/SettlementReport";
 import ProductionPhaseReport from "./pages/Report/ProductionPhaseReport";
 import ReportLayout from "./layout/ReportLayout";
 
-interface PrivateRouteProps {
-  children: React.ReactNode;
-}
-
-const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
+const PrivateRoute: React.FC = () => {
   const token = localStorage.getItem("token");
-  const [user] = useAtom(userAtom);
   if (!token) {
     return <Navigate to="/login" />;
   }
-  return <MainLayout>{children}</MainLayout>;
+  return (
+    <MainLayout>
+      <Outlet />
+    </MainLayout>
+  );
 };
 
 const App = () => {
-  const token = localStorage.getItem("token");
-  const [user, setUser] = useAtom(userAtom);
-
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        <Route
-          path="/report"
-          element={
-            <PrivateRoute>
-              <ReportLayout />
-            </PrivateRoute>
-          }
-        >
-          <Route path="technologykpireport" element={<TechnologyKPIReport />} />
-          <Route path="costreport" element={<CostReport />} />
+        {/* Report routes với ReportLayout riêng */}
+        <Route element={<PrivateRoute />}>
+          <Route path="/report" element={<ReportLayout />}>
+            <Route
+              path="technologykpireport"
+              element={<TechnologyKPIReport />}
+            />
+            <Route path="costreport" element={<CostReport />} />
+            <Route
+              path="materialconsumptionreport"
+              element={<MaterialConsumptionReport />}
+            />
+            <Route path="settlementreport" element={<SettlementReport />} />
+            <Route
+              path="productionphasereport"
+              element={<ProductionPhaseReport />}
+            />
+          </Route>
+
+          {/* Tất cả các route được bảo vệ - dùng MainLayout từ PrivateRoute */}
+          <Route path="/" element={<Dashboard />} />
           <Route
-            path="materialconsumptionreport"
-            element={<MaterialConsumptionReport />}
+            path="/settlementReportSummary"
+            element={<SettlementReportSummary />}
           />
-          <Route path="settlementreport" element={<SettlementReport />} />
           <Route
-            path="productionphasereport"
-            element={<ProductionPhaseReport />}
+            path="/ratedadjustmentfactor"
+            element={<Ratedadjustmentfactor />}
+          />
+          <Route path="/parameter" element={<Parameter />} />
+          <Route
+            path="/adjustmentfactorfornorms"
+            element={<Adjustmentfactorfornorms />}
+          />
+          <Route path="/unit" element={<Unit />} />
+          <Route path="/department" element={<Department />} />
+          <Route path="/phasegroup" element={<PhaseGroup />} />
+          <Route path="/phase" element={<Phase />} />
+          <Route path="/assignmentcode" element={<AssignmentCode />} />
+          <Route path="/materialassignment" element={<MaterialAssignment />} />
+          <Route
+            path="/materialassignmentoutplan"
+            element={<MaterialAssignmentOutPlan />}
+          />
+          <Route path="/excavationtech" element={<ExcavationTech />} />
+          <Route path="/crosssections" element={<CrossSection />} />
+          <Route path="/hardness" element={<Hardness />} />
+          <Route path="/curbslopes" element={<CurbSlope />} />
+          <Route path="/thickness" element={<Thickness />} />
+          <Route path="/length" element={<Length />} />
+          <Route path="/miningtechs" element={<MiningTech />} />
+          <Route path="/materialunitprice" element={<Materialunitprice />} />
+          <Route path="/steps" element={<Step />} />
+          <Route path="/excavationnorms" element={<ExcavationNorm />} />
+          <Route path="/cuttingnorms" element={<CuttingNorm />} />
+          <Route path="/coalcuttingnorms" element={<CoalCuttingNorm />} />
+          <Route path="/rockratio" element={<RockRatio />} />
+          <Route path="/mirrorratio" element={<MirrorRatio />} />
+          <Route path="/adjustmentnormk_kt" element={<AdjustmentNormKKT />} />
+          <Route path="/adjustmentnormk_dl" element={<AdjustmentNormKDL />} />
+          <Route path="/adjustmentnorm_cm" element={<AdjustmentNormCM />} />
+          <Route path="/productionscope" element={<ProductScope />} />
+          <Route path="/devicecode" element={<DeviceCode />} />
+          <Route path="/materialbudget" element={<MaterialBudget />} />
+          <Route path="/materialcostused" element={<MaterialCostUsed />} />
+          <Route path="/settlementreports" element={<Setttlementreport />} />
+          <Route
+            path="/initialplannedcosts"
+            element={<InitialPlannedCosts />}
           />
         </Route>
-
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/settlementReportSummary"
-          element={
-            <PrivateRoute>
-              <SettlementReportSummary />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/ratedadjustmentfactor"
-          element={
-            <PrivateRoute>
-              <Ratedadjustmentfactor />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/parameter"
-          element={
-            <PrivateRoute>
-              <Parameter />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/adjustmentfactorfornorms"
-          element={
-            <PrivateRoute>
-              <Adjustmentfactorfornorms />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/unit"
-          element={
-            <PrivateRoute>
-              <Unit />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/phasegroup"
-          element={
-            <PrivateRoute>
-              <PhaseGroup />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/phase"
-          element={
-            <PrivateRoute>
-              <Phase />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/assignmentcode"
-          element={
-            <PrivateRoute>
-              <AssignmentCode />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/materialassignment"
-          element={
-            <PrivateRoute>
-              <MaterialAssignment />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/materialassignmentoutplan"
-          element={
-            <PrivateRoute>
-              <MaterialAssignmentOutPlan />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/excavationtech"
-          element={
-            <PrivateRoute>
-              <ExcavationTech />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/crosssections"
-          element={
-            <PrivateRoute>
-              <CrossSection />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/hardness"
-          element={
-            <PrivateRoute>
-              <Hardness />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/curbslopes"
-          element={
-            <PrivateRoute>
-              <CurbSlope />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/thickness"
-          element={
-            <PrivateRoute>
-              <Thickness />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/length"
-          element={
-            <PrivateRoute>
-              <Length />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/miningtechs"
-          element={
-            <PrivateRoute>
-              <MiningTech />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/materialunitprice"
-          element={
-            <PrivateRoute>
-              <Materialunitprice />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/steps"
-          element={
-            <PrivateRoute>
-              <Step />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/excavationnorms"
-          element={
-            <PrivateRoute>
-              <ExcavationNorm />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/cuttingnorms"
-          element={
-            <PrivateRoute>
-              <CuttingNorm />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/coalcuttingnorms"
-          element={
-            <PrivateRoute>
-              <CoalCuttingNorm />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/rockratio"
-          element={
-            <PrivateRoute>
-              <RockRatio />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/mirrorratio"
-          element={
-            <PrivateRoute>
-              <MirrorRatio />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/adjustmentnormk_kt"
-          element={
-            <PrivateRoute>
-              <AdjustmentNormKKT />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/adjustmentnormk_dl"
-          element={
-            <PrivateRoute>
-              <AdjustmentNormKDL />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/adjustmentnorm_cm"
-          element={
-            <PrivateRoute>
-              <AdjustmentNormCM />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/productionscope"
-          element={
-            <PrivateRoute>
-              <ProductScope />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/devicecode"
-          element={
-            <PrivateRoute>
-              <DeviceCode />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/materialbudget"
-          element={
-            <PrivateRoute>
-              <MaterialBudget />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/materialcostused"
-          element={
-            <PrivateRoute>
-              <MaterialCostUsed />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/settlementreports"
-          element={
-            <PrivateRoute>
-              <Setttlementreport />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/initialplannedcosts"
-          element={
-            <PrivateRoute>
-              <InitialPlannedCosts />
-            </PrivateRoute>
-          }
-        />
       </Routes>
     </BrowserRouter>
   );

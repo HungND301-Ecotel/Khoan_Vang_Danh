@@ -126,7 +126,10 @@ export default function MaterialCostUsedModal({
       }
     },
   });
-  const { data: materialassignments = { data: [] }, refetch: refetchMaterialAssignments } = useQuery({
+  const {
+    data: materialassignments = { data: [] },
+    refetch: refetchMaterialAssignments,
+  } = useQuery({
     queryKey: ["materialassignments"],
     queryFn: async () =>
       api.get("/materialassignments").then((res) => res.data.data),
@@ -290,15 +293,28 @@ export default function MaterialCostUsedModal({
         let matchingassignment: any = null;
 
         const matchingMaterials = materialassignments.data.filter(
-          (ac: any) => ac.code === code
+          (ac: any) => ac.code === code,
         );
 
         let availableAssignments: any[] = [];
         if (matchingMaterials.length > 0) {
-           availableAssignments = matchingMaterials.map((m: any) => m.assignmentCode ? { _id: m.assignmentCode._id, code: m.assignmentCode.code } : { _id: "none", code: "Không có" });
-           availableAssignments = availableAssignments.filter((v, i, a) => a.findIndex(t => (t._id === v._id)) === i);
+          availableAssignments = matchingMaterials.map((m: any) =>
+            m.assignmentCode
+              ? { _id: m.assignmentCode._id, code: m.assignmentCode.code, name: m.assignmentCode.name || m.assignmentCode.code }
+              : { _id: "none", code: "Không có", name: "Không có" },
+          );
+          availableAssignments = availableAssignments.filter(
+            (v, i, a) => a.findIndex((t) => t._id === v._id) === i,
+          );
         } else {
-           availableAssignments = [ { _id: "none", code: "Không có" }, ...(assignmentcodes?.data || []).map((ac: any) => ({ _id: ac._id, code: ac.code })) ];
+          availableAssignments = [
+            { _id: "none", code: "Không có", name: "Không có" },
+            ...(assignmentcodes?.data || []).map((ac: any) => ({
+              _id: ac._id,
+              code: ac.code,
+              name: ac.name || ac.code,
+            })),
+          ];
         }
 
         if (matchingMaterials.length === 1) {
@@ -315,6 +331,7 @@ export default function MaterialCostUsedModal({
         parsedData.push({
           id: index,
           code,
+          materialName: matchingmaterial?.name || "",
           quantity,
           status,
           message,
@@ -322,7 +339,10 @@ export default function MaterialCostUsedModal({
           matchingassignment,
           matchingMaterials,
           availableAssignments,
-          selectedAssignmentId: matchingMaterials.length === 1 ? (matchingassignment?._id || "none") : "",
+          selectedAssignmentId:
+            matchingMaterials.length === 1
+              ? matchingassignment?._id || "none"
+              : "",
         });
       });
 
@@ -340,17 +360,24 @@ export default function MaterialCostUsedModal({
 
   const handleCreateMaterial = async (row: any, index: number) => {
     try {
-      const assignmentId = row.selectedAssignmentId === "none" ? null : row.selectedAssignmentId;
+      const assignmentId =
+        row.selectedAssignmentId && row.selectedAssignmentId !== "none"
+          ? row.selectedAssignmentId
+          : null;
       const res: any = await createMutation.mutateAsync({
         code: row.code,
-        name: row.code,
+        name: row.materialName || row.code,
         quantity: row.quantity,
         assignmentCode: assignmentId,
       });
 
       const createdMaterial = res?.data || res;
 
-      if (createdMaterial.status === "success" || createdMaterial.message || createdMaterial._id) {
+      if (
+        createdMaterial.status === "success" ||
+        createdMaterial.message ||
+        createdMaterial._id
+      ) {
         // Lấy dữ liệu mới nhất từ server
         const { data: newMaterialsRes } = await refetchMaterialAssignments();
         const latestMaterials = newMaterialsRes?.data || [];
@@ -358,7 +385,10 @@ export default function MaterialCostUsedModal({
         const newData = [...previewData];
         // Cập nhật tất cả các dòng có cùng mã code và mã giao khoán
         newData.forEach((r) => {
-          if (r.code === row.code && r.selectedAssignmentId === row.selectedAssignmentId) {
+          if (
+            r.code === row.code &&
+            r.selectedAssignmentId === row.selectedAssignmentId
+          ) {
             r.status = "valid";
             r.message = "Đã tạo thành công";
             r.matchingmaterial = latestMaterials.find(
@@ -414,12 +444,17 @@ export default function MaterialCostUsedModal({
 
       // Format header
       worksheet.getRow(1).font = { bold: true };
-      worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+      worksheet.getRow(1).alignment = {
+        vertical: "middle",
+        horizontal: "center",
+      };
 
       // Xuất các vật tư đã được chọn trong form
       if (formik.values.materials && Array.isArray(formik.values.materials)) {
         formik.values.materials.forEach((m: any) => {
-          const matDetail = materialassignments?.data?.find((ac: any) => ac._id === m.material);
+          const matDetail = materialassignments?.data?.find(
+            (ac: any) => ac._id === m.material,
+          );
           if (matDetail) {
             worksheet.addRow({
               code: matDetail.code || "",
@@ -430,7 +465,9 @@ export default function MaterialCostUsedModal({
       }
 
       const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
       saveAs(blob, "Danh_sach_vat_tu.xlsx");
     } catch (error) {
       console.error("Lỗi khi tải mẫu:", error);
@@ -1057,7 +1094,9 @@ export default function MaterialCostUsedModal({
               <TableHead>
                 <TableRow>
                   <TableCell>Mã vật tư</TableCell>
+                  <TableCell>Tên vật tư</TableCell>
                   <TableCell>Mã giao khoán</TableCell>
+                  <TableCell>Tên giao khoán</TableCell>
                   <TableCell>Số lượng</TableCell>
                   <TableCell>Trạng thái</TableCell>
                   <TableCell>Hành động</TableCell>
@@ -1072,9 +1111,35 @@ export default function MaterialCostUsedModal({
                         row.status === "valid" ? "#e8f5e9" : "#ffebee",
                     }}
                   >
+                    {/* Mã vật tư */}
                     <TableCell>{row.code}</TableCell>
+
+                    {/* Tên vật tư - cho nhập nếu chưa có */}
                     <TableCell>
-                      {row.matchingMaterials?.length > 1 || row.status === "missing_material" || row.status === "need_assignment" ? (
+                      {row.status === "missing_material" ? (
+                        <TextField
+                          size="small"
+                          placeholder="Nhập tên vật tư..."
+                          value={row.materialName || ""}
+                          onChange={(e) => {
+                            const newData = [...previewData];
+                            newData[index].materialName = e.target.value;
+                            setPreviewData(newData);
+                          }}
+                          sx={{ minWidth: 160 }}
+                        />
+                      ) : (
+                        row.matchingmaterial?.name ||
+                        row.matchingMaterials?.[0]?.name ||
+                        ""
+                      )}
+                    </TableCell>
+
+                    {/* Mã giao khoán */}
+                    <TableCell>
+                      {row.matchingMaterials?.length > 1 ||
+                      row.status === "missing_material" ||
+                      row.status === "need_assignment" ? (
                         <Select
                           size="small"
                           value={row.selectedAssignmentId || ""}
@@ -1082,30 +1147,57 @@ export default function MaterialCostUsedModal({
                             const val = e.target.value;
                             const newData = [...previewData];
                             newData[index].selectedAssignmentId = val;
-                            
+
+                            // Cập nhật tên giao khoán theo mã được chọn
+                            const selectedAc = newData[index].availableAssignments?.find(
+                              (a: any) => a._id === val,
+                            );
+                            newData[index].selectedAssignmentName =
+                              selectedAc?.name || selectedAc?.code || "";
+
                             if (newData[index].matchingMaterials?.length > 1) {
-                               const mat = newData[index].matchingMaterials.find((m: any) => (m.assignmentCode?._id || "none") === val);
-                               if (mat) {
-                                 newData[index].matchingmaterial = mat;
-                                 newData[index].matchingassignment = mat.assignmentCode;
-                                 newData[index].status = "valid";
-                                 newData[index].message = "Hợp lệ";
-                               }
+                              const mat = newData[index].matchingMaterials.find(
+                                (m: any) =>
+                                  (m.assignmentCode?._id || "none") === val,
+                              );
+                              if (mat) {
+                                newData[index].matchingmaterial = mat;
+                                newData[index].matchingassignment =
+                                  mat.assignmentCode;
+                                newData[index].status = "valid";
+                                newData[index].message = "Hợp lệ";
+                              }
                             }
                             setPreviewData(newData);
                           }}
                           displayEmpty
-                          sx={{ minWidth: 140, height: 32 }}
+                          sx={{ minWidth: 120, height: 32 }}
                         >
-                          <MenuItem value="" disabled>Chọn mã</MenuItem>
+                          <MenuItem value="" disabled>
+                            Chọn mã
+                          </MenuItem>
                           {row.availableAssignments?.map((a: any) => (
-                             <MenuItem key={a._id} value={a._id}>{a.code}</MenuItem>
+                            <MenuItem key={a._id} value={a._id}>
+                              {a.code}
+                            </MenuItem>
                           ))}
                         </Select>
                       ) : (
                         row.matchingassignment?.code || "Không có"
                       )}
                     </TableCell>
+
+                    {/* Tên giao khoán */}
+                    <TableCell>
+                      {row.matchingMaterials?.length > 1 ||
+                      row.status === "missing_material" ||
+                      row.status === "need_assignment"
+                        ? row.selectedAssignmentName || ""
+                        : row.matchingassignment?.name ||
+                          row.matchingassignment?.code ||
+                          (row.matchingassignment === null ? "Không có" : "")}
+                    </TableCell>
+
                     <TableCell>{row.quantity}</TableCell>
                     <TableCell>
                       <Typography
@@ -1124,6 +1216,7 @@ export default function MaterialCostUsedModal({
                           size="small"
                           onClick={() => handleCreateMaterial(row, index)}
                           title="Tạo vật tư"
+                          disabled={!row.materialName?.trim()}
                         >
                           <AddCircle />
                         </IconButton>

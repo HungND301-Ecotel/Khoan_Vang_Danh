@@ -242,8 +242,8 @@ export default function InitialPlannedCosts() {
       key: "totalInitialPlannedCost",
       width: 50,
       render: (text: string, item: any) => {
-        const total = item.group.reduce(
-          (sum: number, i: any) => sum + i.totalInitialPlannedCost,
+        const total = (item?.group || []).reduce(
+          (sum: number, i: any) => sum + (i?.totalInitialPlannedCost || 0),
           0,
         );
         return <Typography> {formattedPrice(total)}</Typography>;

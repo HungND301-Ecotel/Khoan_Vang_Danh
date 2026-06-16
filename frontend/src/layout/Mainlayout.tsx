@@ -221,6 +221,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
+            navigate("/department");
+            setMenuDanhMucEl(null);
+          }}
+        >
+          Phân xưởng
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
             navigate("/unit");
             setMenuDanhMucEl(null);
           }}

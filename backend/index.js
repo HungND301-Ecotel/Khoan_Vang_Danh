@@ -34,6 +34,7 @@ const InitialPlannedCostRouter = require("./routes/InitialPlannedCost");
 const ContractSettlementRouter = require("./routes/ContractSettlement");
 const UserRouter = require("./routes/User");
 const SystemConfigRouter = require("./routes/SystemConfig");
+const DepartmentRouter = require("./routes/Department");
 
 const AuthRouter = require("./routes/Auth");
 
@@ -82,6 +83,8 @@ app.use("/api/initialplannedcosts", InitialPlannedCostRouter);
 app.use("/api/contractsettlements", ContractSettlementRouter);
 app.use("/api/users", UserRouter);
 app.use("/api/system-configs", SystemConfigRouter);
+app.use("/api/departments", DepartmentRouter);
+
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => {

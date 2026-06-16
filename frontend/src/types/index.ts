@@ -116,6 +116,13 @@ export interface UnitType {
   name: string;
 }
 
+export interface DepartmentType {
+  _id?: string;
+  code?: string;
+  name: string;
+}
+
+
 //
 export interface ExcavationTechType {
   _id?: string;
