@@ -14,6 +14,7 @@ const {
 } = require("../utils/recalculateAssignmentCodePrice");
 const { monthToNumber } = require("../utils/helpers");
 const mongoose = require("mongoose");
+const { checkUniqueCode } = require("../utils/codeValidator");
 
 exports.create = async (req, res) => {
   try {
@@ -28,6 +29,18 @@ exports.create = async (req, res) => {
       return res.status(409).json({
         status: "error",
         message: `Mã giao khoán và mã vật tư này đã là của vật tư, tài sản '${name}' `,
+      });
+    }
+
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      null,
+      "MaterialAssignment",
+    );
+    if (isDuplicate) {
+      return res.status(409).json({
+        status: "error",
+        message: `Mã '${code.trim()}' đã tồn tại trong hệ thống`,
       });
     }
 
@@ -62,6 +75,18 @@ exports.update = async (req, res) => {
       return res.status(409).json({
         status: "error",
         message: `Mã giao khoán và mã vật tư này đã tồn tại ở vật tư/tài sản '${duplicateMaterial.name}'`,
+      });
+    }
+
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      id,
+      "MaterialAssignment",
+    );
+    if (isDuplicate) {
+      return res.status(409).json({
+        status: "error",
+        message: `Mã '${code.trim()}' đã tồn tại trong hệ thống`,
       });
     }
 
@@ -126,7 +151,8 @@ exports.getGroup = async (req, res) => {
         assignmentCode: assignment._id,
       })
         .populate("assignmentCode")
-        .populate("uom").sort({ code: 1 });
+        .populate("uom")
+        .sort({ code: 1 });
 
       const today = new Date();
       const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1)
@@ -570,6 +596,21 @@ exports.import = async (req, res) => {
         filter = { _id: cleanId }; // Ưu tiên ID từ file
       } else if (existedRecord) {
         filter = { _id: existedRecord.id }; // Nếu trùng cặp Mã VT|GK thì lấy ID cũ
+      }
+
+      // Kiểm tra mã trùng toàn cục
+      const checkGlobalId = filter ? filter._id : null;
+      const checkGlobal = await checkUniqueCode(
+        cleanCode,
+        checkGlobalId,
+        "MaterialAssignment",
+      );
+      if (checkGlobal.isDuplicate) {
+        invalidRows.push({
+          row: rowIndex,
+          error: `Mã đã tồn tại trong danh mục ${checkGlobal.collectionName}: ${cleanCode}`,
+        });
+        continue;
       }
 
       const finalDoc = {

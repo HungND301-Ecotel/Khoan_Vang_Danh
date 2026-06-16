@@ -7,17 +7,22 @@ const RockRatio = require("../model/RockRatio");
 const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
 const { configExport } = require("../utils/config_export");
+const { checkUniqueCode } = require("../utils/codeValidator");
 
 const { paginateQuery } = require("../utils/pagination");
 
 exports.create = async (req, res) => {
   try {
     const { code, mirrorRatio, hardness, rockRatio, type, norms } = req.body;
-    const exitAdjustment = await AdjustmentNorm.countDocuments({ code: code });
-    if (exitAdjustment > 0) {
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      null,
+      "AdjustmentNorm",
+    );
+    if (isDuplicate) {
       return res.status(409).json({
         status: "error",
-        message: `Mã hệ số điều chỉnh định mức '${code}' đã tồn tại`,
+        message: `Mã hệ số điều chỉnh định mức '${code}' đã tồn tại trong hệ thống`,
       });
     }
     const newAdjustmentNorm = new AdjustmentNorm({
@@ -37,6 +42,21 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    const { code } = req.body;
+    if (code) {
+      const { isDuplicate, collectionName } = await checkUniqueCode(
+        code,
+        req.params.id,
+        "AdjustmentNorm",
+      );
+      if (isDuplicate) {
+        return res.status(409).json({
+          status: "error",
+          message: `Mã hệ số điều chỉnh định mức '${code}' đã tồn tại trong hệ thống`,
+        });
+      }
+    }
+
     const updateData = await AdjustmentNorm.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -52,28 +72,28 @@ exports.update = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
- try {
-   const { ids } = req.body;
-   if (!ids || !Array.isArray(ids) || ids.length === 0) {
-     return res
-       .status(400)
-       .send({ status: "error", message: "Vui lòng chọn bản ghi cần xóa" });
-   }
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res
+        .status(400)
+        .send({ status: "error", message: "Vui lòng chọn bản ghi cần xóa" });
+    }
 
-   const result = await AdjustmentNorm.deleteMany({ _id: { $in: ids } });
-   if (result.deletedCount === 0) {
-     return res
-       .status(200)
-       .send({ status: "error", message: "Không tìm thấy bản ghi để xóa" });
-   }
+    const result = await AdjustmentNorm.deleteMany({ _id: { $in: ids } });
+    if (result.deletedCount === 0) {
+      return res
+        .status(200)
+        .send({ status: "error", message: "Không tìm thấy bản ghi để xóa" });
+    }
 
-   res.status(200).json({
-     status: "success",
-     message: `Đã xóa ${result.deletedCount} bản ghi`,
-   });
- } catch (err) {
-   res.status(500).json({ status: "error", message: err.message });
- }
+    res.status(200).json({
+      status: "success",
+      message: `Đã xóa ${result.deletedCount} bản ghi`,
+    });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
 };
 
 exports.get = async (req, res) => {
@@ -260,6 +280,19 @@ exports.import = async (req, res) => {
 
       // Logic THÊM / SỬA
       if (cleanCode) {
+        const { isDuplicate, collectionName } = await checkUniqueCode(
+          cleanCode,
+          recordId?.length === 24 ? recordId : null,
+          "AdjustmentNorm",
+        );
+        if (isDuplicate) {
+          invalidRows.push({
+            row: `Cột ${colName}`,
+            error: `Mã đã tồn tại trong danh mục ${collectionName}: ${cleanCode}`,
+          });
+          continue;
+        }
+
         const dataObj = { type, code: cleanCode, norms: processedNorms };
         let hasCategoryError = false;
 

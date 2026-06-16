@@ -1,5 +1,6 @@
 const Department = require("../model/Department");
 const { paginateQuery } = require("../utils/pagination");
+const { checkUniqueCode } = require("../utils/codeValidator");
 const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
 const { configExport } = require("../utils/config_export");
@@ -25,13 +26,15 @@ exports.create = async (req, res) => {
         .json({ status: "error", message: "Tên phân xưởng là bắt buộc" });
     }
 
-    const existsCode = await Department.findOne({
-      code: { $regex: `^${code.trim()}$`, $options: "i" },
-    });
-    if (existsCode) {
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      null,
+      "Department",
+    );
+    if (isDuplicate) {
       return res.status(409).json({
         status: "error",
-        message: `Mã phân xưởng '${code.trim()}' đã tồn tại`,
+        message: `Mã '${code.trim()}' đã tồn tại trong hệ thống`,
       });
     }
 
@@ -71,15 +74,16 @@ exports.update = async (req, res) => {
         .json({ status: "error", message: "Tên phân xưởng là bắt buộc" });
     }
 
-    // Kiểm tra trùng mã
-    const existsCode = await Department.findOne({
-      _id: { $ne: req.params.id },
-      code: { $regex: `^${code.trim()}$`, $options: "i" },
-    });
-    if (existsCode) {
+    // Kiểm tra trùng mã toàn cục
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      req.params.id,
+      "Department",
+    );
+    if (isDuplicate) {
       return res.status(409).json({
         status: "error",
-        message: `Mã phân xưởng '${code.trim()}' đã tồn tại`,
+        message: `Mã '${code.trim()}' đã tồn tại trong hệ thống`,
       });
     }
 
@@ -326,11 +330,23 @@ exports.import = async (req, res) => {
       const existedCodeId = codeMap.get(codeKey);
       const existedNameId = nameMap.get(nameKey);
 
+      // Kiểm tra mã trên toàn hệ thống thay vì chỉ trong bảng Department
+      let isCodeDuplicate = false;
+      let duplicateSource = null;
+
+      if (cleanCode) {
+        const checkGlobal = await checkUniqueCode(cleanCode, _id, "Department");
+        if (checkGlobal.isDuplicate) {
+          isCodeDuplicate = true;
+          duplicateSource = checkGlobal.collectionName;
+        }
+      }
+
       if (_id) {
-        if (existedCodeId && existedCodeId !== _id) {
+        if (isCodeDuplicate) {
           invalidRows.push({
             item,
-            error: `Mã đã tồn tại: ${cleanCode}`,
+            error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
           });
           continue;
         }
@@ -355,10 +371,10 @@ exports.import = async (req, res) => {
           },
         });
       } else {
-        if (existedCodeId) {
+        if (isCodeDuplicate) {
           invalidRows.push({
             item,
-            error: `Mã đã tồn tại: ${cleanCode}`,
+            error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
           });
           continue;
         }

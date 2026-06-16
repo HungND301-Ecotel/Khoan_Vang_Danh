@@ -3,13 +3,23 @@ const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
 const { configExport } = require("../utils/config_export");
 const { paginateQuery } = require("../utils/pagination");
+const { checkUniqueCode } = require("../utils/codeValidator");
 
 exports.create = async (req, res) => {
   try {
     const { code, name } = req.body;
-    const exitData = await MiningTech.countDocuments({ code: code })
-    if (exitData > 0) {
-      return res.status(409).json({ status: 'error', message: `Mã công nghệ khai thác '${code}' đã tồn tại` })
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      null,
+      "MiningTech",
+    );
+    if (isDuplicate) {
+      return res
+        .status(409)
+        .json({
+          status: "error",
+          message: `Mã công nghệ khai thác '${code}' đã tồn tại trong hệ thống`,
+        });
     }
     const newMiningTech = new MiningTech({ code, name });
     await newMiningTech.save();
@@ -27,7 +37,7 @@ const columnMapping = {
   id: "_id",
   _id: "_id",
 };
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 exports.import = async (req, res) => {
   try {
     if (!req.file) {
@@ -41,20 +51,22 @@ exports.import = async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
 
-    const headers = xlsx.utils.sheet_to_json(worksheet, {
-      header: 1,
-      range: 0,
-      raw: true,
-    })[0].map(h => String(h).trim());
+    const headers = xlsx.utils
+      .sheet_to_json(worksheet, {
+        header: 1,
+        range: 0,
+        raw: true,
+      })[0]
+      .map((h) => String(h).trim());
 
-    const mappedHeaders = headers.map(h => columnMapping[h] || h);
+    const mappedHeaders = headers.map((h) => columnMapping[h] || h);
 
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
       range: 1,
     });
 
-    const dataImport = data.filter(r => r._id || r.name || r.code);
+    const dataImport = data.filter((r) => r._id || r.name || r.code);
 
     if (dataImport.length === 0) {
       return res.status(400).json({
@@ -66,10 +78,10 @@ exports.import = async (req, res) => {
     // 🔹 Lấy danh sách Unit hiện có
     const miningtechs = await MiningTech.find({}, { code: 1, name: 1 }).lean();
     const nameMap = new Map(
-      miningtechs.map(u => [u.name.toLowerCase(), String(u._id)])
+      miningtechs.map((u) => [u.name.toLowerCase(), String(u._id)]),
     );
     const codeMap = new Map(
-      miningtechs.map(u => [u.code.toLowerCase(), String(u._id)])
+      miningtechs.map((u) => [u.code.toLowerCase(), String(u._id)]),
     );
 
     const operations = [];
@@ -111,13 +123,22 @@ exports.import = async (req, res) => {
       const existedCodeId = codeKey ? codeMap.get(codeKey) : null;
       const existedNameId = nameKey ? nameMap.get(nameKey) : null;
 
+      let isCodeDuplicate = false;
+      let duplicateSource = null;
+      if (cleanCode) {
+        const checkGlobal = await checkUniqueCode(cleanCode, _id, "MiningTech");
+        if (checkGlobal.isDuplicate) {
+          isCodeDuplicate = true;
+          duplicateSource = checkGlobal.collectionName;
+        }
+      }
 
       // ===== UPDATE =====
       if (_id) {
-        if (existedCodeId && existedCodeId !== _id) {
+        if (isCodeDuplicate) {
           invalidRows.push({
             item,
-            error: `Mã đã tồn tại: ${cleanCode}`,
+            error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
           });
           continue;
         }
@@ -149,10 +170,10 @@ exports.import = async (req, res) => {
       }
 
       // ===== INSERT =====
-      if (existedCodeId) {
+      if (isCodeDuplicate) {
         invalidRows.push({
           item,
-          error: `Mã đã tồn tại: ${cleanCode}`,
+          error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
         });
         continue;
       }
@@ -182,9 +203,7 @@ exports.import = async (req, res) => {
 
     // ===== EXECUTE =====
     const bulkResult =
-      operations.length > 0
-        ? await MiningTech.bulkWrite(operations)
-        : null;
+      operations.length > 0 ? await MiningTech.bulkWrite(operations) : null;
 
     res.status(200).json({
       status: "success",
@@ -231,15 +250,15 @@ exports.export = async (req, res) => {
       workbook,
       worksheet,
       ["code", "name"],
-      MAX
+      MAX,
     );
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=" + `miningtechs.xlsx`
+      "attachment; filename=" + `miningtechs.xlsx`,
     );
     res.send(buffer);
   } catch (err) {
@@ -251,10 +270,27 @@ exports.export = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    const { code } = req.body;
+    if (code) {
+      const { isDuplicate, collectionName } = await checkUniqueCode(
+        code,
+        req.params.id,
+        "MiningTech",
+      );
+      if (isDuplicate) {
+        return res
+          .status(409)
+          .json({
+            status: "error",
+            message: `Mã công nghệ khai thác '${code}' đã tồn tại trong hệ thống`,
+          });
+      }
+    }
+
     const updateData = await MiningTech.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true },
     );
     if (!updateData) {
       return res.status(404).json({ status: "error", message: "Sửa thất bại" });
@@ -316,7 +352,7 @@ exports.get = async (req, res) => {
       MiningTech,
       modelQuery,
       query,
-      req.query
+      req.query,
     );
 
     res.status(200).json({ status: "success", data: pagination });

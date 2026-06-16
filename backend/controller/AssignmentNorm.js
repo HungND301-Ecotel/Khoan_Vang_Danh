@@ -4,7 +4,6 @@ const Phase = require("../model/Phase");
 const ExcavationTech = require("../model/ExcavationTech");
 const Step = require("../model/Step");
 const Length = require("../model/Length");
-const Cutting = require("../model/CuttingNorm");
 const CrossSection = require("../model/CrossSection");
 const CurbSlope = require("../model/CurbSlope");
 const Hardness = require("../model/Hardness");
@@ -15,6 +14,7 @@ const { paginateQuery } = require("../utils/pagination");
 const { configExport } = require("../utils/config_export");
 const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
+const { checkUniqueCode } = require("../utils/codeValidator");
 
 exports.create = async (req, res) => {
   try {
@@ -25,7 +25,6 @@ exports.create = async (req, res) => {
       excavationTech,
       step,
       length,
-      cutting,
       crossSection,
       type,
       curbSlope,
@@ -33,11 +32,18 @@ exports.create = async (req, res) => {
       thickness,
       norms,
     } = req.body;
-    const exitData = await AssignmentNorm.countDocuments({ code: code });
-    if (exitData > 0) {
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      null,
+      "AssignmentNorm",
+    );
+    if (isDuplicate) {
       return res
         .status(409)
-        .json({ status: "error", message: `Mã định mức '${code}' đã tồn tại` });
+        .json({
+          status: "error",
+          message: `Mã định mức '${code}' đã tồn tại trong hệ thống`,
+        });
     }
     const newAssignmentNorm = new AssignmentNorm({
       code,
@@ -46,7 +52,6 @@ exports.create = async (req, res) => {
       excavationTech,
       step,
       length,
-      cutting,
       crossSection,
       type,
       curbSlope,
@@ -63,6 +68,23 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    const { code } = req.body;
+    if (code) {
+      const { isDuplicate, collectionName } = await checkUniqueCode(
+        code,
+        req.params.id,
+        "AssignmentNorm",
+      );
+      if (isDuplicate) {
+        return res
+          .status(409)
+          .json({
+            status: "error",
+            message: `Mã định mức '${code}' đã tồn tại trong hệ thống`,
+          });
+      }
+    }
+
     const updateData = await AssignmentNorm.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -117,7 +139,6 @@ exports.get = async (req, res) => {
       .populate("excavationTech")
       .populate("step")
       .populate("length")
-      .populate("cutting")
       .populate({
         path: "crossSection",
         populate: "uom",
@@ -189,7 +210,7 @@ exports.import = async (req, res) => {
       if (headerText === "Mã định mức") assignmentCodeStartRow = idx + 1;
     });
 
-    const [ps, secs, techs, sts, hards, asCodes, thics, crb,lth] =
+    const [ps, secs, techs, sts, hards, asCodes, thics, crb, lth] =
       await Promise.all([
         Phase.find().lean(),
         CrossSection.find().lean(),
@@ -275,6 +296,19 @@ exports.import = async (req, res) => {
           continue;
         }
 
+        const { isDuplicate, collectionName } = await checkUniqueCode(
+          cleanCode,
+          recordId?.length === 24 ? recordId : null,
+          "AssignmentNorm",
+        );
+        if (isDuplicate) {
+          invalidRows.push({
+            row: `Cột ${colName}`,
+            error: `Mã đã tồn tại trong danh mục ${collectionName}: ${cleanCode}`,
+          });
+          continue;
+        }
+
         const dataObj = { type, code: cleanCode, norms: processedNorms };
         let hasCategoryError = false;
 
@@ -352,7 +386,6 @@ exports.export = async (req, res) => {
       techs,
       sts,
       lens,
-      cuts,
       secs,
       slos,
       hards,
@@ -361,7 +394,7 @@ exports.export = async (req, res) => {
       AssignmentCode.find().sort({ code: 1 }).lean(),
       AssignmentNorm.find({ type })
         .populate(
-          "phase excavationTech step length cutting crossSection curbSlope hardness thickness norms.assignmentCode",
+          "phase excavationTech step length crossSection curbSlope hardness thickness norms.assignmentCode",
         )
         .lean(),
       PhaseGroup.find().lean(),
@@ -371,7 +404,6 @@ exports.export = async (req, res) => {
       ExcavationTech.find().lean(),
       Step.find().lean(),
       Length.find().lean(),
-      Cutting.find().lean(),
       CrossSection.find().lean(),
       CurbSlope.find().lean(),
       Hardness.find().lean(),

@@ -4,13 +4,14 @@ const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
 const { configExport } = require("../utils/config_export");
 const { paginateQuery } = require("../utils/pagination");
+const { checkUniqueCode } = require("../utils/codeValidator");
 
 exports.create = async (req, res) => {
   try {
     const { code, name, phaseGroup } = req.body;
-    const exitPhase = await Phase.countDocuments({ code: code })
-    if (exitPhase > 0) {
-      return res.status(409).json({ status: 'error', message: `Mã công đoạn '${code}' đã tồn tại` })
+    const { isDuplicate, collectionName } = await checkUniqueCode(code, null, "Phase");
+    if (isDuplicate) {
+      return res.status(409).json({ status: 'error', message: `Mã công đoạn '${code}' đã tồn tại trong hệ thống` })
     }
     const newPhase = new Phase({ code, name, phaseGroup });
     await newPhase.save();
@@ -22,6 +23,14 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    const { code } = req.body;
+    if (code) {
+      const { isDuplicate, collectionName } = await checkUniqueCode(code, req.params.id, "Phase");
+      if (isDuplicate) {
+        return res.status(409).json({ status: 'error', message: `Mã công đoạn '${code}' đã tồn tại trong hệ thống` })
+      }
+    }
+
     const updateData = await Phase.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
@@ -221,12 +230,22 @@ exports.import = async (req, res) => {
       const existedCodeId = codeKey ? codeMap.get(codeKey) : null;
       const existedNameId = nameKey ? nameMap.get(nameKey) : null;
 
+      let isCodeDuplicate = false;
+      let duplicateSource = null;
+      if (cleanCode) {
+        const checkGlobal = await checkUniqueCode(cleanCode, _id, "Phase");
+        if (checkGlobal.isDuplicate) {
+          isCodeDuplicate = true;
+          duplicateSource = checkGlobal.collectionName;
+        }
+      }
+
       // ===== UPDATE =====
       if (_id) {
-        if (existedCodeId && existedCodeId !== _id) {
+        if (isCodeDuplicate) {
           invalidRows.push({
             item,
-            error: `Mã đã tồn tại: ${cleanCode}`,
+            error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
           });
           continue;
         }
@@ -258,10 +277,10 @@ exports.import = async (req, res) => {
       }
 
       // ===== INSERT =====
-      if (existedCodeId) {
+      if (isCodeDuplicate) {
         invalidRows.push({
           item,
-          error: `Mã đã tồn tại: ${cleanCode}`,
+          error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
         });
         continue;
       }

@@ -3,13 +3,23 @@ const { configExport } = require("../utils/config_export");
 const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
 const { paginateQuery } = require("../utils/pagination");
+const { checkUniqueCode } = require("../utils/codeValidator");
 
 exports.create = async (req, res) => {
   try {
     const { code, name } = req.body;
-    const exitPhaseGroup = await PhaseGroup.countDocuments({ code: code })
-    if (exitPhaseGroup > 0) {
-      return res.status(409).json({ status: 'error', message: `Mã nhóm công đoạn '${code}' đã tồn tại` })
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      null,
+      "PhaseGroup",
+    );
+    if (isDuplicate) {
+      return res
+        .status(409)
+        .json({
+          status: "error",
+          message: `Mã nhóm công đoạn '${code}' đã tồn tại trong hệ thống`,
+        });
     }
     const newPhaseGroup = new PhaseGroup({ code, name });
     await newPhaseGroup.save();
@@ -21,10 +31,27 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    const { code } = req.body;
+    if (code) {
+      const { isDuplicate, collectionName } = await checkUniqueCode(
+        code,
+        req.params.id,
+        "PhaseGroup",
+      );
+      if (isDuplicate) {
+        return res
+          .status(409)
+          .json({
+            status: "error",
+            message: `Mã nhóm công đoạn '${code}' đã tồn tại trong hệ thống`,
+          });
+      }
+    }
+
     const updateData = await PhaseGroup.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true },
     );
     if (!updateData) {
       return res.status(404).json({ status: "error", message: "Sửa thất bại" });
@@ -74,7 +101,7 @@ exports.get = async (req, res) => {
       PhaseGroup,
       modelQuery,
       query,
-      req.query
+      req.query,
     );
 
     res.status(200).json({ status: "success", data: pagination });
@@ -114,15 +141,13 @@ exports.import = async (req, res) => {
     })[0];
 
     const allowedHeaders = Object.keys(columnMapping);
-    const invalidHeaders = headers.filter(
-      (h) => !allowedHeaders.includes(h)
-    );
+    const invalidHeaders = headers.filter((h) => !allowedHeaders.includes(h));
 
     if (invalidHeaders.length > 0) {
       return res.status(400).json({
         status: "error",
         message: `File không hợp lệ. Cột không cho phép: ${invalidHeaders.join(
-          ", "
+          ", ",
         )}`,
       });
     }
@@ -145,21 +170,18 @@ exports.import = async (req, res) => {
     }
 
     // ===== LOAD EXISTED CODE + NAME =====
-    const existed = await PhaseGroup.find(
-      {},
-      { code: 1, name: 1 }
-    ).lean();
+    const existed = await PhaseGroup.find({}, { code: 1, name: 1 }).lean();
 
     const codeMap = new Map(
       existed
         .filter((r) => r.code)
-        .map((r) => [r.code.toLowerCase(), String(r._id)])
+        .map((r) => [r.code.toLowerCase(), String(r._id)]),
     );
 
     const nameMap = new Map(
       existed
         .filter((r) => r.name)
-        .map((r) => [r.name.toLowerCase(), String(r._id)])
+        .map((r) => [r.name.toLowerCase(), String(r._id)]),
     );
 
     // ===== PROCESS =====
@@ -206,12 +228,22 @@ exports.import = async (req, res) => {
       const existedCodeId = codeKey ? codeMap.get(codeKey) : null;
       const existedNameId = nameKey ? nameMap.get(nameKey) : null;
 
+      let isCodeDuplicate = false;
+      let duplicateSource = null;
+      if (cleanCode) {
+        const checkGlobal = await checkUniqueCode(cleanCode, _id, "PhaseGroup");
+        if (checkGlobal.isDuplicate) {
+          isCodeDuplicate = true;
+          duplicateSource = checkGlobal.collectionName;
+        }
+      }
+
       // ===== UPDATE =====
       if (_id) {
-        if (existedCodeId && existedCodeId !== _id) {
+        if (isCodeDuplicate) {
           invalidRows.push({
             item,
-            error: `Mã đã tồn tại: ${cleanCode}`,
+            error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
           });
           continue;
         }
@@ -243,10 +275,10 @@ exports.import = async (req, res) => {
       }
 
       // ===== INSERT =====
-      if (existedCodeId) {
+      if (isCodeDuplicate) {
         invalidRows.push({
           item,
-          error: `Mã đã tồn tại: ${cleanCode}`,
+          error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
         });
         continue;
       }
@@ -276,9 +308,7 @@ exports.import = async (req, res) => {
 
     // ===== EXECUTE =====
     const bulkResult =
-      operations.length > 0
-        ? await PhaseGroup.bulkWrite(operations)
-        : null;
+      operations.length > 0 ? await PhaseGroup.bulkWrite(operations) : null;
 
     return res.status(200).json({
       status: "success",
@@ -300,8 +330,6 @@ exports.import = async (req, res) => {
     });
   }
 };
-
-
 
 exports.export = async (req, res) => {
   try {
@@ -333,15 +361,15 @@ exports.export = async (req, res) => {
       workbook,
       worksheet,
       ["code", "name"],
-      MAX
+      MAX,
     ); // Truyền keys vào configExport
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=" + `cong_doan_san_xuat.xlsx`
+      "attachment; filename=" + `cong_doan_san_xuat.xlsx`,
     );
     res.send(buffer);
   } catch (err) {

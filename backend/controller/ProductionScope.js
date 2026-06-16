@@ -3,18 +3,21 @@ const { paginateQuery } = require("../utils/pagination");
 const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
 const { configExport } = require("../utils/config_export");
+const { checkUniqueCode } = require("../utils/codeValidator");
 
 exports.create = async (req, res) => {
   try {
     const { code, name } = req.body;
-    const exitData = await ProductionScope.countDocuments({ code: code });
-    if (exitData > 0) {
-      return res
-        .status(409)
-        .json({
-          status: "error",
-          message: `Mã diện sản xuất '${code}' đã tồn tại`,
-        });
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      null,
+      "ProductionScope",
+    );
+    if (isDuplicate) {
+      return res.status(409).json({
+        status: "error",
+        message: `Mã diện sản xuất '${code}' đã tồn tại trong hệ thống`,
+      });
     }
     const newProductionScope = new ProductionScope({ code, name });
     await newProductionScope.save();
@@ -129,12 +132,26 @@ exports.import = async (req, res) => {
       const existedCodeId = codeKey ? codeMap.get(codeKey) : null;
       const existedNameId = nameKey ? nameMap.get(nameKey) : null;
 
+      let isCodeDuplicate = false;
+      let duplicateSource = null;
+      if (cleanCode) {
+        const checkGlobal = await checkUniqueCode(
+          cleanCode,
+          _id,
+          "ProductionScope",
+        );
+        if (checkGlobal.isDuplicate) {
+          isCodeDuplicate = true;
+          duplicateSource = checkGlobal.collectionName;
+        }
+      }
+
       /** UPDATE */
       if (_id) {
-        if (existedCodeId && existedCodeId !== _id) {
+        if (isCodeDuplicate) {
           invalidRows.push({
             item,
-            error: `Mã đã tồn tại: ${cleanCode}`,
+            error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
           });
           continue;
         }
@@ -166,10 +183,10 @@ exports.import = async (req, res) => {
       }
 
       /** INSERT */
-      if (existedCodeId) {
+      if (isCodeDuplicate) {
         invalidRows.push({
           item,
-          error: `Mã đã tồn tại: ${cleanCode}`,
+          error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
         });
         continue;
       }
@@ -268,6 +285,21 @@ exports.export = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    const { code } = req.body;
+    if (code) {
+      const { isDuplicate, collectionName } = await checkUniqueCode(
+        code,
+        req.params.id,
+        "ProductionScope",
+      );
+      if (isDuplicate) {
+        return res.status(409).json({
+          status: "error",
+          message: `Mã diện sản xuất '${code}' đã tồn tại trong hệ thống`,
+        });
+      }
+    }
+
     const updateData = await ProductionScope.findByIdAndUpdate(
       req.params.id,
       req.body,

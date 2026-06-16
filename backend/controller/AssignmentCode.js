@@ -8,13 +8,23 @@ const ExcelJS = require("exceljs");
 const xlsx = require("xlsx");
 const { configExport } = require("../utils/config_export");
 const { paginateQuery } = require("../utils/pagination");
+const { checkUniqueCode } = require("../utils/codeValidator");
 
 exports.create = async (req, res) => {
   try {
     const { code, name, uom, price, deviceCode } = req.body;
-    const exitAssignment = await AssignmentCode.countDocuments({ code: code })
-    if (exitAssignment > 0) {
-      return res.status(409).json({ status: 'error', message: `Mã giao khoán '${code}' đã tồn tại` })
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      null,
+      "AssignmentCode",
+    );
+    if (isDuplicate) {
+      return res
+        .status(409)
+        .json({
+          status: "error",
+          message: `Mã giao khoán '${code}' đã tồn tại trong hệ thống`,
+        });
     }
     const newAssignmentCode = new AssignmentCode({
       code,
@@ -32,10 +42,27 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    const { code } = req.body;
+    if (code) {
+      const { isDuplicate, collectionName } = await checkUniqueCode(
+        code,
+        req.params.id,
+        "AssignmentCode",
+      );
+      if (isDuplicate) {
+        return res
+          .status(409)
+          .json({
+            status: "error",
+            message: `Mã giao khoán '${code}' đã tồn tại trong hệ thống`,
+          });
+      }
+    }
+
     const updateData = await AssignmentCode.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true },
     );
     if (!updateData) {
       return res.status(404).json({ status: "error", message: "Sửa thất bại" });
@@ -82,12 +109,13 @@ exports.get = async (req, res) => {
     }
     let queryModel = AssignmentCode.find(query)
       .populate("uom")
-      .populate("deviceCode").sort({code:1});
+      .populate("deviceCode")
+      .sort({ code: 1 });
     const pagination = await paginateQuery(
       AssignmentCode,
       queryModel,
       query,
-      req.query
+      req.query,
     );
     for (const assignment of pagination.data) {
       await updatePriceAssignmentCode(assignment._id);
@@ -101,8 +129,6 @@ exports.get = async (req, res) => {
 
 exports.getCount = async (req, res) => {
   try {
-
-
     res.status(200).json({ status: "success", data: pagination });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -155,9 +181,7 @@ exports.import = async (req, res) => {
       });
     }
 
-    const mappedHeaders = headers.map(
-      (h) => columnMapping[h] || h
-    );
+    const mappedHeaders = headers.map((h) => columnMapping[h] || h);
 
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
@@ -177,26 +201,28 @@ exports.import = async (req, res) => {
     // ===== LOAD EXISTING DATA =====
     const existedAssignments = await AssignmentCode.find(
       {},
-      { code: 1, name: 1 }
+      { code: 1, name: 1 },
     ).lean();
 
     const codeMap = new Map(
-      existedAssignments.map((d) => [d.code.toLowerCase(), String(d._id)])
+      existedAssignments.map((d) => [d.code.toLowerCase(), String(d._id)]),
     );
     const nameMap = new Map(
-      existedAssignments.map((d) => [d.name.toLowerCase(), String(d._id)])
+      existedAssignments.map((d) => [d.name.toLowerCase(), String(d._id)]),
     );
 
     // ===== FK MAP =====
     const uniqueDeviceCodes = [
       ...new Set(
-        dataImport.map((d) => d.deviceCode && String(d.deviceCode).trim()).filter(Boolean)
+        dataImport
+          .map((d) => d.deviceCode && String(d.deviceCode).trim())
+          .filter(Boolean),
       ),
     ];
 
     const uniqueUnits = [
       ...new Set(
-        dataImport.map((d) => d.uom && String(d.uom).trim()).filter(Boolean)
+        dataImport.map((d) => d.uom && String(d.uom).trim()).filter(Boolean),
       ),
     ];
 
@@ -205,8 +231,8 @@ exports.import = async (req, res) => {
       Unit.find({ name: { $in: uniqueUnits } }).lean(),
     ]);
 
-    const deviceCodeMap = new Map(deviceCodes.map(d => [d.code, d._id]));
-    const unitMap = new Map(units.map(u => [u.name, u._id]));
+    const deviceCodeMap = new Map(deviceCodes.map((d) => [d.code, d._id]));
+    const unitMap = new Map(units.map((u) => [u.name, u._id]));
 
     // ===== PROCESS =====
     const operations = [];
@@ -252,7 +278,10 @@ exports.import = async (req, res) => {
       if (deviceCode) {
         const dcId = deviceCodeMap.get(String(deviceCode).trim());
         if (!dcId) {
-          invalidRows.push({ item, error: `Mã thiết bị không tồn tại: ${deviceCode}` });
+          invalidRows.push({
+            item,
+            error: `Mã thiết bị không tồn tại: ${deviceCode}`,
+          });
           continue;
         }
         updateData.deviceCode = dcId;
@@ -263,7 +292,10 @@ exports.import = async (req, res) => {
       if (uom) {
         const uomId = unitMap.get(String(uom).trim());
         if (!uomId) {
-          invalidRows.push({ item, error: `Đơn vị tính không tồn tại: ${uom}` });
+          invalidRows.push({
+            item,
+            error: `Đơn vị tính không tồn tại: ${uom}`,
+          });
           continue;
         }
         updateData.uom = uomId;
@@ -271,10 +303,27 @@ exports.import = async (req, res) => {
         updateData.uom = null;
       }
 
+      let isCodeDuplicate = false;
+      let duplicateSource = null;
+      if (cleanCode) {
+        const checkGlobal = await checkUniqueCode(
+          cleanCode,
+          _id,
+          "AssignmentCode",
+        );
+        if (checkGlobal.isDuplicate) {
+          isCodeDuplicate = true;
+          duplicateSource = checkGlobal.collectionName;
+        }
+      }
+
       // ===== UPDATE =====
       if (_id) {
-        if (existedCodeId && existedCodeId !== _id) {
-          invalidRows.push({ item, error: `Mã đã tồn tại: ${cleanCode}` });
+        if (isCodeDuplicate) {
+          invalidRows.push({
+            item,
+            error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
+          });
           continue;
         }
 
@@ -302,8 +351,11 @@ exports.import = async (req, res) => {
       }
 
       // ===== INSERT =====
-      if (existedCodeId) {
-        invalidRows.push({ item, error: `Mã đã tồn tại: ${cleanCode}` });
+      if (isCodeDuplicate) {
+        invalidRows.push({
+          item,
+          error: `Mã đã tồn tại trong danh mục ${duplicateSource}: ${cleanCode}`,
+        });
         continue;
       }
 
@@ -329,9 +381,7 @@ exports.import = async (req, res) => {
 
     // ===== EXECUTE =====
     const bulkResult =
-      operations.length > 0
-        ? await AssignmentCode.bulkWrite(operations)
-        : null;
+      operations.length > 0 ? await AssignmentCode.bulkWrite(operations) : null;
 
     res.status(200).json({
       status: "success",
@@ -353,7 +403,6 @@ exports.import = async (req, res) => {
     });
   }
 };
-
 
 exports.export = async (req, res) => {
   try {
@@ -420,11 +469,11 @@ exports.export = async (req, res) => {
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=ma_giao_khoan.xlsx"
+      "attachment; filename=ma_giao_khoan.xlsx",
     );
     res.send(buffer);
   } catch (err) {
