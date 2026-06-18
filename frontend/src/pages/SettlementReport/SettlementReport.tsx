@@ -3,60 +3,67 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Paper,
   Box,
-  MenuItem,
   Grid,
-  Typography,
-  Breadcrumbs,
-  Tabs,
-  Tab,
-  Checkbox,
   Button,
   Badge,
   Tooltip,
-  Autocomplete,
+  Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
-import {
-  MaterialAssignmentOutputType,
-  MaterialBudgetInputType,
-  PhaseOutputType,
-  ProductionScopeOutputType,
-} from "../../types";
-import {
-  ArrowDropDown,
-  CalendarToday,
-  FileDownload,
-  Mail,
-  Print,
-  Save,
-  Undo,
-} from "@mui/icons-material";
-import custom_theme from "../../theme";
-import FieldMonthYear from "../../ui/FieldMonth_Year";
+
+import { Save, Undo } from "@mui/icons-material";
+import FieldRangeMonthYear from "../../ui/FieldRangeMonth_Year";
 import dayjs from "dayjs";
 import { showErrorAlert } from "../../components/Alert";
 import { parseAxiosError } from "../../utils/handleApiError";
 import SettlementService from "../../service/SettlementRepotr";
 import { formatDecimal, formattedPrice } from "../../utils/helpers";
+import FieldAutoCompleted from "../../components/TextField/FieldAutoCompleted";
+import { AppMultiAutocomplete } from "../../components/TextField/AppMultiAutocomplete";
+import {
+  ContractSettlementResponse,
+  DataItem,
+  InfoItem,
+  MonthlyDataNoPhase,
+  MonthlyDataWithPhase,
+} from "../../types";
+import {
+  useSettlementTableData,
+  BlockKey,
+  RowGroup,
+} from "../../hooks/useSettlementTableData";
+
+// Helper tính blockId
+const getBlockId = (month: string, phaseId?: string) =>
+  phaseId ? `${month}_${phaseId}` : month;
+
+// Số cột data per block
+const BLOCK_COLS = 10; // ĐM gốc, HS ĐC, ĐM, KH(T/TK/NK/Giá), TH(T/TK/NK/Giá), SS(SL/Giá)
+// Khi isShow=false thì bỏ 3 cột ĐM
+const blockColCount = (isShow: boolean) => (isShow ? 10 : 7);
 
 export default function SettlementReport() {
-  const [selectedMonth, setSelectedMonth] = useState<string>(
+  const [fromMonth, setFromMonth] = useState(
     dayjs(new Date()).format("YYYY-MM"),
   );
-  const [selectedPhase, setSelectedPhase] = useState("");
+  const [toMonth, setToMonth] = useState(dayjs(new Date()).format("YYYY-MM"));
+  const [selectedPhase, setSelectedPhase] = useState<any[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedProductionScope, setSelectedProductionScope] = useState("");
   const [dragOverAssignmentId, setDragOverAssignmentId] = useState<
     string | null
   >(null);
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
-  const [localData, setLocalData] = useState<any[]>([]);
+
+  // localData: map từ monthKey (hoặc monthKey_phaseId) -> DataItem[]
+  const [localData, setLocalData] = useState<Map<string, DataItem[]>>(
+    new Map(),
+  );
   const [pendingChanges, setPendingChanges] = useState<
     Array<{
       materialCostId: string;
@@ -75,38 +82,76 @@ export default function SettlementReport() {
     queryKey: ["phases"],
     queryFn: () => api.get("/phases").then((res) => res.data.data),
   });
-  const { data: contractsettlements = { data: [], info: {} }, isLoading } =
-    useQuery({
-      queryKey: [
-        "contractsettlements",
-        selectedMonth,
-        selectedPhase,
-        selectedProductionScope,
-      ],
-      queryFn: () =>
-        api
-          .get(
-            `/contractsettlements/getMonth?month=${selectedMonth}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`,
-          )
-          .then((res) => res.data.data),
-      enabled: !!selectedMonth && !!selectedProductionScope,
-    });
+
+  const { data: departments = { data: [] } } = useQuery({
+    queryKey: ["departments"],
+    queryFn: () => api.get("/departments").then((res) => res.data.data),
+  });
 
   const { data: productionscopes = [] } = useQuery({
     queryKey: ["productionscopes"],
     queryFn: () => api.get("/productionscopes").then((res) => res.data.data),
   });
 
-  // Sync localData khi server data thay đổi (sau khi lưu hoặc query mới)
-  useEffect(() => {
-    if (contractsettlements.data) {
-      setLocalData(contractsettlements.data);
-      setPendingChanges([]);
-    }
-  }, [contractsettlements.data]);
+  const { data: apiResponse = [], isLoading } =
+    useQuery<ContractSettlementResponse>({
+      queryKey: [
+        "contractsettlements",
+        fromMonth,
+        toMonth,
+        selectedPhase,
+        selectedProductionScope,
+        selectedDepartment,
+      ],
+      queryFn: () =>
+        SettlementService.getContractSettlements(
+          fromMonth,
+          toMonth,
+          selectedPhase.map((p) => p._id).join(","),
+          selectedProductionScope,
+          selectedDepartment,
+        ),
+      enabled:
+        !!fromMonth &&
+        !!toMonth &&
+        !!selectedProductionScope &&
+        !!selectedDepartment,
+    });
 
-  // Kéo thả: chỉ cập nhật UI local, chưa gọi API
+  // Chỉ cho phép kéo thả khi 1 tháng
+  const hasPhase = selectedPhase.length > 0;
+  const canDragDrop = fromMonth === toMonth;
+
+  const { blockKeys, rowGroups } = useSettlementTableData(
+    apiResponse as any,
+    localData,
+    hasPhase,
+  );
+
+  // Sync localData khi API response thay đổi
+  useEffect(() => {
+    if (!apiResponse?.length) return;
+    const map = new Map<string, DataItem[]>();
+
+    if (hasPhase) {
+      (apiResponse as MonthlyDataWithPhase[]).forEach((monthEntry) => {
+        monthEntry.phases.forEach((phaseEntry) => {
+          const key = `${monthEntry.month}_${phaseEntry.phaseId}`;
+          map.set(key, phaseEntry.data);
+        });
+      });
+    } else {
+      (apiResponse as MonthlyDataNoPhase[]).forEach((monthEntry) => {
+        map.set(monthEntry.month, monthEntry.data);
+      });
+    }
+
+    setLocalData(map);
+    setPendingChanges([]);
+  }, [apiResponse]);
+
   const handleDrop = (
+    mapKey: string,
     newAssignmentCodeId: string | null,
     fromAssignmentCodeId: string,
     payload: { materialCostId: string; materialItemId: string },
@@ -116,9 +161,11 @@ export default function SettlementReport() {
     if (fromAssignmentCodeId === targetKey) return;
 
     setLocalData((prev) => {
+      const newMap = new Map(prev);
+      const groups = newMap.get(mapKey) ?? [];
+
       let draggedItem: any = null;
-      // Tách item ra khỏi nhóm cũ
-      const cleaned = prev.map((group) => {
+      const cleaned = groups.map((group) => {
         const found = group.materialUseds.find(
           (m: any) => m.materialItemId === payload.materialItemId,
         );
@@ -130,9 +177,10 @@ export default function SettlementReport() {
           ),
         };
       });
+
       if (!draggedItem) return prev;
-      // Thêm vào nhóm mới
-      return cleaned.map((group) => {
+
+      const updated = cleaned.map((group) => {
         const groupKey = group?.assignmentCode?._id ?? "NO_ASSIGNMENTCODE";
         if (groupKey === targetKey) {
           return {
@@ -142,9 +190,11 @@ export default function SettlementReport() {
         }
         return group;
       });
+
+      newMap.set(mapKey, updated);
+      return newMap;
     });
 
-    // Track pending (deduplicate: 1 item chỉ có 1 change mới nhất)
     setPendingChanges((prev) => [
       ...prev.filter((c) => c.materialItemId !== payload.materialItemId),
       {
@@ -156,19 +206,26 @@ export default function SettlementReport() {
     ]);
   };
 
-  const exportExcel = useMutation({
-    mutationFn: () =>
-      SettlementService.exportFile({
-        month: selectedMonth,
-        phase: selectedPhase,
-        productionScope: selectedProductionScope,
-      }),
-    onSuccess: () => {},
-    onError: async (error: any) => {
-      const message = await parseAxiosError(error);
-      showErrorAlert(message);
-    },
-  });
+  const handleDiscard = () => {
+    const ids = new Set(pendingChanges.map((c) => c.materialItemId));
+    // Reset về data gốc
+    const map = new Map<string, DataItem[]>();
+    if (hasPhase) {
+      (apiResponse as MonthlyDataWithPhase[]).forEach((monthEntry) => {
+        monthEntry.phases.forEach((phaseEntry) => {
+          map.set(`${monthEntry.month}_${phaseEntry.phaseId}`, phaseEntry.data);
+        });
+      });
+    } else {
+      (apiResponse as MonthlyDataNoPhase[]).forEach((monthEntry) => {
+        map.set(monthEntry.month, monthEntry.data);
+      });
+    }
+    setLocalData(map);
+    setPendingChanges([]);
+    setDiscardHighlight(ids);
+    setTimeout(() => setDiscardHighlight(new Set()), 700);
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -187,9 +244,11 @@ export default function SettlementReport() {
       queryClient.invalidateQueries({
         queryKey: [
           "contractsettlements",
-          selectedMonth,
+          fromMonth,
+          toMonth,
           selectedPhase,
           selectedProductionScope,
+          selectedDepartment,
         ],
       });
     },
@@ -199,1397 +258,644 @@ export default function SettlementReport() {
     },
   });
 
-  const handleDiscard = () => {
-    // 1. Ghi nhớ các id sắp bị hoàn tác để highlight
-    const ids = new Set(pendingChanges.map((c) => c.materialItemId));
-    // 2. Reset data về server (item nhảy về vị trí cũ)
-    setLocalData(contractsettlements.data ?? []);
-    setPendingChanges([]);
-    // 3. Bật highlight rồi tắt sau 700ms (fade out qua CSS transition)
-    setDiscardHighlight(ids);
-    setTimeout(() => setDiscardHighlight(new Set()), 700);
-  };
-
   const hasPending = pendingChanges.length > 0;
+  const isShow =
+    selectedPhase.length > 0 && selectedProductionScope && selectedDepartment;
 
-  const isShow = selectedPhase && selectedProductionScope;
+  // helper
+  const getBlockId = (month: string, phaseId?: string) => phaseId ? `${month}_${phaseId}` : month;
 
   return (
     <Paper sx={{ width: "calc(100vw - 148px)", p: 2 }}>
       <Box sx={{ mb: 2 }}>
-        <Box
-          display={"flex"}
-          gap={4}
-          mt={2}
-          sx={{
-            justifyContent: { md: "space-between", xs: "flex-start" },
-            flexDirection: { md: "row", xs: "column" },
-          }}
-        >
-          <Box display={"flex"} gap={2}>
-            <Grid container spacing={2} mb={3} alignItems="center">
-              <Grid item xs={4}>
-                <FieldMonthYear
-                  selectedMonth={selectedMonth}
-                  setSelectedMonth={setSelectedMonth}
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <Autocomplete
-                  disablePortal
-                  size="small"
-                  options={productionscopes?.data || []}
-                  getOptionLabel={(option: any) => option.code}
-                  value={productionscopes?.data?.find(
-                    (i: any) => i._id === selectedProductionScope,
-                  )}
-                  onChange={(e, value: any) =>
-                    setSelectedProductionScope(value?._id || "")
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Chọn diện sản xuất"
-                      size="small"
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <Autocomplete
-                  disablePortal
-                  size="small"
-                  options={phases?.data || []}
-                  getOptionLabel={(option: any) => option.code}
-                  value={phases?.data?.find(
-                    (i: any) => i._id === selectedPhase,
-                  )}
-                  onChange={(e, value: any) =>
-                    setSelectedPhase(value?._id || "")
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Chọn công đoạn"
-                      size="small"
-                    />
-                  )}
-                />
-              </Grid>
+        <Box display={"flex"} gap={2}>
+          <Grid container spacing={2} mb={3} alignItems="center">
+            <Grid item xs={3}>
+              <FieldAutoCompleted
+                data={departments?.data || []}
+                value={selectedDepartment}
+                setValue={setSelectedDepartment}
+                title="Chọn phân xưởng"
+                labelkey="name"
+              />
             </Grid>
-          </Box>
-          <Box display="flex" gap={2} alignItems="center">
-            {hasPending && (
-              <>
-                <Tooltip title={`${pendingChanges.length} thay đổi chưa lưu`}>
-                  <Badge badgeContent={pendingChanges.length} color="warning">
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      startIcon={<Save />}
-                      onClick={() => saveMutation.mutate()}
-                      disabled={saveMutation.isPending}
-                      sx={{
-                        fontFamily: "Roboto, sans-serif",
-                        fontSize: 14,
-                        fontWeight: 600,
-                        textTransform: "none",
-                        borderRadius: "4px",
-                        px: 2,
-                        py: 0.5,
-                        height: 32,
-                      }}
-                    >
-                      {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
-                    </Button>
-                  </Badge>
-                </Tooltip>
-                <Tooltip title="Hủy tất cả thay đổi chưa lưu">
+            <Grid item xs={3}>
+              <FieldRangeMonthYear
+                fromMonth={fromMonth}
+                setFromMonth={setFromMonth}
+                toMonth={toMonth}
+                setToMonth={setToMonth}
+              />
+            </Grid>
+            <Grid item xs={3}>
+              <FieldAutoCompleted
+                data={productionscopes?.data || []}
+                value={selectedProductionScope}
+                setValue={setSelectedProductionScope}
+                title="Chọn diện sản xuất"
+                labelkey="code"
+              />
+            </Grid>
+            <Grid item xs={3}>
+              <AppMultiAutocomplete
+                options={phases?.data || []}
+                value={selectedPhase}
+                onChange={(val: any[]) => setSelectedPhase(val)}
+                label="Chọn công đoạn"
+                getOptionLabel={(option: any) => option.code}
+              />
+            </Grid>
+          </Grid>
+        </Box>
+        <Box display="flex" gap={2} alignItems="center">
+          {hasPending && (
+            <Box display="flex" gap={2} alignItems="center">
+              <Tooltip title={`${pendingChanges.length} thay đổi chưa lưu`}>
+                <Badge badgeContent={pendingChanges.length} color="warning">
                   <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<Undo />}
-                    onClick={handleDiscard}
+                    variant="contained"
+                    color="primary"
+                    startIcon={<Save />}
+                    onClick={() => saveMutation.mutate()}
+                    disabled={saveMutation.isPending}
                     sx={{
                       fontFamily: "Roboto, sans-serif",
                       fontSize: 14,
-                      fontWeight: 500,
+                      fontWeight: 600,
                       textTransform: "none",
                       borderRadius: "4px",
                       px: 2,
                       py: 0.5,
                       height: 32,
-                      borderColor: "#ccc",
                     }}
                   >
-                    Hủy
+                    {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
                   </Button>
-                </Tooltip>
-              </>
-            )}
-            <Button
-              variant="outlined"
-              color="inherit"
-              startIcon={<FileDownload />}
-              onClick={() => exportExcel.mutate()}
-              sx={{
-                border: "none",
-                boxShadow: custom_theme.customShadows.tableFunctional,
-                backgroundColor: (theme) =>
-                  custom_theme.palette.table_functional_button.main,
-                "&:hover": {
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.dark,
-                  boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                },
-                fontFamily: "Roboto, sans-serif",
-                fontSize: 14,
-                fontWeight: 500,
-                textTransform: "none",
-                borderRadius: "4px",
-                px: 2,
-                py: 0.5,
-                minWidth: 90,
-                height: 32,
-              }}
-            >
-              Xuất file
-            </Button>
-            <Button
-              variant="outlined"
-              color="inherit"
-              startIcon={<Print />}
-              // onClick={handlePrint}
-              sx={{
-                border: "none",
-                boxShadow: custom_theme.customShadows.tableFunctional,
-                backgroundColor: (theme) =>
-                  custom_theme.palette.table_functional_button.main,
-                "&:hover": {
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.dark,
-                  boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                },
-                fontFamily: "Roboto, sans-serif",
-                fontSize: 14,
-                fontWeight: 500,
-                textTransform: "none",
-                borderRadius: "4px",
-                px: 2,
-                py: 0.5,
-                minWidth: 90,
-                height: 32,
-              }}
-            >
-              In
-            </Button>
-            <Button
-              variant="outlined"
-              color="inherit"
-              startIcon={<Mail />}
-              endIcon={<ArrowDropDown />}
-              // onClick={handleSend}
-              sx={{
-                border: "none",
-                boxShadow: custom_theme.customShadows.tableFunctional,
-                backgroundColor: (theme) =>
-                  custom_theme.palette.table_functional_button.main,
-                "&:hover": {
-                  backgroundColor: (theme) =>
-                    custom_theme.palette.table_functional_button.dark,
-                  boxShadow: custom_theme.customShadows.tableFunctionalHover,
-                },
-                fontFamily: "Roboto, sans-serif",
-                fontSize: 14,
-                fontWeight: 500,
-                textTransform: "none",
-                borderRadius: "4px",
-                px: 2,
-                py: 0.5,
-                height: 32,
-              }}
-            >
-              Gửi
-            </Button>
-          </Box>
+                </Badge>
+              </Tooltip>
+              <Tooltip title="Hủy tất cả thay đổi chưa lưu">
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<Undo />}
+                  onClick={handleDiscard}
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textTransform: "none",
+                    borderRadius: "4px",
+                    px: 2,
+                    py: 0.5,
+                    height: 32,
+                    borderColor: "#ccc",
+                  }}
+                >
+                  Hủy
+                </Button>
+              </Tooltip>
+            </Box>
+          )}
+          {!canDragDrop && hasPending === false && selectedProductionScope && (
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+              * Kéo thả chỉ khả dụng khi chọn 1 tháng duy nhất
+            </Typography>
+          )}
         </Box>
       </Box>
-      <Box sx={{ overflowX: "auto" }}>
+      
+      {blockKeys.length > 0 && (
+      <Box sx={{ overflowX: "auto", display: "flex", mb: 4 }}>
         <Table sx={{ tableLayout: "auto", width: "100%" }} size="small">
           <TableHead>
+            {/* Row 1: Tiêu đề chính */}
             <TableRow>
-              <TableCell
-                align="center"
-                colSpan={8}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              ></TableCell>
-
-              <TableCell
-                align="center"
-                colSpan={isShow ? 13 : 10}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#F3D01640",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              >
-                Quyết toán giao khoán tháng{" "}
-                {selectedMonth ? dayjs(selectedMonth).format("MM") : ""}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell
-                align="center"
-                colSpan={8}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              ></TableCell>
-
-              <TableCell
-                align="center"
-                colSpan={isShow ? 13 : 10}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#F3D01640",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              >
-                {(contractsettlements.info?.phases || [])
-                  .map((i: any) => i?.code)
-                  .join(", ")}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell
-                align="center"
-                colSpan={8}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              ></TableCell>
-
-              <TableCell
-                align="center"
-                colSpan={isShow ? 13 : 10}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#F3D01640",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              >
-                {(contractsettlements.info?.productionScopes || [])
-                  .map((i: any) => i?.code)
-                  .join(", ")}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell
-                align="center"
-                colSpan={8}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              ></TableCell>
-
-              <TableCell
-                align="center"
-                colSpan={isShow ? 7 : 4}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#F3D01640",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              >
-                Kế hoạch
-              </TableCell>
-              <TableCell
-                align="center"
-                colSpan={4}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#4CAF503D",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              >
-                Thực hiện
-              </TableCell>
-              <TableCell
-                align="center"
-                colSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#FF620040",
-                  fontSize: "0.75rem",
-                  p: 0.5,
-                }}
-              >
-                So sánh lãi(+); lỗ(-)
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 42,
-                }}
-              >
-                STT
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.8,
-                  minWidth: 117,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Mã vật tư, tài sản
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 60,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Trùng mã vật tư
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 60,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Mã thiết bị
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 55,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Mã giao khoán
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.8,
-                  minWidth: 143,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Tên vật tư, tài sản
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 43,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                ĐVT
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 64,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Đơn giá khoán
-              </TableCell>
-              {isShow && (
+              <TableCell align="center" colSpan={8} sx={{ border: "1px solid #ddd", p: 0.5 }} />
+              {blockKeys.map((bk, idx) => (
                 <TableCell
+                  key={idx}
                   align="center"
-                  rowSpan={2}
+                  colSpan={isShow ? 13 : 10}
                   sx={{
                     border: "1px solid #ddd",
                     fontWeight: "bold",
                     bgcolor: "#F3D01640",
-                    fontSize: "14px",
+                    fontSize: "0.75rem",
                     p: 0.5,
-                    minWidth: 48,
-                    whiteSpace: "normal",
-                    wordWrap: "break-word",
                   }}
                 >
-                  Định mức gốc
+                  Quyết toán giao khoán tháng {dayjs(bk.month, "YYYY-MM").format("MM/YYYY")}
                 </TableCell>
-              )}
-              {isShow && (
+              ))}
+            </TableRow>
+            {/* Row 2: Phase codes */}
+            <TableRow>
+              <TableCell align="center" colSpan={8} sx={{ border: "1px solid #ddd", p: 0.5 }} />
+              {blockKeys.map((bk, idx) => (
                 <TableCell
+                  key={idx}
                   align="center"
-                  rowSpan={2}
+                  colSpan={isShow ? 13 : 10}
                   sx={{
                     border: "1px solid #ddd",
                     fontWeight: "bold",
                     bgcolor: "#F3D01640",
-                    fontSize: "14px",
+                    fontSize: "0.75rem",
                     p: 0.5,
-                    minWidth: 85,
-                    whiteSpace: "normal",
-                    wordWrap: "break-word",
                   }}
                 >
-                  Hệ số điều chỉnh định mức
+                  {bk.phaseCode ?? bk.info.phases.map((i: any) => i?.code).join(", ")}
                 </TableCell>
-              )}
-              {isShow && (
+              ))}
+            </TableRow>
+            {/* Row 3: Production scope */}
+            <TableRow>
+              <TableCell align="center" colSpan={8} sx={{ border: "1px solid #ddd", p: 0.5 }} />
+              {blockKeys.map((bk, idx) => (
                 <TableCell
+                  key={idx}
                   align="center"
-                  rowSpan={2}
+                  colSpan={isShow ? 13 : 10}
                   sx={{
                     border: "1px solid #ddd",
                     fontWeight: "bold",
                     bgcolor: "#F3D01640",
-                    fontSize: "14px",
+                    fontSize: "0.75rem",
                     p: 0.5,
-                    minWidth: 45,
-                    whiteSpace: "normal",
-                    wordWrap: "break-word",
                   }}
                 >
-                  Định mức
+                  {(bk.info.productionScopes || []).map((i: any) => i?.code).join(", ")}
                 </TableCell>
-              )}
-              <TableCell
-                align="center"
-                colSpan={3}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#F3D01640",
-                  fontSize: "14px",
-                  p: 0.5,
-                }}
-              >
-                Số lượng
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#F3D01640",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 54,
-                }}
-              >
-                Giá trị
-              </TableCell>
-              <TableCell
-                align="center"
-                colSpan={3}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#4CAF503D",
-                  fontSize: "14px",
-                  p: 0.5,
-                }}
-              >
-                Số lượng
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#4CAF503D",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 54,
-                }}
-              >
-                Giá trị
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#FF620040",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 52,
-                }}
-              >
-                Số lượng
-              </TableCell>
-              <TableCell
-                align="center"
-                rowSpan={2}
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#FF620040",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 54,
-                }}
-              >
-                Giá trị
-              </TableCell>
+              ))}
+            </TableRow>
+            {/* Row 4: Kế hoạch / Thực hiện / So sánh */}
+            <TableRow>
+              <TableCell align="center" colSpan={8} sx={{ border: "1px solid #ddd", p: 0.5 }} />
+              {blockKeys.map((bk, idx) => (
+                <Fragment key={idx}>
+                  <TableCell
+                    align="center"
+                    colSpan={isShow ? 7 : 4}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      bgcolor: "#F3D01640",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
+                    Kế hoạch
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    colSpan={4}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      bgcolor: "#4CAF503D",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
+                    Thực hiện
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    colSpan={2}
+                    sx={{
+                      border: "1px solid #ddd",
+                      fontWeight: "bold",
+                      bgcolor: "#FF620040",
+                      fontSize: "0.75rem",
+                      p: 0.5,
+                    }}
+                  >
+                    So sánh lãi(+); lỗ(-)
+                  </TableCell>
+                </Fragment>
+              ))}
+            </TableRow>
+            {/* Row 5: Column headers */}
+            <TableRow>
+              <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5, minWidth: 42 }}>STT</TableCell>
+              <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.8, minWidth: 117, whiteSpace: "normal", wordWrap: "break-word" }}>Mã vật tư, tài sản</TableCell>
+              <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5, minWidth: 60, whiteSpace: "normal", wordWrap: "break-word" }}>Trùng mã vật tư</TableCell>
+              <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5, minWidth: 60, whiteSpace: "normal", wordWrap: "break-word" }}>Mã thiết bị</TableCell>
+              <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5, minWidth: 55, whiteSpace: "normal", wordWrap: "break-word" }}>Mã giao khoán</TableCell>
+              <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.8, minWidth: 143, whiteSpace: "normal", wordWrap: "break-word" }}>Tên vật tư, tài sản</TableCell>
+              <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5, minWidth: 43, whiteSpace: "normal", wordWrap: "break-word" }}>ĐVT</TableCell>
+              <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5, minWidth: 64, whiteSpace: "normal", wordWrap: "break-word" }}>Đơn giá khoán</TableCell>
+              
+              {blockKeys.map((bk, idx) => (
+                <Fragment key={idx}>
+                  {isShow && <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#F3D01640", fontSize: "14px", p: 0.5, minWidth: 48, whiteSpace: "normal", wordWrap: "break-word" }}>Định mức gốc</TableCell>}
+                  {isShow && <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#F3D01640", fontSize: "14px", p: 0.5, minWidth: 85, whiteSpace: "normal", wordWrap: "break-word" }}>Hệ số điều chỉnh định mức</TableCell>}
+                  {isShow && <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#F3D01640", fontSize: "14px", p: 0.5, minWidth: 45, whiteSpace: "normal", wordWrap: "break-word" }}>Định mức</TableCell>}
+                  <TableCell align="center" colSpan={3} sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#F3D01640", fontSize: "14px", p: 0.5 }}>Số lượng</TableCell>
+                  <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#F3D01640", fontSize: "14px", p: 0.5, minWidth: 54 }}>Giá trị</TableCell>
+                  <TableCell align="center" colSpan={3} sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#4CAF503D", fontSize: "14px", p: 0.5 }}>Số lượng</TableCell>
+                  <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#4CAF503D", fontSize: "14px", p: 0.5, minWidth: 54 }}>Giá trị</TableCell>
+                  <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#FF620040", fontSize: "14px", p: 0.5, minWidth: 52 }}>Số lượng</TableCell>
+                  <TableCell align="center" rowSpan={2} sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#FF620040", fontSize: "14px", p: 0.5, minWidth: 54 }}>Giá trị</TableCell>
+                </Fragment>
+              ))}
             </TableRow>
             <TableRow>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#F3D01640",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 48,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Tổng
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#F3D01640",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 56,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Trong khoán
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#F3D01640",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 57,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Ngoài khoán
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#4CAF503D",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 48,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Tổng
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#4CAF503D",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 55,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Trong khoán
-              </TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  bgcolor: "#4CAF503D",
-                  fontSize: "14px",
-                  p: 0.5,
-                  minWidth: 55,
-                  whiteSpace: "normal",
-                  wordWrap: "break-word",
-                }}
-              >
-                Ngoài khoán
-              </TableCell>
+              {blockKeys.map((bk, idx) => (
+                <Fragment key={idx}>
+                  <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#F3D01640", fontSize: "14px", p: 0.5, minWidth: 48, whiteSpace: "normal", wordWrap: "break-word" }}>Tổng</TableCell>
+                  <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#F3D01640", fontSize: "14px", p: 0.5, minWidth: 56, whiteSpace: "normal", wordWrap: "break-word" }}>Trong khoán</TableCell>
+                  <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#F3D01640", fontSize: "14px", p: 0.5, minWidth: 57, whiteSpace: "normal", wordWrap: "break-word" }}>Ngoài khoán</TableCell>
+                  <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#4CAF503D", fontSize: "14px", p: 0.5, minWidth: 48, whiteSpace: "normal", wordWrap: "break-word" }}>Tổng</TableCell>
+                  <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#4CAF503D", fontSize: "14px", p: 0.5, minWidth: 55, whiteSpace: "normal", wordWrap: "break-word" }}>Trong khoán</TableCell>
+                  <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", bgcolor: "#4CAF503D", fontSize: "14px", p: 0.5, minWidth: 55, whiteSpace: "normal", wordWrap: "break-word" }}>Ngoài khoán</TableCell>
+                </Fragment>
+              ))}
             </TableRow>
           </TableHead>
 
           <TableBody>
+            {/* Summary Rows */}
             <TableRow>
-              <TableCell
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  textAlign: "center",
-                }}
-              >
-                1
-              </TableCell>
-              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
-                <TableCell
-                  key={index}
-                  sx={{
-                    border: "1px solid #ddd",
-                    fontWeight: index <= 4 ? "bold" : "normal",
-                    fontSize: "14px",
-                    p: 0.5,
-                    bgcolor:
-                      index >= 7 && index <= (isShow ? 13 : 10)
-                        ? "#F3D01640"
-                        : index >= (isShow ? 14 : 11) &&
-                            index <= (isShow ? 17 : 14)
-                          ? "#4CAF503D"
-                          : index >= (isShow ? 18 : 15) &&
-                              index <= (isShow ? 19 : 16)
-                            ? "#FF620040"
-                            : "white",
-                  }}
-                >
-                  {index === 4
-                    ? "Than nguyên khai"
-                    : index === 8
-                      ? contractsettlements?.info.totalCoal
-                        ? Number(
-                            contractsettlements?.info.totalCoal.toFixed(1),
-                          ).toLocaleString()
-                        : ""
-                      : ""}
-                </TableCell>
-              ))}
+              <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", p: 0.5 }}>1</TableCell>
+              <TableCell colSpan={7} sx={{ border: "1px solid #ddd", p: 0.5 }}>Than nguyên khai</TableCell>
+              {blockKeys.map((bk, idx) => {
+                const info = bk.info;
+                return Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
+                  <TableCell
+                    key={`${idx}_${i}`}
+                    sx={{
+                      border: "1px solid #ddd", p: 0.5,
+                      bgcolor: i >= 0 && i <= (isShow ? 6 : 3) ? "#F3D01640" : i >= (isShow ? 7 : 4) && i <= (isShow ? 10 : 7) ? "#4CAF503D" : i >= (isShow ? 11 : 8) ? "#FF620040" : "white",
+                    }}
+                  >
+                    {i === (isShow ? 4 : 1) ? formatDecimal(info.totalCoal) : ""}
+                  </TableCell>
+                ));
+              })}
             </TableRow>
             <TableRow>
-              <TableCell
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  textAlign: "center",
-                }}
-              >
-                2
-              </TableCell>
-              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
-                <TableCell
-                  key={index}
-                  sx={{
-                    border: "1px solid #ddd",
-                    fontWeight: index <= 4 ? "bold" : "normal",
-                    fontSize: "14px",
-                    p: 0.5,
-                    bgcolor:
-                      index >= 7 && index <= (isShow ? 13 : 10)
-                        ? "#F3D01640"
-                        : index >= (isShow ? 14 : 11) &&
-                            index <= (isShow ? 17 : 14)
-                          ? "#4CAF503D"
-                          : index >= (isShow ? 18 : 15) &&
-                              index <= (isShow ? 19 : 16)
-                            ? "#FF620040"
-                            : "white",
-                  }}
-                >
-                  {index === 4
-                    ? "Mét lò đào"
-                    : index === 8
-                      ? formatDecimal(contractsettlements?.info.totalExcavation)
-                      : ""}
-                </TableCell>
-              ))}
+              <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", p: 0.5 }}>2</TableCell>
+              <TableCell colSpan={7} sx={{ border: "1px solid #ddd", p: 0.5 }}>Mét lò đào</TableCell>
+              {blockKeys.map((bk, idx) => {
+                const info = bk.info;
+                return Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
+                  <TableCell
+                    key={`${idx}_${i}`}
+                    sx={{
+                      border: "1px solid #ddd", p: 0.5,
+                      bgcolor: i >= 0 && i <= (isShow ? 6 : 3) ? "#F3D01640" : i >= (isShow ? 7 : 4) && i <= (isShow ? 10 : 7) ? "#4CAF503D" : i >= (isShow ? 11 : 8) ? "#FF620040" : "white",
+                    }}
+                  >
+                    {i === (isShow ? 4 : 1) ? formatDecimal(info.totalExcavation) : ""}
+                  </TableCell>
+                ));
+              })}
             </TableRow>
             <TableRow>
-              <TableCell
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  textAlign: "center",
-                }}
-              >
-                3
-              </TableCell>
-              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
-                <TableCell
-                  key={index}
-                  sx={{
-                    border: "1px solid #ddd",
-                    fontWeight: index <= 4 ? "bold" : "normal",
-                    fontSize: "14px",
-                    p: 0.5,
-                    bgcolor:
-                      index >= 7 && index <= (isShow ? 13 : 10)
-                        ? "#F3D01640"
-                        : index >= (isShow ? 14 : 11) &&
-                            index <= (isShow ? 17 : 14)
-                          ? "#4CAF503D"
-                          : index >= (isShow ? 18 : 15) &&
-                              index <= (isShow ? 19 : 16)
-                            ? "#FF620040"
-                            : "white",
-                  }}
-                >
-                  {index === 4
-                    ? "Mét lò xén"
-                    : index === 8
-                      ? formatDecimal(contractsettlements?.info.totalCutting)
-                      : ""}
-                </TableCell>
-              ))}
+              <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", p: 0.5 }}>3</TableCell>
+              <TableCell colSpan={7} sx={{ border: "1px solid #ddd", p: 0.5 }}>Mét lò xén</TableCell>
+              {blockKeys.map((bk, idx) => {
+                const info = bk.info;
+                return Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
+                  <TableCell
+                    key={`${idx}_${i}`}
+                    sx={{
+                      border: "1px solid #ddd", p: 0.5,
+                      bgcolor: i >= 0 && i <= (isShow ? 6 : 3) ? "#F3D01640" : i >= (isShow ? 7 : 4) && i <= (isShow ? 10 : 7) ? "#4CAF503D" : i >= (isShow ? 11 : 8) ? "#FF620040" : "white",
+                    }}
+                  >
+                    {i === (isShow ? 4 : 1) ? formatDecimal(info.totalCutting) : ""}
+                  </TableCell>
+                ));
+              })}
             </TableRow>
             <TableRow>
-              <TableCell
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  textAlign: "center",
-                }}
-              >
-                4
-              </TableCell>
-              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
-                <TableCell
-                  key={index}
-                  sx={{
-                    border: "1px solid #ddd",
-                    fontWeight: index <= 4 ? "bold" : "normal",
-                    fontSize: "14px",
-                    p: 0.5,
-                    bgcolor:
-                      index >= 7 && index <= (isShow ? 13 : 10)
-                        ? "#F3D01640"
-                        : index >= (isShow ? 14 : 11) &&
-                            index <= (isShow ? 17 : 14)
-                          ? "#4CAF503D"
-                          : index >= (isShow ? 18 : 15) &&
-                              index <= (isShow ? 19 : 16)
-                            ? "#FF620040"
-                            : "white",
-                  }}
-                >
-                  {index === 4
-                    ? "Tỉ lệ đá lẫn trong gương (Ckep)"
-                    : index === 8
-                      ? contractsettlements.info?.rockRatio
-                      : ""}
-                </TableCell>
-              ))}
+              <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", p: 0.5 }}>4</TableCell>
+              <TableCell colSpan={7} sx={{ border: "1px solid #ddd", p: 0.5 }}>Tỉ lệ đá lẫn trong gương (Ckep)</TableCell>
+              {blockKeys.map((bk, idx) => {
+                const info = bk.info;
+                return Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
+                  <TableCell
+                    key={`${idx}_${i}`}
+                    sx={{
+                      border: "1px solid #ddd", p: 0.5,
+                      bgcolor: i >= 0 && i <= (isShow ? 6 : 3) ? "#F3D01640" : i >= (isShow ? 7 : 4) && i <= (isShow ? 10 : 7) ? "#4CAF503D" : i >= (isShow ? 11 : 8) ? "#FF620040" : "white",
+                    }}
+                  >
+                    {i === (isShow ? 4 : 1) ? info.rockRatio : ""}
+                  </TableCell>
+                ));
+              })}
             </TableRow>
             <TableRow>
-              <TableCell
-                sx={{
-                  border: "1px solid #ddd",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  p: 0.5,
-                  textAlign: "center",
-                }}
-              >
-                5
-              </TableCell>
-              {Array.from({ length: isShow ? 20 : 17 }).map((_, index) => (
-                <TableCell
-                  key={index}
-                  sx={{
-                    border: "1px solid #ddd",
-                    fontWeight: index <= 4 ? "bold" : "normal",
-                    fontSize: "14px",
-                    p: 0.5,
-                    bgcolor:
-                      index >= 7 && index <= (isShow ? 13 : 10)
-                        ? "#F3D01640"
-                        : index >= (isShow ? 14 : 11) &&
-                            index <= (isShow ? 17 : 14)
-                          ? "#4CAF503D"
-                          : index >= (isShow ? 18 : 15) &&
-                              index <= (isShow ? 19 : 16)
-                            ? "#FF620040"
-                            : "white",
-                  }}
-                >
-                  {index === 4 ? "Vật tư có định mức" : ""}
-                </TableCell>
+              <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", p: 0.5 }}>5</TableCell>
+              <TableCell colSpan={7} sx={{ border: "1px solid #ddd", p: 0.5 }}>Vật tư có định mức</TableCell>
+              {blockKeys.map((bk, idx) => (
+                Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
+                  <TableCell
+                    key={`${idx}_${i}`}
+                    sx={{
+                      border: "1px solid #ddd", p: 0.5,
+                      bgcolor: i >= 0 && i <= (isShow ? 6 : 3) ? "#F3D01640" : i >= (isShow ? 7 : 4) && i <= (isShow ? 10 : 7) ? "#4CAF503D" : i >= (isShow ? 11 : 8) ? "#FF620040" : "white",
+                    }}
+                  />
+                ))
               ))}
             </TableRow>
-            {localData.map((assignment: any, index: number) => (
-              <Fragment
-                key={
-                  (
-                    assignment?.assignmentCode ||
-                    assignment.assignmentCode !== null
-                  )?._id
-                }
-              >
-                {/* ── GROUP HEADER ROW – drop target ── */}
-                <TableRow
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                    const targetId =
-                      assignment?.assignmentCode?._id ?? "NO_ASSIGNMENTCODE";
-                    setDragOverAssignmentId(targetId);
-                  }}
-                  onDragLeave={(e) => {
-                    // chỉ clear khi rời khỏi hẳn row (không phải child element)
-                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                      setDragOverAssignmentId(null);
+
+            {/* Data Rows */}
+            {rowGroups.map((rowGroup, groupIndex) => {
+              const assignment = rowGroup;
+              
+              return (
+                <Fragment key={assignment.compoundKey}>
+                  <TableRow
+                    onDragOver={
+                      canDragDrop
+                        ? (e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                            setDragOverAssignmentId(
+                              assignment.assignmentCode?._id ?? "NO_ASSIGNMENTCODE",
+                            );
+                          }
+                        : undefined
                     }
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragOverAssignmentId(null);
-                    try {
-                      const payload = JSON.parse(
-                        e.dataTransfer.getData("application/json"),
-                      );
-                      const newAssignmentCodeId =
-                        assignment?.assignmentCode?._id ?? null;
-                      const newPrice: number | null = assignment?.price ?? null;
-                      handleDrop(
-                        newAssignmentCodeId,
-                        payload.fromAssignmentCodeId,
-                        {
-                          materialCostId: payload.materialCostId,
-                          materialItemId: payload.materialItemId,
-                        },
-                        newPrice,
-                      );
-                    } catch {}
-                  }}
-                  sx={{
-                    outline:
-                      dragOverAssignmentId ===
-                      (assignment?.assignmentCode?._id ?? "NO_ASSIGNMENTCODE")
-                        ? "2px dashed #1976d2"
-                        : "none",
-                    outlineOffset: "-2px",
-                    bgcolor:
-                      dragOverAssignmentId ===
-                      (assignment?.assignmentCode?._id ?? "NO_ASSIGNMENTCODE")
-                        ? "#e3f2fd"
-                        : "inherit",
-                    transition: "background-color 0.15s, outline 0.15s",
-                  }}
-                >
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {index + 6}
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  ></TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      color: "black",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  ></TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      color: "black",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {assignment?.assignmentCode?.deviceCode?.code}
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {
-                      (
-                        assignment?.assignmentCode ||
-                        assignment.assignmentCode !== null
-                      )?.code
+                    onDragLeave={
+                      canDragDrop
+                        ? (e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget as Node))
+                              setDragOverAssignmentId(null);
+                          }
+                        : undefined
                     }
-                  </TableCell>
-                  <TableCell
+                    onDrop={
+                      canDragDrop
+                        ? (e) => {
+                            e.preventDefault();
+                            setDragOverAssignmentId(null);
+                            try {
+                              const payload = JSON.parse(e.dataTransfer.getData("application/json"));
+                              // Lấy mapKey đầu tiên vì canDragDrop = true nghĩa là chỉ có 1 tháng (1 block)
+                              const mapKey = blockKeys.length > 0 ? getBlockId(blockKeys[0].month, blockKeys[0].phaseId) : "";
+                              if (mapKey) {
+                                handleDrop(
+                                  mapKey,
+                                  assignment.assignmentCode?._id ?? null,
+                                  payload.fromAssignmentCodeId,
+                                  {
+                                    materialCostId: payload.materialCostId,
+                                    materialItemId: payload.materialItemId,
+                                  },
+                                  assignment.price ?? null,
+                                );
+                              }
+                            } catch {}
+                          }
+                        : undefined
+                    }
                     sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "bold",
-                      fontSize: "14px",
-                      p: 0.5,
+                      outline: dragOverAssignmentId === (assignment.assignmentCode?._id ?? "NO_ASSIGNMENTCODE") ? "2px dashed #1976d2" : "none",
+                      outlineOffset: "-2px",
+                      bgcolor: dragOverAssignmentId === (assignment.assignmentCode?._id ?? "NO_ASSIGNMENTCODE") ? "#e3f2fd" : "inherit",
+                      transition: "background-color 0.15s, outline 0.15s",
                     }}
                   >
-                    {assignment?.assignmentCode &&
-                    assignment.assignmentCode !== null
-                      ? assignment?.assignmentCode?.name
-                      : "Vật tư không có định mức"}
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "normal",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {assignment?.assignmentCode?.uom?.name}
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      border: "1px solid #ddd",
-                      fontWeight: "normal",
-                      fontSize: "14px",
-                      p: 0.5,
-                    }}
-                  >
-                    {assignment?.assignmentCode ||
-                    assignment.assignmentCode !== null
-                      ? formattedPrice(assignment?.price)
-                      : ""}
-                  </TableCell>
-                  {isShow && (
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "normal",
-                        fontSize: "14px",
-                        p: 0.5,
-                        bgcolor: "#F3D01640",
-                      }}
-                    >
-                      {assignment?.assignmentCode ||
-                      assignment.assignmentCode !== null
-                        ? formatDecimal(assignment?.baseNorm)
-                        : ""}
+                    <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5 }}>{groupIndex + 6}</TableCell>
+                    <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5 }}></TableCell>
+                    <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", color: "black", fontSize: "14px", p: 0.5 }}></TableCell>
+                    <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", color: "black", fontSize: "14px", p: 0.5 }}>
+                      {assignment.assignmentCode?.deviceCode?.code}
                     </TableCell>
-                  )}
-                  {isShow && (
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "normal",
-                        fontSize: "14px",
-                        p: 0.5,
-                        bgcolor: "#F3D01640",
-                      }}
-                    >
-                      {assignment?.assignmentCode ||
-                      assignment.assignmentCode !== null
-                        ? formatDecimal(assignment?.adjustmentNorm)
-                        : ""}
+                    <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5 }}>
+                      {assignment.assignmentCode?.code}
                     </TableCell>
-                  )}
-                  {isShow && (
-                    <TableCell
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "normal",
-                        fontSize: "14px",
-                        p: 0.5,
-                        bgcolor: "#F3D01640",
-                      }}
-                    >
-                      {assignment?.assignmentCode ||
-                      assignment.assignmentCode !== null
-                        ? formatDecimal(assignment?.norm)
-                        : ""}
+                    <TableCell sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: "14px", p: 0.5 }}>
+                      {assignment.assignmentCode ? assignment.assignmentCode.name : "Vật tư không có định mức"}
                     </TableCell>
-                  )}
-                  {Array.from({ length: 10 }).map((_, index) => (
-                    <TableCell
-                      key={index}
-                      align="center"
-                      sx={{
-                        border: "1px solid #ddd",
-                        fontWeight: "normal",
-                        fontSize: "14px",
-                        p: 0.5,
-                        bgcolor:
-                          index >= 0 && index <= 3
-                            ? "#F3D01640"
-                            : index >= 4 && index <= 7
-                              ? "#4CAF503D"
-                              : index >= 8 && index <= 9
-                                ? "#FF620040"
-                                : "white",
-                      }}
-                    >
-                      {index === 0
-                        ? assignment?.assignmentCode
-                          ? formatDecimal(assignment?.plan_Quantity)
-                          : ""
-                        : index === 1
-                          ? ""
-                          : index === 2
-                            ? ""
-                            : index === 3
-                              ? assignment?.assignmentCode
-                                ? formattedPrice(assignment?.plan_Cost)
-                                : ""
-                              : index === 4
-                                ? assignment?.assignmentCode
-                                  ? formatDecimal(assignment?.used_Quantity)
-                                  : ""
-                                : index === 5
-                                  ? ""
-                                  : index === 6
-                                    ? ""
-                                    : index === 7
-                                      ? assignment?.assignmentCode
-                                        ? formattedPrice(assignment?.used_Cost)
-                                        : ""
-                                      : index === 8
-                                        ? assignment?.assignmentCode
-                                          ? formatDecimal(
-                                              assignment?.varianceQuantity,
-                                            )
-                                          : ""
-                                        : index === 9
-                                          ? assignment?.assignmentCode
-                                            ? formattedPrice(
-                                                assignment?.varianceCost,
-                                              )
-                                            : ""
-                                          : ""}
+                    <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5 }}>
+                      {assignment.assignmentCode?.uom?.name}
                     </TableCell>
-                  ))}
-                </TableRow>
-                {assignment?.materialUseds.map(
-                  (materialUsed: any, i: number) => {
-                    const duplicateCount = localData.reduce(
-                      (acc: number, asg: any) =>
-                        acc +
-                        (asg?.materialUseds || []).filter(
-                          (mat: any) =>
-                            mat.material?._id === materialUsed?.material?._id,
-                        ).length,
-                      0,
-                    );
-                    const isDuplicate = duplicateCount > 1;
+                    <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5 }}>
+                      {assignment.assignmentCode ? formattedPrice(assignment.price) : ""}
+                    </TableCell>
+
+                    {/* Mapped dynamic columns for Assignment */}
+                    {blockKeys.map((bk, idx) => {
+                      const blockId = getBlockId(bk.month, bk.phaseId);
+                      const blockData = assignment.blocks.get(blockId)?.groupData;
+                      
+                      return (
+                        <Fragment key={`asg_${idx}`}>
+                          {isShow && <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5, bgcolor: "#F3D01640" }}>{assignment.assignmentCode && blockData ? formatDecimal(Number(blockData.baseNorm)) : ""}</TableCell>}
+                          {isShow && <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5, bgcolor: "#F3D01640" }}>{assignment.assignmentCode && blockData ? formatDecimal(Number(blockData.adjustmentNorm)) : ""}</TableCell>}
+                          {isShow && <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5, bgcolor: "#F3D01640" }}>{assignment.assignmentCode && blockData ? formatDecimal(Number(blockData.norm)) : ""}</TableCell>}
+                          
+                          {Array.from({ length: 10 }).map((_, i) => (
+                            <TableCell
+                              key={`asg_cell_${i}`}
+                              align="center"
+                              sx={{
+                                border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5,
+                                bgcolor: i >= 0 && i <= 3 ? "#F3D01640" : i >= 4 && i <= 7 ? "#4CAF503D" : i >= 8 && i <= 9 ? "#FF620040" : "white",
+                              }}
+                            >
+                              {i === 0 ? (assignment.assignmentCode && blockData ? formatDecimal(blockData.plan_Quantity) : "") :
+                               i === 1 ? "" :
+                               i === 2 ? "" :
+                               i === 3 ? (assignment.assignmentCode && blockData ? formattedPrice(blockData.plan_Cost) : "") :
+                               i === 4 ? (assignment.assignmentCode && blockData ? formatDecimal(blockData.used_Quantity) : "") :
+                               i === 5 ? "" :
+                               i === 6 ? "" :
+                               i === 7 ? (assignment.assignmentCode && blockData ? formattedPrice(blockData.used_Cost) : "") :
+                               i === 8 ? (assignment.assignmentCode && blockData ? formatDecimal(blockData.varianceQuantity) : "") :
+                               i === 9 ? (assignment.assignmentCode && blockData ? formattedPrice(blockData.varianceCost) : "") :
+                               ""}
+                            </TableCell>
+                          ))}
+                        </Fragment>
+                      );
+                    })}
+                  </TableRow>
+
+                  {/* Mapped Material Rows */}
+                  {Array.from({ length: assignment.maxRows }).map((_, i) => {
+                    const materialMeta = assignment.alignedMaterialsMeta[i];
+                    if (!materialMeta) return null; // Nên có do maxRows == length
+                    
+                    const materialUsedRef = materialMeta; // Lấy thông tin cố định từ đây
+                    const isDuplicate = assignment.alignedMaterialsMeta.filter(m => m?.material?._id === materialUsedRef.material?._id).length > 1;
 
                     return (
                       <TableRow
-                        key={materialUsed?.materialItemId ?? i}
-                        draggable={true}
-                        onDragStart={(e) => {
-                          setDraggingItemId(materialUsed?.materialItemId);
-                          e.dataTransfer.effectAllowed = "move";
-                          e.dataTransfer.setData(
-                            "application/json",
-                            JSON.stringify({
-                              materialCostId: materialUsed?.materialCostId,
-                              materialItemId: materialUsed?.materialItemId,
-                              fromAssignmentCodeId:
-                                assignment?.assignmentCode?._id ??
-                                "NO_ASSIGNMENTCODE",
-                            }),
-                          );
-                        }}
-                        onDragEnd={() => setDraggingItemId(null)}
+                        key={`mat_${assignment.compoundKey}_${i}`}
+                        draggable={canDragDrop}
+                        onDragStart={
+                          canDragDrop
+                            ? (e) => {
+                                setDraggingItemId(materialUsedRef.materialItemId);
+                                e.dataTransfer.effectAllowed = "move";
+                                e.dataTransfer.setData(
+                                  "application/json",
+                                  JSON.stringify({
+                                    materialCostId: materialUsedRef.materialCostId,
+                                    materialItemId: materialUsedRef.materialItemId,
+                                    fromAssignmentCodeId: assignment.assignmentCode?._id ?? "NO_ASSIGNMENTCODE",
+                                  }),
+                                );
+                              }
+                            : undefined
+                        }
+                        onDragEnd={canDragDrop ? () => setDraggingItemId(null) : undefined}
                         sx={{
-                          opacity:
-                            draggingItemId === materialUsed?.materialItemId
-                              ? 0.4
-                              : 1,
-                          cursor: "grab",
-                          "&:active": { cursor: "grabbing" },
-                          transition:
-                            "opacity 0.15s, background-color 0.7s ease",
+                          opacity: draggingItemId === materialUsedRef.materialItemId ? 0.4 : 1,
+                          cursor: canDragDrop ? "grab" : "default",
+                          "&:active": { cursor: canDragDrop ? "grabbing" : "default" },
+                          transition: "opacity 0.15s, background-color 0.7s ease",
                           "&:hover": { bgcolor: "#f5f5f5" },
-                          bgcolor: discardHighlight.has(
-                            materialUsed?.materialItemId,
-                          )
-                            ? "#fff3cd"
-                            : isDuplicate
-                              ? "#ffebee"
-                              : "transparent",
+                          bgcolor: discardHighlight.has(materialUsedRef.materialItemId) ? "#fff3cd" : isDuplicate ? "#ffebee" : "transparent",
                         }}
                       >
-                        <TableCell
-                          align="center"
-                          sx={{
-                            border: "1px solid #ddd",
-                            fontSize: "14px",
-                            p: 0.5,
-                          }}
-                        ></TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            border: "1px solid #ddd",
-                            fontSize: "14px",
-                            p: 0.5,
-                          }}
-                        >
-                          {materialUsed?.material?.code}
+                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontSize: "14px", p: 0.5 }}></TableCell>
+                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontSize: "14px", p: 0.5 }}>{materialUsedRef.material?.code}</TableCell>
+                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", color: "black", fontSize: "14px", p: 0.5 }}>
+                          {isDuplicate ? assignment.alignedMaterialsMeta.filter(m => m?.material?._id === materialUsedRef.material?._id).length : ""}
                         </TableCell>
+                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", color: "black", fontSize: "14px", p: 0.5 }}></TableCell>
+                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", color: "black", fontSize: "14px", p: 0.5 }}></TableCell>
+                        <TableCell sx={{ border: "1px solid #ddd", fontSize: "14px", p: 0.5 }}>{materialUsedRef.material?.name}</TableCell>
+                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontSize: "14px", p: 0.5 }}>{materialUsedRef.material?.uom?.name}</TableCell>
+                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5 }}>
+                          {assignment.assignmentCode ? "" : formattedPrice(materialUsedRef.price)}
+                        </TableCell>
+
+                        {/* Mapped dynamic columns for Material */}
+                        {blockKeys.map((bk, idx) => {
+                          const blockId = getBlockId(bk.month, bk.phaseId);
+                          const mu = assignment.blocks.get(blockId)?.materialUseds?.[i];
+                          
+                          return (
+                            <Fragment key={`mat_cell_${idx}`}>
+                              {isShow && <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5, bgcolor: "#F3D01640" }}></TableCell>}
+                              {isShow && <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5, bgcolor: "#F3D01640" }}></TableCell>}
+                              {isShow && <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5, bgcolor: "#F3D01640" }}></TableCell>}
+                              
+                              {Array.from({ length: 10 }).map((_, colIdx) => (
+                                <TableCell
+                                  key={`mat_col_${colIdx}`}
+                                  align="center"
+                                  sx={{
+                                    border: "1px solid #ddd", fontWeight: "normal", fontSize: "14px", p: 0.5,
+                                    bgcolor: colIdx >= 0 && colIdx <= 3 ? "#F3D01640" : colIdx >= 4 && colIdx <= 7 ? "#4CAF503D" : colIdx >= 8 && colIdx <= 9 ? "#FF620040" : "white",
+                                  }}
+                                >
+                                  {colIdx === 0 ? (!assignment.assignmentCode && mu ? formatDecimal(mu.quantity) : "") :
+                                   colIdx === 1 ? "" :
+                                   colIdx === 2 ? "" :
+                                   colIdx === 3 ? (!assignment.assignmentCode && mu ? formattedPrice(mu.cost) : "") :
+                                   colIdx === 4 ? (mu ? formatDecimal(mu.quantity) : "") :
+                                   colIdx === 5 ? "" :
+                                   colIdx === 6 ? "" :
+                                   colIdx === 7 ? (assignment.assignmentCode ? "" : (mu ? formattedPrice(mu.cost) : "")) :
+                                   colIdx === 8 ? (!assignment.assignmentCode && mu ? formatDecimal(0) : "") :
+                                   colIdx === 9 ? (!assignment.assignmentCode && mu ? formattedPrice(0) : "") :
+                                   ""}
+                                </TableCell>
+                              ))}
+                            </Fragment>
+                          );
+                        })}
+                      </TableRow>
+                    );
+                  })}
+                </Fragment>
+              );
+            })}
+            
+            {/* Summary Row at the Bottom */}
+            {rowGroups.length > 0 && (
+              <TableRow>
+                <TableCell
+                  align="center"
+                  colSpan={8}
+                  sx={{
+                    border: "1px solid #ddd",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                    p: 0.5,
+                    bgcolor: "#f5f5f5",
+                  }}
+                >
+                  Tổng chi phí
+                </TableCell>
+                {blockKeys.map((bk, idx) => {
+                  const blockId = getBlockId(bk.month, bk.phaseId);
+                  let totalPlan = 0;
+                  let totalUsed = 0;
+
+                  rowGroups.forEach((rg) => {
+                    const bd = rg.blocks.get(blockId)?.groupData;
+                    if (rg.assignmentCode && bd) {
+                      totalPlan += Number(bd.plan_Cost || 0);
+                      totalUsed += Number(bd.used_Cost || 0);
+                    } else if (!rg.assignmentCode) {
+                      const mus = rg.blocks.get(blockId)?.materialUseds;
+                      if (mus) {
+                        mus.forEach(mu => {
+                          if (mu) {
+                            totalPlan += Number(mu.cost || 0);
+                            totalUsed += Number(mu.cost || 0);
+                          }
+                        });
+                      }
+                    }
+                  });
+
+                  const totalVariance = totalPlan - totalUsed;
+
+                  return (
+                    <Fragment key={`total_block_${idx}`}>
+                      {isShow && (
+                        <>
+                          <TableCell sx={{ border: "1px solid #ddd", bgcolor: "#F3D01640" }}></TableCell>
+                          <TableCell sx={{ border: "1px solid #ddd", bgcolor: "#F3D01640" }}></TableCell>
+                          <TableCell sx={{ border: "1px solid #ddd", bgcolor: "#F3D01640" }}></TableCell>
+                        </>
+                      )}
+                      {Array.from({ length: 10 }).map((_, colIdx) => (
                         <TableCell
+                          key={`total_col_${colIdx}`}
                           align="center"
                           sx={{
                             border: "1px solid #ddd",
                             fontWeight: "bold",
-                            color: "black",
-                            fontSize: "14px",
-                            p: 0.5,
-                          }}
-                        >
-                          {duplicateCount}
-                        </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          border: "1px solid #ddd",
-                          fontWeight: "bold",
-                          color: "black",
-                          fontSize: "14px",
-                          p: 0.5,
-                        }}
-                      ></TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          border: "1px solid #ddd",
-                          fontWeight: "bold",
-                          color: "black",
-                          fontSize: "14px",
-                          p: 0.5,
-                        }}
-                      ></TableCell>
-                      <TableCell
-                        sx={{
-                          border: "1px solid #ddd",
-                          fontSize: "14px",
-                          p: 0.5,
-                        }}
-                      >
-                        {materialUsed?.material?.name}
-                      </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          border: "1px solid #ddd",
-                          fontSize: "14px",
-                          p: 0.5,
-                        }}
-                      >
-                        {materialUsed?.material?.uom?.name}
-                      </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          border: "1px solid #ddd",
-                          fontWeight: "normal",
-                          fontSize: "14px",
-                          p: 0.5,
-                        }}
-                      >
-                        {assignment?.assignmentCode ||
-                        assignment.assignmentCode !== null
-                          ? ""
-                          : formattedPrice(materialUsed?.price)}
-                      </TableCell>
-                      {isShow && (
-                        <TableCell
-                          align="center"
-                          sx={{
-                            border: "1px solid #ddd",
-                            fontWeight: "normal",
-                            fontSize: "14px",
-                            p: 0.5,
-                            bgcolor: "#F3D01640",
-                          }}
-                        ></TableCell>
-                      )}
-                      {isShow && (
-                        <TableCell
-                          align="center"
-                          sx={{
-                            border: "1px solid #ddd",
-                            fontWeight: "normal",
-                            fontSize: "14px",
-                            p: 0.5,
-                            bgcolor: "#F3D01640",
-                          }}
-                        ></TableCell>
-                      )}
-                      {isShow && (
-                        <TableCell
-                          align="center"
-                          sx={{
-                            border: "1px solid #ddd",
-                            fontWeight: "normal",
-                            fontSize: "14px",
-                            p: 0.5,
-                            bgcolor: "#F3D01640",
-                          }}
-                        ></TableCell>
-                      )}
-                      {Array.from({ length: 10 }).map((_, index) => (
-                        <TableCell
-                          key={index}
-                          align="center"
-                          sx={{
-                            border: "1px solid #ddd",
-                            fontWeight: "normal",
                             fontSize: "14px",
                             p: 0.5,
                             bgcolor:
-                              index >= 0 && index <= 3
+                              colIdx >= 0 && colIdx <= 3
                                 ? "#F3D01640"
-                                : index >= 4 && index <= 7
-                                  ? "#4CAF503D"
-                                  : index >= 8 && index <= 9
-                                    ? "#FF620040"
-                                    : "white",
+                                : colIdx >= 4 && colIdx <= 7
+                                ? "#4CAF503D"
+                                : colIdx >= 8 && colIdx <= 9
+                                ? "#FF620040"
+                                : "white",
                           }}
                         >
-                          {index === 0
-                            ? ""
-                            : index === 1
-                              ? ""
-                              : index === 2
-                                ? ""
-                                : index === 3
-                                  ? ""
-                                  : index === 4
-                                    ? formatDecimal(materialUsed?.quantity)
-                                    : index === 5
-                                      ? ""
-                                      : index === 6
-                                        ? ""
-                                        : index === 7
-                                          ? assignment?.assignmentCode
-                                            ? ""
-                                            : formattedPrice(materialUsed?.cost)
-                                          : index === 8
-                                            ? ""
-                                            : index === 9
-                                              ? ""
-                                              : ""}
+                          {colIdx === 3 ? formattedPrice(totalPlan) :
+                           colIdx === 7 ? formattedPrice(totalUsed) :
+                           colIdx === 9 ? formattedPrice(totalVariance) : ""}
                         </TableCell>
                       ))}
-                    </TableRow>
+                    </Fragment>
                   );
                 })}
-              </Fragment>
-            ))}
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Box>
+      )}
     </Paper>
   );
 }

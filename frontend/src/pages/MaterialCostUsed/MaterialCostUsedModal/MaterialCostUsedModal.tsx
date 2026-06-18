@@ -92,6 +92,10 @@ export default function MaterialCostUsedModal({
     queryKey: ["phases"],
     queryFn: async () => api.get("/phases").then((res) => res.data.data),
   });
+  const { data: departments = { data: [] } } = useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => api.get("/departments").then((res) => res.data.data),
+  });
 
   const createMutation = useMutation({
     mutationFn: (newMaterialAssignment: Partial<MaterialAssignmentInputType>) =>
@@ -138,6 +142,9 @@ export default function MaterialCostUsedModal({
   // Initial values
   const formik = useFormik({
     initialValues: {
+      department: selected?.department?._id
+        ? String(selected.department._id)
+        : "",
       productionScope: selected?.productionScope?._id
         ? String(selected.productionScope._id)
         : "",
@@ -187,6 +194,7 @@ export default function MaterialCostUsedModal({
       // Đóng gói payload đảm bảo phases luôn có unit
       const payload: Partial<MaterialCostUsedInputType> = {
         _id: selected?._id,
+        department: values?.department,
         productionScope: values?.productionScope,
         month: dayjs(new Date(values.month)).format("YYYY-MM"),
         phases: (values.phases || []).map((p: any) => ({
@@ -522,6 +530,20 @@ export default function MaterialCostUsedModal({
       }
     >
       <FormikProvider value={formik}>
+        {/* Phân xưởng */}
+        <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+          Phân xưởng
+        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
+          <FieldAutoCompleted
+            formik={formik}
+            field="department"
+            title=""
+            labelkey="name"
+            data={departments.data}
+          />
+        </Box>
+
         {/* Mã diện sản xuất */}
         <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
           Mã diện sản xuất

@@ -87,6 +87,9 @@ export const AppMultiAutocomplete = <T extends { _id?: string }>({
             flexWrap: "wrap",
             padding: "4px 12px",
           },
+          "& .MuiInputLabel-root": {
+            top: "-12px",
+          },
           "& .MuiAutocomplete-input": {
             padding: "0 !important",
             flexGrow: 1,

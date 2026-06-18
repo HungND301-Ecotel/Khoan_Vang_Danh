@@ -1,4 +1,3 @@
-
 export interface LoginType {
   username: string;
   password: string;
@@ -122,7 +121,6 @@ export interface DepartmentType {
   name: string;
 }
 
-
 //
 export interface ExcavationTechType {
   _id?: string;
@@ -162,7 +160,7 @@ export interface PhaseInputType {
   name?: string;
   _id?: string;
   code?: string;
-  phaseGroup?: string
+  phaseGroup?: string;
 }
 //
 export interface CurbSlopeType {
@@ -489,8 +487,9 @@ export interface MaterialBudgetOutputType {
 
 export interface MaterialCostUsedInputType {
   _id?: string;
+  department?: string;
   productionScope?: string;
-  month: string,
+  month: string;
   phases: {
     phase: string;
     production: number;
@@ -506,11 +505,12 @@ export interface MaterialCostUsedInputType {
 
 export interface MaterialCostUsedOutputType {
   _id?: string;
+  department?: DepartmentType;
   productionScope?: ProductionScopeOutputType;
-  month: string,
+  month: string;
   group: {
-    _id: string,
-    month: string,
+    _id: string;
+    month: string;
     phases: {
       phase: PhaseGroupType;
       production: number;
@@ -520,23 +520,23 @@ export interface MaterialCostUsedOutputType {
     }[];
     materials: {
       assignmentCode: AssignmentCodeInputType;
-      price: number,
+      price: number;
       materials: {
         material?: Materials;
         quantity: number;
         price: number;
         cost: number;
-      }[]
+      }[];
     }[];
-    totalUsedCost: number
-  }[]
+    totalUsedCost: number;
+  }[];
 }
 
 //
 export interface InitialPlannedCostInputType {
   _id?: string;
   productionScope?: string;
-  month: string,
+  month: string;
   phases: {
     phase: string;
     production: number;
@@ -549,57 +549,115 @@ export interface InitialPlannedCostInputType {
 export interface InitialPlannedCostOutputType {
   _id?: string;
   productionScope?: ProductionScopeOutputType;
-  month: string,
+  month: string;
   group: {
-    _id: string,
-    month: string,
+    _id: string;
+    month: string;
     phases: {
-      key: string,
+      key: string;
       phase: PhaseGroupType;
       production: number;
       unit: string;
       assignmentNormCode: AssignmentNormOutputType;
       adjustmentNormCode: AssignmentNormOutputType;
-      totalInitialPlannedCost: number,
+      totalInitialPlannedCost: number;
       initialPlannedCostDetails: {
-        assignmentCode: AssignmentCodeOutputType,
-        baseNorm: number,
-        adjustmentNorm: number,
-        norm: number,
-        quantity: number,
-        price: number,
-        cost: number
-      }[],
+        assignmentCode: AssignmentCodeOutputType;
+        baseNorm: number;
+        adjustmentNorm: number;
+        norm: number;
+        quantity: number;
+        price: number;
+        cost: number;
+      }[];
     }[];
-    totalInitialPlannedCost: number
-  }[]
+    totalInitialPlannedCost: number;
+  }[];
 }
 //
 export interface MaterialBudgetCostType {
   _id?: string;
   productionScope?: ProductionScopeOutputType;
-  month: string,
+  month: string;
   group: {
-    _id: string,
-    month: string,
+    _id: string;
+    month: string;
     phases: {
-      key: string,
+      key: string;
       phase: PhaseGroupType;
       production: number;
       unit: string;
       assignmentNormCode: AssignmentNormOutputType;
       adjustmentNormCode: AssignmentNormOutputType;
-      totalBudgetCost: number,
+      totalBudgetCost: number;
       budgetCostDetails: {
-        assignmentCode: AssignmentCodeOutputType,
-        baseNorm: number,
-        adjustmentNorm: number,
-        norm: number,
-        quantity: number,
-        price: number,
-        cost: number
-      }[],
+        assignmentCode: AssignmentCodeOutputType;
+        baseNorm: number;
+        adjustmentNorm: number;
+        norm: number;
+        quantity: number;
+        price: number;
+        cost: number;
+      }[];
     }[];
-    totalBudgetCost: number
-  }[]
+    totalBudgetCost: number;
+  }[];
 }
+
+//
+
+// types.ts - Cập nhật type
+
+export type DataItem = {
+  adjustmentNorm: string;
+  assignmentCode: AssignmentCodeOutputType;
+  materialUseds: {
+    materialItemId: string;
+    materialCostId: string;
+    material?: MaterialAssignmentOutputType;
+    cost: number;
+    quantity: number;
+    price: number;
+  }[];
+  baseNorm: string;
+  norm: string;
+  price: number;
+  plan_Cost: number;
+  plan_Quantity: number;
+  used_Cost: number;
+  used_Quantity: number;
+  varianceCost: number;
+  varianceQuantity: number;
+};
+
+export type InfoItem = {
+  phases: PhaseInputType[];
+  productionScopes: ProductionScopeOutputType[];
+  rockRatio: string | null;
+  totalCoal: number;
+  totalCutting: number;
+  totalExcavation: number;
+};
+
+// Không chọn công đoạn
+export interface MonthlyDataNoPhase {
+  month: string;
+  info: InfoItem;
+  data: DataItem[];
+}
+
+// Có chọn công đoạn
+export interface MonthlyDataWithPhase {
+  month: string;
+  phases: {
+    phaseId: string;
+    phaseName: string;
+    phaseCode: string;
+    info: InfoItem;
+    data: DataItem[];
+  }[];
+}
+
+export type ContractSettlementResponse =
+  | MonthlyDataNoPhase[]
+  | MonthlyDataWithPhase[];

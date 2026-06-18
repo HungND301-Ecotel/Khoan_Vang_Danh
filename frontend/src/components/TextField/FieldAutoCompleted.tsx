@@ -124,6 +124,9 @@ export default function FieldAutoCompleted({
               fontSize: "14px",
               backgroundColor: "#FFFFFF",
             },
+            "& .MuiInputLabel-root": {
+              top: "-4px",
+            },
           }}
         />
       )}

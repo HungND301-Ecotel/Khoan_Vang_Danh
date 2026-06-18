@@ -7,6 +7,11 @@ const MaterialBudget = new mongoose.Schema(
       ref: "ProductionScope",
       required: [true, "ProductionScope is required"],
     },
+    department: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: [true, "Department is required"],
+    },
     month: String,
     phases: [
       {
@@ -58,11 +63,13 @@ const MaterialBudget = new mongoose.Schema(
 MaterialBudget.pre("save", async function (next) {
   const newMonth = this.month; // Ví dụ: "2025-12"
   const currentScope = this.productionScope;
+  const currentDepartment = this.department;
 
   // 2. Xây dựng truy vấn để tìm các tài liệu xung đột
   const conflictQuery = {
     _id: { $ne: this._id },
     productionScope: currentScope,
+    department: currentDepartment,
     month: newMonth,
   };
 

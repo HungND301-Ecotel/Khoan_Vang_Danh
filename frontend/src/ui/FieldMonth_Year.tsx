@@ -43,15 +43,20 @@ export default function FieldMonthYear({
         views={["year", "month"]}
         openTo="month"
         value={dayjsValue}
-        onChange={(val) =>
-          setValue(val ? dayjs(val).format("YYYY-MM") : "")
-        }
+        onChange={(val) => setValue(val ? dayjs(val).format("YYYY-MM") : "")}
         renderInput={(params) => (
           <TextField
             {...params}
             fullWidth
             size="small"
-            sx={{ backgroundColor: "#fff" }}
+            sx={{
+              "& .MuiInputBase-root": {
+                height: "32px",
+                borderRadius: "6px",
+                fontSize: "14px",
+                backgroundColor: "#FFFFFF",
+              },
+            }}
           />
         )}
       />

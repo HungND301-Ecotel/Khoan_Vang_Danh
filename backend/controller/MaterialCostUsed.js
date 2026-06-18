@@ -8,7 +8,7 @@ const { monthToNumber } = require('../utils/helpers')
 
 exports.create = async (req, res) => {
     try {
-        const { productionScope, phases, month, materials } = req.body
+        const { productionScope, department, phases, month, materials } = req.body
 
         const result = await calculatedPhases(phases, month, "budget")
 
@@ -40,11 +40,11 @@ exports.create = async (req, res) => {
         );
         const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
 
-        const newMaterialCostUsed = new MaterialCostUsed({ productionScope, month, phases, materials: processedMaterials, totalUsedCost })
+        const newMaterialCostUsed = new MaterialCostUsed({ productionScope, department, month, phases, materials: processedMaterials, totalUsedCost })
         await newMaterialCostUsed.save()
 
         try {
-            const newMaterialBudget = new MaterialBudget({ productionScope, month, phases: result, totalBudgetCost })
+            const newMaterialBudget = new MaterialBudget({ productionScope, department, month, phases: result, totalBudgetCost })
             await newMaterialBudget.save()
         } catch (error) {
             console.log(error.stack)
@@ -104,9 +104,10 @@ exports.update = async (req, res) => {
         }
 
         await MaterialBudget.findOneAndUpdate(
-            { productionScope: oldData.productionScope, month: oldData.month },
+            { productionScope: oldData.productionScope, department: oldData.department, month: oldData.month },
             {
                 productionScope: req.body.productionScope,
+                department: req.body.department,
                 month: req.body.month,
                 phases: result,
                 totalBudgetCost
@@ -128,7 +129,7 @@ exports.delete = async (req, res) => {
             return res.status(404).json({ status: 'error', message: 'Xóa thất bại' })
         }
         await MaterialBudget.findOneAndDelete(
-            { productionScope: deleteData.productionScope, month: deleteData.month },
+            { productionScope: deleteData.productionScope, department: deleteData.department, month: deleteData.month },
         );
         res.status(200).json({ status: 'success', message: 'Xóa thành công' })
     } catch (err) {
@@ -150,6 +151,10 @@ exports.get = async (req, res) => {
             const productionScopeIds = productionScopes.map(i => i?._id);
             // Chỉ match những InitialPlannedCost có productionScope nằm trong kết quả tìm kiếm
             scopeMatchQuery.productionScope = { $in: productionScopeIds };
+        }
+
+        if (req.query.department) {
+            scopeMatchQuery.department = req.query.department;
         }
 
         // --- BƯỚC 1: Lấy các ProductionScope (có dữ liệu trong MaterialCostUsed) cần hiển thị ---
@@ -178,6 +183,10 @@ exports.get = async (req, res) => {
         const allDocs = await MaterialCostUsed.find(initialPlannedCostQuery)
             .populate({
                 path: 'productionScope',
+                select: 'code name',
+            })
+            .populate({
+                path: 'department',
                 select: 'code name',
             })
             .populate('phases.phase', 'code name')
@@ -263,6 +272,7 @@ exports.get = async (req, res) => {
                 groupedDoc.group.push({
                     _id: doc?._id,
                     month: doc.month,
+                    department: doc.department,
                     totalUsedCost: doc.totalUsedCost,
                     phases: doc.phases,
                     materials: materials
