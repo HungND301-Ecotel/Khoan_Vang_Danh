@@ -6,16 +6,18 @@ const MaterialAssignment = require('../model/MaterialAssignment')
 const { paginateQuery } = require('../utils/pagination')
 const { recalculateAssignmentCodePrice, calculatedPhases } = require('../utils/recalculateAssignmentCodePrice')
 const { monthToNumber } = require('../utils/helpers')
+const Department = require('../model/Department')
 
-const syncRelatedData = async (productionScope, month, phases, oldProductionScope, oldMonth) => {
+const syncRelatedData = async (productionScope, department, month, phases, oldProductionScope, oldDepartment, oldMonth) => {
     try {
         const searchScope = oldProductionScope || productionScope;
+        const searchDepartment = oldDepartment || department;
         const searchMonth = oldMonth || month;
 
         // 1. Lấy dữ liệu hiện có từ MCU và MB dựa trên thông tin cũ (nếu có) hoặc thông tin hiện tại
         const [existingMCU, existingMB] = await Promise.all([
-            MaterialCostUsed.findOne({ productionScope: searchScope, month: searchMonth }),
-            MaterialBudget.findOne({ productionScope: searchScope, month: searchMonth })
+            MaterialCostUsed.findOne({ productionScope: searchScope, department: searchDepartment, month: searchMonth }),
+            MaterialBudget.findOne({ productionScope: searchScope, department: searchDepartment, month: searchMonth })
         ])
 
         // 2. Tạo mảng phases đồng bộ (ưu tiên lấy production từ MCU hiện có, nếu không có để mặc định là 0)
@@ -34,6 +36,7 @@ const syncRelatedData = async (productionScope, month, phases, oldProductionScop
         // 3. Đồng bộ sang MaterialCostUsed trước
         if (existingMCU) {
             existingMCU.productionScope = productionScope; // Cập nhật sang scope mới (nếu đổi)
+            existingMCU.department = department;           // Cập nhật sang department mới (nếu đổi)
             existingMCU.month = month;                     // Cập nhật sang tháng mới (nếu đổi)
             existingMCU.phases = synchronizedPhases;
 
@@ -71,6 +74,7 @@ const syncRelatedData = async (productionScope, month, phases, oldProductionScop
         } else {
             const newMCU = new MaterialCostUsed({
                 productionScope,
+                department,
                 month,
                 phases: synchronizedPhases,
                 materials: [],
@@ -85,9 +89,10 @@ const syncRelatedData = async (productionScope, month, phases, oldProductionScop
 
         // 5. Đồng bộ sang MaterialBudget sau (sử dụng findOneAndUpdate với filter cũ để cập nhật sang tháng mới)
         await MaterialBudget.findOneAndUpdate(
-            { productionScope: searchScope, month: searchMonth },
+            { productionScope: searchScope, department: searchDepartment, month: searchMonth },
             {
                 productionScope: productionScope,
+                department: department,
                 month: month,
                 phases: budgetPhases,
                 totalBudgetCost
@@ -102,7 +107,7 @@ const syncRelatedData = async (productionScope, month, phases, oldProductionScop
 
 exports.create = async (req, res) => {
     try {
-        const { productionScope, groups } = req.body; // groups: [{ month, phases }]
+        const { productionScope, department, groups } = req.body; // groups: [{ month, phases }]
 
         if (groups && Array.isArray(groups)) {
             const errors = [];
@@ -113,11 +118,11 @@ exports.create = async (req, res) => {
                     const totalInitialPlannedCost = result.reduce((sum, item) => sum + item.totalInitialPlannedCost, 0)
 
                     await InitialPlannedCost.findOneAndUpdate(
-                        { productionScope, month },
+                        { productionScope, department, month },
                         { phases: result, totalInitialPlannedCost },
                         { upsert: true, new: true }
                     )
-                    await syncRelatedData(productionScope, month, phases)
+                    await syncRelatedData(productionScope, department, month, phases)
                 } catch (err) {
                     console.error(`Lỗi khi xử lý nhóm tháng ${group.month}:`, err.message);
                     errors.push({ month: group.month, error: err.message });
@@ -139,12 +144,13 @@ exports.create = async (req, res) => {
 
             const newInitialPlannedCost = new InitialPlannedCost({
                 productionScope,
+                department,
                 month,
                 phases: result,
                 totalInitialPlannedCost
             });
             await newInitialPlannedCost.save();
-            await syncRelatedData(productionScope, month, phases)
+            await syncRelatedData(productionScope, department, month, phases)
         }
 
         res.status(201).json({ status: 'success', message: 'Tạo và đồng bộ thành công' });
@@ -174,7 +180,7 @@ exports.update = async (req, res) => {
         }
 
         // Đồng bộ dữ liệu liên quan (truyền cả thông tin cũ để tìm đúng bản ghi MCU/MB)
-        await syncRelatedData(updateData.productionScope, updateData.month, updateData.phases, oldData.productionScope, oldData.month)
+        await syncRelatedData(updateData.productionScope, updateData.department, updateData.month, updateData.phases, oldData.productionScope, oldData.department, oldData.month)
 
         res.status(200).json({ status: 'success', message: 'Sửa và đồng bộ thành công' })
     } catch (err) {
@@ -193,10 +199,12 @@ exports.delete = async (req, res) => {
         // Xóa dữ liệu liên quan (lần lượt MCU rồi đến MB)
         await MaterialCostUsed.findOneAndDelete({
             productionScope: deleteData.productionScope,
+            department: deleteData.department,
             month: deleteData.month
         })
         await MaterialBudget.findOneAndDelete({
             productionScope: deleteData.productionScope,
+            department: deleteData.department,
             month: deleteData.month
         })
 
@@ -213,153 +221,148 @@ exports.get = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        let matchQuery = {};
+        let scopeMatchQuery = {};
 
-        // 1. Xử lý điều kiện tìm kiếm theo req.query.q
         if (req.query.q) {
-            // Lọc các ProductionScope khớp với mã tìm kiếm
-            const productionScopes = await ProductionScope.find({ code: new RegExp(req.query.q, 'i') }).select('_id');
-            const productionScopeIds = productionScopes.map(i => i._id);
-            // Chỉ match những InitialPlannedCost có productionScope nằm trong kết quả tìm kiếm
-            matchQuery.productionScope = { $in: productionScopeIds };
+            const departments = await Department.find({ code: new RegExp(req.query.q, 'i') }).select('_id');
+            const departmentIds = departments.map(i => i?._id);
+            scopeMatchQuery.department = { $in: departmentIds };
         }
 
-        const pipeline = [
-            // 1. Match: Lọc InitialPlannedCost theo tìm kiếm (nếu có)
-            { $match: matchQuery },
+        if (req.query.department) {
+            scopeMatchQuery.department = req.query.department;
+        }
 
-            // 2. Group: Nhóm các chi phí theo productionScope để tạo ra các document duy nhất
-            {
-                $group: {
-                    _id: "$productionScope", // Nhóm theo ProductionScope ID
-                    minMonth: { $min: "$month" },
-                    maxMonth: { $max: "$month" },
-                    // Gom tất cả các document chi phí hàng tháng vào mảng 'group'
-                    group: {
-                        $push: {
-                            _id: "$_id",
-                            month: "$month",
-                            totalInitialPlannedCost: "$totalInitialPlannedCost",
-                            // Tạo trường 'key' cho phases
-                            phases: {
-                                $map: {
-                                    input: "$phases",
-                                    as: "phaseItem",
-                                    in: {
-                                        $mergeObjects: [
-                                            "$$phaseItem",
-                                            {
-                                                key: {
-                                                    $concat: [
-                                                        { $toString: "$_id" },
-                                                        "_",
-                                                        { $toString: "$$phaseItem.phase" }
-                                                    ]
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    },
-                }
-            },
+        const uniqueDepartmentIds = await InitialPlannedCost.distinct('department', scopeMatchQuery);
 
-            // 3. Populate (Lookup): Lấy thông tin chi tiết của productionScope
-            {
-                $lookup: {
-                    from: 'productionscopes',
-                    localField: '_id',
-                    foreignField: '_id',
-                    as: 'productionScope',
-                }
-            },
-            { $unwind: '$productionScope' },
+        const totalItems = uniqueDepartmentIds.length; 
 
-            // 4. Facet: Đếm tổng và Phân trang trên các document đã nhóm
-            {
-                $facet: {
-                    totalDocs: [{ $count: "count" }], // Đếm tổng số lượng ProductionScope (sau khi nhóm)
-                    paginatedData: [
-                        { $skip: skip },
-                        { $limit: limit },
-                    ]
-                }
-            }
-        ];
+        const paginatedDepartmentIds = uniqueDepartmentIds.slice(skip, skip + limit);
 
-        const aggregationResult = await InitialPlannedCost.aggregate(pipeline).exec();
+        const targetDepartments = await Department.find({ _id: { $in: paginatedDepartmentIds } })
+            .select('code name')
+            .lean()
+            .exec();
 
-        const data = aggregationResult[0].paginatedData;
-        const totalItems = aggregationResult[0].totalDocs[0]?.count || 0;
-        const totalPages = Math.ceil(totalItems / limit);
+        const matchQuery = { department: { $in: paginatedDepartmentIds } };
 
-        // 5. Xử lý sau aggregation (Populate các trường lồng sâu trong mảng 'group')
-        // Sử dụng Mongoose.populate() và khai báo Model tường minh
-        const populatedData = await InitialPlannedCost.populate(data, [
-            {
-                path: 'group.phases.initialPlannedCostDetails.assignmentCode',
+        const allDocs = await InitialPlannedCost.find(matchQuery)
+            .populate({
+                path: 'productionScope',
+                select: 'code name',
+            })
+            .populate({
+                path: 'department',
+                select: 'code name',
+            })
+            .populate('phases.phase', 'code name')
+            .populate({
+                path: 'phases.initialPlannedCostDetails.assignmentCode',
                 select: 'code name uom',
-                model: 'AssignmentCode',
-                populate: {
-                    path: 'uom',
-                    select: 'code name',
-                },
-            },
-            {
-                path: 'group.phases.phase',
-                select: 'code name', // Chọn các trường bạn muốn lấy
-                model: 'Phase', // <--- THÊM KHAI BÁO MODEL TƯỜNG MINH
-            },
-            {
-                path: 'group.phases.assignmentNormCode',
+                populate: { path: 'uom', select: 'name' }
+            })
+            .populate({
+                path: 'phases.assignmentNormCode',
                 select: 'norms code',
-                model: 'AssignmentNorm',
                 populate: {
                     path: 'norms.assignmentCode',
-                    model: 'AssignmentCode',
                     populate: { path: 'uom' }
                 }
-            },
-            {
-                path: 'group.phases.adjustmentNormCode',
+            })
+            .populate({
+                path: 'phases.adjustmentNormCode',
                 select: 'norms code',
-                model: 'AdjustmentNorm',
                 populate: {
                     path: 'norms.assignmentCode',
-                    model: 'AssignmentCode',
                     populate: { path: 'uom' }
                 }
-            },
-            // Bạn có thể muốn populate `productionScope.phases.phase` nếu cần hiển thị tên phase chi tiết
-        ]);
+            })
+            .lean()
+            .exec();
 
-        // 6. Định dạng lại kết quả cho Response
-        const results = populatedData.map(item => {
+
+        const groupedMap = new Map();
+
+        for (const dept of targetDepartments) {
+            groupedMap.set(dept?._id.toString(), {
+                _id: dept?._id.toString(),
+                department: dept, 
+                minMonth: null,
+                maxMonth: null,
+                totalInitialPlannedCost: 0,
+                monthGroups: {}
+            });
+        }
+
+        for (const doc of allDocs) {
+            const deptId = doc.department?._id.toString();
+
+            if (groupedMap.has(deptId)) { 
+                const deptGroup = groupedMap.get(deptId);
+
+                const currentMonthDate = new Date(doc.month + '-01');
+                if (!deptGroup.minMonth || currentMonthDate < new Date(deptGroup.minMonth + '-01')) {
+                    deptGroup.minMonth = doc.month;
+                }
+                if (!deptGroup.maxMonth || currentMonthDate > new Date(deptGroup.maxMonth + '-01')) {
+                    deptGroup.maxMonth = doc.month;
+                }
+
+                deptGroup.totalInitialPlannedCost += (doc.totalInitialPlannedCost || 0);
+
+                if (!deptGroup.monthGroups[doc.month]) {
+                    deptGroup.monthGroups[doc.month] = {
+                        _id: doc.month,
+                        month: doc.month,
+                        totalMonthCost: 0,
+                        scopes: []
+                    };
+                }
+
+                const monthGroup = deptGroup.monthGroups[doc.month];
+                monthGroup.totalMonthCost += (doc.totalInitialPlannedCost || 0);
+
+                monthGroup.scopes.push({
+                    _id: doc?._id,
+                    productionScope: doc.productionScope,
+                    totalInitialPlannedCost: doc.totalInitialPlannedCost,
+                    phases: doc.phases.map(phaseItem => ({
+                        ...phaseItem,
+                        key: `${doc._id.toString()}_${phaseItem.phase?._id?.toString()}`
+                    }))
+                });
+            }
+        }
+
+        const results = Array.from(groupedMap.values()).map(item => {
             const formatMonth = (m) => {
                 if (!m) return '';
                 const [y, mm] = m.split('-');
                 return `${mm}/${y}`;
             };
 
+            const monthsArray = Object.values(item.monthGroups).sort((a, b) => {
+                return new Date(b.month + '-01') - new Date(a.month + '-01'); 
+            });
+
             return {
                 _id: item._id,
-                productionScope: item.productionScope,
+                department: item.department,
+                totalInitialPlannedCost: item.totalInitialPlannedCost,
                 month: `${formatMonth(item.minMonth)} -> ${formatMonth(item.maxMonth)}`,
-                group: item.group,
+                months: monthsArray
             };
         });
 
+        const totalPages = Math.ceil(totalItems / limit);
         const pagination = {
-            data: results,
+            data: results, 
             page: page,
-            totalDocs: totalItems,
+            totalDocs: totalItems, 
             totalPages: totalPages
         };
 
         res.status(200).json({ status: 'success', data: pagination });
-
     } catch (err) {
         console.error(err.stack);
         res.status(500).json({ status: 'error', message: err.message });

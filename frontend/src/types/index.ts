@@ -506,35 +506,42 @@ export interface MaterialCostUsedInputType {
 export interface MaterialCostUsedOutputType {
   _id?: string;
   department?: DepartmentType;
-  productionScope?: ProductionScopeOutputType;
   month: string;
-  group: {
+  totalUsedCost: number;
+  months: {
     _id: string;
     month: string;
-    phases: {
-      phase: PhaseGroupType;
-      production: number;
-      unit: string;
-      assignmentNormCode: string;
-      adjustmentNormCode: string;
-    }[];
-    materials: {
-      assignmentCode: AssignmentCodeInputType;
-      price: number;
-      materials: {
-        material?: Materials;
-        quantity: number;
-        price: number;
-        cost: number;
+    totalMonthCost: number;
+    scopes: {
+      _id: string;
+      isOtherTask?: boolean;
+      productionScope: ProductionScopeOutputType;
+      phases: {
+        phase: PhaseGroupType;
+        production: number;
+        unit: string;
+        assignmentNormCode: string;
+        adjustmentNormCode: string;
       }[];
+      materials: {
+        assignmentCode: AssignmentCodeInputType;
+        price: number;
+        materials: {
+          material?: Materials;
+          quantity: number;
+          price: number;
+          cost: number;
+        }[];
+      }[];
+      totalUsedCost: number;
     }[];
-    totalUsedCost: number;
   }[];
 }
 
 //
 export interface InitialPlannedCostInputType {
   _id?: string;
+  department?: string;
   productionScope?: string;
   month: string;
   phases: {
@@ -548,59 +555,71 @@ export interface InitialPlannedCostInputType {
 
 export interface InitialPlannedCostOutputType {
   _id?: string;
-  productionScope?: ProductionScopeOutputType;
+  department?: DepartmentType;
   month: string;
-  group: {
+  totalInitialPlannedCost: number;
+  months: {
     _id: string;
     month: string;
-    phases: {
-      key: string;
-      phase: PhaseGroupType;
-      production: number;
-      unit: string;
-      assignmentNormCode: AssignmentNormOutputType;
-      adjustmentNormCode: AssignmentNormOutputType;
-      totalInitialPlannedCost: number;
-      initialPlannedCostDetails: {
-        assignmentCode: AssignmentCodeOutputType;
-        baseNorm: number;
-        adjustmentNorm: number;
-        norm: number;
-        quantity: number;
-        price: number;
-        cost: number;
+    totalMonthCost: number;
+    scopes: {
+      _id: string;
+      productionScope: ProductionScopeOutputType;
+      phases: {
+        key: string;
+        phase: PhaseGroupType;
+        production: number;
+        unit: string;
+        assignmentNormCode: AssignmentNormOutputType;
+        adjustmentNormCode: AssignmentNormOutputType;
+        totalInitialPlannedCost: number;
+        initialPlannedCostDetails: {
+          assignmentCode: AssignmentCodeOutputType;
+          baseNorm: number;
+          adjustmentNorm: number;
+          norm: number;
+          quantity: number;
+          price: number;
+          cost: number;
+        }[];
       }[];
+      totalInitialPlannedCost: number;
     }[];
-    totalInitialPlannedCost: number;
   }[];
 }
 //
 export interface MaterialBudgetCostType {
   _id?: string;
-  productionScope?: ProductionScopeOutputType;
+  department?: DepartmentType;
   month: string;
-  group: {
+  totalBudgetCost: number;
+  months: {
     _id: string;
     month: string;
-    phases: {
-      key: string;
-      phase: PhaseGroupType;
-      production: number;
-      unit: string;
-      assignmentNormCode: AssignmentNormOutputType;
-      adjustmentNormCode: AssignmentNormOutputType;
+    totalMonthCost: number;
+    scopes: {
+      _id: string;
+      productionScope: ProductionScopeOutputType;
       totalBudgetCost: number;
-      budgetCostDetails: {
-        assignmentCode: AssignmentCodeOutputType;
-        baseNorm: number;
-        adjustmentNorm: number;
-        norm: number;
-        quantity: number;
-        price: number;
-        cost: number;
+      phases: {
+        key: string;
+        phase: PhaseGroupType;
+        production: number;
+        unit: string;
+        assignmentNormCode: AssignmentNormOutputType;
+        adjustmentNormCode: AssignmentNormOutputType;
+        totalBudgetCost: number;
+        budgetCostDetails: {
+          assignmentCode: AssignmentCodeOutputType;
+          baseNorm: number;
+          adjustmentNorm: number;
+          norm: number;
+          quantity: number;
+          price: number;
+          cost: number;
+        }[];
       }[];
     }[];
-    totalBudgetCost: number;
   }[];
 }
 

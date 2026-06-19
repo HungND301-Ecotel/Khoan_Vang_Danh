@@ -207,7 +207,7 @@ export default function Quarterlycontractsettlement() {
               </Grid>*/}
             </Grid>
           </Grid>
-          <Grid
+          {/* <Grid
             item
             xs={6}
             alignItems="center"
@@ -300,7 +300,7 @@ export default function Quarterlycontractsettlement() {
                 Gửi
               </Button>
             </Box>
-          </Grid>
+          </Grid> */}
         </Grid>
       </Box>
       <Box sx={{ overflowX: "auto" }}>
@@ -1003,8 +1003,7 @@ export default function Quarterlycontractsettlement() {
                       }}
                     >
                       {index === 0
-                        ? assignment?.assignmentCode ||
-                          assignment.assignmentCode === null
+                        ? assignment?.assignmentCode
                           ? formatDecimal(assignment?.plan_Quantity)
                           : ""
                         : index === 1
@@ -1012,13 +1011,11 @@ export default function Quarterlycontractsettlement() {
                           : index === 2
                             ? ""
                             : index === 3
-                              ? assignment?.assignmentCode ||
-                                assignment.assignmentCode === null
+                              ? assignment?.assignmentCode
                                 ? formattedPrice(assignment?.plan_Cost)
                                 : ""
                               : index === 4
-                                ? assignment?.assignmentCode ||
-                                  assignment.assignmentCode === null
+                                ? assignment?.assignmentCode
                                   ? formatDecimal(assignment?.used_Quantity)
                                   : ""
                                 : index === 5
@@ -1026,20 +1023,17 @@ export default function Quarterlycontractsettlement() {
                                   : index === 6
                                     ? ""
                                     : index === 7
-                                      ? assignment?.assignmentCode ||
-                                        assignment.assignmentCode === null
+                                      ? assignment?.assignmentCode
                                         ? formattedPrice(assignment?.used_Cost)
                                         : ""
                                       : index === 8
-                                        ? assignment?.assignmentCode ||
-                                          assignment.assignmentCode === null
+                                        ? assignment?.assignmentCode
                                           ? formatDecimal(
                                               assignment?.varianceQuantity,
                                             )
                                           : ""
                                         : index === 9
-                                          ? assignment?.assignmentCode ||
-                                            assignment.assignmentCode === null
+                                          ? assignment?.assignmentCode
                                             ? formattedPrice(
                                                 assignment?.varianceCost,
                                               )
@@ -1123,8 +1117,7 @@ export default function Quarterlycontractsettlement() {
                           p: 0.5,
                         }}
                       >
-                        {assignment?.assignmentCode ||
-                        assignment.assignmentCode === null
+                        {assignment?.assignmentCode
                           ? ""
                           : formattedPrice(materialUsed?.price)}
                       </TableCell>
@@ -1148,13 +1141,17 @@ export default function Quarterlycontractsettlement() {
                           }}
                         >
                           {index === 0
-                            ? ""
+                            ? assignment?.assignmentCode
+                              ? ""
+                              : formatDecimal(materialUsed?.quantity)
                             : index === 1
                               ? ""
                               : index === 2
                                 ? ""
                                 : index === 3
-                                  ? ""
+                                  ? assignment?.assignmentCode
+                                    ? ""
+                                    : formattedPrice(materialUsed?.cost)
                                   : index === 4
                                     ? formatDecimal(materialUsed?.quantity)
                                     : index === 5
@@ -1166,9 +1163,13 @@ export default function Quarterlycontractsettlement() {
                                             ? ""
                                             : formattedPrice(materialUsed?.cost)
                                           : index === 8
-                                            ? ""
-                                            : index === 9
+                                            ? assignment?.assignmentCode
                                               ? ""
+                                              : formatDecimal(0)
+                                            : index === 9
+                                              ? assignment?.assignmentCode
+                                                ? ""
+                                                : formattedPrice(0)
                                               : ""}
                         </TableCell>
                       ))}

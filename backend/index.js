@@ -28,6 +28,7 @@ const ContractSettlementRouter = require("./routes/ContractSettlement");
 const UserRouter = require("./routes/User");
 const SystemConfigRouter = require("./routes/SystemConfig");
 const DepartmentRouter = require("./routes/Department");
+const OtherMaterialCostRouter = require("./routes/othermaterialcosts");
 
 const AuthRouter = require("./routes/Auth");
 
@@ -70,6 +71,7 @@ app.use("/api/contractsettlements", ContractSettlementRouter);
 app.use("/api/users", UserRouter);
 app.use("/api/system-configs", SystemConfigRouter);
 app.use("/api/departments", DepartmentRouter);
+app.use("/api/othermaterialcosts", OtherMaterialCostRouter);
 
 
 const port = process.env.PORT || 8080;

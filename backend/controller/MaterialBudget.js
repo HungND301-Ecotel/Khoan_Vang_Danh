@@ -4,6 +4,7 @@ const {
   updatePriceAssignmentCode,
 } = require("../utils/recalculateAssignmentCodePrice");
 const ProductionScope = require("../model/ProductionScope");
+const Department = require("../model/Department");
 
 const monthToNumber = (month) => (month ? Number(month.replace("-", "")) : "");
 
@@ -66,52 +67,48 @@ exports.get = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    let scopeMatchQuery = {}; // Query để lọc ProductionScope ID
+    let scopeMatchQuery = {};
 
-    // 1. Xử lý điều kiện tìm kiếm theo req.query.q
     if (req.query.q) {
-      // Lọc ProductionScope theo mã, sau đó dùng các ID này để match trong MaterialBudget
-      const productionScopes = await ProductionScope.find({
+      const departments = await Department.find({
         code: new RegExp(req.query.q, "i"),
       }).select("_id");
-      const productionScopeIds = productionScopes.map((i) => i._id);
-      scopeMatchQuery.productionScope = { $in: productionScopeIds };
+      const departmentIds = departments.map((i) => i?._id);
+      scopeMatchQuery.department = { $in: departmentIds };
     }
 
-    // --- BƯỚC 1: Lấy các ProductionScope ID DUY NHẤT có dữ liệu (áp dụng phân trang) ---
+    if (req.query.department) {
+      scopeMatchQuery.department = req.query.department;
+    }
 
-    // Lấy tất cả ID ProductionScope duy nhất từ MaterialBudget khớp với điều kiện tìm kiếm
-    const uniqueScopeIds = await MaterialBudget.distinct(
-      "productionScope",
+    const uniqueDepartmentIds = await MaterialBudget.distinct(
+      "department",
       scopeMatchQuery,
     );
 
-    // Tổng số ProductionScope đã nhóm (Tổng số tài liệu để phân trang)
-    const totalItems = uniqueScopeIds.length;
+    const totalItems = uniqueDepartmentIds.length;
 
-    // Lấy các ID cho trang hiện tại
-    const paginatedScopeIds = uniqueScopeIds.slice(skip, skip + limit);
+    const paginatedDepartmentIds = uniqueDepartmentIds.slice(skip, skip + limit);
 
-    // Populate thông tin ProductionScope cho các ID đã phân trang
-    const targetScopes = await ProductionScope.find({
-      _id: { $in: paginatedScopeIds },
+    const targetDepartments = await Department.find({
+      _id: { $in: paginatedDepartmentIds },
     })
       .select("code name")
       .lean()
       .exec();
 
-    // 2. Query MaterialBudget: Chỉ lấy các document có productionScope nằm trong các ID đã phân trang
-    const materialBudgetQuery = { productionScope: { $in: paginatedScopeIds } };
+    const matchQuery = { department: { $in: paginatedDepartmentIds } };
 
-    // --- BƯỚC 2: Thực hiện query toàn bộ MaterialBudget cho các Scope đã chọn (KHÔNG phân trang) ---
-
-    const allDocs = await MaterialBudget.find(materialBudgetQuery)
+    const allDocs = await MaterialBudget.find(matchQuery)
       .populate({
         path: "productionScope",
         select: "code name",
-        // Populate Phases.phase lồng trong productionScope đã được thực hiện ở targetScopes
       })
-      .populate("phases.phase", "code name") // Populate Phase ở cấp độ phases trực tiếp
+      .populate({
+        path: "department",
+        select: "code name",
+      })
+      .populate("phases.phase", "code name")
       .populate({
         path: "phases.budgetCostDetails.assignmentCode",
         select: "code name uom",
@@ -127,61 +124,68 @@ exports.get = async (req, res) => {
         select: "norms code",
         populate: [{ path: "norms.assignmentCode", populate: "uom" }],
       })
-      // Thêm các populate còn thiếu (nếu có)
       .lean()
       .exec();
 
-    // --- BƯỚC 3: Xử lý dữ liệu bằng JavaScript để nhóm ---
-
     const groupedMap = new Map();
 
-    // Khởi tạo Map với các ProductionScope đã được phân trang (đã populate)
-    for (const scope of targetScopes) {
-      groupedMap.set(scope._id.toString(), {
-        _id: scope._id.toString(),
-        productionScope: scope,
+    for (const dept of targetDepartments) {
+      groupedMap.set(dept?._id.toString(), {
+        _id: dept?._id.toString(),
+        department: dept,
         minMonth: null,
         maxMonth: null,
-        group: [],
+        totalBudgetCost: 0,
+        monthGroups: {},
       });
     }
 
     for (const doc of allDocs) {
-      const scopeId = doc.productionScope?._id?.toString();
+      const deptId = doc.department?._id?.toString();
 
-      if (groupedMap.has(scopeId)) {
-        const groupedDoc = groupedMap.get(scopeId);
+      if (groupedMap.has(deptId)) {
+        const deptGroup = groupedMap.get(deptId);
 
-        // --- Logic tìm Min/Max Month ---
         const currentMonthDate = new Date(doc.month + "-01");
         if (
-          !groupedDoc.minMonth ||
-          currentMonthDate < new Date(groupedDoc.minMonth + "-01")
+          !deptGroup.minMonth ||
+          currentMonthDate < new Date(deptGroup.minMonth + "-01")
         ) {
-          groupedDoc.minMonth = doc.month;
+          deptGroup.minMonth = doc.month;
         }
         if (
-          !groupedDoc.maxMonth ||
-          currentMonthDate > new Date(groupedDoc.maxMonth + "-01")
+          !deptGroup.maxMonth ||
+          currentMonthDate > new Date(deptGroup.maxMonth + "-01")
         ) {
-          groupedDoc.maxMonth = doc.month;
+          deptGroup.maxMonth = doc.month;
         }
 
-        // Thêm dữ liệu vào mảng 'group'
-        groupedDoc.group.push({
+        deptGroup.totalBudgetCost += doc.totalBudgetCost || 0;
+
+        if (!deptGroup.monthGroups[doc.month]) {
+          deptGroup.monthGroups[doc.month] = {
+            _id: doc.month,
+            month: doc.month,
+            totalMonthCost: 0,
+            scopes: [],
+          };
+        }
+
+        const monthGroup = deptGroup.monthGroups[doc.month];
+        monthGroup.totalMonthCost += doc.totalBudgetCost || 0;
+
+        monthGroup.scopes.push({
           _id: doc._id,
-          month: doc.month,
+          productionScope: doc.productionScope,
           totalBudgetCost: doc.totalBudgetCost,
           phases: doc.phases?.map((phaseItem) => ({
             ...phaseItem,
-            // Thêm key
-            key: `${doc._id.toString()}_${phaseItem.phase._id.toString()}`,
+            key: `${doc._id.toString()}_${phaseItem.phase?._id?.toString()}`,
           })),
         });
       }
     }
 
-    // Chuyển Map thành mảng và định dạng tháng
     const results = Array.from(groupedMap.values()).map((item) => {
       const formatMonth = (m) => {
         if (!m) return "";
@@ -189,13 +193,19 @@ exports.get = async (req, res) => {
         return `${mm}/${y}`;
       };
 
+      const monthsArray = Object.values(item.monthGroups).sort((a, b) => {
+        return new Date(b.month + "-01") - new Date(a.month + "-01");
+      });
+
       return {
-        ...item,
+        _id: item._id,
+        department: item.department,
+        totalBudgetCost: item.totalBudgetCost,
         month: `${formatMonth(item.minMonth)} -> ${formatMonth(item.maxMonth)}`,
+        months: monthsArray,
       };
     });
 
-    // 4. Trả về kết quả phân trang
     const totalPages = Math.ceil(totalItems / limit);
     const pagination = {
       data: results,

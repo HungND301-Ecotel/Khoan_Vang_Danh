@@ -46,6 +46,7 @@ import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import PhaseTable from "./PhaseTable";
 import GroupTable from "./GroupTable";
+import MonthTable from "./MonthTable";
 import dayjs from "dayjs";
 import { formattedPrice } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
@@ -83,10 +84,10 @@ export default function MaterialCostUsed() {
     });
 
   const createMutation = useMutation({
-    mutationFn: (newMaterialCostUsed: Partial<MaterialCostUsedInputType>) =>
-      api
-        .post("/materialcostuseds", newMaterialCostUsed)
-        .then((res) => res.data),
+    mutationFn: (newMaterialCostUsed: Partial<MaterialCostUsedInputType> & { isOtherTask?: boolean }) => {
+      const endpoint = newMaterialCostUsed.isOtherTask ? "/othermaterialcosts" : "/materialcostuseds";
+      return api.post(endpoint, newMaterialCostUsed).then((res) => res.data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
       setOpen(false);
@@ -100,13 +101,10 @@ export default function MaterialCostUsed() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (updateMaterialCostUsed: Partial<MaterialCostUsedInputType>) =>
-      api
-        .put(
-          `/materialcostuseds/${updateMaterialCostUsed._id}`,
-          updateMaterialCostUsed,
-        )
-        .then((res) => res.data),
+    mutationFn: (updateMaterialCostUsed: Partial<MaterialCostUsedInputType> & { isOtherTask?: boolean }) => {
+      const endpoint = updateMaterialCostUsed.isOtherTask ? `/othermaterialcosts/${updateMaterialCostUsed._id}` : `/materialcostuseds/${updateMaterialCostUsed._id}`;
+      return api.put(endpoint, updateMaterialCostUsed).then((res) => res.data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
       setOpen(false);
@@ -128,16 +126,17 @@ export default function MaterialCostUsed() {
 
     showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
-        deleteMutation(deletedIds);
+        deleteMutation({ ids: deletedIds });
       }
     });
   };
 
   const { mutate: deleteMutation, isPending: isDeletePending } = useMutation({
-    mutationFn: async (ids: React.Key[]) => {
-      const deletePromises = ids.map((id) =>
-        api.delete(`/materialcostuseds/${id}`).then((res) => res.data),
-      );
+    mutationFn: async ({ ids, isOtherTask }: { ids: React.Key[], isOtherTask?: boolean }) => {
+      const deletePromises = ids.map((id) => {
+        const endpoint = isOtherTask ? `/othermaterialcosts/${id}` : `/materialcostuseds/${id}`;
+        return api.delete(endpoint).then((res) => res.data);
+      });
       return Promise.all(deletePromises);
     },
     onSuccess: () => {
@@ -189,15 +188,15 @@ export default function MaterialCostUsed() {
         </Box>
       );
     }
-    if (!data.group) {
+    if (!data.months) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
     return (
       <Box>
-        <GroupTable
-          data={data.group}
+        <MonthTable
+          data={data.months}
           handleOpen={handleOpen}
-          productionScope={record.productionScope}
+          department={record.department}
           handleDeleteMutation={deleteMutation}
         />
       </Box>
@@ -216,16 +215,16 @@ export default function MaterialCostUsed() {
     },
     {
       title: (
-        <Typography sx={{ fontWeight: "bold" }}>Mã diện sản xuất </Typography>
+        <Typography sx={{ fontWeight: "bold" }}>Phân xưởng </Typography>
       ),
-      dataIndex: "code",
-      key: "code",
+      dataIndex: "department",
+      key: "department",
       render: (_, record) => (
-        <Typography>{record.productionScope?.code}</Typography>
+        <Typography>{record.department?.name || record.department?.code}</Typography>
       ),
       sorter: (a, b) =>
-        (a.productionScope?.code ?? "").localeCompare(
-          b.productionScope?.code ?? "",
+        (a.department?.name ?? "").localeCompare(
+          b.department?.name ?? "",
           "vi",
           {
             sensitivity: "base",
@@ -245,10 +244,7 @@ export default function MaterialCostUsed() {
       key: "totalUsedCost",
       width: 50,
       render: (text: string, item: any) => {
-        const total = item.group.reduce(
-          (sum: number, i: any) => sum + i.totalUsedCost,
-          0,
-        );
+        const total = item.totalUsedCost || 0;
         return <Typography> {formattedPrice(total)}</Typography>;
       },
     },
@@ -283,7 +279,7 @@ export default function MaterialCostUsed() {
         <IconButton
           onClick={() =>
             handleOpen({
-              productionScope: record.productionScope,
+              department: record.department,
             })
           }
           sx={{
@@ -312,7 +308,9 @@ export default function MaterialCostUsed() {
         (g: MaterialCostUsedOutputType) =>
           newSelectedRows.some((s) => s === g._id),
       );
-      const allSelectedGroups = selectedDocuments.flatMap((g: any) => g.group);
+      const allSelectedGroups = selectedDocuments.flatMap((g: any) => 
+        g.months.flatMap((m: any) => m.scopes)
+      );
       const deletedGroupIds = allSelectedGroups.map(
         (groupItem: any) => groupItem._id,
       );

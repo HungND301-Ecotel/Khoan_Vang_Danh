@@ -43,6 +43,7 @@ import { useAtomValue } from "jotai";
 import { SYSTEM_KEYS } from "../../../utils/constant";
 
 const validationSchema = yup.object({
+  department: yup.string().required("Phân xưởng không được để trống"),
   productionScope: yup.string().required("Diện sản xuất không được để trống"),
   groups: yup
     .array()
@@ -100,6 +101,11 @@ export default function InitialPlannedCostModal({
       api.get("/assignmentnorms").then((res) => res.data.data),
   });
 
+  const { data: departments = { data: [] } } = useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => api.get("/departments").then((res) => res.data.data),
+  });
+
   const { data: adjustmentnorms = { data: [] } } = useQuery({
     queryKey: ["adjustmentnorms"],
     queryFn: async () =>
@@ -124,6 +130,9 @@ export default function InitialPlannedCostModal({
   const formik = useFormik({
     initialValues: {
       _id: selected?._id || "",
+      department: selected?.department?._id
+        ? String(selected.department._id)
+        : selected?.department || "",
       productionScope: selected?.productionScope?._id
         ? String(selected.productionScope._id)
         : "",
@@ -188,6 +197,7 @@ export default function InitialPlannedCostModal({
     validationSchema,
     onSubmit: async (values) => {
       const payload = {
+        department: values.department,
         productionScope: values.productionScope,
         groups: values.groups.map((g: any) => ({
           month: dayjs(new Date(g.month)).format("YYYY-MM"),
@@ -214,6 +224,7 @@ export default function InitialPlannedCostModal({
         handleSubmit({
           ...payload.groups[0],
           _id: values._id,
+          department: values.department,
           productionScope: values.productionScope,
         });
       } else {
@@ -307,6 +318,19 @@ export default function InitialPlannedCostModal({
       }
     >
       <FormikProvider value={formik}>
+        <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+          Phân xưởng
+        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
+          <FieldAutoCompleted
+            formik={formik}
+            field="department"
+            title=""
+            labelkey="name"
+            data={departments.data}
+          />
+        </Box>
+
         <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
           Mã diện sản xuất
         </Typography>

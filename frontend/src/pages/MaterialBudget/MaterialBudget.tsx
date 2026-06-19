@@ -38,8 +38,10 @@ import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
+import PhaseTable from "./PhaseTable";
 import dayjs from "dayjs";
 import GroupTable from "./GroupTable";
+import MonthTable from "./MonthTable";
 import { formattedPrice } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
 
@@ -125,14 +127,14 @@ export default function MaterialBudget() {
         </Box>
       );
     }
-    if (!data.group) {
+    if (!data.months) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
     return (
       <Box>
-        <GroupTable
-          data={data.group}
-          productionScope={record.productionScope}
+        <MonthTable
+          data={data.months}
+          department={record.department}
           handleDeleteMutation={handleDeleteMutation}
         />
       </Box>
@@ -151,17 +153,17 @@ export default function MaterialBudget() {
     },
     {
       title: (
-        <Typography sx={{ fontWeight: "bold" }}>Mã diện sản xuất </Typography>
+        <Typography sx={{ fontWeight: "bold" }}>Phân xưởng</Typography>
       ),
-      dataIndex: "code",
-      key: "code",
+      dataIndex: "department",
+      key: "department",
       width: 300,
       render: (_, record) => (
-        <Typography>{record.productionScope?.code}</Typography>
+        <Typography>{record.department?.name || record.department?.code}</Typography>
       ),
       sorter: (a, b) =>
-        (a.productionScope?.code ?? "").localeCompare(
-          b.productionScope?.code ?? "",
+        (a.department?.name ?? "").localeCompare(
+          b.department?.name ?? "",
           "vi",
           {
             sensitivity: "base",
@@ -181,10 +183,7 @@ export default function MaterialBudget() {
       key: "totalBudgetCost",
       width: 50,
       render: (text: string, item: any) => {
-        const total = item.group.reduce(
-          (sum: number, i: any) => sum + i.totalBudgetCost,
-          0,
-        );
+        const total = item?.totalBudgetCost || 0;
         return <Typography> {formattedPrice(total)}</Typography>;
       },
     },
@@ -223,7 +222,9 @@ export default function MaterialBudget() {
       const selectedDocuments = materialbudgets.data.filter(
         (g: MaterialBudgetCostType) => newSelectedRows.some((s) => s === g._id),
       );
-      const allSelectedGroups = selectedDocuments.flatMap((g: any) => g.group);
+      const allSelectedGroups = selectedDocuments.flatMap((g: any) => 
+        g.months.flatMap((m: any) => m.scopes)
+      );
       const deletedGroupIds = allSelectedGroups.map(
         (groupItem: any) => groupItem._id,
       );

@@ -21,6 +21,8 @@ import {
   DialogActions,
   Select,
   MenuItem,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import {
   Dispatch,
@@ -142,6 +144,7 @@ export default function MaterialCostUsedModal({
   // Initial values
   const formik = useFormik({
     initialValues: {
+      isOtherTask: selected?.isOtherTask || false,
       department: selected?.department?._id
         ? String(selected.department._id)
         : "",
@@ -192,10 +195,11 @@ export default function MaterialCostUsedModal({
     enableReinitialize: true,
     onSubmit: async (values) => {
       // Đóng gói payload đảm bảo phases luôn có unit
-      const payload: Partial<MaterialCostUsedInputType> = {
+      const payload: Partial<MaterialCostUsedInputType> & { isOtherTask?: boolean } = {
         _id: selected?._id,
+        isOtherTask: values.isOtherTask,
         department: values?.department,
-        productionScope: values?.productionScope,
+        productionScope: values.isOtherTask ? undefined : values?.productionScope,
         month: dayjs(new Date(values.month)).format("YYYY-MM"),
         phases: (values.phases || []).map((p: any) => ({
           phase: p.phase ?? "",
@@ -530,6 +534,31 @@ export default function MaterialCostUsedModal({
       }
     >
       <FormikProvider value={formik}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formik.values.isOtherTask}
+              onChange={(e) => {
+                formik.setFieldValue("isOtherTask", e.target.checked);
+                if (e.target.checked) {
+                  formik.setFieldValue("productionScope", "");
+                  formik.setFieldValue("groupIndexes", null);
+                  formik.setFieldValue("phases", [
+                    { phase: "", production: 0, unit: "" },
+                  ]);
+                } else {
+                  formik.setFieldValue("month", "");
+                  formik.setFieldValue("phases", []);
+                }
+              }}
+              disabled={!!selected?._id} // Không cho đổi loại khi sửa bản ghi đã tồn tại
+            />
+          }
+          label={
+            <Typography sx={{ fontWeight: 500 }}>Công việc khác</Typography>
+          }
+        />
+
         {/* Phân xưởng */}
         <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
           Phân xưởng
@@ -545,23 +574,31 @@ export default function MaterialCostUsedModal({
         </Box>
 
         {/* Mã diện sản xuất */}
-        <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
-          Mã diện sản xuất
-        </Typography>
-        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
-          <FieldAutoCompleted
-            formik={formik}
-            field="productionScope"
-            title=""
-            labelkey="code"
-            data={productionscopes.data}
-            onChange={() => {
-              formik.setFieldValue("groupIndexes", null);
-              formik.setFieldValue("phases", []);
-            }}
-          />
-        </Box>
-        {initialplannedcost && (
+        {!formik.values.isOtherTask && (
+          <>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+            >
+              Mã diện sản xuất
+            </Typography>
+            <Box
+              sx={{ display: "flex", justifyContent: "center", width: "100%" }}
+            >
+              <FieldAutoCompleted
+                formik={formik}
+                field="productionScope"
+                title=""
+                labelkey="code"
+                data={productionscopes.data}
+                onChange={() => {
+                  formik.setFieldValue("groupIndexes", null);
+                  formik.setFieldValue("phases", []);
+                }}
+              />
+            </Box>
+          </>
+        )}
+        {initialplannedcost && !formik.values.isOtherTask && (
           <Box>
             <Typography
               sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
@@ -589,7 +626,18 @@ export default function MaterialCostUsedModal({
             />
           </Box>
         )}
-        {formik.values.groupIndexes && (
+
+        {formik.values.isOtherTask && (
+          <Box>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+            >
+              Thời gian
+            </Typography>
+            <FieldMonthYear formik={formik} fieldName="month" />
+          </Box>
+        )}
+        {(formik.values.groupIndexes || formik.values.isOtherTask) && (
           <Box sx={{ mt: 1 }}>
             <Paper
               elevation={0}
@@ -602,11 +650,13 @@ export default function MaterialCostUsedModal({
                 position: "relative",
               }}
             >
-              <FieldMonthYear
-                formik={formik}
-                fieldName="month"
-                disabled={true}
-              />
+              {!formik.values.isOtherTask && (
+                <FieldMonthYear
+                  formik={formik}
+                  fieldName="month"
+                  disabled={true}
+                />
+              )}
 
               {/* {visiable.some(i => i === indexParent) && */}
               <FieldArray name="phases">
@@ -665,7 +715,13 @@ export default function MaterialCostUsedModal({
                             }}
                           >
                             {/* Mã công đoạn */}
-                            <Box>
+                            <Box
+                              sx={{
+                                gridColumn: formik.values.isOtherTask
+                                  ? "span 2"
+                                  : "span 1",
+                              }}
+                            >
                               <Typography
                                 sx={{
                                   fontWeight: 500,
@@ -673,54 +729,90 @@ export default function MaterialCostUsedModal({
                                   mb: 0.5,
                                 }}
                               >
-                                Mã công đoạn
+                                {formik.values.isOtherTask
+                                  ? "Chọn công đoạn"
+                                  : "Mã công đoạn"}
                               </Typography>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                value={phase?.code || ""}
-                                InputLabelProps={{ shrink: true }}
-                                disabled
-                                sx={{
-                                  "& .MuiInputBase-root": {
-                                    height: "32px",
-                                    borderRadius: "6px",
-                                    paddingRight: "12px",
-                                    paddingLeft: "12px",
-                                    fontSize: "14px",
-                                  },
-                                }}
-                              />
+                              {formik.values.isOtherTask ? (
+                                <Autocomplete
+                                  size="small"
+                                  options={phases.data}
+                                  getOptionLabel={(option: any) =>
+                                    `${option.code} - ${option.name}`
+                                  }
+                                  value={
+                                    phases.data.find(
+                                      (p: any) => p._id === item.phase,
+                                    ) || null
+                                  }
+                                  onChange={(e, newValue) => {
+                                    formik.setFieldValue(
+                                      `phases[${index}].phase`,
+                                      newValue?._id || "",
+                                    );
+                                    formik.setFieldValue(
+                                      `phases[${index}].unit`,
+                                      newValue?.unit || "mét",
+                                    );
+                                  }}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      placeholder="Chọn công đoạn"
+                                      sx={{ background: "white" }}
+                                    />
+                                  )}
+                                />
+                              ) : (
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  value={phase?.code || ""}
+                                  InputLabelProps={{ shrink: true }}
+                                  disabled
+                                  sx={{
+                                    "& .MuiInputBase-root": {
+                                      height: "32px",
+                                      borderRadius: "6px",
+                                      paddingRight: "12px",
+                                      paddingLeft: "12px",
+                                      fontSize: "14px",
+                                    },
+                                  }}
+                                />
+                              )}
                             </Box>
 
                             {/* Tên công đoạn */}
-                            <Box>
-                              <Typography
-                                sx={{
-                                  fontWeight: 500,
-                                  fontSize: "14px",
-                                  mb: 0.5,
-                                }}
-                              >
-                                Tên công đoạn
-                              </Typography>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                value={phase?.name || ""}
-                                InputLabelProps={{ shrink: true }}
-                                disabled
-                                sx={{
-                                  "& .MuiInputBase-root": {
-                                    height: "32px",
-                                    borderRadius: "6px",
-                                    paddingRight: "12px",
-                                    paddingLeft: "12px",
+                            {!formik.values.isOtherTask && (
+                              <Box>
+                                <Typography
+                                  sx={{
+                                    fontWeight: 500,
                                     fontSize: "14px",
-                                  },
-                                }}
-                              />
-                            </Box>
+                                    mb: 0.5,
+                                  }}
+                                >
+                                  Tên công đoạn
+                                </Typography>
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  value={phase?.name || ""}
+                                  InputLabelProps={{ shrink: true }}
+                                  disabled
+                                  sx={{
+                                    "& .MuiInputBase-root": {
+                                      height: "32px",
+                                      borderRadius: "6px",
+                                      paddingRight: "12px",
+                                      paddingLeft: "12px",
+                                      fontSize: "14px",
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            )}
 
                             {/* Sản lượng */}
                             <Box>
@@ -1171,7 +1263,9 @@ export default function MaterialCostUsedModal({
                             newData[index].selectedAssignmentId = val;
 
                             // Cập nhật tên giao khoán theo mã được chọn
-                            const selectedAc = newData[index].availableAssignments?.find(
+                            const selectedAc = newData[
+                              index
+                            ].availableAssignments?.find(
                               (a: any) => a._id === val,
                             );
                             newData[index].selectedAssignmentName =

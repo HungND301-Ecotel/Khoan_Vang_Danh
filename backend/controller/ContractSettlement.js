@@ -1383,238 +1383,146 @@ exports.getMonth = async (req, res) => {
 //   }
 // };
 
-// function getMonthsInQuarter(year, quarter) {
-//   const startMonth = (quarter - 1) * 3 + 1;
-//   const endMonth = startMonth + 2;
-//   const months = [];
+function getMonthsInQuarter(year, quarter) {
+  const startMonth = (quarter - 1) * 3 + 1;
+  const endMonth = startMonth + 2;
+  const months = [];
 
-//   for (let m = startMonth; m <= endMonth; m++) {
-//     months.push(`${year}-${String(m).padStart(2, "0")}`);
-//   }
-//   return months;
-// }
+  for (let m = startMonth; m <= endMonth; m++) {
+    months.push(`${year}-${String(m).padStart(2, "0")}`);
+  }
+  return months;
+}
 
-// async function getQuarterData(res, quarter, year) {
-//   const months = getMonthsInQuarter(year, quarter);
+async function getQuarterData(res, quarter, year, phase, productionScope, department) {
+  const months = getMonthsInQuarter(Number(year), Number(quarter));
 
-//   // Khởi tạo các tổng cho quý
-//   let mergedGroupsMap = new Map();
-//   let totalCoal = 0;
-//   let totalCutting = 0;
-//   let totalExcavation = 0;
+  const matchQuery = {};
+  if (department) matchQuery.department = department;
+  if (productionScope) matchQuery.productionScope = productionScope;
+  matchQuery.month = { $in: months };
+  if (phase) {
+    const phaseList = Array.isArray(phase) ? phase : phase.split(",");
+    matchQuery["phases.phase"] = { $in: phaseList };
+  }
 
-//   for (const month of months) {
-//     const matchQuery = { month: month };
+  // Khởi tạo các tổng cho quý
+  let totalCoal = 0;
+  let totalCutting = 0;
+  let totalExcavation = 0;
 
-//     // --- 1. Truy vấn Dữ liệu tháng (Budget và Used) ---
-//     // Sử dụng logic truy vấn y hệt như getMonth nhưng không cần populate sâu (vì không cần rockRatio/phase details)
+  const [materialCostUseds, materialBudgets] = await Promise.all([
+    MaterialCostUsed.find(matchQuery)
+      .populate({ path: "productionScope", select: "code name" })
+      .populate({ path: "department", select: "code name" })
+      .populate({
+        path: "phases.phase",
+        select: "code name phaseGroup",
+        populate: [{ path: "phaseGroup", populate: "code name" }],
+      })
+      .populate({
+        path: "materials.material",
+        populate: [
+          { path: "uom", select: "name" },
+          {
+            path: "assignmentCode",
+            select: "code name uom deviceCode",
+            populate: [{ path: "uom" }, { path: "deviceCode" }],
+          },
+        ],
+      })
+      .populate({
+        path: "materials.assignmentCode",
+        select: "code name uom deviceCode",
+        populate: [{ path: "uom" }, { path: "deviceCode" }],
+      })
+      .lean(),
 
-//     const materialCostUseds = await MaterialCostUsed.find(matchQuery)
-//       // Cần populate 'materials.material.assignmentCode' để có Mã/Đơn giá hợp nhất
-//       .populate({
-//         path: "materials.material",
-//         populate: [
-//           { path: "uom", select: "name" },
-//           {
-//             path: "assignmentCode",
-//             select: "code name uom deviceCode",
-//             populate: "deviceCode",
-//           },
-//         ],
-//       })
-//       .populate({
-//         path: "materials.assignmentCode",
-//         select: "code name uom deviceCode",
-//         populate: [{ path: "uom" }, { path: "deviceCode" }],
-//       })
-//       .lean();
+    MaterialBudget.find(matchQuery)
+      .populate({ path: "productionScope", select: "code name" })
+      .populate({ path: "department", select: "code name" })
+      .populate({
+        path: "phases.phase",
+        select: "code name phaseGroup",
+        populate: [{ path: "phaseGroup", populate: "code name" }],
+      })
+      .populate({
+        path: "phases.budgetCostDetails.assignmentCode",
+        select: "code name uom deviceCode",
+        populate: [{ path: "uom" }, { path: "deviceCode" }],
+      })
+      .populate({
+        path: "phases.assignmentNormCode",
+        select: "norms code",
+        populate: [{ path: "norms.assignmentCode", populate: "uom" }],
+      })
+      .populate({
+        path: "phases.adjustmentNormCode",
+        select: "norms code rockRatio",
+        populate: [
+          { path: "norms.assignmentCode", populate: "uom" },
+          { path: "rockRatio", select: "name" },
+        ],
+      })
+      .lean(),
+  ]);
 
-//     const materialBudgets = await MaterialBudget.find(matchQuery)
-//       // Cần populate 'phases.budgetCostDetails.assignmentCode' và 'phases.phase'
-//       .populate({
-//         path: "phases.phase",
-//         select: "code name phaseGroup",
-//         populate: [{ path: "phaseGroup", populate: "code name" }],
-//       })
-//       .populate({
-//         path: "phases.budgetCostDetails.assignmentCode",
-//         select: "code name uom deviceCode",
-//         populate: "deviceCode",
-//       })
-//       // Không cần populate adjustmentNormCode/rockRatio vì không tính tỉ lệ đá kẹp
-//       .lean();
+  // Tổng hợp Sản lượng
+  materialBudgets.forEach((budgetDoc) => {
+    budgetDoc.phases.forEach((budgetPhase) => {
+      const phaseDoc = budgetPhase.phase;
+      const production = budgetPhase.production || 0;
 
-//     if (materialBudgets.length === 0 && materialCostUseds.length === 0) {
-//       // Nếu không có dữ liệu cho tháng này, bỏ qua
-//       continue;
-//     }
+      switch (phaseDoc.phaseGroup?.name.toLowerCase()) {
+        case PhaseType.COAL.toLowerCase():
+          totalCoal += production;
+          break;
+        case PhaseType.EXCAVATION.toLowerCase():
+          totalExcavation += production;
+          break;
+        case PhaseType.CUTTING.toLowerCase():
+          totalCutting += production;
+          break;
+      }
+    });
+  });
 
-//     // --- 2. Tổng hợp Sản lượng ---
-//     materialBudgets.forEach((budgetDoc) => {
-//       budgetDoc.phases.forEach((budgetPhase) => {
-//         const phaseDoc = budgetPhase.phase;
-//         const production = budgetPhase.production || 0;
+  // Hợp nhất dữ liệu bằng logic chung
+  const finalGroups = processBudgetAndUsedData(materialBudgets, materialCostUseds, null);
 
-//         switch (phaseDoc.phaseGroup?.name.toLowerCase()) {
-//           case PhaseType.COAL.toLowerCase():
-//             totalCoal += production;
-//             break;
-//           case PhaseType.EXCAVATION.toLowerCase():
-//             totalExcavation += production;
-//             break;
-//           case PhaseType.CUTTING.toLowerCase():
-//             totalCutting += production;
-//             break;
-//         }
-//       });
-//     });
+  const info = {
+    totalCoal,
+    totalCutting,
+    totalExcavation,
+  };
 
-//     // --- 3. Tổng hợp Dữ liệu Vật tư (Budget và Used) ---
-//     // Sử dụng logic hợp nhất tương tự processBudgetAndUsedData, nhưng hợp nhất vào mergedGroupsMap chung
+  return { data: finalGroups, info };
+}
 
-//     // Hợp nhất Budget (Kế hoạch)
-//     materialBudgets.forEach((budgetDoc) => {
-//       budgetDoc.phases.forEach((budgetPhase) => {
-//         budgetPhase.budgetCostDetails.forEach((detail) => {
-//           const code = detail.assignmentCode?.code;
-//           const price = detail.price || 0;
-//           const compoundKey = `${code}_${price}`;
+// ----------------------------------------------------------------------
+// CONTROLLER MỚI: exports.getQuarter
+// ----------------------------------------------------------------------
+exports.getQuarter = async (req, res) => {
+  try {
+    const { quarter, year, phase, productionScope, department } = req.query;
 
-//           if (mergedGroupsMap.has(compoundKey)) {
-//             const existing = mergedGroupsMap.get(compoundKey);
-//             existing.plan_Quantity += detail.quantity || 0;
-//             existing.plan_Cost += detail.cost || 0;
-//           } else {
-//             mergedGroupsMap.set(compoundKey, {
-//               assignmentCode: detail.assignmentCode,
-//               // Norms không cần tổng hợp cho quý
-//               baseNorm: "",
-//               adjustmentNorm: "",
-//               norm: "",
-//               price: price,
-//               plan_Quantity: detail.quantity || 0,
-//               plan_Cost: detail.cost || 0,
-//               used_Quantity: 0,
-//               used_Cost: 0,
-//               materialUseds: [], // Chi tiết vật tư sẽ không được tổng hợp ở đây
-//             });
-//           }
-//         });
-//       });
-//     });
+    if (!quarter || !year) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Tham số quý và năm là bắt buộc." });
+    }
 
-//     // Hợp nhất Used (Thực hiện)
-//     materialCostUseds.forEach((usedDoc) => {
-//       usedDoc.materials.forEach((mat) => {
-//         // Ưu tiên assignmentCode trực tiếp trên material item (đã cập nhật qua kéo thả),
-//         // fallback về assignmentCode từ material reference — giống logic processBudgetAndUsedData
-//         const assignmentCodeDoc =
-//           mat.assignmentCode || mat.material?.assignmentCode;
-//         const code = assignmentCodeDoc?.code || "";
-//         const matPrice = mat.price || 0;
-//         const quantity = mat.quantity || 0;
-//         const cost = mat.cost || 0;
+    const { data, info } = await getQuarterData(res, quarter, year, phase || null, productionScope || null, department || null);
 
-//         const compoundKey = assignmentCodeDoc
-//           ? `${code}_${matPrice}`
-//           : "NO_ASSIGNMENTCODE";
-
-//         let group = mergedGroupsMap.get(compoundKey);
-
-//         if (!group) {
-//           group = {
-//             assignmentCode: assignmentCodeDoc,
-//             baseNorm: "",
-//             adjustmentNorm: "",
-//             norm: "",
-//             price: assignmentCodeDoc ? matPrice : "",
-//             plan_Quantity: 0,
-//             plan_Cost: 0,
-//             used_Quantity: 0,
-//             used_Cost: 0,
-//             materialUseds: [],
-//           };
-//           mergedGroupsMap.set(compoundKey, group);
-//         }
-
-//         group.used_Quantity += quantity;
-//         group.used_Cost += cost;
-
-//         // Lưu vật tư chi tiết vào nhóm (cần thiết cho phần Excel sau này)
-//         group.materialUseds.push({
-//           materialCostId: usedDoc._id,
-//           materialItemId: mat._id,
-//           material: mat.material,
-//           quantity: quantity,
-//           price: matPrice,
-//           cost: cost,
-//         });
-//       });
-//     });
-//   } // Kết thúc vòng lặp tháng
-
-//   // --- 4. Hoàn thiện Dữ liệu và Tính toán Variance ---
-//   const finalGroups = Array.from(mergedGroupsMap.values()).map((group) => {
-//     const varianceQuantity = group.plan_Quantity - group.used_Quantity;
-//     const varianceCost = group.plan_Cost - group.used_Cost;
-
-//     // Cần tổng hợp lại mảng materialUseds nếu có vật tư trùng lặp từ các tháng khác nhau
-//     // Đối với quý, ta sẽ giữ nguyên chi tiết materialUseds để đơn giản hóa.
-
-//     return {
-//       ...group,
-//       varianceQuantity: varianceQuantity,
-//       varianceCost: varianceCost,
-//     };
-//   });
-
-//   // Sắp xếp (sử dụng logic sắp xếp từ processBudgetAndUsedData)
-//   finalGroups.sort((a, b) => {
-//     const codeA = a.assignmentCode?.code || "NO_ASSIGNMENTCODE";
-//     const codeB = b.assignmentCode?.code || "NO_ASSIGNMENTCODE";
-//     if (codeA === "NO_ASSIGNMENTCODE" && codeB !== "NO_ASSIGNMENTCODE")
-//       return 1;
-//     if (codeA !== "NO_ASSIGNMENTCODE" && codeB === "NO_ASSIGNMENTCODE")
-//       return -1;
-//     if (codeA < codeB) return -1;
-//     if (codeA > codeB) return 1;
-//     return 0;
-//   });
-
-//   const info = {
-//     totalCoal,
-//     totalCutting,
-//     totalExcavation,
-//     // Bỏ rockRatio, phases, productionScopes
-//   };
-
-//   return { data: finalGroups, info };
-// }
-
-// // ----------------------------------------------------------------------
-// // CONTROLLER MỚI: exports.getQuarter
-// // ----------------------------------------------------------------------
-// exports.getQuarter = async (req, res) => {
-//   try {
-//     const { quarter, year } = req.query;
-
-//     if (!quarter || !year) {
-//       return res
-//         .status(400)
-//         .json({ status: "error", message: "Tham số quý và năm là bắt buộc." });
-//     }
-
-//     const { data, info } = await getQuarterData(res, quarter, year);
-
-//     res.status(200).json({
-//       status: "success",
-//       data: { data, info },
-//     });
-//   } catch (err) {
-//     console.log(err.stack);
-//     res.status(500).json({ status: "error", message: err.message });
-//   }
-// };
+    res.status(200).json({
+      status: "success",
+      data: { data, info },
+    });
+  } catch (err) {
+    console.log(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
 
 // function setMergeCellHeader(ws, range, value) {
 //   ws.mergeCells(range);

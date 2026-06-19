@@ -9,11 +9,13 @@ import { formattedPrice } from "../../utils/helpers";
 
 export default function GroupTable({
   data,
-  productionScope,
+  department,
+  month,
   handleDeleteMutation,
 }: {
   data: any[];
-  productionScope?: any;
+  department?: any;
+  month?: string;
   handleDeleteMutation: (ids: React.Key[]) => void;
 }) {
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
@@ -50,11 +52,11 @@ export default function GroupTable({
   const innerColumns = [
     {
       title: "",
-      dataIndex: "month",
-      key: "month",
-      render: (text: string, item: any, index: number) => (
+      dataIndex: "productionScope",
+      key: "productionScope",
+      render: (text: any, item: any, index: number) => (
         <Typography fontWeight="bold">
-          {text ? dayjs(text).format("MM/YYYY") : ""}
+          {item.productionScope?.code}
         </Typography>
       ),
     },

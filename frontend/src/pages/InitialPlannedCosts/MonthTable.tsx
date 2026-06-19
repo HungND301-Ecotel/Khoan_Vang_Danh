@@ -1,24 +1,21 @@
-import { Delete, Edit, Visibility, VisibilityOff } from "@mui/icons-material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { Box, IconButton, Paper, Typography } from "@mui/material";
 import { Table } from "antd";
 import dayjs from "dayjs";
 import React, { useState } from "react";
-import PhaseTable from "./PhaseTable";
-import { showConfirmAlert } from "../../components/Alert";
+import GroupTable from "./GroupTable";
 import { formattedPrice } from "../../utils/helpers";
 
-export default function GroupTable({
+export default function MonthTable({
   data,
   handleOpen,
   department,
-  month,
   handleDeleteMutation,
 }: {
   data: any[];
   handleOpen: (record: any) => void;
   department?: any;
-  month?: string;
-  handleDeleteMutation: (params: { ids: React.Key[], isOtherTask?: boolean }) => void;
+  handleDeleteMutation: (ids: React.Key[]) => void;
 }) {
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -42,34 +39,41 @@ export default function GroupTable({
         </Box>
       );
     }
-    if (!data.phases) {
+    if (!data.scopes) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
     return (
       <Box sx={{ padding: "10px" }}>
-        <PhaseTable data={data.phases} materials={data.materials} />
+        <GroupTable
+          data={data.scopes}
+          handleOpen={handleOpen}
+          department={department}
+          month={data.month}
+          handleDeleteMutation={handleDeleteMutation}
+        />
       </Box>
     );
   };
+
   const innerColumns = [
     {
       title: "",
-      dataIndex: "productionScope",
-      key: "productionScope",
-      render: (text: any, item: any, index: number) => (
+      dataIndex: "month",
+      key: "month",
+      render: (text: string) => (
         <Typography fontWeight="bold">
-          {item.isOtherTask ? "Công việc khác" : item.productionScope?.code}
+          {text ? dayjs(text).format("MM/YYYY") : ""}
         </Typography>
       ),
     },
     {
       title: "",
       width: 150,
-      dataIndex: "total",
-      key: "total",
+      dataIndex: "totalMonthCost",
+      key: "totalMonthCost",
       render: (text: string, item: any) => (
         <Typography sx={{ fontWeight: "bold" }}>
-          {formattedPrice(item.totalUsedCost)}
+          {formattedPrice(item.totalMonthCost)}
         </Typography>
       ),
     },
@@ -94,62 +98,8 @@ export default function GroupTable({
         </IconButton>
       ),
     },
-    {
-      title: "",
-      dataIndex: "add",
-      key: "add",
-      width: 50,
-      align: "center" as const,
-      render: (_: any, record: any) => (
-        <IconButton
-          onClick={() =>
-            handleOpen({
-              ...record,
-              department: department,
-              month: month,
-            })
-          }
-          sx={{
-            color: "#666",
-            "&:hover": {
-              color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)",
-            },
-          }}
-        >
-          <Edit />
-        </IconButton>
-      ),
-    },
-    {
-      title: "",
-      dataIndex: "delete",
-      key: "delete",
-      width: 50,
-      align: "center" as const,
-      render: (_: any, record: any) => (
-        <IconButton
-          onClick={async () => {
-            const isConfirmed = await showConfirmAlert(
-              "Bạn có chắc muốn xóa bản ghi này không?. Không thể hoàn tác.",
-            );
-            if (isConfirmed) {
-              handleDeleteMutation({ ids: [record._id], isOtherTask: record.isOtherTask });
-            }
-          }}
-          sx={{
-            color: "#666",
-            "&:hover": {
-              color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)",
-            },
-          }}
-        >
-          <Delete />
-        </IconButton>
-      ),
-    },
   ];
+
   return (
     <Paper>
       <Table
@@ -162,24 +112,23 @@ export default function GroupTable({
         expandable={{
           expandedRowKeys: expandedRow ? [expandedRow] : [],
           onExpand: (expanded, record) => {
-            setExpandedRow(expanded ? record.key || null : null);
+            setExpandedRow(expanded ? record._id || null : null);
           },
           expandedRowRender,
           showExpandColumn: false,
         }}
         onRow={() => ({
-          className: "custom-row",
+          className: "month-custom-row",
         })}
         rowClassName={(record, index) =>
-          // Thêm class 'first-data-row' cho hàng đầu tiên
-          index === 0 ? "custom-row first-data-row" : "custom-row"
+          index === 0 ? "month-custom-row first-data-row" : "month-custom-row"
         }
       />
       <style>{`
-                .custom-row > td {
-                background-color: #dcd7d7fa !important;
-                }
-            `}</style>
+        .month-custom-row > td {
+          background-color: #e0e0e0 !important;
+        }
+      `}</style>
     </Paper>
   );
 }
