@@ -9,9 +9,18 @@ const { checkUniqueCode } = require("../utils/codeValidator");
 exports.create = async (req, res) => {
   try {
     const { code, name, phaseGroup } = req.body;
-    const { isDuplicate, collectionName } = await checkUniqueCode(code, null, "Phase");
+    const { isDuplicate, collectionName } = await checkUniqueCode(
+      code,
+      null,
+      "Phase",
+    );
     if (isDuplicate) {
-      return res.status(409).json({ status: 'error', message: `Mã công đoạn '${code}' đã tồn tại trong hệ thống` })
+      return res
+        .status(409)
+        .json({
+          status: "error",
+          message: `Mã công đoạn '${code}' đã tồn tại trong hệ thống`,
+        });
     }
     const newPhase = new Phase({ code, name, phaseGroup });
     await newPhase.save();
@@ -25,9 +34,18 @@ exports.update = async (req, res) => {
   try {
     const { code } = req.body;
     if (code) {
-      const { isDuplicate, collectionName } = await checkUniqueCode(code, req.params.id, "Phase");
+      const { isDuplicate, collectionName } = await checkUniqueCode(
+        code,
+        req.params.id,
+        "Phase",
+      );
       if (isDuplicate) {
-        return res.status(409).json({ status: 'error', message: `Mã công đoạn '${code}' đã tồn tại trong hệ thống` })
+        return res
+          .status(409)
+          .json({
+            status: "error",
+            message: `Mã công đoạn '${code}' đã tồn tại trong hệ thống`,
+          });
       }
     }
 
@@ -130,14 +148,12 @@ exports.import = async (req, res) => {
       return res.status(400).json({
         status: "error",
         message: `File không hợp lệ. Các cột sau không được phép: ${invalidHeaders.join(
-          ", "
+          ", ",
         )}`,
       });
     }
 
-    const mappedHeaders = headers.map(
-      (h) => columnMapping[h] || h
-    );
+    const mappedHeaders = headers.map((h) => columnMapping[h] || h);
 
     const data = xlsx.utils.sheet_to_json(worksheet, {
       header: mappedHeaders,
@@ -155,9 +171,7 @@ exports.import = async (req, res) => {
 
     // ===== LOAD PHASE GROUP =====
     const groups = await PhaseGroup.find({}, { name: 1 }).lean();
-    const groupMap = new Map(
-      groups.map((g) => [g.name.trim(), g._id])
-    );
+    const groupMap = new Map(groups.map((g) => [g.name.trim(), g._id]));
 
     // ===== LOAD EXISTED PHASE =====
     const existed = await Phase.find({}, { code: 1, name: 1 }).lean();
@@ -165,13 +179,13 @@ exports.import = async (req, res) => {
     const codeMap = new Map(
       existed
         .filter((p) => p.code)
-        .map((p) => [p.code.toLowerCase(), String(p._id)])
+        .map((p) => [p.code.toLowerCase(), String(p._id)]),
     );
 
     const nameMap = new Map(
       existed
         .filter((p) => p.name)
-        .map((p) => [p.name.toLowerCase(), String(p._id)])
+        .map((p) => [p.name.toLowerCase(), String(p._id)]),
     );
 
     // ===== PROCESS =====
@@ -310,9 +324,7 @@ exports.import = async (req, res) => {
 
     // ===== EXECUTE =====
     const bulkResult =
-      operations.length > 0
-        ? await Phase.bulkWrite(operations)
-        : null;
+      operations.length > 0 ? await Phase.bulkWrite(operations) : null;
 
     return res.status(200).json({
       status: "success",
@@ -334,7 +346,6 @@ exports.import = async (req, res) => {
     });
   }
 };
-
 
 exports.export = async (req, res) => {
   try {
@@ -387,11 +398,11 @@ exports.export = async (req, res) => {
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=cong_doan_san_xuat.xlsx"
+      "attachment; filename=cong_doan_san_xuat.xlsx",
     );
     res.send(buffer);
   } catch (err) {

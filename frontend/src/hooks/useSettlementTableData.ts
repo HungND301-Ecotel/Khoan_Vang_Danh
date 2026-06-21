@@ -7,8 +7,11 @@ export interface BlockKey {
   month: string;
   phaseId?: string;
   phaseCode?: string;
+  scopeCode?: string;
   phaseName?: string;
   info: InfoItem;
+  isOther?: boolean;
+  isSummary?: boolean;
 }
 
 export interface RowGroup {
@@ -47,10 +50,29 @@ export function useSettlementTableData(
           blockKeys.push({
             month: monthEntry.month,
             phaseId: phaseEntry.phaseId,
-            phaseCode: phaseEntry.phaseCode,
-            phaseName: phaseEntry.phaseName,
+            phaseCode: (phaseEntry as any).phaseCode,
+            scopeCode: (phaseEntry as any).scopeCode,
+            phaseName: (phaseEntry as any).phaseName,
             info: phaseEntry.info,
+            isOther: (phaseEntry as any).isOther,
           });
+        });
+        // Append Monthly Summary Block
+        blockKeys.push({
+          month: monthEntry.month,
+          phaseId: `SUMMARY_${monthEntry.month}`,
+          phaseCode: "BẢNG TỔNG HỢP",
+          scopeCode: "",
+          phaseName: "BẢNG TỔNG HỢP",
+          info: {
+            totalCoal: monthEntry.phases.reduce((sum, p) => sum + (p.info?.totalCoal || 0), 0),
+            totalExcavation: monthEntry.phases.reduce((sum, p) => sum + (p.info?.totalExcavation || 0), 0),
+            totalCutting: monthEntry.phases.reduce((sum, p) => sum + (p.info?.totalCutting || 0), 0),
+            rockRatio: null,
+            phases: [],
+            productionScopes: [],
+          },
+          isSummary: true,
         });
       });
     }

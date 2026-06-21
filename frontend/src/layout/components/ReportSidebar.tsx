@@ -23,6 +23,11 @@ const REPORTS = [
     path: "/report/settlementreport",
   },
   {
+    id: 6,
+    label: "Báo cáo quyết toán giao khoán",
+    path: "/report/contractsettlementreport",
+  },
+  {
     id: 5,
     label: "B/c công đoạn sản xuất",
     path: "/report/productionphasereport",

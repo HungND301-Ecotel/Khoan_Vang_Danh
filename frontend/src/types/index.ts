@@ -677,6 +677,28 @@ export interface MonthlyDataWithPhase {
   }[];
 }
 
+export interface MonthlyDataAllScopes {
+  month: string;
+  info: InfoItem;
+  scopeGroups: {
+    scopeId: string;
+    scopeCode: string;
+    scopeName: string;
+    phases: {
+      phaseId: string;
+      phaseCode: string;
+      phaseName: string;
+      info: InfoItem;
+      data: DataItem[];
+    }[];
+  }[];
+  otherTasks: {
+    phases: any[];
+    data: DataItem[];
+  } | null;
+}
+
 export type ContractSettlementResponse =
   | MonthlyDataNoPhase[]
-  | MonthlyDataWithPhase[];
+  | MonthlyDataWithPhase[]
+  | MonthlyDataAllScopes[];

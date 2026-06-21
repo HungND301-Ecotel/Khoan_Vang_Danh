@@ -49,6 +49,7 @@ import TechnologyKPIReport from "./pages/Report/TechnologyKPIReport";
 import CostReport from "./pages/Report/CostReport";
 import MaterialConsumptionReport from "./pages/Report/MaterialConsumptionReport";
 import SettlementReport from "./pages/Report/SettlementReport";
+import ContractSettlementReport from "./pages/Report/ContractSettlementReport";
 import ProductionPhaseReport from "./pages/Report/ProductionPhaseReport";
 import ReportLayout from "./layout/ReportLayout";
 
@@ -83,6 +84,7 @@ const App = () => {
               element={<MaterialConsumptionReport />}
             />
             <Route path="settlementreport" element={<SettlementReport />} />
+            <Route path="contractsettlementreport" element={<ContractSettlementReport />} />
             <Route
               path="productionphasereport"
               element={<ProductionPhaseReport />}

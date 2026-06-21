@@ -4,41 +4,41 @@ import ReportSidebar from "./components/ReportSidebar";
 
 export default function ReportLayout() {
   return (
-    <Grid
-      container
-      spacing={3}
+    <Box
       sx={{
+        display: "flex",
         width: "100%",
-        m: 0,
+        gap: 3,
+        overflow: "hidden",
         boxSizing: "border-box",
+        alignItems: "flex-start",
       }}
     >
-      {/* Sidebar */}
-      <Grid item xs={12} md={3}>
-        <Box
-          sx={{
-            position: "sticky",
-            top: 144,
-            zIndex: 10,
-          }}
-        >
-          <ReportSidebar />
-        </Box>
-      </Grid>
-
-      {/* Content */}
-      <Grid
-        item
-        xs={12}
-        md={9}
+      {/* Sidebar – fixed width, never expands */}
+      <Box
         sx={{
-          minWidth: 0,
+          flexShrink: 0,
+          width: 280,
+          position: "sticky",
+          top: 116,
+          zIndex: 10,
+          alignSelf: "stretch", // sidebar expands to full height
         }}
       >
-        <Box component="main">
-          <Outlet />
-        </Box>
-      </Grid>
-    </Grid>
+        <ReportSidebar />
+      </Box>
+
+      {/* Content – takes remaining space, clips overflow so table can scroll */}
+      <Box
+        component="main"
+        sx={{
+          flex: "1 1 0%",
+          width: 0,
+          overflow: "hidden",
+        }}
+      >
+        <Outlet />
+      </Box>
+    </Box>
   );
 }

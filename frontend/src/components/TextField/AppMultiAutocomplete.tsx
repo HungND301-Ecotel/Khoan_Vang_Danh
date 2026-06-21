@@ -14,6 +14,7 @@ interface AppMultiAutocompleteProps<T> {
   width?: string | number;
   backgroundColor?: string;
   allowDuplicate?: boolean;
+  disabled?: boolean;
 }
 
 export const AppMultiAutocomplete = <T extends { _id?: string }>({
@@ -29,6 +30,7 @@ export const AppMultiAutocomplete = <T extends { _id?: string }>({
   width = "700px",
   backgroundColor = "#F2F2F2",
   allowDuplicate = false,
+  disabled = false,
 }: AppMultiAutocompleteProps<T>) => {
   // 1. Quản lý nội dung search bằng state riêng
   const [searchInput, setSearchInput] = useState("");
@@ -39,6 +41,7 @@ export const AppMultiAutocomplete = <T extends { _id?: string }>({
         multiple
         options={options}
         value={value}
+        disabled={disabled}
         // 2. Giữ menu mở sau khi chọn
         disableCloseOnSelect
         // 3. Kiểm soát giá trị input

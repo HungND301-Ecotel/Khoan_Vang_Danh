@@ -1,6 +1,8 @@
 const MaterialCostUsed = require("../model/MaterialCostUsed");
 const MaterialBudget = require("../model/MaterialBudget");
 const ProductionScope = require("../model/ProductionScope");
+const OtherMaterialCost = require("../model/OtherMaterialCost");
+const Department = require("../model/Department");
 const { PhaseType } = require("../config/constant");
 const ExcelJS = require("exceljs");
 
@@ -443,8 +445,7 @@ function buildInfo(materialBudgets, phaseId, productionScope) {
 
       if (phaseId && productionScope) {
         const rockRatioDoc = budgetPhase.adjustmentNormCode?.rockRatio;
-        rockRatio =
-          rockRatioDoc?.name !== undefined ? rockRatioDoc.name : null;
+        rockRatio = rockRatioDoc?.name !== undefined ? rockRatioDoc.name : null;
       }
     });
   });
@@ -566,47 +567,49 @@ async function getMonthGrouped(
       };
     } else {
       // Có chọn công đoạn: tách từng phase trong tháng
-      const phases = phaseList.map((phaseId) => {
-        const info = buildInfo(budgetsByMonth, phaseId, productionScope);
-        const data = processBudgetAndUsedData(
-          budgetsByMonth,
-          usedsByMonth,
-          phaseId,
-        );
+      const phases = phaseList
+        .map((phaseId) => {
+          const info = buildInfo(budgetsByMonth, phaseId, productionScope);
+          const data = processBudgetAndUsedData(
+            budgetsByMonth,
+            usedsByMonth,
+            phaseId,
+          );
 
-        let phaseName = info.phases[0]?.name || "";
-        let phaseCode = info.phases[0]?.code || "";
+          let phaseName = info.phases[0]?.name || "";
+          let phaseCode = info.phases[0]?.code || "";
 
-        // Nếu budget không có phase này, tìm phase name/code từ usedsByMonth
-        if (!phaseCode && usedsByMonth && usedsByMonth.length > 0) {
-          for (const usedDoc of usedsByMonth) {
-            const matchedPhase = usedDoc.phases?.find(
-              (p) => String(p.phase?._id || p.phase) === String(phaseId),
-            );
-            if (matchedPhase && matchedPhase.phase) {
-              phaseName = matchedPhase.phase.name || "";
-              phaseCode = matchedPhase.phase.code || "";
-              break;
+          // Nếu budget không có phase này, tìm phase name/code từ usedsByMonth
+          if (!phaseCode && usedsByMonth && usedsByMonth.length > 0) {
+            for (const usedDoc of usedsByMonth) {
+              const matchedPhase = usedDoc.phases?.find(
+                (p) => String(p.phase?._id || p.phase) === String(phaseId),
+              );
+              if (matchedPhase && matchedPhase.phase) {
+                phaseName = matchedPhase.phase.name || "";
+                phaseCode = matchedPhase.phase.code || "";
+                break;
+              }
             }
           }
-        }
 
-        return {
-          phaseId,
-          phaseName,
-          phaseCode,
-          info,
-          data,
-        };
-      }).filter((p) => {
-        const hasData = p.data && p.data.length > 0;
-        const hasProductionInfo =
-          p.info &&
-          (p.info.totalCoal > 0 ||
-            p.info.totalExcavation > 0 ||
-            p.info.totalCutting > 0);
-        return hasData || hasProductionInfo;
-      });
+          return {
+            phaseId,
+            phaseName,
+            phaseCode,
+            info,
+            data,
+          };
+        })
+        .filter((p) => {
+          const hasData = p.data && p.data.length > 0;
+          const hasProductionInfo =
+            p.info &&
+            (p.info.totalCoal > 0 ||
+              p.info.totalExcavation > 0 ||
+              p.info.totalCutting > 0);
+          return hasData || hasProductionInfo;
+        });
 
       return { month, phases };
     }
@@ -621,17 +624,262 @@ async function getMonthGrouped(
   });
 }
 
+// ========================
+// ALL SCOPES MODE (khi không chọn Diện sản xuất)
+// ========================
+
+async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
+  const matchQuery = {
+    department,
+    month: { $gte: fromMonth, $lte: toMonth },
+  };
+
+  const populateMaterial = {
+    path: "materials.material",
+    populate: [
+      { path: "uom", select: "name" },
+      {
+        path: "assignmentCode",
+        select: "code name uom deviceCode",
+        populate: [{ path: "uom" }, { path: "deviceCode" }],
+      },
+    ],
+  };
+
+  const [materialCostUseds, materialBudgets, otherMaterialCosts] =
+    await Promise.all([
+      MaterialCostUsed.find(matchQuery)
+        .populate({ path: "productionScope", select: "code name" })
+        .populate({ path: "department", select: "code name" })
+        .populate({
+          path: "phases.phase",
+          select: "code name phaseGroup",
+          populate: [{ path: "phaseGroup", populate: "code name" }],
+        })
+        .populate(populateMaterial)
+        .populate({
+          path: "materials.assignmentCode",
+          select: "code name uom deviceCode",
+          populate: [{ path: "uom" }, { path: "deviceCode" }],
+        })
+        .lean(),
+
+      MaterialBudget.find(matchQuery)
+        .populate({ path: "productionScope", select: "code name" })
+        .populate({ path: "department", select: "code name" })
+        .populate({
+          path: "phases.phase",
+          select: "code name phaseGroup",
+          populate: [{ path: "phaseGroup", populate: "code name" }],
+        })
+        .populate({
+          path: "phases.budgetCostDetails.assignmentCode",
+          select: "code name uom deviceCode",
+          populate: [{ path: "uom" }, { path: "deviceCode" }],
+        })
+        .populate({
+          path: "phases.assignmentNormCode",
+          select: "norms code",
+          populate: [{ path: "norms.assignmentCode", populate: "uom" }],
+        })
+        .populate({
+          path: "phases.adjustmentNormCode",
+          select: "norms code rockRatio",
+          populate: [
+            { path: "norms.assignmentCode", populate: "uom" },
+            { path: "rockRatio", select: "name" },
+          ],
+        })
+        .lean(),
+
+      OtherMaterialCost.find(matchQuery)
+        .populate({ path: "department", select: "code name" })
+        .populate({
+          path: "phases.phase",
+          select: "code name phaseGroup",
+          populate: { path: "phaseGroup", select: "code name" },
+        })
+        .populate({
+          path: "materials.material",
+          populate: [
+            { path: "uom", select: "name" },
+            {
+              path: "assignmentCode",
+              select: "code name uom deviceCode",
+              populate: [{ path: "uom" }, { path: "deviceCode" }],
+            },
+          ],
+        })
+        .lean(),
+    ]);
+
+  const months = generateMonthRange(fromMonth, toMonth);
+
+  const result = months.map((month) => {
+    const budgetsByMonth = materialBudgets.filter((d) => d.month === month);
+    const usedsByMonth = materialCostUseds.filter((d) => d.month === month);
+    const othersByMonth = otherMaterialCosts.filter((d) => d.month === month);
+
+    // --- Build info (aggregate all scopes in month) ---
+    const info = buildInfo(budgetsByMonth, null, null);
+
+    // --- Build scopeGroups: group by productionScope → then by phase ---
+    const scopeMap = new Map();
+    budgetsByMonth.forEach((budgetDoc) => {
+      if (!budgetDoc.productionScope) return;
+      const scopeId = String(budgetDoc.productionScope._id);
+      if (!scopeMap.has(scopeId)) {
+        scopeMap.set(scopeId, {
+          scopeId,
+          scopeCode: budgetDoc.productionScope.code,
+          scopeName: budgetDoc.productionScope.name,
+          budgetDocs: [],
+          usedDocs: [],
+        });
+      }
+      scopeMap.get(scopeId).budgetDocs.push(budgetDoc);
+    });
+
+    // Assign usedDocs to their scope
+    usedsByMonth.forEach((usedDoc) => {
+      if (!usedDoc.productionScope) return;
+      const scopeId = String(usedDoc.productionScope._id);
+      if (scopeMap.has(scopeId)) {
+        scopeMap.get(scopeId).usedDocs.push(usedDoc);
+      }
+    });
+
+    // For each scope, split by phase
+    const scopeGroups = Array.from(scopeMap.values()).map((scope) => {
+      // Collect all phaseIds within this scope's budgetDocs
+      const phaseMap = new Map();
+      scope.budgetDocs.forEach((bd) => {
+        bd.phases.forEach((p) => {
+          const phaseId = String(p.phase._id);
+          if (!phaseMap.has(phaseId)) {
+            phaseMap.set(phaseId, {
+              phaseId,
+              phaseCode: p.phase.code,
+              phaseName: p.phase.name,
+            });
+          }
+        });
+      });
+
+      const phases = Array.from(phaseMap.values()).map((phaseEntry) => {
+        const phaseInfo = buildInfo(
+          scope.budgetDocs,
+          phaseEntry.phaseId,
+          scope.scopeId,
+        );
+        const phaseData = processBudgetAndUsedData(
+          scope.budgetDocs,
+          scope.usedDocs,
+          phaseEntry.phaseId,
+        );
+        return {
+          phaseId: phaseEntry.phaseId,
+          phaseCode: phaseEntry.phaseCode,
+          phaseName: phaseEntry.phaseName,
+          info: phaseInfo,
+          data: phaseData,
+        };
+      });
+
+      return {
+        scopeId: scope.scopeId,
+        scopeCode: scope.scopeCode,
+        scopeName: scope.scopeName,
+        phases,
+      };
+    });
+
+    // --- Build otherTasks from OtherMaterialCost ---
+    // Treat them like NO_ASSIGNMENTCODE materials: KH = TH
+    const otherMaterials = [];
+    othersByMonth.forEach((otherDoc) => {
+      otherDoc.materials.forEach((mat) => {
+        const assignmentCodeDoc = mat.material?.assignmentCode || null;
+        const price = mat.price || 0;
+        const quantity = mat.quantity || 0;
+        const cost = mat.cost || 0;
+        otherMaterials.push({
+          material: mat.material,
+          assignmentCode: assignmentCodeDoc,
+          price,
+          quantity,
+          cost,
+          otherDocId: otherDoc._id,
+          phases: otherDoc.phases,
+        });
+      });
+    });
+
+    // Group by assignmentCode compound key (same as processBudgetAndUsedData)
+    const otherGroupMap = new Map();
+    otherMaterials.forEach((mat) => {
+      const code = mat.assignmentCode?.code || "";
+      const compoundKey = mat.assignmentCode
+        ? `${code}_${mat.price}`
+        : `NO_ASSIGNMENTCODE_${mat.price || 0}`;
+      if (!otherGroupMap.has(compoundKey)) {
+        otherGroupMap.set(compoundKey, {
+          assignmentCode: mat.assignmentCode,
+          price: mat.assignmentCode ? mat.price : "",
+          plan_Quantity: 0,
+          plan_Cost: 0,
+          used_Quantity: 0,
+          used_Cost: 0,
+          materialUseds: [],
+        });
+      }
+      const group = otherGroupMap.get(compoundKey);
+      group.used_Quantity += mat.quantity;
+      group.used_Cost += mat.cost;
+      // KH = TH for other tasks
+      group.plan_Quantity += mat.quantity;
+      group.plan_Cost += mat.cost;
+      group.materialUseds.push({
+        materialCostId: mat.otherDocId,
+        materialItemId: mat.material?._id,
+        material: mat.material,
+        quantity: mat.quantity,
+        price: mat.price,
+        cost: mat.cost,
+      });
+    });
+
+    const otherTasksData = Array.from(otherGroupMap.values()).map((group) => ({
+      ...group,
+      varianceQuantity: 0,
+      varianceCost: 0,
+    }));
+
+    return {
+      month,
+      info,
+      scopeGroups,
+      otherTasks:
+        othersByMonth.length > 0
+          ? {
+              phases: othersByMonth.flatMap((d) => d.phases),
+              data: otherTasksData,
+            }
+          : null,
+    };
+  });
+
+  // Remove months with no data at all
+  return result.filter(
+    (entry) => entry.scopeGroups.length > 0 || entry.otherTasks !== null,
+  );
+}
+
 // Export handler — giữ nguyên validate, chỉ thay call hàm
 exports.getMonth = async (req, res) => {
   try {
-    const { productionScope, fromMonth, toMonth, phase, department } = req.query;
-
-    if (!productionScope) {
-      return res.status(400).json({
-        status: "error",
-        message: "Tham số diện sản xuất là bắt buộc.",
-      });
-    }
+    const { productionScope, fromMonth, toMonth, phase, department } =
+      req.query;
 
     if (!fromMonth || !toMonth) {
       return res.status(400).json({
@@ -640,6 +888,26 @@ exports.getMonth = async (req, res) => {
       });
     }
 
+    if (!department) {
+      return res.status(400).json({
+        status: "error",
+        message: "Tham số phân xưởng là bắt buộc.",
+      });
+    }
+
+    // --- BRANCH: Không chọn Diện sản xuất ---
+    if (!productionScope) {
+      const data = await getMonthGroupedAllScopes(
+        department,
+        fromMonth,
+        toMonth,
+      );
+      return res
+        .status(200)
+        .json({ status: "success", data, mode: "allScopes" });
+    }
+
+    // --- BRANCH: Đã chọn Diện sản xuất (luồng cũ) ---
     const matchQuery = {
       department,
       productionScope,
@@ -659,729 +927,1373 @@ exports.getMonth = async (req, res) => {
       toMonth,
     );
 
-    res.status(200).json({ status: "success", data });
+    res.status(200).json({ status: "success", data, mode: "byScope" });
   } catch (err) {
     if (err.status) {
-      return res.status(err.status).json({ status: "error", message: err.message });
+      return res
+        .status(err.status)
+        .json({ status: "error", message: err.message });
     }
     console.log(err.stack);
     res.status(500).json({ status: "error", message: err.message });
   }
 };
 
-// exports.getExcel = async (req, res) => {
-//   try {
-//     const {
-//       productionScope,
-//       fromMonth,
-//       toMonth,
-//       phase,
-//       quarter,
-//       year,
-//       department,
-//     } = req.body.data;
-
-//     const matchQuery = { department: department };
-
-//     if (fromMonth && toMonth) {
-//       matchQuery.month = { $gte: fromMonth, $lte: toMonth };
-//     } else if (fromMonth) {
-//       matchQuery.month = { $gte: fromMonth };
-//     } else if (toMonth) {
-//       matchQuery.month = { $lte: toMonth };
-//     }
-
-//     if (productionScope) {
-//       matchQuery.productionScope = productionScope;
-//     }
-
-//     const isShow = productionScope && phase && phase.length > 0;
-//     const isQuarter = quarter && year;
-
-//     let result = {};
-//     if (quarter && year) {
-//       result = await getQuarterData(res, quarter, year);
-//     } else {
-//       result = await getMonth(res, productionScope, phase, matchQuery);
-//     }
-//     const { data, info } = result;
-
-//     const workbook = new ExcelJS.Workbook();
-
-//     const worksheet = workbook.addWorksheet("QTCP");
-
-//     worksheet.mergeCells(`A1:U1`);
-//     const tt1 = worksheet.getCell("A1");
-//     tt1.value = "CÔNG TY CP THAN VÀNG DANH - VINACOMIN";
-
-//     setMergeCellHeader(worksheet, "A2:A6", "STT");
-//     setMergeCellHeader(worksheet, "B2:B6", "Mã vật tư");
-//     setMergeCellHeader(worksheet, "C2:C6", "Trùng mã vật tư");
-//     setMergeCellHeader(worksheet, "D2:D6", "Mã thiết bị");
-//     setMergeCellHeader(worksheet, "E2:E6", "Mã giao khoán");
-//     setMergeCellHeader(worksheet, "F2:F6", "Tên vật tư, tài sản");
-//     setMergeCellHeader(worksheet, "G2:G6", "ĐVT");
-//     setMergeCellHeader(worksheet, "H2:H6", "Đơn giá khoán");
-//     setMergeCellHeader(
-//       worksheet,
-//       `I2:U2`,
-//       isQuarter
-//         ? `Quyết toán giao khoán quý ${quarter} năm ${year}`
-//         : `Quyết toán giao khoán từ tháng ${new Date(fromMonth || toMonth).getMonth() + 1} đến tháng ${new Date(toMonth || fromMonth).getMonth() + 1}`,
-//     );
-
-//     if (isQuarter) {
-//       setMergeCellHeader(worksheet, "I3:U4", "Bảng tổng hợp");
-//     } else {
-//       setMergeCellHeader(
-//         worksheet,
-//         "I3:U3",
-//         (info.phases || []).map((i) => i.code).join(", "),
-//       );
-//       setMergeCellHeader(
-//         worksheet,
-//         "I4:U4",
-//         (info.productionScopes || []).map((i) => i.code).join(", "),
-//       );
-//     }
-
-//     setMergeCellHeader(worksheet, "I5:I6", "ĐM gốc");
-//     setMergeCellHeader(worksheet, "J5:J6", "HS điều chỉnh ĐM");
-//     setMergeCellHeader(worksheet, "K5:K6", "Định mức");
-//     setMergeCellHeader(worksheet, "L5:N5", "Số lượng kế hoạch");
-
-//     setCellHeader(worksheet, "L6", "Tổng", true, "center");
-//     setCellHeader(worksheet, "M6", "Trong khoán", true, "center");
-//     setCellHeader(worksheet, "N6", "Ngoài khoán", true, "center");
-
-//     setMergeCellHeader(worksheet, "O5:O6", "Giá trị kế hoạch");
-
-//     setMergeCellHeader(worksheet, "P5:R5", "Số lượng thực hiện");
-
-//     setCellHeader(worksheet, "P6", "Tổng", true, "center");
-//     setCellHeader(worksheet, "Q6", "Trong khoán", true, "center");
-//     setCellHeader(worksheet, "R6", "Ngoài khoán", true, "center");
-
-//     setMergeCellHeader(worksheet, "S5:S6", "Giá trị thực hiện");
-
-//     setMergeCellHeader(worksheet, "T5:U5", "So sánh lãi (+); lỗ (-)");
-
-//     setCellHeader(worksheet, "T6", "Số lượng", true, "center");
-//     setCellHeader(worksheet, "U6", "Giá trị", true, "center");
-
-//     setCellHeader(worksheet, "A7", "1", true, "center");
-//     setCellHeader(worksheet, "F7", "Than nguyên khai", true, "left");
-//     setCellHeader(
-//       worksheet,
-//       "L7",
-//       info.totalCoal ? Number(info.totalCoal.toFixed(1)).toLocaleString() : "",
-//       true,
-//       "center",
-//     );
-//     setCellHeader(worksheet, "A8", "2", true, "center");
-//     setCellHeader(worksheet, "F8", "Mét lò đào", true, "left");
-//     setCellHeader(
-//       worksheet,
-//       "L8",
-//       info.Excavation
-//         ? Number(info.Excavation.toFixed(1)).toLocaleString()
-//         : "",
-//       true,
-//       "center",
-//     );
-//     setCellHeader(worksheet, "A9", "3", true, "center");
-//     setCellHeader(worksheet, "F9", "Mét lò xén", true, "left");
-//     setCellHeader(
-//       worksheet,
-//       "L9",
-//       info.totalCutting
-//         ? Number(info.totalCutting.toFixed(1)).toLocaleString()
-//         : "",
-//       true,
-//       "center",
-//     );
-//     setCellHeader(worksheet, "A10", "4", true, "center");
-//     setCellHeader(
-//       worksheet,
-//       "F10",
-//       "Tỉ lệ đá lẫn trong gương (Ckep)",
-//       true,
-//       "left",
-//     );
-//     setCellHeader(worksheet, "L10", info.rockRatio, true, "left");
-//     setCellHeader(worksheet, "A11", "5", true, "center");
-//     setCellHeader(worksheet, "F11", "Vật tư có định mức", true, "left");
-
-//     let currentRow = 12; // Dữ liệu chi tiết bắt đầu từ dòng 12
-//     let stt = 6; // Bắt đầu STT từ 5 (vì 1-4 là tổng hợp)
-
-//     data.forEach((group, index) => {
-//       // Cột A: STT
-//       setCellHeader(worksheet, `A${currentRow}`, stt++, true, "center");
-
-//       // Cột D: Mã thiết bị
-//       setCellHeader(
-//         worksheet,
-//         `D${currentRow}`,
-//         group.assignmentCode?.deviceCode?.code || "",
-//         true,
-//         "center",
-//       );
-
-//       // Cột E: Mã giao khoán
-//       setCellHeader(
-//         worksheet,
-//         `E${currentRow}`,
-//         group.assignmentCode?.code || "",
-//         true,
-//         "center",
-//       );
-
-//       // Cột F: Tên Vật tư / Tên Nhóm (Lấy tên Mã giao khoán)
-//       setCellHeader(
-//         worksheet,
-//         `F${currentRow}`,
-//         group.assignmentCode?.name || "Vật tư không có định mức",
-//         true,
-//         "left",
-//       );
-
-//       // Cột G: ĐVT (Lấy ĐVT của Mã giao khoán)
-//       setCellHeader(
-//         worksheet,
-//         `G${currentRow}`,
-//         group.assignmentCode?.uom?.name || "",
-//         false,
-//         "center",
-//       );
-
-//       // Cột H: Đơn giá khoán
-//       setCellHeader(
-//         worksheet,
-//         `H${currentRow}`,
-//         group.price ? Number(group.price.toFixed(0)).toLocaleString() : "",
-//         false,
-//         "center",
-//       );
-
-//       if (group.assignmentCode) {
-//         // Dữ liệu Định mức và Kế hoạch (Tất cả đều trên dòng tổng hợp này)
-//         setCellHeader(
-//           worksheet,
-//           `I${currentRow}`,
-//           group.baseName
-//             ? Number(group.baseName.toFixed(3)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `J${currentRow}`,
-//           group.adjustmentNorm
-//             ? Number(group.adjustmentNorm.toFixed(3)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `K${currentRow}`,
-//           group.norm ? Number(group.norm.toFixed(3)).toLocaleString() : "",
-//           false,
-//           "center",
-//         );
-
-//         // Kế hoạch
-//         setCellHeader(
-//           worksheet,
-//           `L${currentRow}`,
-//           group.plan_Quantity
-//             ? Number(group.plan_Quantity.toFixed(1)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-
-//         setCellHeader(
-//           worksheet,
-//           `O${currentRow}`,
-//           group.plan_Cost
-//             ? Number(group.plan_Cost.toFixed(0)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-
-//         // Thực hiện (Tổng)
-//         setCellHeader(
-//           worksheet,
-//           `P${currentRow}`,
-//           group.used_Quantity
-//             ? Number(group.used_Quantity.toFixed(1)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-
-//         // S: Giá trị Thực hiện (Tổng)
-//         setCellHeader(
-//           worksheet,
-//           `S${currentRow}`,
-//           group.used_Cost
-//             ? Number(group.used_Cost.toFixed(0)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-
-//         // So sánh Lãi/Lỗ
-//         setCellHeader(
-//           worksheet,
-//           `T${currentRow}`,
-//           group.varianceQuantity
-//             ? Number(group.varianceQuantity.toFixed(1)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `U${currentRow}`,
-//           group.varianceCost
-//             ? Number(group.varianceCost.toFixed(0)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-//       }
-
-//       // --- B. Các dòng Chi tiết Vật tư thực hiện (materialUseds) ---
-//       currentRow++;
-
-//       group.materialUseds.forEach((matUsed) => {
-//         // Cột B: Mã vật tư
-//         setCellHeader(
-//           worksheet,
-//           `B${currentRow}`,
-//           matUsed.material?.code,
-//           false,
-//           "left",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `C${currentRow}`,
-//           (group?.materialUseds || []).filter(
-//             (mat) => mat.material?._id === matUsed?.material?._id,
-//           )?.length || 1,
-//           false,
-//           "center",
-//         );
-
-//         // Cột F: Tên vật tư (tên chi tiết)
-//         setCellHeader(
-//           worksheet,
-//           `F${currentRow}`,
-//           matUsed.material?.name,
-//           false,
-//           "left",
-//         );
-
-//         // Cột G: ĐVT (ĐVT của vật tư chi tiết)
-//         setCellHeader(
-//           worksheet,
-//           `G${currentRow}`,
-//           matUsed.material?.uom?.name,
-//           false,
-//           "center",
-//         );
-
-//         // Cột H: Đơn giá (Chỉ điền nếu không có Mã giao khoán)
-//         if (!group.assignmentCode) {
-//           setCellHeader(
-//             worksheet,
-//             `H${currentRow}`,
-//             matUsed.price
-//               ? Number(matUsed.price.toFixed(0)).toLocaleString()
-//               : "",
-//             false,
-//             "center",
-//           );
-//         }
-
-//         // Q: Trong khoán (Giả định: Vật tư con là trong khoán)
-//         setCellHeader(
-//           worksheet,
-//           `P${currentRow}`,
-//           matUsed.quantity
-//             ? Number(matUsed.quantity.toFixed(1)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-
-//         // S: Giá trị thực hiện
-//         // Trong code FE: if assignmentCode then cost is empty, else cost is used_Cost
-//         if (!group.assignmentCode) {
-//           setCellHeader(
-//             worksheet,
-//             `S${currentRow}`,
-//             matUsed.cost
-//               ? Number(matUsed.cost.toFixed(0)).toLocaleString()
-//               : "",
-//             false,
-//             "center",
-//           );
-//         }
-
-//         currentRow++;
-//       });
-//     });
-
-//     worksheet.columns = [
-//       { width: 6 }, // A: STT
-//       { width: 20 }, // B: Mã vật tư
-//       { width: 10, hidden: isQuarter }, // C: Trùng mã vật tư
-//       { width: 10 }, // D: Mã thiết bị
-//       { width: 10 }, // E: Mã giao khoán
-//       { width: 30 }, // F: Tên vật tư, tài sản
-//       { width: 10 }, // G: ĐVT
-//       { width: 15 }, // H: Đơn giá khoán
-//       { width: 10, hidden: !isShow }, // I: ĐM gốc
-//       { width: 10, hidden: !isShow }, // J: HS điều chỉnh ĐM
-//       { width: 10, hidden: !isShow }, // K: Định mức
-//       { width: 15 }, // L: SL Kế hoạch (Tổng)
-//       { width: 10 }, // M: SL Kế hoạch (Trong khoán)
-//       { width: 10 }, // N: SL Kế hoạch (Ngoài khoán)
-//       { width: 15 }, // O: Giá trị kế hoạch
-//       { width: 15 }, // P: SL Thực hiện (Tổng)
-//       { width: 10 }, // Q: SL Thực hiện (Trong khoán)
-//       { width: 10 }, // R: SL Thực hiện (Ngoài khoán)
-//       { width: 15 }, // S: Giá trị thực hiện
-//       { width: 15 }, // T: So sánh SL
-//       { width: 15 }, // U: So sánh Giá trị
-//     ];
-//     addTableBorders(worksheet, 2, currentRow, 1, 21);
-
-//     worksheet.eachRow((row, rowNumber) => {
-//       row.eachCell((cell) => {
-//         if (!cell.font) cell.font = {};
-//         cell.font = {
-//           ...cell.font, // giữ lại các thuộc tính khác (bold, italic,…)
-//           name: "Times New Roman", // đổi font chữ
-//           size: 12, // kích thước chữ
-//         };
-//       });
-//     });
-
-//     const buffer = await workbook.xlsx.writeBuffer();
-
-//     // Thiết lập header để tải file về
-//     res.setHeader(
-//       "Content-Type",
-//       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-//     );
-//     res.setHeader("Content-Disposition", "attachment; filename*=UTF-8''*.xlsx"); // Gửi buffer về client
-//     res.send(buffer);
-//     req.logger.info(`✅ Export excel thành công`);
-//   } catch (err) {
-//     console.log(err.stack);
-//     res.status(500).json({ status: "error", message: err.message });
-//   }
-// };
-
-// exports.getExcelM3 = async (req, res) => {
-//   try {
-//     const { productionScope, fromMonth, toMonth, phase, department } =
-//       req.body.data;
-
-//     const matchQuery = {
-//       department: department,
-//     };
-//     if (phase) {
-//       const phaseList = Array.isArray(phase) ? phase : phase.split(",");
-//       matchQuery["phases.phase"] = { $in: phaseList };
-//     }
-//     if (fromMonth && toMonth) {
-//       matchQuery.month = { $gte: fromMonth, $lte: toMonth };
-//     } else if (fromMonth) {
-//       matchQuery.month = { $gte: fromMonth };
-//     } else if (toMonth) {
-//       matchQuery.month = { $lte: toMonth };
-//     }
-
-//     if (productionScope) {
-//       matchQuery.productionScope = productionScope;
-//     }
-
-//     const result = await getMonth(res, productionScope, phase, matchQuery);
-//     const { data, info } = result;
-
-//     const workbook = new ExcelJS.Workbook();
-
-//     const worksheet = workbook.addWorksheet(
-//       "BC_thuc_hien_dinh_muc_vat_tu_theo_PX",
-//     );
-
-//     worksheet.mergeCells(`A1:M1`);
-//     const tt1 = worksheet.getCell("A1");
-//     tt1.value = "CÔNG TY CP THAN VÀNG DANH - VINACOMIN";
-
-//     worksheet.mergeCells(`A2:M2`);
-//     const tt2 = worksheet.getCell("A2");
-//     tt2.value = "BÁO CÁO THỰC HIỆN ĐM VẬT TƯ THEO PHÂN XƯỞNG";
-
-//     setMergeCellHeader(worksheet, "A3:A5", "Mã giao khoán");
-//     setMergeCellHeader(worksheet, "B3:B5", "Tên vật tư, tài sản");
-//     setMergeCellHeader(worksheet, "C3:C5", "ĐVT");
-//     setMergeCellHeader(worksheet, "D3:D5", "Đơn giá(VNĐ)");
-//     setMergeCellHeader(
-//       worksheet,
-//       "E3:M3",
-//       `${
-//         (info?.productionScopes || []).map((i) => i?.code).join(", ") +
-//         " " +
-//         (info?.phases || []).map((i) => i?.code).join(", ")
-//       }`,
-//     );
-//     setCellHeader(worksheet, "E4", "Khối lượng", true, "center");
-
-//     setMergeCellHeader(worksheet, "F4:H4", "Kế hoạch");
-//     setMergeCellHeader(worksheet, "I4:J4", "Thực hiện");
-//     setMergeCellHeader(worksheet, "K4:L4", "So sánh");
-//     setMergeCellHeader(worksheet, "M4:M5", "Ghi chú");
-
-//     setCellHeader(
-//       worksheet,
-//       "E5",
-//       `${info.totalCoal || info.totalCutting || info.totalExcavation}`,
-//       true,
-//       "center",
-//     );
-//     setCellHeader(worksheet, "F5", "ĐM", true, "center");
-//     setCellHeader(worksheet, "G5", "Số lượng", true, "center");
-//     setCellHeader(worksheet, "H5", "Giá trị", true, "center");
-//     setCellHeader(worksheet, "I5", "Số lượng", true, "center");
-//     setCellHeader(worksheet, "J5", "Giá trị", true, "center");
-//     setCellHeader(worksheet, "K5", "Số lượng", true, "center");
-//     setCellHeader(worksheet, "L5", "Giá trị", true, "center");
-
-//     let currentRow = 6;
-//     data.forEach((group, index) => {
-//       // KIỂM TRA ĐIỀU KIỆN: Nếu có assignmentCode hoặc group.assignmentCode là null (nhóm hợp lệ)
-//       if (group.assignmentCode || group.assignmentCode === null) {
-//         // --- IN DÒNG NHÓM (Dòng tổng) ---
-//         setCellHeader(
-//           worksheet,
-//           `A${currentRow}`,
-//           group.assignmentCode?.code || "",
-//           true,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `B${currentRow}`,
-//           group.assignmentCode?.name || "Vật tư không không có định mức",
-//           true,
-//           "left",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `C${currentRow}`,
-//           group.assignmentCode?.uom?.name || "",
-//           false,
-//           "center",
-//         );
-
-//         // Đơn giá, ĐM, Kế hoạch, Thực hiện của Nhóm
-//         setCellHeader(
-//           worksheet,
-//           `D${currentRow}`,
-//           group.price ? Number(group.price.toFixed(0)).toLocaleString() : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `F${currentRow}`,
-//           group.norm ? Number(group.norm.toFixed(3)).toLocaleString() : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `G${currentRow}`,
-//           group.plan_Quantity
-//             ? Number(group.plan_Quantity.toFixed(1)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `H${currentRow}`,
-//           group.plan_Cost
-//             ? Number(group.plan_Cost.toFixed(0)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `I${currentRow}`,
-//           group.used_Quantity
-//             ? Number(group.used_Quantity.toFixed(1)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `J${currentRow}`,
-//           group.used_Cost
-//             ? Number(group.used_Cost.toFixed(0)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `K${currentRow}`,
-//           group.varianceQuantity
-//             ? Number(group.varianceQuantity.toFixed(1)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-//         setCellHeader(
-//           worksheet,
-//           `L${currentRow}`,
-//           group.varianceCost
-//             ? Number(group.varianceCost.toFixed(0)).toLocaleString()
-//             : "",
-//           false,
-//           "center",
-//         );
-
-//         currentRow++; // Xong dòng nhóm, tăng dòng lên
-//       } else {
-//         setCellHeader(
-//           worksheet,
-//           `B${currentRow}`,
-//           "Vật tư không có định mức",
-//           true,
-//           "left",
-//         );
-//         currentRow++;
-//         // --- NGƯỢC LẠI: LẤY CHI TIẾT TỪNG VẬT TƯ (Không hiện dòng nhóm) ---
-//         if (group.materialUseds && group.materialUseds.length > 0) {
-//           group.materialUseds.forEach((matUsed) => {
-//             // Cột A: Để trống hoặc ghi chú "Ngoài định mức"
-//             setCellHeader(worksheet, `A${currentRow}`, "", false, "center");
-
-//             // Cột B: Tên vật tư chi tiết
-//             setCellHeader(
-//               worksheet,
-//               `B${currentRow}`,
-//               matUsed.material?.name || "",
-//               false,
-//               "left",
-//             );
-
-//             // Cột C: ĐVT của vật tư
-//             setCellHeader(
-//               worksheet,
-//               `C${currentRow}`,
-//               matUsed.material?.uom?.name || "",
-//               false,
-//               "center",
-//             );
-
-//             // Cột D: Đơn giá của từng vật tư
-//             setCellHeader(
-//               worksheet,
-//               `D${currentRow}`,
-//               matUsed.price
-//                 ? Number(matUsed.price.toFixed(0)).toLocaleString()
-//                 : "",
-//               false,
-//               "center",
-//             );
-
-//             // Các cột khác (ĐM, Kế hoạch thường bằng 0 hoặc trống đối với vật tư ngoài khoán)
-//             setCellHeader(worksheet, `F${currentRow}`, "", false, "center");
-//             setCellHeader(worksheet, `G${currentRow}`, "", false, "center");
-//             setCellHeader(worksheet, `H${currentRow}`, "", false, "center");
-
-//             // Cột I & J: Số lượng và Giá trị thực hiện của vật tư đó
-//             setCellHeader(
-//               worksheet,
-//               `I${currentRow}`,
-//               matUsed.quantity
-//                 ? Number(matUsed.quantity.toFixed(1)).toLocaleString()
-//                 : "0",
-//               false,
-//               "center",
-//             );
-//             setCellHeader(
-//               worksheet,
-//               `J${currentRow}`,
-//               matUsed.cost
-//                 ? Number(matUsed.cost.toFixed(0)).toLocaleString()
-//                 : "0",
-//               false,
-//               "center",
-//             );
-
-//             currentRow++; // Mỗi vật tư 1 dòng
-//           });
-//         }
-//       }
-//     });
-
-//     worksheet.columns = [
-//       { width: 10 },
-//       { width: 30 },
-//       { width: 10 },
-//       { width: 15 },
-//       { width: 15 },
-//       { width: 10 },
-//       { width: 10 },
-//       { width: 15 },
-//       { width: 15 },
-//       { width: 10 },
-//       { width: 10 },
-//       { width: 15 },
-//       { width: 15 },
-//     ];
-//     addTableBorders(worksheet, 3, currentRow, 1, 13);
-
-//     worksheet.eachRow((row, rowNumber) => {
-//       row.eachCell((cell) => {
-//         if (!cell.font) cell.font = {};
-//         cell.font = {
-//           ...cell.font, // giữ lại các thuộc tính khác (bold, italic,…)
-//           name: "Times New Roman", // đổi font chữ
-//           size: 12, // kích thước chữ
-//         };
-//       });
-//     });
-
-//     const buffer = await workbook.xlsx.writeBuffer();
-
-//     // Thiết lập header để tải file về
-//     res.setHeader(
-//       "Content-Type",
-//       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-//     );
-//     res.setHeader("Content-Disposition", "attachment; filename*=UTF-8''*.xlsx"); // Gửi buffer về client
-//     res.send(buffer);
-//     req.logger.info(`✅ Export excel thành công`);
-//   } catch (err) {
-//     console.log(err.stack);
-//     res.status(500).json({ status: "error", message: err.message });
-//   }
-// };
+function getColumnName(n) {
+  let s = "";
+  while (n > 0) {
+    let m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - m) / 26);
+  }
+  return s;
+}
+
+function transformToTableData(apiResponse) {
+  if (!apiResponse || apiResponse.length === 0) {
+    return { blockKeys: [], rowGroups: [] };
+  }
+
+  const transformedResponse = apiResponse.map((monthEntry) => {
+    const phases = [];
+    (monthEntry.scopeGroups || []).forEach((scopeGroup) => {
+      (scopeGroup.phases || []).forEach((phaseEntry) => {
+        phases.push({
+          phaseId: `${scopeGroup.scopeId}_${phaseEntry.phaseId}`,
+          phaseCode: phaseEntry.phaseCode,
+          scopeCode: scopeGroup.scopeCode,
+          phaseName: phaseEntry.phaseName,
+          info: phaseEntry.info,
+          data: phaseEntry.data,
+          isOther: false,
+        });
+      });
+    });
+
+    if (monthEntry.otherTasks) {
+      let totalCoal = 0;
+      let totalExcavation = 0;
+      let totalCutting = 0;
+
+      if (Array.isArray(monthEntry.otherTasks.phases)) {
+        monthEntry.otherTasks.phases.forEach((p) => {
+          const unit = (p.unit || "").toLowerCase().trim();
+          const phaseName = (p.phase?.name || "").toLowerCase();
+          const phaseGroupName = (
+            p.phase?.phaseGroup?.name || ""
+          ).toLowerCase();
+          const prod = p.production || 0;
+
+          if (unit === "tấn" || unit === "t" || unit === "tan") {
+            totalCoal += prod;
+          } else if (unit === "mét" || unit === "m" || unit === "met") {
+            if (phaseName.includes("xén") || phaseGroupName.includes("xén")) {
+              totalCutting += prod;
+            } else {
+              totalExcavation += prod;
+            }
+          }
+        });
+      }
+
+      phases.push({
+        phaseId: `OTHER_${monthEntry.month}`,
+        phaseCode: "Công việc khác",
+        scopeCode: "",
+        phaseName: "Công việc khác",
+        info: {
+          totalCoal,
+          totalExcavation,
+          totalCutting,
+          rockRatio: null,
+        },
+        data: monthEntry.otherTasks.data,
+        isOther: true,
+      });
+    }
+
+    return {
+      month: monthEntry.month,
+      phases,
+    };
+  });
+
+  const blockKeys = [];
+  const localData = new Map();
+
+  transformedResponse.forEach((monthEntry) => {
+    monthEntry.phases.forEach((phaseEntry) => {
+      blockKeys.push({
+        month: monthEntry.month,
+        phaseId: phaseEntry.phaseId,
+        phaseCode: phaseEntry.phaseCode,
+        scopeCode: phaseEntry.scopeCode,
+        phaseName: phaseEntry.phaseName,
+        info: phaseEntry.info,
+        isOther: phaseEntry.isOther,
+      });
+      const key = `${monthEntry.month}_${phaseEntry.phaseId}`;
+      localData.set(key, phaseEntry.data || []);
+    });
+
+    blockKeys.push({
+      month: monthEntry.month,
+      phaseId: `SUMMARY_${monthEntry.month}`,
+      phaseCode: "BẢNG TỔNG HỢP",
+      scopeCode: "",
+      phaseName: "BẢNG TỔNG HỢP",
+      info: {
+        totalCoal: monthEntry.phases.reduce(
+          (sum, p) => sum + (p.info?.totalCoal || 0),
+          0,
+        ),
+        totalExcavation: monthEntry.phases.reduce(
+          (sum, p) => sum + (p.info?.totalExcavation || 0),
+          0,
+        ),
+        totalCutting: monthEntry.phases.reduce(
+          (sum, p) => sum + (p.info?.totalCutting || 0),
+          0,
+        ),
+        rockRatio: null,
+        phases: [],
+        productionScopes: [],
+      },
+      isSummary: true,
+    });
+  });
+
+  const allCompoundKeys = [];
+  const compoundKeyMeta = new Map();
+
+  localData.forEach((dataItems) => {
+    dataItems.forEach((item) => {
+      const key = item.assignmentCode
+        ? `${item.assignmentCode.code}_${item.price}`
+        : `NO_ASSIGNMENTCODE_${item.price}`;
+      if (!compoundKeyMeta.has(key)) {
+        allCompoundKeys.push(key);
+        compoundKeyMeta.set(key, {
+          assignmentCode: item.assignmentCode,
+          price: item.price,
+        });
+      }
+    });
+  });
+
+  const getBlockId = (month, phaseId) =>
+    phaseId ? `${month}_${phaseId}` : month;
+
+  const rowGroups = allCompoundKeys.map((compoundKey) => {
+    const meta = compoundKeyMeta.get(compoundKey);
+    const blocks = new Map();
+
+    const allMaterialKeys = [];
+    const materialMeta = new Map();
+
+    blockKeys.forEach((bk) => {
+      const blockId = getBlockId(bk.month, bk.phaseId);
+      const dataItems = localData.get(blockId) ?? [];
+      const groupItem = dataItems.find((item) => {
+        const k = item.assignmentCode
+          ? `${item.assignmentCode.code}_${item.price}`
+          : `NO_ASSIGNMENTCODE_${item.price}`;
+        return k === compoundKey;
+      });
+
+      if (groupItem && groupItem.materialUseds) {
+        const materialCounts = new Map();
+        groupItem.materialUseds.forEach((mu) => {
+          const baseKey = `${mu.material?._id}_${mu.price}`;
+          const count = (materialCounts.get(baseKey) ?? 0) + 1;
+          materialCounts.set(baseKey, count);
+          const matKey = `${baseKey}_${count}`;
+
+          if (!allMaterialKeys.includes(matKey)) {
+            allMaterialKeys.push(matKey);
+            materialMeta.set(matKey, mu);
+          }
+        });
+      }
+    });
+
+    const maxRows = Math.max(allMaterialKeys.length, 1);
+
+    blockKeys.forEach((bk) => {
+      const blockId = getBlockId(bk.month, bk.phaseId);
+      const dataItems = localData.get(blockId) ?? [];
+      const groupItem =
+        dataItems.find((item) => {
+          const k = item.assignmentCode
+            ? `${item.assignmentCode.code}_${item.price}`
+            : `NO_ASSIGNMENTCODE_${item.price}`;
+          return k === compoundKey;
+        }) ?? null;
+
+      const materialUseds = [];
+
+      if (groupItem && groupItem.materialUseds) {
+        const materialCounts = new Map();
+        const matMap = new Map();
+        groupItem.materialUseds.forEach((mu) => {
+          const baseKey = `${mu.material?._id}_${mu.price}`;
+          const count = (materialCounts.get(baseKey) ?? 0) + 1;
+          materialCounts.set(baseKey, count);
+          const matKey = `${baseKey}_${count}`;
+          matMap.set(matKey, mu);
+        });
+
+        allMaterialKeys.forEach((matKey) => {
+          materialUseds.push(matMap.get(matKey) ?? null);
+        });
+      } else {
+        allMaterialKeys.forEach(() => materialUseds.push(null));
+      }
+
+      blocks.set(blockId, { groupData: groupItem, materialUseds });
+    });
+
+    const alignedMaterialsMeta = allMaterialKeys.map((k) =>
+      materialMeta.get(k),
+    );
+
+    return {
+      compoundKey,
+      assignmentCode: meta.assignmentCode,
+      price: meta.price,
+      maxRows,
+      alignedMaterialsMeta,
+      blocks,
+    };
+  });
+
+  rowGroups.sort((a, b) => {
+    if (!a.assignmentCode && b.assignmentCode) return 1;
+    if (a.assignmentCode && !b.assignmentCode) return -1;
+
+    if (a.assignmentCode && b.assignmentCode) {
+      const codeA = a.assignmentCode.code || "";
+      const codeB = b.assignmentCode.code || "";
+      return codeA.localeCompare(codeB, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    }
+
+    return 0;
+  });
+
+  return { blockKeys, rowGroups };
+}
+
+exports.getExcel = async (req, res) => {
+  try {
+    const { fromMonth, toMonth, department } = req.body.data;
+
+    if (!fromMonth || !toMonth || !department) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu tham số fromMonth, toMonth hoặc department.",
+      });
+    }
+
+    const deptDoc = await Department.findById(department).lean();
+    const departmentName = deptDoc ? deptDoc.name : "";
+
+    const apiResponse = await getMonthGroupedAllScopes(
+      department,
+      fromMonth,
+      toMonth,
+    );
+    const { blockKeys, rowGroups } = transformToTableData(apiResponse);
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Quyết toán giao khoán");
+
+    worksheet.views = [{ showGridLines: true }];
+
+    // Set title and subtitle (Simple 2 lines at top-left)
+    worksheet.mergeCells("A1:H1");
+    const titleCell = worksheet.getCell("A1");
+    titleCell.value = "CÔNG TY CP THAN VÀNG DANH - VINACOMIN";
+    titleCell.font = { name: "Arial", size: 10, bold: true };
+    titleCell.alignment = { vertical: "middle", horizontal: "left" };
+
+    worksheet.mergeCells("A2:H2");
+    const deptTitleCell = worksheet.getCell("A2");
+    deptTitleCell.value = `Đơn vị: ${departmentName}`;
+    deptTitleCell.font = { name: "Arial", size: 10, bold: true };
+    deptTitleCell.alignment = { vertical: "middle", horizontal: "left" };
+
+    let currentCol = 9;
+    const blockCols = blockKeys.map((bk) => {
+      const colCount = bk.isSummary ? 6 : bk.isOther ? 10 : 13;
+      const start = currentCol;
+      const end = currentCol + colCount - 1;
+      currentCol = end + 1;
+      return {
+        ...bk,
+        start,
+        end,
+        colCount,
+      };
+    });
+
+    const totalCols = currentCol - 1;
+
+    const setCell = (row, col, val, styles = {}) => {
+      const cell = worksheet.getCell(row, col);
+      cell.value = val;
+      cell.font = { name: "Arial", size: 9, ...styles.font };
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+        wrapText: true,
+        ...styles.alignment,
+      };
+
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFa8a8a4" } },
+        left: { style: "thin", color: { argb: "FFa8a8a4" } },
+        bottom: { style: "thin", color: { argb: "FFa8a8a4" } },
+        right: { style: "thin", color: { argb: "FFa8a8a4" } },
+      };
+      return cell;
+    };
+
+    const mergeAndStyle = (
+      startRow,
+      startCol,
+      endRow,
+      endCol,
+      val,
+      styles = {},
+    ) => {
+      worksheet.mergeCells(startRow, startCol, endRow, endCol);
+      for (let r = startRow; r <= endRow; r++) {
+        for (let c = startCol; c <= endCol; c++) {
+          setCell(r, c, "", styles);
+        }
+      }
+      return setCell(startRow, startCol, val, styles);
+    };
+
+    // Trả về giá trị nếu là số khác 0 (kể cả số âm), ngược lại trả về rỗng
+    const numOrEmpty = (val) => {
+      if (val === null || val === undefined || val === "") return "";
+      const n = Number(val);
+      if (Number.isNaN(n) || n === 0) return "";
+      return n;
+    };
+
+    const startHeaderRow = 4;
+
+    // Metadata Headers (A to H) - No color fills
+    mergeAndStyle(startHeaderRow, 1, startHeaderRow + 5, 1, "STT", {
+      font: { bold: true },
+    });
+    mergeAndStyle(
+      startHeaderRow,
+      2,
+      startHeaderRow + 5,
+      2,
+      "Mã vật tư, tài sản",
+      { font: { bold: true } },
+    );
+    mergeAndStyle(startHeaderRow, 3, startHeaderRow + 5, 3, "Trùng mã vật tư", {
+      font: { bold: true },
+    });
+    mergeAndStyle(startHeaderRow, 4, startHeaderRow + 5, 4, "Mã thiết bị", {
+      font: { bold: true },
+    });
+    mergeAndStyle(startHeaderRow, 5, startHeaderRow + 5, 5, "Mã giao khoán", {
+      font: { bold: true },
+    });
+    mergeAndStyle(
+      startHeaderRow,
+      6,
+      startHeaderRow + 5,
+      6,
+      "Tên vật tư, tài sản",
+      { font: { bold: true }, alignment: { horizontal: "left" } },
+    );
+    mergeAndStyle(startHeaderRow, 7, startHeaderRow + 5, 7, "ĐVT", {
+      font: { bold: true },
+    });
+    mergeAndStyle(startHeaderRow, 8, startHeaderRow + 5, 8, "Đơn giá khoán", {
+      font: { bold: true },
+    });
+
+    // Dynamic Headers - No color fills
+    blockCols.forEach((bkCol) => {
+      const textStyles = { font: { bold: true } };
+
+      // Row 4: Month
+      const monthStr = `Quyết toán giao khoán tháng ${bkCol.month.split("-")[1]}/${bkCol.month.split("-")[0]}`;
+      mergeAndStyle(
+        startHeaderRow,
+        bkCol.start,
+        startHeaderRow,
+        bkCol.end,
+        monthStr,
+        textStyles,
+      );
+
+      // Row 5: Phase
+      const phaseCode =
+        bkCol.phaseCode ||
+        (bkCol.info?.phases || []).map((p) => p.code).join(", ");
+      mergeAndStyle(
+        startHeaderRow + 1,
+        bkCol.start,
+        startHeaderRow + 1,
+        bkCol.end,
+        phaseCode || "Công việc khác",
+        textStyles,
+      );
+
+      // Row 6: Production Scope
+      const scopeCode = bkCol.isSummary
+        ? ""
+        : bkCol.isOther
+          ? "Công việc"
+          : (bkCol.info?.productionScopes || []).map((s) => s.code).join(", ");
+      mergeAndStyle(
+        startHeaderRow + 2,
+        bkCol.start,
+        startHeaderRow + 2,
+        bkCol.end,
+        scopeCode,
+        textStyles,
+      );
+
+      if (bkCol.isSummary) {
+        // Row 7: Plan / Actual / Variance
+        mergeAndStyle(
+          startHeaderRow + 3,
+          bkCol.start,
+          startHeaderRow + 3,
+          bkCol.start + 1,
+          "Kế hoạch",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 3,
+          bkCol.start + 2,
+          startHeaderRow + 3,
+          bkCol.start + 3,
+          "Thực hiện",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 3,
+          bkCol.start + 4,
+          startHeaderRow + 3,
+          bkCol.start + 5,
+          "So sánh lãi(+); lỗ(-)",
+          textStyles,
+        );
+
+        // Row 8 & 9 Merged: Column names
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start,
+          startHeaderRow + 5,
+          bkCol.start,
+          "Số lượng",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 1,
+          startHeaderRow + 5,
+          bkCol.start + 1,
+          "Giá trị",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 2,
+          startHeaderRow + 5,
+          bkCol.start + 2,
+          "Số lượng",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 3,
+          startHeaderRow + 5,
+          bkCol.start + 3,
+          "Giá trị",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 4,
+          startHeaderRow + 5,
+          bkCol.start + 4,
+          "Số lượng",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 5,
+          startHeaderRow + 5,
+          bkCol.start + 5,
+          "Giá trị",
+          textStyles,
+        );
+      } else if (bkCol.isOther) {
+        // Block "Công việc khác": không có 3 cột định mức, tổng 10 cột
+        // Row 7: Plan / Actual / Variance (10 columns: 4 + 4 + 2)
+        mergeAndStyle(
+          startHeaderRow + 3,
+          bkCol.start,
+          startHeaderRow + 3,
+          bkCol.start + 3,
+          "Kế hoạch",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 3,
+          bkCol.start + 4,
+          startHeaderRow + 3,
+          bkCol.start + 7,
+          "Thực hiện",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 3,
+          bkCol.start + 8,
+          startHeaderRow + 3,
+          bkCol.start + 9,
+          "So sánh lãi(+); lỗ(-)",
+          textStyles,
+        );
+
+        // Row 8: Số lượng (Tổng/Trong khoán/Ngoài khoán) + Giá trị
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start,
+          startHeaderRow + 4,
+          bkCol.start + 2,
+          "Số lượng",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 3,
+          startHeaderRow + 5,
+          bkCol.start + 3,
+          "Giá trị",
+          textStyles,
+        );
+
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 4,
+          startHeaderRow + 4,
+          bkCol.start + 6,
+          "Số lượng",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 7,
+          startHeaderRow + 5,
+          bkCol.start + 7,
+          "Giá trị",
+          textStyles,
+        );
+
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 8,
+          startHeaderRow + 5,
+          bkCol.start + 8,
+          "Số lượng",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 9,
+          startHeaderRow + 5,
+          bkCol.start + 9,
+          "Giá trị",
+          textStyles,
+        );
+
+        // Row 9: Sub-column headers (Tổng, Trong khoán, Ngoài khoán)
+        setCell(startHeaderRow + 5, bkCol.start, "Tổng", textStyles);
+        setCell(startHeaderRow + 5, bkCol.start + 1, "Trong khoán", textStyles);
+        setCell(startHeaderRow + 5, bkCol.start + 2, "Ngoài khoán", textStyles);
+
+        setCell(startHeaderRow + 5, bkCol.start + 4, "Tổng", textStyles);
+        setCell(startHeaderRow + 5, bkCol.start + 5, "Trong khoán", textStyles);
+        setCell(startHeaderRow + 5, bkCol.start + 6, "Ngoài khoán", textStyles);
+      } else {
+        // Row 7: Plan / Actual / Variance (13 columns)
+        mergeAndStyle(
+          startHeaderRow + 3,
+          bkCol.start,
+          startHeaderRow + 3,
+          bkCol.start + 6,
+          "Kế hoạch",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 3,
+          bkCol.start + 7,
+          startHeaderRow + 3,
+          bkCol.start + 10,
+          "Thực hiện",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 3,
+          bkCol.start + 11,
+          startHeaderRow + 3,
+          bkCol.start + 12,
+          "So sánh lãi(+); lỗ(-)",
+          textStyles,
+        );
+
+        // Row 8: Column names (Số lượng / Giá trị)
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start,
+          startHeaderRow + 5,
+          bkCol.start,
+          "Định mức gốc",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 1,
+          startHeaderRow + 5,
+          bkCol.start + 1,
+          "Hệ số điều chỉnh định mức",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 2,
+          startHeaderRow + 5,
+          bkCol.start + 2,
+          "Định mức",
+          textStyles,
+        );
+
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 3,
+          startHeaderRow + 4,
+          bkCol.start + 5,
+          "Số lượng",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 6,
+          startHeaderRow + 5,
+          bkCol.start + 6,
+          "Giá trị",
+          textStyles,
+        );
+
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 7,
+          startHeaderRow + 4,
+          bkCol.start + 9,
+          "Số lượng",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 10,
+          startHeaderRow + 5,
+          bkCol.start + 10,
+          "Giá trị",
+          textStyles,
+        );
+
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 11,
+          startHeaderRow + 5,
+          bkCol.start + 11,
+          "Số lượng",
+          textStyles,
+        );
+        mergeAndStyle(
+          startHeaderRow + 4,
+          bkCol.start + 12,
+          startHeaderRow + 5,
+          bkCol.start + 12,
+          "Giá trị",
+          textStyles,
+        );
+
+        // Row 9: Sub-column headers (Tổng, Trong khoán, Ngoài khoán)
+        setCell(startHeaderRow + 5, bkCol.start + 3, "Tổng", textStyles);
+        setCell(startHeaderRow + 5, bkCol.start + 4, "Trong khoán", textStyles);
+        setCell(startHeaderRow + 5, bkCol.start + 5, "Ngoài khoán", textStyles);
+
+        setCell(startHeaderRow + 5, bkCol.start + 7, "Tổng", textStyles);
+        setCell(startHeaderRow + 5, bkCol.start + 8, "Trong khoán", textStyles);
+        setCell(startHeaderRow + 5, bkCol.start + 9, "Ngoài khoán", textStyles);
+      }
+    });
+
+    let currentRow = 10;
+    let sttCounter = 6;
+
+    // --- 1. Top 5 Rows (Indicators) ---
+    const topRowLabels = [
+      "Than nguyên khai",
+      "Mét lò đào",
+      "Mét lò xén",
+      "Tỉ lệ đá lẫn trong gương (Ckep)",
+      "Vật tư có định mức",
+    ];
+
+    topRowLabels.forEach((label, rowIndex) => {
+      const rowSTT = rowIndex + 1;
+      setCell(currentRow, 1, rowSTT, { font: { bold: true } });
+      mergeAndStyle(currentRow, 2, currentRow, 8, label, {
+        font: { bold: true },
+        alignment: { horizontal: "left" },
+      });
+
+      blockCols.forEach((bkCol) => {
+        if (bkCol.isSummary) {
+          let val = "";
+          if (rowSTT === 1) {
+            // Than nguyên khai
+            val = blockCols
+              .filter((b) => b.month === bkCol.month && !b.isSummary)
+              .reduce((sum, b) => sum + (b.info?.totalCoal || 0), 0);
+          } else if (rowSTT === 2) {
+            // Mét lò đào
+            val = blockCols
+              .filter((b) => b.month === bkCol.month && !b.isSummary)
+              .reduce((sum, b) => sum + (b.info?.totalExcavation || 0), 0);
+          } else if (rowSTT === 3) {
+            // Mét lò xén
+            val = blockCols
+              .filter((b) => b.month === bkCol.month && !b.isSummary)
+              .reduce((sum, b) => sum + (b.info?.totalCutting || 0), 0);
+          }
+
+          for (let offset = 0; offset < 6; offset++) {
+            setCell(currentRow, bkCol.start + offset, "");
+          }
+          setCell(
+            currentRow,
+            bkCol.start + 2,
+            val !== "" && val !== 0 ? val : "",
+          );
+        } else {
+          let val = "";
+          if (rowSTT === 1) {
+            val = bkCol.info?.totalCoal || 0;
+          } else if (rowSTT === 2) {
+            val = bkCol.info?.totalExcavation || 0;
+          } else if (rowSTT === 3) {
+            val = bkCol.info?.totalCutting || 0;
+          } else if (rowSTT === 4) {
+            val = bkCol.isOther ? "" : bkCol.info?.rockRatio || "";
+          }
+
+          for (let offset = 0; offset < bkCol.colCount; offset++) {
+            setCell(currentRow, bkCol.start + offset, "");
+          }
+
+          if (bkCol.isOther) {
+            // 10 cột: KH(Tổng,Trong,Ngoài,GiáTrị) | TH(Tổng,Trong,Ngoài,GiáTrị) | SS(SL,GiáTrị)
+            // "Tổng" của KH ở offset 0, để đồng nhất với cách hiện số liệu tổng SL Kế hoạch
+            setCell(
+              currentRow,
+              bkCol.start + 4,
+              val !== "" && val !== 0 ? val : "",
+            );
+          } else {
+            setCell(
+              currentRow,
+              bkCol.start + 3,
+              val !== "" && val !== 0 ? val : "",
+            );
+          }
+        }
+      });
+      currentRow++;
+    });
+
+    // --- 2. Row Groups (Assignments and Materials) ---
+    rowGroups.forEach((assignment) => {
+      // 1. Assignment Code Row
+      setCell(currentRow, 1, sttCounter++, { font: { bold: true } });
+      setCell(currentRow, 2, "", { font: { bold: true } });
+      setCell(currentRow, 3, "", { font: { bold: true } });
+      setCell(
+        currentRow,
+        4,
+        assignment.assignmentCode?.deviceCode?.code || "",
+        { font: { bold: true } },
+      );
+      setCell(currentRow, 5, assignment.assignmentCode?.code || "", {
+        font: { bold: true },
+      });
+      setCell(
+        currentRow,
+        6,
+        assignment.assignmentCode?.name || "Vật tư không có định mức",
+        { font: { bold: true }, alignment: { horizontal: "left" } },
+      );
+      setCell(currentRow, 7, assignment.assignmentCode?.uom?.name || "", {
+        font: { bold: true },
+      });
+      setCell(
+        currentRow,
+        8,
+        assignment.assignmentCode ? "" : assignment.price,
+        { font: { bold: true } },
+      );
+
+      blockCols.forEach((bkCol) => {
+        if (bkCol.isSummary) {
+          let planQtySum = 0,
+            planCostSum = 0,
+            usedQtySum = 0,
+            usedCostSum = 0,
+            varianceQtySum = 0,
+            varianceCostSum = 0;
+          blockCols
+            .filter((b) => b.month === bkCol.month && !b.isSummary)
+            .forEach((b) => {
+              const blockId = `${b.month}_${b.phaseId}`;
+              const blockData = assignment.blocks.get(blockId)?.groupData;
+              if (blockData) {
+                planQtySum += Number(blockData.plan_Quantity || 0);
+                planCostSum += Number(blockData.plan_Cost || 0);
+                usedQtySum += Number(blockData.used_Quantity || 0);
+                usedCostSum += Number(blockData.used_Cost || 0);
+                varianceQtySum += Number(blockData.varianceQuantity || 0);
+                varianceCostSum += Number(blockData.varianceCost || 0);
+              }
+            });
+
+          setCell(
+            currentRow,
+            bkCol.start,
+            assignment.assignmentCode && planQtySum > 0
+              ? numOrEmpty(planQtySum)
+              : "",
+            { font: { bold: true } },
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 1,
+            assignment.assignmentCode && planCostSum > 0
+              ? numOrEmpty(planCostSum)
+              : "",
+            { font: { bold: true } },
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 2,
+            assignment.assignmentCode && usedQtySum > 0
+              ? numOrEmpty(usedQtySum)
+              : "",
+            { font: { bold: true } },
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 3,
+            assignment.assignmentCode && usedCostSum > 0
+              ? numOrEmpty(usedCostSum)
+              : "",
+            { font: { bold: true } },
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 4,
+            assignment.assignmentCode && varianceQtySum !== 0
+              ? numOrEmpty(varianceQtySum)
+              : "",
+            { font: { bold: true } },
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 5,
+            assignment.assignmentCode && varianceCostSum !== 0
+              ? numOrEmpty(varianceCostSum)
+              : "",
+            { font: { bold: true } },
+          );
+        } else if (bkCol.isOther) {
+          const blockId = `${bkCol.month}_${bkCol.phaseId}`;
+          const blockData = assignment.blocks.get(blockId)?.groupData;
+
+          // 10 cột, không có 3 cột định mức
+          setCell(
+            currentRow,
+            bkCol.start,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_Quantity)
+              : "",
+          );
+          setCell(currentRow, bkCol.start + 1, "");
+          setCell(currentRow, bkCol.start + 2, "");
+          setCell(
+            currentRow,
+            bkCol.start + 3,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_Cost)
+              : "",
+          );
+
+          setCell(
+            currentRow,
+            bkCol.start + 4,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.used_Quantity)
+              : "",
+          );
+          setCell(currentRow, bkCol.start + 5, "");
+          setCell(currentRow, bkCol.start + 6, "");
+          setCell(
+            currentRow,
+            bkCol.start + 7,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.used_Cost)
+              : "",
+          );
+
+          setCell(
+            currentRow,
+            bkCol.start + 8,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.varianceQuantity)
+              : "",
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 9,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.varianceCost)
+              : "",
+          );
+        } else {
+          const blockId = `${bkCol.month}_${bkCol.phaseId}`;
+          const blockData = assignment.blocks.get(blockId)?.groupData;
+
+          setCell(
+            currentRow,
+            bkCol.start,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.baseNorm)
+              : "",
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 1,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.adjustmentNorm)
+              : "",
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 2,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.norm)
+              : "",
+          );
+
+          setCell(
+            currentRow,
+            bkCol.start + 3,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_Quantity)
+              : "",
+          );
+          setCell(currentRow, bkCol.start + 4, "");
+          setCell(currentRow, bkCol.start + 5, "");
+          setCell(
+            currentRow,
+            bkCol.start + 6,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_Cost)
+              : "",
+          );
+
+          setCell(
+            currentRow,
+            bkCol.start + 7,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.used_Quantity)
+              : "",
+          );
+          setCell(currentRow, bkCol.start + 8, "");
+          setCell(currentRow, bkCol.start + 9, "");
+          setCell(
+            currentRow,
+            bkCol.start + 10,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.used_Cost)
+              : "",
+          );
+
+          setCell(
+            currentRow,
+            bkCol.start + 11,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.varianceQuantity)
+              : "",
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 12,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.varianceCost)
+              : "",
+          );
+        }
+      });
+
+      currentRow++;
+
+      // 2. Material Rows
+      for (let i = 0; i < assignment.maxRows; i++) {
+        const materialMeta = assignment.alignedMaterialsMeta[i];
+        if (!materialMeta) continue;
+
+        const isDuplicate =
+          assignment.alignedMaterialsMeta.filter(
+            (m) => m?.material?._id === materialMeta.material?._id,
+          ).length > 1;
+
+        setCell(currentRow, 1, "");
+        setCell(currentRow, 2, materialMeta.material?.code || "");
+        setCell(
+          currentRow,
+          3,
+          isDuplicate
+            ? assignment.alignedMaterialsMeta.filter(
+                (m) => m?.material?._id === materialMeta.material?._id,
+              ).length
+            : 1,
+        );
+        setCell(currentRow, 4, "");
+        setCell(currentRow, 5, "");
+        setCell(currentRow, 6, materialMeta.material?.name || "", {
+          alignment: { horizontal: "left" },
+        });
+        setCell(currentRow, 7, materialMeta.material?.uom?.name || "");
+        setCell(
+          currentRow,
+          8,
+          assignment.assignmentCode ? "" : materialMeta.price,
+        );
+
+        blockCols.forEach((bkCol) => {
+          if (bkCol.isSummary) {
+            let planQtySum = 0,
+              planCostSum = 0,
+              usedQtySum = 0,
+              usedCostSum = 0,
+              varianceQtySum = 0,
+              varianceCostSum = 0;
+            let hasData = false;
+
+            blockCols
+              .filter((b) => b.month === bkCol.month && !b.isSummary)
+              .forEach((b) => {
+                const blockId = `${b.month}_${b.phaseId}`;
+                const mu = assignment.blocks.get(blockId)?.materialUseds?.[i];
+                if (mu) {
+                  hasData = true;
+                  if (b.isOther || !assignment.assignmentCode) {
+                    planQtySum += Number(mu.quantity || 0);
+                    planCostSum += Number(mu.cost || 0);
+                  }
+                  usedQtySum += Number(mu.quantity || 0);
+                  if (b.isOther || !assignment.assignmentCode) {
+                    usedCostSum += Number(mu.cost || 0);
+                  }
+                }
+              });
+
+            varianceQtySum = planQtySum - usedQtySum;
+            varianceCostSum = planCostSum - usedCostSum;
+
+            setCell(
+              currentRow,
+              bkCol.start,
+              hasData ? numOrEmpty(planQtySum) : "",
+            );
+            setCell(
+              currentRow,
+              bkCol.start + 1,
+              hasData ? numOrEmpty(planCostSum) : "",
+            );
+            setCell(
+              currentRow,
+              bkCol.start + 2,
+              hasData ? numOrEmpty(usedQtySum) : "",
+            );
+            setCell(
+              currentRow,
+              bkCol.start + 3,
+              hasData ? numOrEmpty(usedCostSum) : "",
+            );
+            setCell(
+              currentRow,
+              bkCol.start + 4,
+              hasData ? numOrEmpty(varianceQtySum) : "",
+            );
+            setCell(
+              currentRow,
+              bkCol.start + 5,
+              hasData ? numOrEmpty(varianceCostSum) : "",
+            );
+          } else if (bkCol.isOther) {
+            const blockId = `${bkCol.month}_${bkCol.phaseId}`;
+            const mu = assignment.blocks.get(blockId)?.materialUseds?.[i];
+
+            // isOther: số lượng/giá trị nằm ở cột "Tổng" (offset 0 và 4), không phải "Ngoài khoán"
+            setCell(currentRow, bkCol.start, mu ? numOrEmpty(mu.quantity) : "");
+            setCell(currentRow, bkCol.start + 1, "");
+            setCell(currentRow, bkCol.start + 2, "");
+            setCell(currentRow, bkCol.start + 3, mu ? numOrEmpty(mu.cost) : "");
+
+            setCell(
+              currentRow,
+              bkCol.start + 4,
+              mu ? numOrEmpty(mu.quantity) : "",
+            );
+            setCell(currentRow, bkCol.start + 5, "");
+            setCell(currentRow, bkCol.start + 6, "");
+            setCell(currentRow, bkCol.start + 7, mu ? numOrEmpty(mu.cost) : "");
+
+            setCell(currentRow, bkCol.start + 8, "");
+            setCell(currentRow, bkCol.start + 9, "");
+          } else {
+            const blockId = `${bkCol.month}_${bkCol.phaseId}`;
+            const mu = assignment.blocks.get(blockId)?.materialUseds?.[i];
+
+            const showPlan = !assignment.assignmentCode;
+
+            setCell(currentRow, bkCol.start, "");
+            setCell(currentRow, bkCol.start + 1, "");
+            setCell(currentRow, bkCol.start + 2, "");
+
+            setCell(
+              currentRow,
+              bkCol.start + 3,
+              showPlan && mu ? numOrEmpty(mu.quantity) : "",
+            );
+            setCell(currentRow, bkCol.start + 4, "");
+            setCell(currentRow, bkCol.start + 5, "");
+            setCell(
+              currentRow,
+              bkCol.start + 6,
+              showPlan && mu ? numOrEmpty(mu.cost) : "",
+            );
+
+            setCell(
+              currentRow,
+              bkCol.start + 7,
+              mu ? numOrEmpty(mu.quantity) : "",
+            );
+            setCell(currentRow, bkCol.start + 8, "");
+            setCell(currentRow, bkCol.start + 9, "");
+            setCell(
+              currentRow,
+              bkCol.start + 10,
+              assignment.assignmentCode ? "" : mu ? numOrEmpty(mu.cost) : "",
+            );
+
+            setCell(currentRow, bkCol.start + 11, "");
+            setCell(currentRow, bkCol.start + 12, "");
+          }
+        });
+
+        currentRow++;
+      }
+    });
+
+    // Bottom Summary Row
+    mergeAndStyle(currentRow, 1, currentRow, 8, "Tổng chi phí", {
+      font: { bold: true },
+      alignment: { horizontal: "center" },
+    });
+
+    blockCols.forEach((bkCol) => {
+      if (bkCol.isSummary) {
+        let totalPlanSum = 0;
+        let totalUsedSum = 0;
+
+        blockCols
+          .filter((b) => b.month === bkCol.month && !b.isSummary)
+          .forEach((b) => {
+            const blockId = `${b.month}_${b.phaseId}`;
+            rowGroups.forEach((rg) => {
+              const bd = rg.blocks.get(blockId)?.groupData;
+              if (rg.assignmentCode && bd) {
+                totalPlanSum += Number(bd.plan_Cost || 0);
+                totalUsedSum += Number(bd.used_Cost || 0);
+              } else if (!rg.assignmentCode) {
+                const mus = rg.blocks.get(blockId)?.materialUseds;
+                if (mus) {
+                  mus.forEach((mu) => {
+                    if (mu) {
+                      totalPlanSum += Number(mu.cost || 0);
+                      totalUsedSum += Number(mu.cost || 0);
+                    }
+                  });
+                }
+              }
+            });
+          });
+
+        const totalVarianceSum = totalPlanSum - totalUsedSum;
+
+        setCell(currentRow, bkCol.start, "", { font: { bold: true } });
+        setCell(currentRow, bkCol.start + 1, numOrEmpty(totalPlanSum), {
+          font: { bold: true },
+        });
+        setCell(currentRow, bkCol.start + 2, "", { font: { bold: true } });
+        setCell(currentRow, bkCol.start + 3, numOrEmpty(totalUsedSum), {
+          font: { bold: true },
+        });
+        setCell(currentRow, bkCol.start + 4, "", { font: { bold: true } });
+        setCell(currentRow, bkCol.start + 5, numOrEmpty(totalVarianceSum), {
+          font: { bold: true },
+        });
+      } else if (bkCol.isOther) {
+        const blockId = `${bkCol.month}_${bkCol.phaseId}`;
+        let totalPlan = 0;
+        let totalUsed = 0;
+
+        rowGroups.forEach((rg) => {
+          const bd = rg.blocks.get(blockId)?.groupData;
+          if (rg.assignmentCode && bd) {
+            totalPlan += Number(bd.plan_Cost || 0);
+            totalUsed += Number(bd.used_Cost || 0);
+          } else if (!rg.assignmentCode) {
+            const mus = rg.blocks.get(blockId)?.materialUseds;
+            if (mus) {
+              mus.forEach((mu) => {
+                if (mu) {
+                  totalPlan += Number(mu.cost || 0);
+                  totalUsed += Number(mu.cost || 0);
+                }
+              });
+            }
+          }
+        });
+
+        const totalVariance = totalPlan - totalUsed;
+
+        setCell(currentRow, bkCol.start, "");
+        setCell(currentRow, bkCol.start + 1, "");
+        setCell(currentRow, bkCol.start + 2, "");
+        setCell(currentRow, bkCol.start + 3, numOrEmpty(totalPlan), {
+          font: { bold: true },
+        });
+
+        setCell(currentRow, bkCol.start + 4, "");
+        setCell(currentRow, bkCol.start + 5, "");
+        setCell(currentRow, bkCol.start + 6, "");
+        setCell(currentRow, bkCol.start + 7, numOrEmpty(totalUsed), {
+          font: { bold: true },
+        });
+
+        setCell(currentRow, bkCol.start + 8, "");
+        setCell(currentRow, bkCol.start + 9, numOrEmpty(totalVariance), {
+          font: { bold: true },
+        });
+      } else {
+        const blockId = `${bkCol.month}_${bkCol.phaseId}`;
+        let totalPlan = 0;
+        let totalUsed = 0;
+
+        rowGroups.forEach((rg) => {
+          const bd = rg.blocks.get(blockId)?.groupData;
+          if (rg.assignmentCode && bd) {
+            totalPlan += Number(bd.plan_Cost || 0);
+            totalUsed += Number(bd.used_Cost || 0);
+          } else if (!rg.assignmentCode) {
+            const mus = rg.blocks.get(blockId)?.materialUseds;
+            if (mus) {
+              mus.forEach((mu) => {
+                if (mu) {
+                  totalPlan += Number(mu.cost || 0);
+                  totalUsed += Number(mu.cost || 0);
+                }
+              });
+            }
+          }
+        });
+
+        const totalVariance = totalPlan - totalUsed;
+
+        setCell(currentRow, bkCol.start, "");
+        setCell(currentRow, bkCol.start + 1, "");
+        setCell(currentRow, bkCol.start + 2, "");
+
+        setCell(currentRow, bkCol.start + 3, "");
+        setCell(currentRow, bkCol.start + 4, "");
+        setCell(currentRow, bkCol.start + 5, "");
+        setCell(currentRow, bkCol.start + 6, numOrEmpty(totalPlan), {
+          font: { bold: true },
+        });
+
+        setCell(currentRow, bkCol.start + 7, "");
+        setCell(currentRow, bkCol.start + 8, "");
+        setCell(currentRow, bkCol.start + 9, "");
+        setCell(currentRow, bkCol.start + 10, numOrEmpty(totalUsed), {
+          font: { bold: true },
+        });
+
+        setCell(currentRow, bkCol.start + 11, "");
+        setCell(currentRow, bkCol.start + 12, numOrEmpty(totalVariance), {
+          font: { bold: true },
+        });
+      }
+    });
+
+    worksheet.getColumn(1).width = 6;
+    worksheet.getColumn(2).width = 15;
+    worksheet.getColumn(3).width = 10;
+    worksheet.getColumn(4).width = 15;
+    worksheet.getColumn(5).width = 15;
+    worksheet.getColumn(6).width = 35;
+    worksheet.getColumn(7).width = 8;
+    worksheet.getColumn(8).width = 15;
+
+    for (let c = 9; c <= totalCols; c++) {
+      worksheet.getColumn(c).width = 13;
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=QuyetToanGiaoKhoan.xlsx`,
+    );
+    res.send(buffer);
+  } catch (err) {
+    console.log(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
 
 function getMonthsInQuarter(year, quarter) {
   const startMonth = (quarter - 1) * 3 + 1;
@@ -1394,7 +2306,14 @@ function getMonthsInQuarter(year, quarter) {
   return months;
 }
 
-async function getQuarterData(res, quarter, year, phase, productionScope, department) {
+async function getQuarterData(
+  res,
+  quarter,
+  year,
+  phase,
+  productionScope,
+  department,
+) {
   const months = getMonthsInQuarter(Number(year), Number(quarter));
 
   const matchQuery = {};
@@ -1488,7 +2407,11 @@ async function getQuarterData(res, quarter, year, phase, productionScope, depart
   });
 
   // Hợp nhất dữ liệu bằng logic chung
-  const finalGroups = processBudgetAndUsedData(materialBudgets, materialCostUseds, null);
+  const finalGroups = processBudgetAndUsedData(
+    materialBudgets,
+    materialCostUseds,
+    null,
+  );
 
   const info = {
     totalCoal,
@@ -1512,7 +2435,14 @@ exports.getQuarter = async (req, res) => {
         .json({ status: "error", message: "Tham số quý và năm là bắt buộc." });
     }
 
-    const { data, info } = await getQuarterData(res, quarter, year, phase || null, productionScope || null, department || null);
+    const { data, info } = await getQuarterData(
+      res,
+      quarter,
+      year,
+      phase || null,
+      productionScope || null,
+      department || null,
+    );
 
     res.status(200).json({
       status: "success",
