@@ -141,9 +141,7 @@ export default function MaterialCostUsedModal({
       api.get("/materialassignments").then((res) => res.data.data),
   });
 
-  // Initial values
-  const formik = useFormik({
-    initialValues: {
+  const initialValues = useMemo(() => ({
       isOtherTask: selected?.isOtherTask || false,
       department: selected?.department?._id
         ? String(selected.department._id)
@@ -169,29 +167,46 @@ export default function MaterialCostUsedModal({
         }),
       ),
       selectedMaterials: (() => {
-        // 1. Tạo Map tra cứu (để lấy thông tin đầy đủ của vật liệu)
         const materialLookup = new Map(
           (materialassignments.data || []).map((m: Materials) => [m._id, m]),
         );
-
-        // 2. Duyệt qua các lựa chọn và ánh xạ thành mảng vật liệu, bao gồm cả trùng lặp
-        return (selected?.materials || []).flatMap((group: any) => {
-          return (group.materials || [])
-            .map((i: any) => {
-              const materialId = i.material?._id;
-              return materialLookup.get(materialId);
-            })
-            .filter(Boolean); // Loại bỏ vật liệu không hợp lệ (không tìm thấy trong Map)
+        const uniqueMaterialIds = new Set();
+        const result: any[] = [];
+        (selected?.materials || []).forEach((group: any) => {
+          (group.materials || []).forEach((i: any) => {
+            const materialId = i.material?._id;
+            if (materialId && materialLookup.has(materialId) && !uniqueMaterialIds.has(materialId)) {
+              uniqueMaterialIds.add(materialId);
+              result.push(materialLookup.get(materialId));
+            }
+          });
         });
+        return result;
       })(),
-      materials:
-        selected?.materials?.flatMap((group: any) =>
-          group.materials.map((mat: any) => ({
-            material: mat.material?._id ? String(mat.material._id) : "",
-            quantity: mat.quantity,
-          })),
-        ) || [],
-    },
+      materials: (() => {
+        const aggregatedMaterials = new Map();
+        (selected?.materials || []).forEach((group: any) => {
+          (group.materials || []).forEach((mat: any) => {
+            const matId = mat.material?._id ? String(mat.material._id) : "";
+            if (matId) {
+              if (aggregatedMaterials.has(matId)) {
+                aggregatedMaterials.set(matId, aggregatedMaterials.get(matId) + (Number(mat.quantity) || 0));
+              } else {
+                aggregatedMaterials.set(matId, Number(mat.quantity) || 0);
+              }
+            }
+          });
+        });
+        return Array.from(aggregatedMaterials.entries()).map(([material, quantity]) => ({
+          material,
+          quantity,
+        }));
+      })(),
+  }), [selected, materialassignments.data, cuttingPhaseGroupKey]);
+
+  // Initial values
+  const formik = useFormik({
+    initialValues: initialValues,
     enableReinitialize: true,
     onSubmit: async (values) => {
       // Đóng gói payload đảm bảo phases luôn có unit
@@ -425,21 +440,29 @@ export default function MaterialCostUsedModal({
       (r) => r.status === "valid" && r.matchingmaterial,
     );
 
-    const validMaterial = validRows.map((r) => ({
-      material: r.matchingmaterial._id,
-      quantity: r.quantity,
-    }));
+    const currentMaterials = [...(formik.values.materials || [])];
+    const currentSelectedMaterials = [...(formik.values.selectedMaterials || [])];
 
-    const newSelected = validRows.map((r) => r.matchingmaterial);
+    validRows.forEach((r) => {
+      const existingIndex = currentMaterials.findIndex(
+        (m) => m.material === r.matchingmaterial._id
+      );
+      if (existingIndex !== -1) {
+        currentMaterials[existingIndex] = {
+          ...currentMaterials[existingIndex],
+          quantity: (Number(currentMaterials[existingIndex].quantity) || 0) + (Number(r.quantity) || 0)
+        };
+      } else {
+        currentMaterials.push({
+          material: r.matchingmaterial._id,
+          quantity: r.quantity,
+        });
+        currentSelectedMaterials.push(r.matchingmaterial);
+      }
+    });
 
-    formik.setFieldValue(`materials`, [
-      ...(formik.values.materials || []),
-      ...validMaterial,
-    ]);
-    formik.setFieldValue(`selectedMaterials`, [
-      ...(formik.values.selectedMaterials || []),
-      ...newSelected,
-    ]);
+    formik.setFieldValue(`materials`, currentMaterials);
+    formik.setFieldValue(`selectedMaterials`, currentSelectedMaterials);
 
     setPreviewOpen(false);
   };
@@ -940,7 +963,7 @@ export default function MaterialCostUsedModal({
               </Box>
               <Box sx={{ display: "flex", justifyContent: "center" }}>
                 <AppMultiAutocomplete
-                  allowDuplicate={true} // Cho phép chọn 1 chip nhiều lần
+                  allowDuplicate={false}
                   options={materialassignments.data || []}
                   value={formik.values.selectedMaterials || []}
                   getOptionLabel={(option: Materials) =>
@@ -950,13 +973,10 @@ export default function MaterialCostUsedModal({
                   }
                   placeholder="Chọn vật tư..."
                   onChange={(newValue) => {
-                    const updated = newValue.map((item, i) => {
-                      // Tìm vật tư cũ dựa trên cả ID và Index để tránh lấy nhầm dữ liệu của chip trùng tên
+                    const updated = newValue.map((item) => {
                       const existing = (formik.values.materials || []).find(
-                        (n: any, index: number) =>
-                          n.material === item._id && i === index,
+                        (n: any) => n.material === item._id
                       );
-
                       return {
                         material: item._id,
                         quantity: existing?.quantity ?? undefined,
