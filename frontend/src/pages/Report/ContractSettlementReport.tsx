@@ -309,9 +309,10 @@ export default function ContractSettlementReport() {
             maxWidth: "100%",
             border: "1px solid #e0e0e0",
             borderRadius: "4px",
+            transform: "rotateX(180deg)",
           }}
         >
-          <Table sx={{ tableLayout: "auto", width: "100%" }} size="small">
+          <Table sx={{ tableLayout: "auto", width: "100%", transform: "rotateX(180deg)" }} size="small">
             <TableHead>
               {/* Row 1: Tiêu đề tháng */}
               <TableRow>

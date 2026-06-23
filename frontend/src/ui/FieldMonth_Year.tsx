@@ -44,21 +44,27 @@ export default function FieldMonthYear({
         openTo="month"
         value={dayjsValue}
         onChange={(val) => setValue(val ? dayjs(val).format("YYYY-MM") : "")}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            fullWidth
-            size="small"
-            sx={{
-              "& .MuiInputBase-root": {
-                height: "32px",
-                borderRadius: "6px",
-                fontSize: "14px",
-                backgroundColor: "#FFFFFF",
-              },
-            }}
-          />
-        )}
+        renderInput={(params) => {
+          const touched = formik && fieldName ? getIn(formik.touched, fieldName) : false;
+          const error = formik && fieldName ? getIn(formik.errors, fieldName) : null;
+          return (
+            <TextField
+              {...params}
+              fullWidth
+              size="small"
+              error={Boolean(touched && error)}
+              helperText={touched ? error : ""}
+              sx={{
+                "& .MuiInputBase-root": {
+                  height: "32px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  backgroundColor: "#FFFFFF",
+                },
+              }}
+            />
+          );
+        }}
       />
     </LocalizationProvider>
   );

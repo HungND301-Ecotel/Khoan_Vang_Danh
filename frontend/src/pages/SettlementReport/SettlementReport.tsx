@@ -454,8 +454,8 @@ export default function SettlementReport() {
       </Box>
 
       {blockKeys.length > 0 && (
-        <Box sx={{ overflowX: "auto", display: "flex", mb: 4 }}>
-          <Table sx={{ tableLayout: "auto", width: "100%" }} size="small">
+        <Box sx={{ overflowX: "auto", display: "flex", mb: 4, transform: "rotateX(180deg)" }}>
+          <Table sx={{ tableLayout: "auto", width: "100%", transform: "rotateX(180deg)" }} size="small">
             <TableHead>
               {/* Row 1: Tiêu đề chính */}
               <TableRow>

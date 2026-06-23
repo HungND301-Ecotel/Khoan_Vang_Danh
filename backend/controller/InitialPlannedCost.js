@@ -107,13 +107,13 @@ const syncRelatedData = async (productionScope, department, month, phases, oldPr
 
 exports.create = async (req, res) => {
     try {
-        const { productionScope, department, groups } = req.body; // groups: [{ month, phases }]
+        const { department, month, groups } = req.body; // groups: [{ productionScope, phases }]
 
         if (groups && Array.isArray(groups)) {
             const errors = [];
             for (const group of groups) {
                 try {
-                    const { month, phases } = group;
+                    const { productionScope, phases } = group;
                     const result = await calculatedPhases(phases, month, "initial")
                     const totalInitialPlannedCost = result.reduce((sum, item) => sum + item.totalInitialPlannedCost, 0)
 
@@ -124,8 +124,8 @@ exports.create = async (req, res) => {
                     )
                     await syncRelatedData(productionScope, department, month, phases)
                 } catch (err) {
-                    console.error(`Lỗi khi xử lý nhóm tháng ${group.month}:`, err.message);
-                    errors.push({ month: group.month, error: err.message });
+                    console.error(`Lỗi khi xử lý nhóm diện ${group.productionScope}:`, err.message);
+                    errors.push({ productionScope: group.productionScope, error: err.message });
                 }
             }
 
@@ -138,7 +138,7 @@ exports.create = async (req, res) => {
             }
         } else {
             // Hỗ trợ format cũ
-            const { month, phases } = req.body;
+            const { productionScope, phases } = req.body;
             const result = await calculatedPhases(phases, month, "initial")
             const totalInitialPlannedCost = result.reduce((sum, item) => sum + item.totalInitialPlannedCost, 0)
 
@@ -368,13 +368,42 @@ exports.get = async (req, res) => {
         res.status(500).json({ status: 'error', message: err.message });
     }
 };
+exports.getScopesByDepartment = async (req, res) => {
+    try {
+        const { departmentId } = req.params;
+        const scopes = await InitialPlannedCost.find({ department: departmentId })
+            .populate('productionScope', 'code name')
+            .lean();
+        
+        const uniqueScopes = [];
+        const scopeSet = new Set();
+        for (const doc of scopes) {
+            if (doc.productionScope && !scopeSet.has(doc.productionScope._id.toString())) {
+                scopeSet.add(doc.productionScope._id.toString());
+                uniqueScopes.push(doc.productionScope);
+            }
+        }
+        res.status(200).json({ status: 'success', data: uniqueScopes });
+    } catch (err) {
+        console.log(err.stack)
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+}
+
 exports.getOne = async (req, res) => {
     try {
 
         // 2. Thực hiện query với Populate
         // Lấy tất cả dữ liệu liên quan mà không cần nhóm, nhưng giới hạn theo phân trang
         const scopeId = req.params.productionScope
-        const modelQuery = InitialPlannedCost.find({ productionScope: scopeId })
+        const departmentId = req.query.department
+
+        const query = { productionScope: scopeId }
+        if (departmentId) {
+            query.department = departmentId
+        }
+
+        const modelQuery = InitialPlannedCost.find(query)
             .populate({
                 path: 'productionScope',
                 select: 'code name',

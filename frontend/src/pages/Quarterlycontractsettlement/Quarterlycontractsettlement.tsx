@@ -303,8 +303,8 @@ export default function Quarterlycontractsettlement() {
           </Grid> */}
         </Grid>
       </Box>
-      <Box sx={{ overflowX: "auto" }}>
-        <Table sx={{ tableLayout: "auto", width: "100%" }} size="small">
+      <Box sx={{ overflowX: "auto", transform: "rotateX(180deg)" }}>
+        <Table sx={{ tableLayout: "auto", width: "100%", transform: "rotateX(180deg)" }} size="small">
           <TableHead>
             <TableRow>
               <TableCell
