@@ -14,7 +14,7 @@ export const validationSchema = Yup.object().shape({
       phase: Yup.string().required("Vui lòng chọn công đoạn"),
       production: Yup.number()
         .typeError("Sản lượng phải là số")
-        .min(1, "Sản lượng phải lớn hơn 0")
+        .min(0, "Sản lượng phải lớn hơn 0")
         .required("Vui lòng nhập sản lượng"),
       unit: Yup.string().required("Vui lòng nhập đơn vị tính"),
     }),
@@ -22,7 +22,7 @@ export const validationSchema = Yup.object().shape({
   materials: Yup.array().of(
     Yup.object().shape({
       quantity: Yup.number()
-        .min(1, "Số lượng phải lớn hơn 0")
+        .min(0, "Số lượng phải lớn hơn 0")
         .typeError("Số lượng phải là số")
         .required("Vui lòng nhập số lượng"),
     }),

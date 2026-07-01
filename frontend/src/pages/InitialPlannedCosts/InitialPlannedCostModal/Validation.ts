@@ -15,7 +15,7 @@ export const validationSchema = yup.object().shape({
               phase: yup.string().required("Vui lòng chọn công đoạn"),
               production: yup
                 .number()
-                .min(1, "Sản lượng phải lớn hơn 0")
+                .min(0, "Sản lượng phải lớn hơn 0")
                 .required("Bắt buộc"),
               unit: yup.string().required("Bắt buộc"),
             }),
