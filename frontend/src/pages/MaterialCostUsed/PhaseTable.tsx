@@ -102,7 +102,7 @@ export default function PhaseTable({
                   </TableCell>
                   <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
                   <TableCell>
-                    {formattedPrice(
+                    {formatDecimal(
                       m.materials.reduce(
                         (sum: number, i: any) => sum + (i?.quantity || 0),
                         0,
