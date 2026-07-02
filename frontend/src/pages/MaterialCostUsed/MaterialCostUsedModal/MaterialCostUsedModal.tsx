@@ -406,9 +406,7 @@ export default function MaterialCostUsedModal({
                 if (e.target.checked) {
                   formik.setFieldValue("productionScope", "");
                   formik.setFieldValue("groupIndexes", null);
-                  formik.setFieldValue("phases", [
-                    { phase: "", production: 0, unit: "" },
-                  ]);
+                  formik.setFieldValue("phases", []);
                 } else {
                   formik.setFieldValue("month", "");
                   formik.setFieldValue("phases", []);
@@ -498,7 +496,7 @@ export default function MaterialCostUsedModal({
           </Box>
         )}
 
-        {(formik.values.groupIndexes || formik.values.isOtherTask) && (
+        {formik.values.groupIndexes && !formik.values.isOtherTask && (
           <PhaseSection
             formik={formik}
             phasesData={phases.data}

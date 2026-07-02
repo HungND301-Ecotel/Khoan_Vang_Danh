@@ -5,7 +5,7 @@ const { monthToNumber } = require('../utils/helpers')
 
 exports.create = async (req, res) => {
     try {
-        const { department, phases, month, materials } = req.body
+        const { department, month, materials } = req.body
 
         const existing = await OtherMaterialCost.findOne({ department, month });
         if (existing) {
@@ -38,7 +38,7 @@ exports.create = async (req, res) => {
         );
         const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
 
-        const newOtherMaterialCost = new OtherMaterialCost({ department, month, phases, materials: processedMaterials, totalUsedCost })
+        const newOtherMaterialCost = new OtherMaterialCost({ department, month, materials: processedMaterials, totalUsedCost })
         await newOtherMaterialCost.save()
 
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
@@ -50,7 +50,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const { department, phases, month, materials } = req.body
+        const { department, month, materials } = req.body
 
         const existing = await OtherMaterialCost.findOne({ department, month, _id: { $ne: req.params.id } });
         if (existing) {
@@ -84,7 +84,7 @@ exports.update = async (req, res) => {
         const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
 
         const updateData = await OtherMaterialCost.findByIdAndUpdate(req.params.id, {
-            department, month, phases, materials: processedMaterials, totalUsedCost
+            department, month, materials: processedMaterials, totalUsedCost
         }, { new: true })
         
         if (!updateData) {

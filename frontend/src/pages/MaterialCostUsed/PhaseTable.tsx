@@ -68,16 +68,18 @@ export default function PhaseTable({
   ];
   return (
     <Paper sx={{ paddingBottom: "10px" }}>
-      <Table
-        columns={innerColumns}
-        dataSource={data || []}
-        pagination={false}
-        size="small"
-        rowKey={(item) => item.key}
-        onHeaderRow={() => ({
-          className: "custom-header1",
-        })}
-      />
+      {data && data.length > 0 && (
+        <Table
+          columns={innerColumns}
+          dataSource={data}
+          pagination={false}
+          size="small"
+          rowKey={(item) => item.key}
+          onHeaderRow={() => ({
+            className: "custom-header1",
+          })}
+        />
+      )}
       <Paper sx={{ margin: "20px" }}>
         <TableMui>
           <TableHead sx={{ backgroundColor: "#dcd7d7fa" }}>

@@ -8,21 +8,7 @@ const OtherMaterialCost = new mongoose.Schema(
       required: [true, "Department is required"],
     },
     month: String,
-    phases: [
-      {
-        phase: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Phase",
-          required: [true, "Phase is required"],
-        },
-        production: {
-          type: Number,
-        },
-        unit: {
-          type: String,
-        },
-      },
-    ],
+
     totalUsedCost: Number,
     materials: [
       {

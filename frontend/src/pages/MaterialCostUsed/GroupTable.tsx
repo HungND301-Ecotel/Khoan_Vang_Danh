@@ -42,7 +42,7 @@ export default function GroupTable({
         </Box>
       );
     }
-    if (!data.phases) {
+    if (!data.phases && !data.isOtherTask) {
       return <Box sx={{ p: 2 }}>Đang tải...</Box>;
     }
     return (

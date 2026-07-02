@@ -198,7 +198,6 @@ exports.get = async (req, res) => {
                 path: 'department',
                 select: 'code name',
             })
-            .populate('phases.phase', 'code name')
             .populate({
                 path: 'materials.material',
                 populate: [
@@ -358,7 +357,6 @@ exports.get = async (req, res) => {
                     isOtherTask: true,
                     productionScope: { _id: doc?._id, code: "Công việc khác", name: "Công việc khác" },
                     totalUsedCost: doc.totalUsedCost,
-                    phases: doc.phases,
                     materials: materials
                 });
             }

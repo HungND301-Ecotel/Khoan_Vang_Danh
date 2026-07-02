@@ -695,11 +695,6 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       OtherMaterialCost.find(matchQuery)
         .populate({ path: "department", select: "code name" })
         .populate({
-          path: "phases.phase",
-          select: "code name phaseGroup",
-          populate: { path: "phaseGroup", select: "code name" },
-        })
-        .populate({
           path: "materials.material",
           populate: [
             { path: "uom", select: "name" },
@@ -810,7 +805,6 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
           quantity,
           cost,
           otherDocId: otherDoc._id,
-          phases: otherDoc.phases,
         });
       });
     });
@@ -862,7 +856,6 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       otherTasks:
         othersByMonth.length > 0
           ? {
-              phases: othersByMonth.flatMap((d) => d.phases),
               data: otherTasksData,
             }
           : null,
@@ -975,26 +968,26 @@ function transformToTableData(apiResponse) {
       let totalExcavation = 0;
       let totalCutting = 0;
 
-      if (Array.isArray(monthEntry.otherTasks.phases)) {
-        monthEntry.otherTasks.phases.forEach((p) => {
-          const unit = (p.unit || "").toLowerCase().trim();
-          const phaseName = (p.phase?.name || "").toLowerCase();
-          const phaseGroupName = (
-            p.phase?.phaseGroup?.name || ""
-          ).toLowerCase();
-          const prod = p.production || 0;
+      // if (Array.isArray(monthEntry.otherTasks.phases)) {
+      //   monthEntry.otherTasks.phases.forEach((p) => {
+      //     const unit = (p.unit || "").toLowerCase().trim();
+      //     const phaseName = (p.phase?.name || "").toLowerCase();
+      //     const phaseGroupName = (
+      //       p.phase?.phaseGroup?.name || ""
+      //     ).toLowerCase();
+      //     const prod = p.production || 0;
 
-          if (unit === "tấn" || unit === "t" || unit === "tan") {
-            totalCoal += prod;
-          } else if (unit === "mét" || unit === "m" || unit === "met") {
-            if (phaseName.includes("xén") || phaseGroupName.includes("xén")) {
-              totalCutting += prod;
-            } else {
-              totalExcavation += prod;
-            }
-          }
-        });
-      }
+      //     if (unit === "tấn" || unit === "t" || unit === "tan") {
+      //       totalCoal += prod;
+      //     } else if (unit === "mét" || unit === "m" || unit === "met") {
+      //       if (phaseName.includes("xén") || phaseGroupName.includes("xén")) {
+      //         totalCutting += prod;
+      //       } else {
+      //         totalExcavation += prod;
+      //       }
+      //     }
+      //   });
+      // }
 
       phases.push({
         phaseId: `OTHER_${monthEntry.month}`,

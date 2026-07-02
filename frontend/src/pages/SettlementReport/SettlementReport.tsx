@@ -146,29 +146,29 @@ export default function SettlementReport() {
           let totalExcavation = 0;
           let totalCutting = 0;
 
-          if (Array.isArray(monthEntry.otherTasks.phases)) {
-            monthEntry.otherTasks.phases.forEach((p: any) => {
-              const unit = (p.unit || "").toLowerCase().trim();
-              const phaseName = (p.phase?.name || "").toLowerCase();
-              const phaseGroupName = (
-                p.phase?.phaseGroup?.name || ""
-              ).toLowerCase();
-              const prod = p.production || 0;
+          // if (Array.isArray(monthEntry.otherTasks.phases)) {
+          //   monthEntry.otherTasks.phases.forEach((p: any) => {
+          //     const unit = (p.unit || "").toLowerCase().trim();
+          //     const phaseName = (p.phase?.name || "").toLowerCase();
+          //     const phaseGroupName = (
+          //       p.phase?.phaseGroup?.name || ""
+          //     ).toLowerCase();
+          //     const prod = p.production || 0;
 
-              if (unit === "tấn" || unit === "t" || unit === "tan") {
-                totalCoal += prod;
-              } else if (unit === "mét" || unit === "m" || unit === "met") {
-                if (
-                  phaseName.includes("xén") ||
-                  phaseGroupName.includes("xén")
-                ) {
-                  totalCutting += prod;
-                } else {
-                  totalExcavation += prod;
-                }
-              }
-            });
-          }
+          //     if (unit === "tấn" || unit === "t" || unit === "tan") {
+          //       totalCoal += prod;
+          //     } else if (unit === "mét" || unit === "m" || unit === "met") {
+          //       if (
+          //         phaseName.includes("xén") ||
+          //         phaseGroupName.includes("xén")
+          //       ) {
+          //         totalCutting += prod;
+          //       } else {
+          //         totalExcavation += prod;
+          //       }
+          //     }
+          //   });
+          // }
 
           phases.push({
             phaseId: `OTHER_${monthEntry.month}`,
@@ -354,7 +354,15 @@ export default function SettlementReport() {
     phaseId ? `${month}_${phaseId}` : month;
 
   return (
-    <Paper sx={{ width: "calc(100vw - 148px)", p: 2 }}>
+    <Paper
+      sx={{
+        width: "calc(100vw - 148px)",
+        p: 2,
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+      }}
+    >
       <Box sx={{ mb: 2 }}>
         <Box display={"flex"} gap={2}>
           <Grid container spacing={2} mb={3} alignItems="center">
@@ -454,8 +462,22 @@ export default function SettlementReport() {
       </Box>
 
       {blockKeys.length > 0 && (
-        <Box sx={{ overflowX: "auto", display: "flex", mb: 4, transform: "rotateX(180deg)" }}>
-          <Table sx={{ tableLayout: "auto", width: "100%", transform: "rotateX(180deg)" }} size="small">
+        <Box
+          sx={{
+            overflowX: "auto",
+            display: "flex",
+            mb: 4,
+            transform: "rotateX(180deg)",
+          }}
+        >
+          <Table
+            sx={{
+              tableLayout: "auto",
+              width: "100%",
+              transform: "rotateX(180deg)",
+            }}
+            size="small"
+          >
             <TableHead>
               {/* Row 1: Tiêu đề chính */}
               <TableRow>
@@ -468,7 +490,7 @@ export default function SettlementReport() {
                   <TableCell
                     key={idx}
                     align="center"
-                    colSpan={bk.isSummary ? 6 : isShow ? 13 : 10}
+                    colSpan={bk.isSummary ? 6 : showNorms(bk) ? 13 : 10}
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
@@ -493,7 +515,7 @@ export default function SettlementReport() {
                   <TableCell
                     key={idx}
                     align="center"
-                    colSpan={bk.isSummary ? 6 : isShow ? 13 : 10}
+                    colSpan={bk.isSummary ? 6 : showNorms(bk) ? 13 : 10}
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
@@ -518,7 +540,7 @@ export default function SettlementReport() {
                   <TableCell
                     key={idx}
                     align="center"
-                    colSpan={bk.isSummary ? 6 : isShow ? 13 : 10}
+                    colSpan={bk.isSummary ? 6 : showNorms(bk) ? 13 : 10}
                     sx={{
                       border: "1px solid #ddd",
                       fontWeight: "bold",
@@ -548,7 +570,7 @@ export default function SettlementReport() {
                   <Fragment key={idx}>
                     <TableCell
                       align="center"
-                      colSpan={bk.isSummary ? 2 : isShow ? 7 : 4}
+                      colSpan={bk.isSummary ? 2 : showNorms(bk) ? 7 : 4}
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
@@ -802,7 +824,7 @@ export default function SettlementReport() {
                   }
                   return (
                     <Fragment key={idx}>
-                      {isShow && (
+                      {showNorms(bk) && (
                         <TableCell
                           align="center"
                           rowSpan={2}
@@ -820,7 +842,7 @@ export default function SettlementReport() {
                           Định mức gốc
                         </TableCell>
                       )}
-                      {isShow && (
+                      {showNorms(bk) && (
                         <TableCell
                           align="center"
                           rowSpan={2}
@@ -838,7 +860,7 @@ export default function SettlementReport() {
                           Hệ số điều chỉnh định mức
                         </TableCell>
                       )}
-                      {isShow && (
+                      {showNorms(bk) && (
                         <TableCell
                           align="center"
                           rowSpan={2}
@@ -1092,28 +1114,30 @@ export default function SettlementReport() {
                   const info = bk.info;
                   return (
                     <Fragment key={idx}>
-                      {Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
-                        <TableCell
-                          key={`${idx}_${i}`}
-                          sx={{
-                            border: "1px solid #ddd",
-                            p: 0.5,
-                            bgcolor:
-                              i >= 0 && i <= (isShow ? 6 : 3)
-                                ? "#F3D01640"
-                                : i >= (isShow ? 7 : 4) &&
-                                    i <= (isShow ? 10 : 7)
-                                  ? "#4CAF503D"
-                                  : i >= (isShow ? 11 : 8)
-                                    ? "#FF620040"
-                                    : "white",
-                          }}
-                        >
-                          {i === (isShow ? 4 : 1)
-                            ? formatDecimal(info.totalCoal)
-                            : ""}
-                        </TableCell>
-                      ))}
+                      {Array.from({ length: showNorms(bk) ? 13 : 10 }).map(
+                        (_, i) => (
+                          <TableCell
+                            key={`${idx}_${i}`}
+                            sx={{
+                              border: "1px solid #ddd",
+                              p: 0.5,
+                              bgcolor:
+                                i >= 0 && i <= (showNorms(bk) ? 6 : 3)
+                                  ? "#F3D01640"
+                                  : i >= (showNorms(bk) ? 7 : 4) &&
+                                      i <= (showNorms(bk) ? 10 : 7)
+                                    ? "#4CAF503D"
+                                    : i >= (showNorms(bk) ? 11 : 8)
+                                      ? "#FF620040"
+                                      : "white",
+                            }}
+                          >
+                            {i === (showNorms(bk) ? 4 : 1)
+                              ? formatDecimal(info.totalCoal)
+                              : ""}
+                          </TableCell>
+                        ),
+                      )}
                     </Fragment>
                   );
                 })}
@@ -1169,28 +1193,30 @@ export default function SettlementReport() {
                   const info = bk.info;
                   return (
                     <Fragment key={idx}>
-                      {Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
-                        <TableCell
-                          key={`${idx}_${i}`}
-                          sx={{
-                            border: "1px solid #ddd",
-                            p: 0.5,
-                            bgcolor:
-                              i >= 0 && i <= (isShow ? 6 : 3)
-                                ? "#F3D01640"
-                                : i >= (isShow ? 7 : 4) &&
-                                    i <= (isShow ? 10 : 7)
-                                  ? "#4CAF503D"
-                                  : i >= (isShow ? 11 : 8)
-                                    ? "#FF620040"
-                                    : "white",
-                          }}
-                        >
-                          {i === (isShow ? 4 : 1)
-                            ? formatDecimal(info.totalExcavation)
-                            : ""}
-                        </TableCell>
-                      ))}
+                      {Array.from({ length: showNorms(bk) ? 13 : 10 }).map(
+                        (_, i) => (
+                          <TableCell
+                            key={`${idx}_${i}`}
+                            sx={{
+                              border: "1px solid #ddd",
+                              p: 0.5,
+                              bgcolor:
+                                i >= 0 && i <= (showNorms(bk) ? 6 : 3)
+                                  ? "#F3D01640"
+                                  : i >= (showNorms(bk) ? 7 : 4) &&
+                                      i <= (showNorms(bk) ? 10 : 7)
+                                    ? "#4CAF503D"
+                                    : i >= (showNorms(bk) ? 11 : 8)
+                                      ? "#FF620040"
+                                      : "white",
+                            }}
+                          >
+                            {i === (showNorms(bk) ? 4 : 1)
+                              ? formatDecimal(info.totalExcavation)
+                              : ""}
+                          </TableCell>
+                        ),
+                      )}
                     </Fragment>
                   );
                 })}
@@ -1243,28 +1269,30 @@ export default function SettlementReport() {
                   const info = bk.info;
                   return (
                     <Fragment key={idx}>
-                      {Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
-                        <TableCell
-                          key={`${idx}_${i}`}
-                          sx={{
-                            border: "1px solid #ddd",
-                            p: 0.5,
-                            bgcolor:
-                              i >= 0 && i <= (isShow ? 6 : 3)
-                                ? "#F3D01640"
-                                : i >= (isShow ? 7 : 4) &&
-                                    i <= (isShow ? 10 : 7)
-                                  ? "#4CAF503D"
-                                  : i >= (isShow ? 11 : 8)
-                                    ? "#FF620040"
-                                    : "white",
-                          }}
-                        >
-                          {i === (isShow ? 4 : 1)
-                            ? formatDecimal(info.totalCutting)
-                            : ""}
-                        </TableCell>
-                      ))}
+                      {Array.from({ length: showNorms(bk) ? 13 : 10 }).map(
+                        (_, i) => (
+                          <TableCell
+                            key={`${idx}_${i}`}
+                            sx={{
+                              border: "1px solid #ddd",
+                              p: 0.5,
+                              bgcolor:
+                                i >= 0 && i <= (showNorms(bk) ? 6 : 3)
+                                  ? "#F3D01640"
+                                  : i >= (showNorms(bk) ? 7 : 4) &&
+                                      i <= (showNorms(bk) ? 10 : 7)
+                                    ? "#4CAF503D"
+                                    : i >= (showNorms(bk) ? 11 : 8)
+                                      ? "#FF620040"
+                                      : "white",
+                            }}
+                          >
+                            {i === (showNorms(bk) ? 4 : 1)
+                              ? formatDecimal(info.totalCutting)
+                              : ""}
+                          </TableCell>
+                        ),
+                      )}
                     </Fragment>
                   );
                 })}
@@ -1310,30 +1338,32 @@ export default function SettlementReport() {
                   const info = bk.info;
                   return (
                     <Fragment key={idx}>
-                      {Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
-                        <TableCell
-                          key={`${idx}_${i}`}
-                          sx={{
-                            border: "1px solid #ddd",
-                            p: 0.5,
-                            bgcolor:
-                              i >= 0 && i <= (isShow ? 6 : 3)
-                                ? "#F3D01640"
-                                : i >= (isShow ? 7 : 4) &&
-                                    i <= (isShow ? 10 : 7)
-                                  ? "#4CAF503D"
-                                  : i >= (isShow ? 11 : 8)
-                                    ? "#FF620040"
-                                    : "white",
-                          }}
-                        >
-                          {i === (isShow ? 4 : 1)
-                            ? bk.isOther
-                              ? ""
-                              : info.rockRatio
-                            : ""}
-                        </TableCell>
-                      ))}
+                      {Array.from({ length: showNorms(bk) ? 13 : 10 }).map(
+                        (_, i) => (
+                          <TableCell
+                            key={`${idx}_${i}`}
+                            sx={{
+                              border: "1px solid #ddd",
+                              p: 0.5,
+                              bgcolor:
+                                i >= 0 && i <= (showNorms(bk) ? 6 : 3)
+                                  ? "#F3D01640"
+                                  : i >= (showNorms(bk) ? 7 : 4) &&
+                                      i <= (showNorms(bk) ? 10 : 7)
+                                    ? "#4CAF503D"
+                                    : i >= (showNorms(bk) ? 11 : 8)
+                                      ? "#FF620040"
+                                      : "white",
+                            }}
+                          >
+                            {i === (showNorms(bk) ? 4 : 1)
+                              ? bk.isOther
+                                ? ""
+                                : info.rockRatio
+                              : ""}
+                          </TableCell>
+                        ),
+                      )}
                     </Fragment>
                   );
                 })}
@@ -1377,24 +1407,26 @@ export default function SettlementReport() {
                   }
                   return (
                     <Fragment key={idx}>
-                      {Array.from({ length: isShow ? 13 : 10 }).map((_, i) => (
-                        <TableCell
-                          key={`${idx}_${i}`}
-                          sx={{
-                            border: "1px solid #ddd",
-                            p: 0.5,
-                            bgcolor:
-                              i >= 0 && i <= (isShow ? 6 : 3)
-                                ? "#F3D01640"
-                                : i >= (isShow ? 7 : 4) &&
-                                    i <= (isShow ? 10 : 7)
-                                  ? "#4CAF503D"
-                                  : i >= (isShow ? 11 : 8)
-                                    ? "#FF620040"
-                                    : "white",
-                          }}
-                        />
-                      ))}
+                      {Array.from({ length: showNorms(bk) ? 13 : 10 }).map(
+                        (_, i) => (
+                          <TableCell
+                            key={`${idx}_${i}`}
+                            sx={{
+                              border: "1px solid #ddd",
+                              p: 0.5,
+                              bgcolor:
+                                i >= 0 && i <= (showNorms(bk) ? 6 : 3)
+                                  ? "#F3D01640"
+                                  : i >= (showNorms(bk) ? 7 : 4) &&
+                                      i <= (showNorms(bk) ? 10 : 7)
+                                    ? "#4CAF503D"
+                                    : i >= (showNorms(bk) ? 11 : 8)
+                                      ? "#FF620040"
+                                      : "white",
+                            }}
+                          />
+                        ),
+                      )}
                     </Fragment>
                   );
                 })}
@@ -1670,7 +1702,7 @@ export default function SettlementReport() {
 
                         return (
                           <Fragment key={`asg_${idx}`}>
-                            {isShow && (
+                            {showNorms(bk) && (
                               <TableCell
                                 align="center"
                                 sx={{
@@ -1686,7 +1718,7 @@ export default function SettlementReport() {
                                   : ""}
                               </TableCell>
                             )}
-                            {isShow && (
+                            {showNorms(bk) && (
                               <TableCell
                                 align="center"
                                 sx={{
@@ -1704,7 +1736,7 @@ export default function SettlementReport() {
                                   : ""}
                               </TableCell>
                             )}
-                            {isShow && (
+                            {showNorms(bk) && (
                               <TableCell
                                 align="center"
                                 sx={{
@@ -2052,7 +2084,7 @@ export default function SettlementReport() {
 
                             return (
                               <Fragment key={`mat_cell_${idx}`}>
-                                {isShow && (
+                                {showNorms(bk) && (
                                   <TableCell
                                     align="center"
                                     sx={{
@@ -2064,7 +2096,7 @@ export default function SettlementReport() {
                                     }}
                                   ></TableCell>
                                 )}
-                                {isShow && (
+                                {showNorms(bk) && (
                                   <TableCell
                                     align="center"
                                     sx={{
@@ -2076,7 +2108,7 @@ export default function SettlementReport() {
                                     }}
                                   ></TableCell>
                                 )}
-                                {isShow && (
+                                {showNorms(bk) && (
                                   <TableCell
                                     align="center"
                                     sx={{
@@ -2275,7 +2307,7 @@ export default function SettlementReport() {
 
                     return (
                       <Fragment key={`total_block_${idx}`}>
-                        {isShow && (
+                        {showNorms(bk) && (
                           <>
                             <TableCell
                               sx={{

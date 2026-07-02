@@ -2,7 +2,7 @@ import React, { SyntheticEvent, useState } from "react";
 import Setttlementreport from "../SettlementReport/SettlementReport";
 import Quarterlycontractsettlement from "../Quarterlycontractsettlement/Quarterlycontractsettlement";
 import { Box, Breadcrumbs, Tab, Tabs, Typography } from "@mui/material";
-import custom_theme from '../../theme';
+import custom_theme from "../../theme";
 
 export default function SettlementReportSummary() {
   const [currentTab, setCurrentTab] = useState<number>(0);
@@ -11,16 +11,24 @@ export default function SettlementReportSummary() {
     setCurrentTab(newValue);
   };
   return (
-    <Box sx={{
-      px: 5,           // horizontal = 32px
-      py: 1,           // vertical = 8px
-    }}>
+    <Box
+      sx={{
+        px: 5, // horizontal = 32px
+        py: 1, // vertical = 8px
+        position: "relative",
+        height: "100%",
+        width: "100%",
+      }}
+    >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Thống kê vận hành</Typography>
         <Typography>Quyết toán giao khoán</Typography>
       </Breadcrumbs>
 
-      <Typography variant="h4" sx={{ color: (theme) => custom_theme.palette.table_name.main, mt: 2 }}>
+      <Typography
+        variant="h4"
+        sx={{ color: (theme) => custom_theme.palette.table_name.main, mt: 2 }}
+      >
         Quyết toán giao khoán
       </Typography>
 
@@ -40,7 +48,7 @@ export default function SettlementReportSummary() {
             variant="standard"
             TabIndicatorProps={{ style: { display: "none" } }}
             sx={{
-              backgroundColor: '#ffffffff',
+              backgroundColor: "#ffffffff",
               minHeight: "32px",
               "& .MuiTabs-flexContainer": { gap: 1.5 },
             }}
