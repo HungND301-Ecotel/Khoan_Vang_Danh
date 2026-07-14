@@ -41,6 +41,7 @@ import MiningTechService from "../../service/MiningTechService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function MiningTech() {
   const [open, setOpen] = useState(false);
@@ -56,6 +57,10 @@ export default function MiningTech() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<MiningtechType>
+  >(setOpen, "Công nghệ khai thác");
 
   const {
     data: miningtechs = { totalDocs: 0, data: [] },
@@ -81,6 +86,7 @@ export default function MiningTech() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["miningtechs"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -124,6 +130,7 @@ export default function MiningTech() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["miningtechs"] });
       setOpen(false);
+      clearMinimize();
       setSelectedMiningTech(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -164,8 +171,9 @@ export default function MiningTech() {
   });
 
   const handleSubmit = (values: Partial<MiningtechType>) => {
-    if (selectedMiningTech) {
-      updateMutation.mutate({ ...values, _id: selectedMiningTech._id });
+    const targetId = selectedMiningTech?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -287,6 +295,9 @@ export default function MiningTech() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedPhaseGroup={selectedMiningTech}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
 
     </Box>

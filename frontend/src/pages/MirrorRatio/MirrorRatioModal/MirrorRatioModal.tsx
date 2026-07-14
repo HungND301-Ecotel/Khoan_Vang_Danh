@@ -28,15 +28,21 @@ export default function MirrorRatioModal({
   setOpen,
   handleSubmit,
   selectedMirrorRatio,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<MirrorRatioType>) => void;
   selectedMirrorRatio: MirrorRatioType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      name: selectedMirrorRatio ? selectedMirrorRatio.name : "",
+      name: minimizedData ? minimizedData.name : (selectedMirrorRatio ? selectedMirrorRatio.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -48,13 +54,19 @@ export default function MirrorRatioModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedMirrorRatio?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={selectedMirrorRatio?"Chỉnh sửa tỉ lệ gương than mềm (Cm)":"Tạo mới tỉ lệ gương than mềm (Cm"}
+      onMinimize={handleMinimize}
+      title={(selectedMirrorRatio || minimizedData?._id) ?"Chỉnh sửa tỉ lệ gương than mềm (Cm)":"Tạo mới tỉ lệ gương than mềm (Cm"}
       breadcrumbs={["Danh mục", "Tỉ lệ gương than mềm (Cm)"]}
       showZoom={true}
       actions={
@@ -84,7 +96,7 @@ export default function MirrorRatioModal({
               textTransform: "none",
             }}
           >
-            {selectedMirrorRatio ? "Cập nhật" : "Xác nhận"}
+            {(selectedMirrorRatio || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

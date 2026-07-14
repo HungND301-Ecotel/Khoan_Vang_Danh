@@ -28,15 +28,21 @@ export default function StepModal({
   setOpen,
   handleSubmit,
   selectedStep,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<StepType>) => void;
   selectedStep: StepType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      name: selectedStep ? selectedStep.name : "",
+      name: minimizedData ? minimizedData.name : (selectedStep ? selectedStep.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -48,15 +54,19 @@ export default function StepModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedStep?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedStep
-          ? "Chỉnh sửa bước chống"
+      onMinimize={handleMinimize}
+      title={(selectedStep || minimizedData?._id) ? "Chỉnh sửa bước chống"
           : "Tạo mới bước chống"
       }
       breadcrumbs={["Danh mục", "Thông số", "Bước chống"]}
@@ -88,7 +98,7 @@ export default function StepModal({
               textTransform: "none",
             }}
           >
-            {selectedStep ? "Cập nhật" : "Xác nhận"}
+            {(selectedStep || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

@@ -16,16 +16,22 @@ export default function DepartmentModal({
   setOpen,
   handleSubmit,
   selectedDepartment,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<DepartmentType>) => void;
   selectedDepartment: DepartmentType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      code: selectedDepartment ? selectedDepartment.code : "",
-      name: selectedDepartment ? selectedDepartment.name : "",
+      code: minimizedData ? minimizedData.code : (selectedDepartment ? selectedDepartment.code : ""),
+      name: minimizedData ? minimizedData.name : (selectedDepartment ? selectedDepartment.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -37,6 +43,15 @@ export default function DepartmentModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) {
+      clearMinimize();
+    }
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) {
+      onMinimize(formik.values);
+    }
   };
 
   const title = selectedDepartment ? "Chỉnh sửa phân xưởng" : "Tạo mới phân xưởng";
@@ -45,6 +60,7 @@ export default function DepartmentModal({
     <BaseModal
       open={open}
       onClose={handleClose}
+      onMinimize={handleMinimize}
       title={title}
       breadcrumbs={["Danh mục", "Phân xưởng"]}
       showZoom={true}
@@ -75,7 +91,7 @@ export default function DepartmentModal({
               textTransform: "none",
             }}
           >
-            {selectedDepartment ? "Cập nhật" : "Xác nhận"}
+            {(selectedDepartment || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

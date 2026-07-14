@@ -44,11 +44,17 @@ export default function MaterialAssignmentOutPlanModal({
   setOpen,
   handleSubmit,
   selectedMaterialAssignment,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<MaterialAssignmentInputType>) => void;
   selectedMaterialAssignment: Materials | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const { data: assignmentCodes = [] } = useQuery({
     queryKey: ["assignmentCodes"],
@@ -66,12 +72,12 @@ export default function MaterialAssignmentOutPlanModal({
 
   const formik = useFormik({
     initialValues: {
-      code: selectedMaterialAssignment ? selectedMaterialAssignment.code : "",
-      name: selectedMaterialAssignment ? selectedMaterialAssignment.name : "",
-      uom: selectedMaterialAssignment
+      code: minimizedData ? minimizedData.code : (selectedMaterialAssignment ? selectedMaterialAssignment.code : ""),
+      name: minimizedData ? minimizedData.name : (selectedMaterialAssignment ? selectedMaterialAssignment.name : ""),
+      uom: minimizedData ? minimizedData.uom : (selectedMaterialAssignment
         ? selectedMaterialAssignment.uom?._id
-        : "",
-      priceHistory:
+        : ""),
+      priceHistory: minimizedData ? minimizedData.priceHistory : (
         selectedMaterialAssignment &&
         Array.isArray(selectedMaterialAssignment.priceHistory)
           ? selectedMaterialAssignment.priceHistory.map((item) => ({
@@ -89,14 +95,14 @@ export default function MaterialAssignmentOutPlanModal({
                 startMonth: dayjs(new Date()).format("YYYY-MM"),
                 endMonth: dayjs(new Date()).format("YYYY-MM"),
               },
-            ],
+            ]),
     },
     enableReinitialize: true,
     validationSchema,
     onSubmit: (values) => {
       const transformedValues: MaterialAssignmentInputType = {
         ...values,
-        priceHistory: values.priceHistory.map((item) => ({
+        priceHistory: values.priceHistory.map((item: any) => ({
           ...item,
           startMonth: dayjs(new Date(item.startMonth)).format("YYYY-MM"),
           endMonth: dayjs(new Date(item.endMonth)).format("YYYY-MM"),
@@ -109,15 +115,19 @@ export default function MaterialAssignmentOutPlanModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedMaterialAssignment?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedMaterialAssignment
-          ? "Chỉnh sửa vật tư, tài sản ngoài khoán"
+      onMinimize={handleMinimize}
+      title={(selectedMaterialAssignment || minimizedData?._id) ? "Chỉnh sửa vật tư, tài sản ngoài khoán"
           : "Tạo mới vật tư, tài sản ngoài khoán"
       }
       breadcrumbs={["Danh mục", "Vật tư, tài sản ngoài khoán"]}
@@ -149,7 +159,7 @@ export default function MaterialAssignmentOutPlanModal({
               textTransform: "none",
             }}
           >
-            {selectedMaterialAssignment ? "Cập nhật" : "Xác nhận"}
+            {(selectedMaterialAssignment || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }
@@ -197,7 +207,7 @@ export default function MaterialAssignmentOutPlanModal({
                   <Box
                     sx={{ display: "flex", flexDirection: "column", gap: 2 }}
                   >
-                    {formik.values.priceHistory.map((item, index) => (
+                    {formik.values.priceHistory.map((item: any, index: number) => (
                       <Grid
                         container
                         spacing={2}

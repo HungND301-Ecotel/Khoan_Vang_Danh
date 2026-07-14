@@ -23,16 +23,22 @@ export default function ProductionScopeModal({
   setOpen,
   handleSubmit,
   selected,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<ProductionScopeInputType>) => void;
   selected: ProductionScopeOutputType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      code: selected?.code || "",
-      name: selected?.name || "",
+      code: minimizedData ? minimizedData.code : (selected?.code || ""),
+      name: minimizedData ? minimizedData.name : (selected?.name || ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -44,13 +50,19 @@ export default function ProductionScopeModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selected?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={selected ? "Chỉnh sửa diện sản xuất" : "Tạo mới diện sản xuất"}
+      onMinimize={handleMinimize}
+      title={(selected || minimizedData?._id) ? "Chỉnh sửa diện sản xuất" : "Tạo mới diện sản xuất"}
       breadcrumbs={["Danh mục", "Thông số", "Diện sản xuất"]}
       showZoom={true}
       actions={
@@ -80,7 +92,7 @@ export default function ProductionScopeModal({
               textTransform: "none",
             }}
           >
-            {selected ? "Cập nhật" : "Xác nhận"}
+            {(selected || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

@@ -56,11 +56,17 @@ export default function AdjustmentNormKKTModal({
   setOpen,
   handleSubmit,
   selected,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<AdjustmentNormInputType>) => void;
   selected: AdjustmentNormOutputType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedAssignmentCodes, setSelectedAssignmentCodes] = useState<
@@ -86,15 +92,15 @@ export default function AdjustmentNormKKTModal({
 
   const formik = useFormik({
     initialValues: {
-      hardness: selected?.hardness?._id || "",
-      rockRatio: selected?.rockRatio?._id || "",
-      code: selected?.code || "",
-      type: "CKKT",
-      norms:
+      hardness: minimizedData ? minimizedData.hardness : (selected?.hardness?._id || ""),
+      rockRatio: minimizedData ? minimizedData.rockRatio : (selected?.rockRatio?._id || ""),
+      code: minimizedData ? minimizedData.code : (selected?.code || ""),
+      type: minimizedData ? minimizedData.type : "CKKT",
+      norms: minimizedData ? minimizedData.norms : (
         selected?.norms?.map((item) => ({
           assignmentCode: item.assignmentCode?._id || "",
           norm: item.norm,
-        })) || [],
+        })) || []),
     },
     enableReinitialize: true,
     validationSchema,
@@ -110,17 +116,27 @@ export default function AdjustmentNormKKTModal({
   useEffect(() => {
     // if (assignmentcodes.totalDocs === 0) return;
 
-    if (selected && selected.norms.length > 0) {
+    if (minimizedData && minimizedData.norms && minimizedData.norms.length > 0) {
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
+        minimizedData.norms.some((norm: any) => norm.assignmentCode === ac._id),
+      );
+      setSelectedAssignmentCodes(selectedCodes);
+    } else if (selected && selected.norms.length > 0) {
       const selectedCodes = assignmentcodes.data.filter((ac: any) =>
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
     }
-  }, [selected, assignmentcodes.data]);
+  }, [selected, minimizedData, assignmentcodes.data]);
 
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selected?._id || minimizedData?._id });
   };
 
   const handleImportData = (excelData: { code: string; norm: number }[]) => {
@@ -155,6 +171,7 @@ export default function AdjustmentNormKKTModal({
     <BaseModal
       open={open}
       onClose={handleClose}
+      onMinimize={handleMinimize}
       title={
         selectedAssignmentCodes
           ? "Chỉnh sủa hệ số điều chỉnh định mức CK.KT"
@@ -397,7 +414,7 @@ export default function AdjustmentNormKKTModal({
                       setSelectedAssignmentCodes(updatedCodes);
 
                       const updatedNorms = formik.values.norms.filter(
-                        (_, i) => i !== index,
+                        (_:any, i:number) => i !== index,
                       );
                       formik.setFieldValue("norms", updatedNorms);
                     }}

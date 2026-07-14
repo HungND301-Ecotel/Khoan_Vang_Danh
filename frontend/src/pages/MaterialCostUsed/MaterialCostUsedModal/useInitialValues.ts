@@ -4,10 +4,15 @@ import { Materials } from "../../../types";
 
 export function useInitialValues(
   selected: any | null,
+  minimizedData: any | null,
   materialassignmentsData: any[],
   cuttingPhaseGroupKey: string
 ) {
-  return useMemo(() => ({
+  return useMemo(() => {
+    if (minimizedData) {
+      return minimizedData;
+    }
+    return {
     isOtherTask: selected?.isOtherTask || false,
     department: selected?.department?._id
       ? String(selected.department._id)
@@ -28,8 +33,6 @@ export function useInitialValues(
             ?.includes(cuttingPhaseGroupKey?.toLowerCase())
             ? "tấn"
             : "mét"),
-        assignmentNormCode: p?.assignmentNormCode,
-        adjustmentNormCode: p?.adjustmentNormCode,
       }),
     ),
     selectedMaterials: (() => {
@@ -77,5 +80,6 @@ export function useInitialValues(
         })
       );
     })(),
-  }), [selected, materialassignmentsData, cuttingPhaseGroupKey]);
+  };
+  }, [selected, minimizedData, materialassignmentsData, cuttingPhaseGroupKey]);
 }

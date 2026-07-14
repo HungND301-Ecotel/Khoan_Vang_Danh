@@ -19,7 +19,13 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { Dispatch, SetStateAction, useEffect, useState, useMemo } from "react";
+import React, {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useMemo,
+} from "react";
 import { useAtomValue, useAtom } from "jotai";
 import { FieldArray, FormikProvider, useFormik } from "formik";
 import { systemConfigsAtom } from "../../../atoms/systemConfigAtoms";
@@ -70,6 +76,9 @@ export default function ExcavationNormModal({
   selected,
   hasExistingRecords,
   existingNorms,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
@@ -77,6 +86,9 @@ export default function ExcavationNormModal({
   selected: AssignmentNormOutputType | null;
   hasExistingRecords: boolean;
   existingNorms: AssignmentNormOutputType[];
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [phaseGroup, setPhaseGroup] = useState<string | null>(null);
@@ -145,24 +157,20 @@ export default function ExcavationNormModal({
 
   const formik = useFormik({
     initialValues: {
-      phaseGroup: phaseGroup || "",
-      phase: "",
-      step: "",
-      code: selected?.code || "",
-      excavationTech: "",
+      phaseGroup: minimizedData?.phaseGroup || phaseGroup || "",
+      phase: minimizedData?.phase || "",
+      step: minimizedData?.step || "",
+      code: minimizedData?.code || selected?.code || "",
+      excavationTech: minimizedData?.excavationTech || "",
       type: "excavation",
-      interpolationMethod: "",
-      predictingPoint: "",
-      upperLimitNorm: "",
-      upperLimitPoint: "",
-      lowerLimitNorm: "",
-      lowerLimitPoint: "",
-      interpolatedNorm: "",
-      norms: [] as any[],
-      // assignmentcodes.data.map((item: any) => ({
-      //   assignmentCode: item._id,
-      //   norm: "",
-      // })),
+      interpolationMethod: minimizedData?.interpolationMethod || "",
+      predictingPoint: minimizedData?.predictingPoint || "",
+      upperLimitNorm: minimizedData?.upperLimitNorm || "",
+      upperLimitPoint: minimizedData?.upperLimitPoint || "",
+      lowerLimitNorm: minimizedData?.lowerLimitNorm || "",
+      lowerLimitPoint: minimizedData?.lowerLimitPoint || "",
+      interpolatedNorm: minimizedData?.interpolatedNorm || "",
+      norms: minimizedData?.norms || ([] as any[]),
     },
     enableReinitialize: true,
     validationSchema,
@@ -176,8 +184,8 @@ export default function ExcavationNormModal({
           | "coal_zh"
           | "coal_zry",
         norms: values?.norms
-          ?.filter((item) => item.assignmentCode && item.norm)
-          .map((item) => ({
+          ?.filter((item: any) => item.assignmentCode && item.norm)
+          .map((item: any) => ({
             assignmentCode: item.assignmentCode,
             norm: item?.norm,
           })),
@@ -185,7 +193,20 @@ export default function ExcavationNormModal({
     },
   });
   useEffect(() => {
-    if (selected && selected.norms.length > 0 && open) {
+    if (minimizedData && open) {
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
+        minimizedData.norms?.some(
+          (norm: any) =>
+            (typeof norm.assignmentCode === "string"
+              ? norm.assignmentCode
+              : norm.assignmentCode?._id) === ac._id
+        )
+      );
+      setSelectedAssignmentCodes(selectedCodes);
+      if (minimizedData.upperLimitNorm || minimizedData.lowerLimitNorm) {
+        setShowAdditionalRows(true);
+      }
+    } else if (selected && selected.norms.length > 0 && open) {
       formik.setValues({
         ...formik.values,
         phase: selected?.phase?._id || "",
@@ -205,10 +226,10 @@ export default function ExcavationNormModal({
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
-    } else {
+    } else if (open) {
       setSelectedAssignmentCodes([]);
     }
-  }, [selected, assignmentcodes.data, open]);
+  }, [selected, minimizedData, assignmentcodes.data, open]);
 
   // Effect khi chọn cận trên
   useEffect(() => {
@@ -336,7 +357,7 @@ export default function ExcavationNormModal({
     if (selectedAssignmentCodes.length > 0) {
       const updatedNorms = selectedAssignmentCodes.map((code) => {
         const existingNorm = formik.values.norms.find(
-          (n) => n.assignmentCode === code._id,
+          (n: any) => n.assignmentCode === code._id,
         );
         return {
           assignmentCode: code._id,
@@ -412,6 +433,11 @@ export default function ExcavationNormModal({
     setLowerNormsMap(new Map());
     setOriginalNorms([]);
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selected?._id || minimizedData?._id });
   };
 
   const handleImportData = (excelData: { code: string; norm: number }[]) => {
@@ -441,7 +467,8 @@ export default function ExcavationNormModal({
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={selected ? "Chỉnh sửa định mức đào lò" : "Tạo mới định mức đào lò"}
+      onMinimize={handleMinimize}
+      title={(selected || minimizedData?._id) ? "Chỉnh sửa định mức đào lò" : "Tạo mới định mức đào lò"}
       breadcrumbs={["Danh mục", "Thông số", "Định mức đào lò"]}
       showZoom={true}
       actions={
@@ -471,7 +498,7 @@ export default function ExcavationNormModal({
               textTransform: "none",
             }}
           >
-            {selected ? "Cập nhật" : "Xác nhận"}
+            {(selected || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

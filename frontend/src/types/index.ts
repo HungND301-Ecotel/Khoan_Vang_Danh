@@ -702,3 +702,4 @@ export type ContractSettlementResponse =
   | MonthlyDataNoPhase[]
   | MonthlyDataWithPhase[]
   | MonthlyDataAllScopes[];
+export * from './ModalTypes';

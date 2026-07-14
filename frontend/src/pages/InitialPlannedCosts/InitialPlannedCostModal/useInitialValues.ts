@@ -4,9 +4,14 @@ import { InitialPlannedCostFormType } from "./types";
 
 export function useInitialValues(
   selected: any,
+  minimizedData: any,
   cuttingPhaseGroupKey: string,
 ): InitialPlannedCostFormType {
   const initialValues = useMemo(() => {
+    if (minimizedData) {
+      return minimizedData;
+    }
+
     if (selected?._id) {
       return {
         _id: selected._id,
@@ -80,7 +85,7 @@ export function useInitialValues(
         },
       ],
     };
-  }, [selected, cuttingPhaseGroupKey]);
+  }, [selected, minimizedData, cuttingPhaseGroupKey]);
 
   return initialValues;
 }

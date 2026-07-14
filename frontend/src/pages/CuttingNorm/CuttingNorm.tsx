@@ -37,6 +37,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 import { formatDecimal } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function CuttingNorm() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -55,6 +56,10 @@ export default function CuttingNorm() {
 
   const queryClient = useQueryClient();
 
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<AssignmentNormInputType>
+  >(setOpen, "Định mức xén lò");
+
   const { data: assignmentnorms = { totalDocs: 0, data: [] }, isLoading } =
     useQuery({
       queryKey: ["assignmentnorms", searchValue, page, limit],
@@ -72,6 +77,7 @@ export default function CuttingNorm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -88,6 +94,7 @@ export default function CuttingNorm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
       setOpen(false);
+      clearMinimize();
       setSelected(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -178,8 +185,6 @@ export default function CuttingNorm() {
     },
   });
 
-
-
   const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
     const cleanedValues = Object.fromEntries(
       Object.entries(values).filter(
@@ -187,8 +192,9 @@ export default function CuttingNorm() {
       ),
     );
 
-    if (selected) {
-      updateMutation.mutate({ ...cleanedValues, _id: selected._id });
+    const targetId = selected?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...cleanedValues, _id: targetId });
     } else {
       createMutation.mutate(cleanedValues);
     }
@@ -429,6 +435,9 @@ export default function CuttingNorm() {
           selected={selected}
           hasExistingRecords={assignmentnorms.totalDocs > 1}
           existingNorms={assignmentnorms.data}
+          minimizedData={minimizedData}
+          onMinimize={handleMinimize}
+          clearMinimize={clearMinimize}
         />
       </Box>
       <ImportErrorDialog

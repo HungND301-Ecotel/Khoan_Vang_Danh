@@ -14,7 +14,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
-import { ThicknessType } from "../../../types";
+import { CurbSlopeType } from "../../../types";
 import { Divider } from "antd";
 import FieldInput from "../../../components/TextField/FieldInput";
 import BaseModal from "../../../components/Common/BaseModal";
@@ -28,15 +28,21 @@ export default function CurbSlopeModal({
   setOpen,
   handleSubmit,
   selectedCurbSlope,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
-  handleSubmit: (values: Partial<ThicknessType>) => void;
-  selectedCurbSlope: ThicknessType | null;
+  handleSubmit: (values: Partial<CurbSlopeType>) => void;
+  selectedCurbSlope: CurbSlopeType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      name: selectedCurbSlope ? selectedCurbSlope.name : "",
+      name: minimizedData ? minimizedData.name : (selectedCurbSlope ? selectedCurbSlope.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -48,15 +54,19 @@ export default function CurbSlopeModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedCurbSlope?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedCurbSlope
-          ? "Chỉnh sửa độ dốc vỉa"
+      onMinimize={handleMinimize}
+      title={(selectedCurbSlope || minimizedData?._id) ? "Chỉnh sửa độ dốc vỉa"
           : "Tạo mới độ dốc vỉa"
       }
       breadcrumbs={["Danh mục", "Thông số", "Độ dốc vỉa"]}
@@ -88,7 +98,7 @@ export default function CurbSlopeModal({
               textTransform: "none",
             }}
           >
-            {selectedCurbSlope ? "Cập nhật" : "Xác nhận"}
+            {(selectedCurbSlope || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

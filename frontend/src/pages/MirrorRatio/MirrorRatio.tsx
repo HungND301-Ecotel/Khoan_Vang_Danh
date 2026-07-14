@@ -41,6 +41,8 @@ import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import PageAction from "../../components/Common/PageAction";
 
+import useMinimizedModal from "../../hooks/useMinimizedModal";
+
 export default function MirrorRatio() {
   const [open, setOpen] = useState(false);
   const [selectedMirrorRatio, setSelectedMirrorRatio] =
@@ -53,6 +55,9 @@ export default function MirrorRatio() {
   const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<MirrorRatioType>
+  >(setOpen, "Tỉ lệ gương than mềm");
 
   const {
     data: mirrorratios = {
@@ -82,6 +87,7 @@ export default function MirrorRatio() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mirrorratios"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
@@ -105,6 +111,7 @@ export default function MirrorRatio() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mirrorratios"] });
       setOpen(false);
+      clearMinimize();
       setSelectedMirrorRatio(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -166,8 +173,9 @@ export default function MirrorRatio() {
   });
 
   const handleSubmit = (values: Partial<MirrorRatioType>) => {
-    if (selectedMirrorRatio) {
-      updateMutation.mutate({ ...values, _id: selectedMirrorRatio._id });
+    const targetId = selectedMirrorRatio?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -310,6 +318,9 @@ export default function MirrorRatio() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedMirrorRatio={selectedMirrorRatio}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

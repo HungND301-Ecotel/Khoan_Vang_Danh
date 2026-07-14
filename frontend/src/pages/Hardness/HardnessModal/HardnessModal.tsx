@@ -30,11 +30,17 @@ export default function HardnessModal({
   setOpen,
   handleSubmit,
   selectedHardness,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<HardnessType>) => void;
   selectedHardness: HardnessType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const { data: units = [] } = useQuery({
     queryKey: ["units"],
@@ -46,8 +52,8 @@ export default function HardnessModal({
 
   const formik = useFormik({
     initialValues: {
-      name: selectedHardness ? selectedHardness.name : "",
-      uom: selectedHardness ? selectedHardness.uom?._id || "" : "",
+      name: minimizedData ? minimizedData.name : (selectedHardness ? selectedHardness.name : ""),
+      uom: minimizedData ? minimizedData.uom : (selectedHardness ? selectedHardness.uom?._id || "" : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -63,15 +69,19 @@ export default function HardnessModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedHardness?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedHardness
-          ? "Chỉnh sửa độ cứng than, đá"
+      onMinimize={handleMinimize}
+      title={(selectedHardness || minimizedData?._id) ? "Chỉnh sửa độ cứng than, đá"
           : "Tạo mới độ cứng than, đá"
       }
       breadcrumbs={["Danh mục", "Thông số", "Độ cứng than, đá (f)"]}
@@ -103,7 +113,7 @@ export default function HardnessModal({
               textTransform: "none",
             }}
           >
-            {selectedHardness ? "Cập nhật" : "Xác nhận"}
+            {(selectedHardness || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

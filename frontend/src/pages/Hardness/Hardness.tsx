@@ -37,6 +37,7 @@ import { parseAxiosError } from "../../utils/handleApiError";
 import HardnessModal from "./HardnessModal/HardnessModal";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function Hardness() {
   const [open, setOpen] = useState(false);
@@ -54,6 +55,11 @@ export default function Hardness() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleUploadClick = () => fileInputRef.current?.click();
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<HardnessType>
+  >(setOpen, "Độ cứng (f)");
+
   const {
     data: hardness = { totalDocs: 0, data: [] },
     isLoading,
@@ -78,6 +84,7 @@ export default function Hardness() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hardness"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
@@ -93,6 +100,7 @@ export default function Hardness() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hardness"] });
       setOpen(false);
+      clearMinimize();
       setSelectedHardness(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -129,8 +137,9 @@ export default function Hardness() {
   });
 
   const handleSubmit = (values: Partial<HardnessType>) => {
-    if (selectedHardness) {
-      updateMutation.mutate({ ...values, _id: selectedHardness._id });
+    const targetId = selectedHardness?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -262,6 +271,9 @@ export default function Hardness() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedHardness={selectedHardness}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
 
     </Box>

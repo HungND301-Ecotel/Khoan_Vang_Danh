@@ -37,6 +37,7 @@ import CrossSectionService from "../../service/CrossSectionService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport"
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function CrossSection() {
   const [open, setOpen] = useState(false);
@@ -54,6 +55,10 @@ export default function CrossSection() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleUploadClick = () => fileInputRef.current?.click();
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<CrossSectionInputType>
+  >(setOpen, "Tiết diện lò xén");
 
   const {
     data: crosssections = { totalDocs: 0, data: [] },
@@ -79,6 +84,7 @@ export default function CrossSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crosssections"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
@@ -94,6 +100,7 @@ export default function CrossSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crosssections"] });
       setOpen(false);
+      clearMinimize();
       setSelectedCrossSection(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -158,8 +165,9 @@ export default function CrossSection() {
   });
 
   const handleSubmit = (values: Partial<CrossSectionInputType>) => {
-    if (selectedCrossSection) {
-      updateMutation.mutate({ ...values, _id: selectedCrossSection._id });
+    const targetId = selectedCrossSection?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -274,6 +282,9 @@ export default function CrossSection() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedCrossSection={selectedCrossSection}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

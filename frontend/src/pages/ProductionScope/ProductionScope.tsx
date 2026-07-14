@@ -41,6 +41,7 @@ import ProductionScopeService from "../../service/ProductionScopeService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function ProductScope() {
   const [selected, setSelected] = useState<ProductionScopeOutputType | null>(
@@ -55,6 +56,10 @@ export default function ProductScope() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<ProductionScopeInputType>
+  >(setOpen, "Diện sản xuất");
 
   const {
     data: productionscopes = { totalDocs: 0, data: [] },
@@ -81,6 +86,7 @@ export default function ProductScope() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["productionscopes"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -100,6 +106,7 @@ export default function ProductScope() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["productionscopes"] });
       setOpen(false);
+      clearMinimize();
       setSelected(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -168,8 +175,9 @@ export default function ProductScope() {
   });
 
   const handleSubmit = (values: Partial<ProductionScopeInputType>) => {
-    if (selected) {
-      updateMutation.mutate({ ...values, _id: selected._id });
+    const targetId = selected?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -312,6 +320,9 @@ export default function ProductScope() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

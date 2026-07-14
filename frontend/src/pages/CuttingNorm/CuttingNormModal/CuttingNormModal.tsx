@@ -25,6 +25,7 @@ import {
   AssignmentNormInputType,
   AssignmentNormOutputType,
   PhaseGroupType,
+  BaseConfigModalProps,
 } from "../../../types";
 import * as yup from "yup";
 import { CloudUpload } from "@mui/icons-material";
@@ -62,11 +63,10 @@ export default function CuttingNormModal({
   selected,
   hasExistingRecords,
   existingNorms,
-}: {
-  open: boolean;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  handleSubmit: (values: Partial<AssignmentNormInputType>) => void;
-  selected: AssignmentNormOutputType | null;
+  minimizedData,
+  onMinimize,
+  clearMinimize,
+}: BaseConfigModalProps<AssignmentNormInputType, AssignmentNormOutputType> & {
   hasExistingRecords: boolean;
   existingNorms: AssignmentNormOutputType[];
 }) {
@@ -131,20 +131,20 @@ export default function CuttingNormModal({
 
   const formik = useFormik({
     initialValues: {
-      phaseGroup: phaseGroup || "",
-      phase: "",
-      hardness: "",
-      code: "",
-      crossSection: "",
+      phaseGroup: minimizedData?.phaseGroup || phaseGroup || "",
+      phase: minimizedData?.phase || "",
+      hardness: minimizedData?.hardness || "",
+      code: minimizedData?.code || selected?.code || "",
+      crossSection: minimizedData?.crossSection || "",
       type: "cutting",
-      interpolationMethod: "",
-      predictingPoint: "",
-      upperLimitNorm: "",
-      upperLimitPoint: "",
-      lowerLimitNorm: "",
-      lowerLimitPoint: "",
-      interpolatedNorm: "",
-      norms: [] as any[],
+      interpolationMethod: minimizedData?.interpolationMethod || "",
+      predictingPoint: minimizedData?.predictingPoint || "",
+      upperLimitNorm: minimizedData?.upperLimitNorm || "",
+      upperLimitPoint: minimizedData?.upperLimitPoint || "",
+      lowerLimitNorm: minimizedData?.lowerLimitNorm || "",
+      lowerLimitPoint: minimizedData?.lowerLimitPoint || "",
+      interpolatedNorm: minimizedData?.interpolatedNorm || "",
+      norms: minimizedData?.norms || ([] as any[]),
     },
     enableReinitialize: true,
     validationSchema,
@@ -170,7 +170,20 @@ export default function CuttingNormModal({
 
   // Effect khi mở modal edit
   useEffect(() => {
-    if (selected && selected.norms.length > 0 && open) {
+    if (minimizedData && open) {
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
+        minimizedData.norms?.some(
+          (norm: any) =>
+            (typeof norm.assignmentCode === "string"
+              ? norm.assignmentCode
+              : norm.assignmentCode?._id) === ac._id
+        )
+      );
+      setSelectedAssignmentCodes(selectedCodes);
+      if (minimizedData.upperLimitNorm || minimizedData.lowerLimitNorm) {
+        setShowAdditionalRows(true);
+      }
+    } else if (selected && selected.norms.length > 0 && open) {
       formik.setValues({
         ...formik.values,
         phase: selected?.phase?._id || "",
@@ -190,8 +203,10 @@ export default function CuttingNormModal({
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
+    } else if (open) {
+      setSelectedAssignmentCodes([]);
     }
-  }, [selected, assignmentcodes.data, open]);
+  }, [selected, minimizedData, assignmentcodes.data, open]);
 
   // Effect khi chọn cận trên
   useEffect(() => {
@@ -319,7 +334,7 @@ export default function CuttingNormModal({
     if (selectedAssignmentCodes.length > 0) {
       const updatedNorms = selectedAssignmentCodes.map((code) => {
         const existingNorm = formik.values.norms.find(
-          (n) => n.assignmentCode === code._id,
+          (n: any) => n.assignmentCode === code._id,
         );
         return {
           assignmentCode: code._id,
@@ -395,6 +410,15 @@ export default function CuttingNormModal({
     setLowerNormsMap(new Map());
     setOriginalNorms([]);
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize)
+      onMinimize({
+        ...formik.values,
+        _id: selected?._id || minimizedData?._id,
+      });
   };
 
   const handleImportData = (excelData: { code: string; norm: number }[]) => {
@@ -425,7 +449,12 @@ export default function CuttingNormModal({
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={selected ? "Chỉnh sửa định mức xén lò" : "Tạo mới định mức xén lò"}
+      onMinimize={handleMinimize}
+      title={
+        selected || minimizedData?._id
+          ? "Chỉnh sửa định mức xén lò"
+          : "Tạo mới định mức xén lò"
+      }
       breadcrumbs={["Danh mục", "Thông số", "Định mức xén lò"]}
       showZoom={true}
       actions={
@@ -455,7 +484,7 @@ export default function CuttingNormModal({
               textTransform: "none",
             }}
           >
-            {selected ? "Cập nhật" : "Xác nhận"}
+            {selected || minimizedData?._id ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

@@ -41,6 +41,7 @@ import CurbSlopeService from "../../service/CurbSlopeService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function CurbSlope() {
   const [open, setOpen] = useState(false);
@@ -54,6 +55,10 @@ export default function CurbSlope() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<CurbSlopeType>
+  >(setOpen, "Độ dốc vỉa");
 
   const {
     data: curbslopes = { totalDocs: 0, data: [] },
@@ -79,6 +84,7 @@ export default function CurbSlope() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["curbslopes"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -94,6 +100,7 @@ export default function CurbSlope() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["curbslopes"] });
       setOpen(false);
+      clearMinimize();
       setSelectedCurbSlope(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -157,8 +164,9 @@ export default function CurbSlope() {
   });
 
   const handleSubmit = (values: Partial<CurbSlopeType>) => {
-    if (selectedCurbSlope) {
-      updateMutation.mutate({ ...values, _id: selectedCurbSlope._id });
+    const targetId = selectedCurbSlope?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -261,6 +269,9 @@ export default function CurbSlope() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedCurbSlope={selectedCurbSlope}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

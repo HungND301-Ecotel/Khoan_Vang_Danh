@@ -41,6 +41,7 @@ import LengthService from "../../service/LengthService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function Length() {
   const [open, setOpen] = useState(false);
@@ -53,6 +54,10 @@ export default function Length() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<LengthType>
+  >(setOpen, "Chiều dài lò");
 
   const {
     data: length = { totalDocs: 0, data: [] },
@@ -78,6 +83,7 @@ export default function Length() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["length"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -94,6 +100,7 @@ export default function Length() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["length"] });
       setOpen(false);
+      clearMinimize();
       setSelectedLength(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -160,8 +167,9 @@ export default function Length() {
   });
 
   const handleSubmit = (values: Partial<LengthType>) => {
-    if (selectedLength) {
-      updateMutation.mutate({ ...values, _id: selectedLength._id });
+    const targetId = selectedLength?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -269,6 +277,9 @@ export default function Length() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedLength={selectedLength}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

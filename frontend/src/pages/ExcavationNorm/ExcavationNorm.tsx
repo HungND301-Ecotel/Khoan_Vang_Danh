@@ -37,6 +37,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 import { formatDecimal } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function ExcavationNorm() {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
@@ -55,6 +56,10 @@ export default function ExcavationNorm() {
 
   const queryClient = useQueryClient();
 
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<AssignmentNormInputType>
+  >(setOpen, "Định mức đào lò");
+
   const { data: assignmentnorms = { totalDOcs: 0, data: [] }, isLoading } =
     useQuery({
       queryKey: ["assignmentnorms", searchValue, page, limit],
@@ -72,6 +77,7 @@ export default function ExcavationNorm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -91,6 +97,7 @@ export default function ExcavationNorm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
       setOpen(false);
+      clearMinimize();
       setSelected(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -161,8 +168,9 @@ export default function ExcavationNorm() {
       ),
     );
 
-    if (selected) {
-      updateMutation.mutate({ ...cleanedValues, _id: selected._id });
+    const targetId = selected?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...cleanedValues, _id: targetId });
     } else {
       createMutation.mutate(cleanedValues);
     }
@@ -426,6 +434,9 @@ export default function ExcavationNorm() {
           selected={selected}
           hasExistingRecords={assignmentnorms.totalDocs > 1}
           existingNorms={assignmentnorms.data}
+          minimizedData={minimizedData}
+          onMinimize={handleMinimize}
+          clearMinimize={clearMinimize}
         />
       </Box>
       <ImportErrorDialog

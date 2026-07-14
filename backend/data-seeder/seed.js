@@ -28,6 +28,11 @@ const initialConfigs = [
     value: "XL",
     description: "Mã nhóm công đoạn xén lò",
   },
+  {
+    key: "MAX_TABS_PER_USER",
+    value: "7",
+    description: "Số lượng tab tối đa cho mỗi người dùng",
+  },
 ];
 
 const seedData = async () => {

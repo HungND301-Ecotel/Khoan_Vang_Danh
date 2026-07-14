@@ -41,6 +41,7 @@ import StepService from "../../service/StepService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function Step() {
   const [open, setOpen] = useState(false);
@@ -53,6 +54,10 @@ export default function Step() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<StepType>
+  >(setOpen, "Bước chống");
 
   const {
     data: steps = [],
@@ -78,6 +83,7 @@ export default function Step() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["steps"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
@@ -91,6 +97,7 @@ export default function Step() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["steps"] });
       setOpen(false);
+      clearMinimize();
       setSelectedStep(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -155,8 +162,9 @@ export default function Step() {
   });
 
   const handleSubmit = (values: Partial<StepType>) => {
-    if (selectedStep) {
-      updateMutation.mutate({ ...values, _id: selectedStep._id });
+    const targetId = selectedStep?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -259,6 +267,9 @@ export default function Step() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedStep={selectedStep}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

@@ -45,7 +45,7 @@ import GroupTable from "./GroupTable";
 import MonthTable from "./MonthTable";
 import { formattedPrice } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
-
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 export default function InitialPlannedCosts() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [selected, setSelected] = useState<any | null>(null);
@@ -56,6 +56,10 @@ export default function InitialPlannedCosts() {
   const [limit, setLimit] = useState(10);
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
   const [deletedIds, setDeletedIds] = useState<React.Key[]>([]);
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<InitialPlannedCostInputType>
+  >(setOpen, "Chi phí kế hoạch ban đầu");
 
   const queryClient = useQueryClient();
 
@@ -84,6 +88,7 @@ export default function InitialPlannedCosts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -107,6 +112,7 @@ export default function InitialPlannedCosts() {
       queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
       setOpen(false);
       setSelected(null);
+      clearMinimize();
       showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
@@ -163,6 +169,7 @@ export default function InitialPlannedCosts() {
       setSelected(initialplannedcost);
     } else {
       setSelected(null);
+      clearMinimize();
     }
     setOpen(true);
   };
@@ -212,14 +219,14 @@ export default function InitialPlannedCosts() {
       ),
     },
     {
-      title: (
-        <Typography sx={{ fontWeight: "bold" }}>Phân xưởng </Typography>
-      ),
+      title: <Typography sx={{ fontWeight: "bold" }}>Phân xưởng </Typography>,
       dataIndex: "department",
       key: "department",
       width: 300,
       render: (_, record) => (
-        <Typography>{record.department?.name || record.department?.code}</Typography>
+        <Typography>
+          {record.department?.name || record.department?.code}
+        </Typography>
       ),
       sorter: (a, b) =>
         (a.department?.name ?? "").localeCompare(
@@ -308,8 +315,8 @@ export default function InitialPlannedCosts() {
         (g: InitialPlannedCostOutputType) =>
           newSelectedRows.some((s) => s === g._id),
       );
-      const allSelectedGroups = selectedDocuments.flatMap((g: any) => 
-        g.months.flatMap((m: any) => m.scopes)
+      const allSelectedGroups = selectedDocuments.flatMap((g: any) =>
+        g.months.flatMap((m: any) => m.scopes),
       );
       const deletedGroupIds = allSelectedGroups.map(
         (groupItem: any) => groupItem._id,
@@ -380,6 +387,9 @@ export default function InitialPlannedCosts() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

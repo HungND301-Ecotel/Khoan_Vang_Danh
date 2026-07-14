@@ -28,15 +28,21 @@ export default function ExcavationTechModal({
   setOpen,
   handleSubmit,
   selectedExcavationTech,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<ExcavationTechType>) => void;
   selectedExcavationTech: ExcavationTechType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      name: selectedExcavationTech ? selectedExcavationTech.name : "",
+      name: minimizedData ? minimizedData.name : (selectedExcavationTech ? selectedExcavationTech.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -48,15 +54,19 @@ export default function ExcavationTechModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedExcavationTech?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedExcavationTech
-          ? "Chỉnh sửa công nghệ xúc"
+      onMinimize={handleMinimize}
+      title={(selectedExcavationTech || minimizedData?._id) ? "Chỉnh sửa công nghệ xúc"
           : "Tạo mới công nghệ xúc"
       }
       breadcrumbs={["Danh mục", "Thông số", "Công nghệ xúc"]}
@@ -88,7 +98,7 @@ export default function ExcavationTechModal({
               textTransform: "none",
             }}
           >
-            {selectedExcavationTech ? "Cập nhật" : "Xác nhận"}
+            {(selectedExcavationTech || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

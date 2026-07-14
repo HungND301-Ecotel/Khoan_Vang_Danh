@@ -39,6 +39,7 @@ import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 interface PhaseGroupProps {
   searchValue?: string;
@@ -60,6 +61,9 @@ export default function PhaseGroup({
   // Use parent search value if provided, otherwise use local search
 
   const queryClient = useQueryClient();
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<PhaseGroupType>
+  >(setOpen, "Nhóm công đoạn");
 
   const {
     data: phasegroups = {
@@ -87,6 +91,7 @@ export default function PhaseGroup({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["phasegroups"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
@@ -131,6 +136,7 @@ export default function PhaseGroup({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["phasegroups"] });
       setOpen(false);
+      clearMinimize();
       setSelectedPhaseGroup(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -169,8 +175,9 @@ export default function PhaseGroup({
   };
 
   const handleSubmit = (values: Partial<PhaseGroupType>) => {
-    if (selectedPhaseGroup) {
-      updateMutation.mutate({ ...values, _id: selectedPhaseGroup._id });
+    const targetId = selectedPhaseGroup?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -285,6 +292,9 @@ export default function PhaseGroup({
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedPhaseGroup={selectedPhaseGroup}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

@@ -28,15 +28,21 @@ export default function RockRatioModal({
   setOpen,
   handleSubmit,
   selectedRockRatio,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<RockRatioType>) => void;
   selectedRockRatio: RockRatioType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      name: selectedRockRatio ? selectedRockRatio.name : "",
+      name: minimizedData ? minimizedData.name : (selectedRockRatio ? selectedRockRatio.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -48,15 +54,19 @@ export default function RockRatioModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedRockRatio?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedRockRatio
-          ? "Chỉnh sửa tỉ lệ đá lẫn trong gương (CKep)"
+      onMinimize={handleMinimize}
+      title={(selectedRockRatio || minimizedData?._id) ? "Chỉnh sửa tỉ lệ đá lẫn trong gương (CKep)"
           : "Tạo mới tỉ lệ đá lẫn trong gương (CKep)"
       }
       breadcrumbs={["Danh mục", "Tỉ lệ đá lẫn trong gương (CKep)"]}
@@ -88,7 +98,7 @@ export default function RockRatioModal({
               textTransform: "none",
             }}
           >
-            {selectedRockRatio ? "Cập nhật" : "Xác nhận"}
+            {(selectedRockRatio || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

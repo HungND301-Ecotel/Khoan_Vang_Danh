@@ -28,15 +28,21 @@ export default function ThicknessModal({
   setOpen,
   handleSubmit,
   selectedThickness,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<ThicknessType>) => void;
   selectedThickness: ThicknessType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      name: selectedThickness ? selectedThickness.name : "",
+      name: minimizedData ? minimizedData.name : (selectedThickness ? selectedThickness.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -48,13 +54,19 @@ export default function ThicknessModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedThickness?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={selectedThickness ? "Chỉnh sửa độ dày vỉa" : "Tạo mới độ dày vỉa"}
+      onMinimize={handleMinimize}
+      title={(selectedThickness || minimizedData?._id) ? "Chỉnh sửa độ dày vỉa" : "Tạo mới độ dày vỉa"}
       breadcrumbs={["Danh mục", "Thông số", "độ dày vỉa (Mv)"]}
       showZoom={true}
       actions={
@@ -84,7 +96,7 @@ export default function ThicknessModal({
               textTransform: "none",
             }}
           >
-            {selectedThickness ? "Cập nhật" : "Xác nhận"}
+            {(selectedThickness || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

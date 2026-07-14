@@ -37,6 +37,7 @@ import PhaseService from "../../service/PhaseService";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport"
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 
 interface PhaseProps {
@@ -60,6 +61,9 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
   const handleUploadClick = () => fileInputRef.current?.click();
 
   const queryClient = useQueryClient();
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<PhaseInputType>
+  >(setOpen, "Công đoạn");
 
   const {
     data: phases = {
@@ -105,6 +109,7 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["phases"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
@@ -129,6 +134,7 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["phases"] });
       setOpen(false);
+      clearMinimize();
       setSelectedPhase(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -166,8 +172,9 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
   });
 
   const handleSubmit = (values: Partial<PhaseInputType>) => {
-    if (selectedPhase) {
-      updateMutation.mutate({ ...values, _id: selectedPhase._id });
+    const targetId = selectedPhase?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -299,6 +306,9 @@ export default function Phase({ searchValue: parentSearchValue }: PhaseProps) {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedPhase={selectedPhase}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

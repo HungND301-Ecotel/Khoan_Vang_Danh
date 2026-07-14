@@ -12,7 +12,7 @@ import { useAtomValue } from "jotai";
 
 import BaseModal from "../../../components/Common/BaseModal";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
-import { InitialPlannedCostInputType } from "../../../types";
+import { InitialPlannedCostInputType, BaseConfigModalProps } from "../../../types";
 import { systemConfigsAtom } from "../../../atoms/systemConfigAtoms";
 import { SYSTEM_KEYS } from "../../../utils/constant";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
@@ -27,12 +27,10 @@ export default function InitialPlannedCostModal({
   setOpen,
   handleSubmit,
   selected,
-}: {
-  open: boolean;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  handleSubmit: (values: any) => void;
-  selected: any | null;
-}) {
+  minimizedData,
+  onMinimize,
+  clearMinimize,
+}: BaseConfigModalProps<InitialPlannedCostInputType, any>) {
   const [expandedGroups, setExpandedGroups] = useState<number[]>([0]);
 
   const systemConfigs = useAtomValue(systemConfigsAtom);
@@ -48,7 +46,7 @@ export default function InitialPlannedCostModal({
     adjustmentnorms,
   } = useModalQueries();
 
-  const initialValues = useInitialValues(selected, cuttingPhaseGroupKey);
+  const initialValues = useInitialValues(selected, minimizedData, cuttingPhaseGroupKey);
 
   const toggleExpand = (index: number) => {
     setExpandedGroups((prev) =>
@@ -113,6 +111,16 @@ export default function InitialPlannedCostModal({
     formik.resetForm();
     setOpen(false);
     setExpandedGroups([0]);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) {
+      onMinimize({
+        ...formik.values,
+        _id: selected?._id || minimizedData?._id,
+      });
+    }
   };
 
   const getError = (
@@ -133,8 +141,8 @@ export default function InitialPlannedCostModal({
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selected?._id
+      onMinimize={handleMinimize}
+      title={(selected?._id || minimizedData?._id)
           ? "Chỉnh sửa chi phí kế hoạch ban đầu"
           : "Tạo mới chi phí kế hoạch ban đầu"
       }
@@ -184,7 +192,7 @@ export default function InitialPlannedCostModal({
             variant="contained"
             sx={{ borderRadius: "8px", textTransform: "none" }}
           >
-            {selected?._id ? "Cập nhật" : "Xác nhận"}
+            {(selected?._id || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

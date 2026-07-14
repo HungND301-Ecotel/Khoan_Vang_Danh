@@ -1,12 +1,7 @@
-import {
-  Box,
-  Button,
-  DialogActions,
-  Typography,
-} from "@mui/material";
+import { Box, Button, DialogActions, Typography } from "@mui/material";
 import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
-import {  useFormik } from "formik";
+import { useFormik } from "formik";
 import {
   AssignmentCodeInputType,
   AssignmentCodeOutputType,
@@ -28,11 +23,17 @@ export default function AssignmentCodeModal({
   setOpen,
   handleSubmit,
   selectedAssignmentCode,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<AssignmentCodeInputType>) => void;
   selectedAssignmentCode: AssignmentCodeOutputType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const { data: units = { data: [] } } = useQuery({
     queryKey: ["units"],
@@ -45,13 +46,31 @@ export default function AssignmentCodeModal({
 
   const formik = useFormik({
     initialValues: {
-      code: selectedAssignmentCode ? selectedAssignmentCode.code : "",
-      name: selectedAssignmentCode ? selectedAssignmentCode.name : "",
-      uom: selectedAssignmentCode ? selectedAssignmentCode.uom?._id : "",
-      deviceCode: selectedAssignmentCode
-        ? selectedAssignmentCode.deviceCode?._id
-        : "",
-      price: selectedAssignmentCode ? selectedAssignmentCode.price : undefined,
+      code: minimizedData
+        ? minimizedData.code
+        : selectedAssignmentCode
+          ? selectedAssignmentCode.code
+          : "",
+      name: minimizedData
+        ? minimizedData.name
+        : selectedAssignmentCode
+          ? selectedAssignmentCode.name
+          : "",
+      uom: minimizedData
+        ? minimizedData.uom
+        : selectedAssignmentCode
+          ? selectedAssignmentCode.uom?._id
+          : "",
+      deviceCode: minimizedData
+        ? minimizedData.deviceCode
+        : selectedAssignmentCode
+          ? selectedAssignmentCode.deviceCode?._id
+          : "",
+      price: minimizedData
+        ? minimizedData.price
+        : selectedAssignmentCode
+          ? selectedAssignmentCode.price
+          : undefined,
     },
     enableReinitialize: true,
     validationSchema,
@@ -63,13 +82,24 @@ export default function AssignmentCodeModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) {
+      clearMinimize();
+    }
+  };
+  const handleMinimize = () => {
+    if (onMinimize) {
+      onMinimize(formik.values);
+    }
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={selectedAssignmentCode?"Chỉnh sửa mã giao khoán":"Tạo mới mã giao khoán"}
+      onMinimize={handleMinimize}
+      title={(selectedAssignmentCode || minimizedData?._id) ? "Chỉnh sửa mã giao khoán"
+          : "Tạo mới mã giao khoán"
+      }
       breadcrumbs={["Danh mục", "Mã giao khoán"]}
       showZoom={true}
       actions={
@@ -99,7 +129,7 @@ export default function AssignmentCodeModal({
               textTransform: "none",
             }}
           >
-            {selectedAssignmentCode ? "Cập nhật" : "Xác nhận"}
+            {(selectedAssignmentCode || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }
@@ -159,35 +189,6 @@ export default function AssignmentCodeModal({
             </Typography>
             <TextFieldNumber formik={formik} field="price" disabled={true} />
           </Box>
-          <DialogActions sx={{ mt: 3, px: 0, gap: "10px" }}>
-            <Button
-              onClick={handleClose}
-              sx={{
-                backgroundColor: "#DFE2EA",
-                borderRadius: "8px",
-                height: "32px",
-                minWidth: "91px",
-                fontSize: "14px",
-                textTransform: "none",
-              }}
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={() => formik.submitForm()}
-              variant="contained"
-              sx={{
-                backgroundColor: "#007BFF",
-                borderRadius: "8px",
-                height: "32px",
-                minWidth: "91px",
-                fontSize: "14px",
-                textTransform: "none",
-              }}
-            >
-              {selectedAssignmentCode ? "Cập nhật" : "Xác nhận"}
-            </Button>
-          </DialogActions>
         </Box>
       </Box>
     </BaseModal>

@@ -40,6 +40,8 @@ import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDia
 import { formattedPrice } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
 
+import useMinimizedModal from "../../hooks/useMinimizedModal";
+
 export default function MaterialAssignment() {
   const [open, setOpen] = useState(false);
   const [selectedMaterialAssignment, setSelectedMaterialAssignment] =
@@ -53,6 +55,9 @@ export default function MaterialAssignment() {
   const [importErrors, setImportErrors] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<MaterialAssignmentInputType>
+  >(setOpen, "Vật tư tài sản khác");
 
   const {
     data: materialAssignments = {
@@ -80,6 +85,7 @@ export default function MaterialAssignment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
@@ -100,6 +106,7 @@ export default function MaterialAssignment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materialAssignments"] });
       setOpen(false);
+      clearMinimize();
       setSelectedMaterialAssignment(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -165,8 +172,9 @@ export default function MaterialAssignment() {
   });
 
   const handleSubmit = (values: Partial<MaterialAssignmentInputType>) => {
-    if (selectedMaterialAssignment) {
-      updateMutation.mutate({ ...values, _id: selectedMaterialAssignment._id });
+    const targetId = selectedMaterialAssignment?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -358,6 +366,9 @@ export default function MaterialAssignment() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedMaterialAssignment={selectedMaterialAssignment}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

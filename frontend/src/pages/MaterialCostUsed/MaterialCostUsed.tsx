@@ -50,6 +50,7 @@ import MonthTable from "./MonthTable";
 import dayjs from "dayjs";
 import { formattedPrice } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function MaterialCostUsed() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -63,6 +64,10 @@ export default function MaterialCostUsed() {
   const [limit, setLimit] = useState(10);
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
   const [deletedIds, setDeletedIds] = useState<React.Key[]>([]);
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+      Partial<MaterialCostUsedInputType>
+    >(setOpen, "Chi phí vật tư thực hiện");
 
   const queryClient = useQueryClient();
 
@@ -91,6 +96,7 @@ export default function MaterialCostUsed() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -109,6 +115,7 @@ export default function MaterialCostUsed() {
       queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
       setOpen(false);
       setSelected(null);
+      clearMinimize();
       showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
@@ -165,6 +172,7 @@ export default function MaterialCostUsed() {
       setSelected(materialCostUsed);
     } else {
       setSelected(null);
+      clearMinimize();
     }
     setOpen(true);
   };
@@ -380,6 +388,9 @@ export default function MaterialCostUsed() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

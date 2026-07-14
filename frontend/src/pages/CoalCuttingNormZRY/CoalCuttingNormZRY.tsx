@@ -39,6 +39,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 import { formatDecimal } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function CoalCuttingNormZRY() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -56,6 +57,10 @@ export default function CoalCuttingNormZRY() {
   });
 
   const queryClient = useQueryClient();
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<AssignmentNormInputType>
+  >(setOpen, "Định mức khấu than ZRY");
 
   const { data: assignmentnorms = { totalDocs: 0, data: [] }, isLoading } =
     useQuery({
@@ -81,6 +86,7 @@ export default function CoalCuttingNormZRY() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -97,6 +103,7 @@ export default function CoalCuttingNormZRY() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentnorms"] });
       setOpen(false);
+      clearMinimize();
       setSelected(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -137,8 +144,9 @@ export default function CoalCuttingNormZRY() {
   });
 
   const handleSubmit = (values: Partial<AssignmentNormInputType>) => {
-    if (selected) {
-      updateMutation.mutate({ ...values, _id: selected._id });
+    const targetId = selected?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -419,6 +427,9 @@ export default function CoalCuttingNormZRY() {
           selected={selected}
           hasExistingRecords={assignmentnorms.totalDocs > 1}
           existingNorms={assignmentnorms.data}
+          minimizedData={minimizedData}
+          onMinimize={handleMinimize}
+          clearMinimize={clearMinimize}
         />
       </Box>
       <ImportErrorDialog

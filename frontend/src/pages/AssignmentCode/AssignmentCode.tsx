@@ -1,34 +1,11 @@
 import {
-  Add,
-  ArrowDropDown,
-  Delete,
   Edit,
-  FileDownload,
-  FileUpload,
-  FilterList,
-  Mail,
-  Print,
-  Search,
 } from "@mui/icons-material";
 import {
   Box,
   Breadcrumbs,
-  Button,
-  Container,
   IconButton,
-  InputAdornment,
-  Paper,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
   Typography,
-  CircularProgress,
-  Skeleton,
-  Card,
-  CardContent,
 } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import AssignmentCodeModal from "./AssignmentCodeModal/AssignmentCodeModal";
@@ -49,6 +26,7 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import { formattedPrice } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function AssignmentCode() {
   const [open, setOpen] = useState(false);
@@ -60,6 +38,9 @@ export default function AssignmentCode() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+  Partial<AssignmentCodeInputType>
+>(setOpen, "Mã giao khoán");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleUploadClick = () => {
@@ -98,6 +79,7 @@ export default function AssignmentCode() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
@@ -145,6 +127,7 @@ export default function AssignmentCode() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignmentcodes"] });
       setOpen(false);
+      clearMinimize();
       setSelectedAssignmentCode(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -181,8 +164,9 @@ export default function AssignmentCode() {
     },
   });
   const handleSubmit = (values: Partial<AssignmentCodeInputType>) => {
-    if (selectedAssignmentCode) {
-      updateMutation.mutate({ ...values, _id: selectedAssignmentCode._id });
+    const targetId = selectedAssignmentCode?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -337,6 +321,9 @@ export default function AssignmentCode() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedAssignmentCode={selectedAssignmentCode}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

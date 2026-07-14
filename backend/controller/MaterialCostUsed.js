@@ -12,7 +12,29 @@ exports.create = async (req, res) => {
     try {
         const { productionScope, department, phases, month, materials } = req.body
 
-        const result = await calculatedPhases(phases, month, "budget")
+        const budget = await MaterialBudget.findOne({ productionScope, department, month });
+        if (!budget) {
+            return res.status(404).json({ status: 'error', message: 'Không tìm thấy Material Budget tương ứng để lấy định mức' })
+        }
+
+        const mappedPhases = budget.phases.map(budgetPhase => {
+            const reqPhase = phases.find(p => p.phase.toString() === budgetPhase.phase.toString());
+            return {
+                phase: budgetPhase.phase,
+                unit: budgetPhase.unit,
+                assignmentNormCode: budgetPhase.assignmentNormCode,
+                adjustmentNormCode: budgetPhase.adjustmentNormCode,
+                production: reqPhase ? Number(reqPhase.production) : 0,
+                assignmentCodes: budgetPhase.budgetCostDetails.map(detail => ({
+                    assignmentCode: detail.assignmentCode,
+                    baseNorm: detail.baseNorm,
+                    adjustmentNorm: detail.adjustmentNorm,
+                    norm: detail.norm
+                }))
+            };
+        });
+
+        const result = await calculatedPhases(mappedPhases, month, "budget")
 
         const totalBudgetCost = result.reduce((sum, item) => sum + (item?.totalBudgetCost || 0), 0)
 
@@ -46,11 +68,14 @@ exports.create = async (req, res) => {
         await newMaterialCostUsed.save()
 
         try {
-            const newMaterialBudget = new MaterialBudget({ productionScope, department, month, phases: result, totalBudgetCost })
-            await newMaterialBudget.save()
+            await MaterialBudget.findOneAndUpdate(
+                { productionScope, department, month },
+                { phases: result, totalBudgetCost },
+                { new: true }
+            );
         } catch (error) {
             console.log(error.stack)
-            res.status(500).json({ status: 'error', message: "Lỗi khi tạo chi phí vật tư kế hoạch" })
+            res.status(500).json({ status: 'error', message: "Lỗi khi cập nhật chi phí vật tư kế hoạch" })
         }
 
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
@@ -62,12 +87,41 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const result = await calculatedPhases(req.body.phases, req.body.month, "budget")
+        const { productionScope, department, phases, month, materials } = req.body;
+
+        const oldData = await MaterialCostUsed.findById(req.params.id)
+        if (!oldData) {
+            return res.status(404).json({ status: 'error', message: 'Sửa thất bại - Không tìm thấy dữ liệu cũ' })
+        }
+
+        const budget = await MaterialBudget.findOne({ productionScope, department, month });
+        if (!budget) {
+            return res.status(404).json({ status: 'error', message: 'Không tìm thấy Material Budget tương ứng để lấy định mức' })
+        }
+
+        const mappedPhases = budget.phases.map(budgetPhase => {
+            const reqPhase = phases.find(p => p.phase.toString() === budgetPhase.phase.toString());
+            return {
+                phase: budgetPhase.phase,
+                unit: budgetPhase.unit,
+                assignmentNormCode: budgetPhase.assignmentNormCode,
+                adjustmentNormCode: budgetPhase.adjustmentNormCode,
+                production: reqPhase ? Number(reqPhase.production) : 0,
+                assignmentCodes: budgetPhase.budgetCostDetails.map(detail => ({
+                    assignmentCode: detail.assignmentCode,
+                    baseNorm: detail.baseNorm,
+                    adjustmentNorm: detail.adjustmentNorm,
+                    norm: detail.norm
+                }))
+            };
+        });
+
+        const result = await calculatedPhases(mappedPhases, month, "budget")
 
         const totalBudgetCost = result.reduce((sum, item) => sum + item.totalBudgetCost, 0)
 
         const processedMaterials = await Promise.all(
-            req.body.materials.map(async (doc) => {
+            materials.map(async (doc) => {
                 const material = await MaterialAssignment.findById(doc?.material);
                 let matched = null;
 
@@ -75,11 +129,11 @@ exports.update = async (req, res) => {
                     matched = material.priceHistory.find(priceItem => {
                         const start = monthToNumber(priceItem.startMonth)
                         const end = monthToNumber(priceItem.endMonth)
-                        const checkMonth = monthToNumber(req.body.month)
+                        const checkMonth = monthToNumber(month)
                         return start <= checkMonth && checkMonth <= end
                     });
                 }
-                const result = await recalculateAssignmentCodePrice(material?.assignmentCode, null, null, req.body.month);
+                const result = await recalculateAssignmentCodePrice(material?.assignmentCode, null, null, month);
 
                 const price = material.assignmentCode ? result : (matched ? matched.price : 0);
                 return {
@@ -91,10 +145,6 @@ exports.update = async (req, res) => {
             })
         );
         const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
-        const oldData = await MaterialCostUsed.findById(req.params.id)
-        if (!oldData) {
-            return res.status(404).json({ status: 'error', message: 'Sửa thất bại - Không tìm thấy dữ liệu cũ' })
-        }
 
         const updateData = await MaterialCostUsed.findByIdAndUpdate(req.params.id, {
             ...req.body,
@@ -108,9 +158,9 @@ exports.update = async (req, res) => {
         await MaterialBudget.findOneAndUpdate(
             { productionScope: oldData.productionScope, department: oldData.department, month: oldData.month },
             {
-                productionScope: req.body.productionScope,
-                department: req.body.department,
-                month: req.body.month,
+                productionScope,
+                department,
+                month,
                 phases: result,
                 totalBudgetCost
             },

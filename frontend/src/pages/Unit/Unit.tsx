@@ -39,6 +39,8 @@ import { ShowAlertImport } from "../../utils/AlertImport";
 import { useDebounce } from "../../hooks/useDebounce";
 import PageAction from "../../components/Common/PageAction";
 
+import useMinimizedModal from "../../hooks/useMinimizedModal";
+
 export default function Unit() {
   const [open, setOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<UnitType | null>(null);
@@ -48,6 +50,7 @@ export default function Unit() {
   const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<Partial<UnitType>>(setOpen, "Đơn vị tính");
 
   const {
     data: units = {
@@ -69,6 +72,7 @@ export default function Unit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["units"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -112,6 +116,7 @@ export default function Unit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["units"] });
       setOpen(false);
+      clearMinimize();
       setSelectedUnit(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -147,8 +152,9 @@ export default function Unit() {
     },
   });
   const handleSubmit = (values: Partial<UnitType>) => {
-    if (selectedUnit) {
-      updateMutation.mutate({ ...values, _id: selectedUnit._id });
+    const targetId = selectedUnit?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -259,6 +265,8 @@ export default function Unit() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedUnit={selectedUnit}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
       />
     </Box>
   );

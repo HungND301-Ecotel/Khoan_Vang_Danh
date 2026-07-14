@@ -46,11 +46,17 @@ export default function MaterialAssignmentModal({
   setOpen,
   handleSubmit,
   selectedMaterialAssignment,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<MaterialAssignmentInputType>) => void;
   selectedMaterialAssignment: Materials | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const {
     data: assignmentCodes = {
@@ -68,20 +74,35 @@ export default function MaterialAssignmentModal({
 
   const formik = useFormik({
     initialValues: {
-      code: selectedMaterialAssignment ? selectedMaterialAssignment.code : "",
-      name: selectedMaterialAssignment ? selectedMaterialAssignment.name : "",
-      uom: selectedMaterialAssignment
-        ? selectedMaterialAssignment.uom?._id
-        : "",
-      quantity: selectedMaterialAssignment
-        ? selectedMaterialAssignment.quantity
-        : 0,
-      assignmentCode: selectedMaterialAssignment
-        ? selectedMaterialAssignment.assignmentCode?._id
-        : "",
-      priceHistory:
-        selectedMaterialAssignment &&
-        Array.isArray(selectedMaterialAssignment.priceHistory)
+      code: minimizedData
+        ? minimizedData.code
+        : selectedMaterialAssignment
+          ? selectedMaterialAssignment.code
+          : "",
+      name: minimizedData
+        ? minimizedData.name
+        : selectedMaterialAssignment
+          ? selectedMaterialAssignment.name
+          : "",
+      uom: minimizedData
+        ? minimizedData.uom
+        : selectedMaterialAssignment
+          ? selectedMaterialAssignment.uom?._id
+          : "",
+      quantity: minimizedData
+        ? minimizedData.quantity
+        : selectedMaterialAssignment
+          ? selectedMaterialAssignment.quantity
+          : 0,
+      assignmentCode: minimizedData
+        ? minimizedData.assignmentCode
+        : selectedMaterialAssignment
+          ? selectedMaterialAssignment.assignmentCode?._id
+          : "",
+      priceHistory: minimizedData
+        ? minimizedData.priceHistory
+        : selectedMaterialAssignment &&
+            Array.isArray(selectedMaterialAssignment.priceHistory)
           ? selectedMaterialAssignment.priceHistory.map((item) => ({
               price: item.price,
               startMonth: item.startMonth
@@ -108,7 +129,7 @@ export default function MaterialAssignmentModal({
           values.quantity === undefined || typeof values.quantity === "number"
             ? values.quantity
             : Number(values.quantity),
-        priceHistory: values.priceHistory.map((item) => ({
+        priceHistory: values.priceHistory.map((item: any) => ({
           ...item,
           price: Number(item.price),
           startMonth: dayjs(new Date(item.startMonth)).format("YYYY-MM"),
@@ -122,15 +143,19 @@ export default function MaterialAssignmentModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedMaterialAssignment?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedMaterialAssignment
-          ? "Chỉnh sửa vật tư, tài sản trong khoán"
+      onMinimize={handleMinimize}
+      title={(selectedMaterialAssignment || minimizedData?._id) ? "Chỉnh sửa vật tư, tài sản trong khoán"
           : "Tạo mới vật tư, tài sản trong khoán"
       }
       breadcrumbs={["Danh mục", "Vật tư, tài sản trong khoán"]}
@@ -162,7 +187,7 @@ export default function MaterialAssignmentModal({
               textTransform: "none",
             }}
           >
-            {selectedMaterialAssignment ? "Cập nhật" : "Xác nhận"}
+            {(selectedMaterialAssignment || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }
@@ -224,61 +249,63 @@ export default function MaterialAssignmentModal({
                   <Box
                     sx={{ display: "flex", flexDirection: "column", gap: 2 }}
                   >
-                    {formik.values.priceHistory.map((item, index) => (
-                      <Grid
-                        container
-                        spacing={2}
-                        key={index}
-                        alignItems="center"
-                      >
-                        <Grid item xs={4}>
-                          <Typography
-                            sx={{ fontSize: "12px", color: "#666", mb: 1 }}
-                          >
-                            Từ tháng
-                          </Typography>
-                          <FieldMonthYear
-                            formik={formik}
-                            fieldName={`priceHistory.${index}.startMonth`}
-                          />
-                        </Grid>
-                        <Grid item xs={4}>
-                          <Typography
-                            sx={{ fontSize: "12px", color: "#666", mb: 1 }}
-                          >
-                            Đến tháng
-                          </Typography>
-                          <FieldMonthYear
-                            formik={formik}
-                            fieldName={`priceHistory.${index}.endMonth`}
-                          />
-                        </Grid>
-
-                        <Grid item xs={3}>
-                          <Typography
-                            sx={{ fontSize: "12px", color: "#666", mb: 1 }}
-                          >
-                            Đơn giá
-                          </Typography>
-                          <TextFieldNumber
-                            formik={formik}
-                            field={`priceHistory.${index}.price`}
-                          />
-                        </Grid>
-
-                        <Grid item xs={1}>
-                          {formik.values.priceHistory.length > 1 && (
-                            <IconButton
-                              color="error"
-                              onClick={() => remove(index)}
-                              sx={{ mt: 2 }}
+                    {formik.values.priceHistory.map(
+                      (item: any, index: number) => (
+                        <Grid
+                          container
+                          spacing={2}
+                          key={index}
+                          alignItems="center"
+                        >
+                          <Grid item xs={4}>
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
                             >
-                              <Delete />
-                            </IconButton>
-                          )}
+                              Từ tháng
+                            </Typography>
+                            <FieldMonthYear
+                              formik={formik}
+                              fieldName={`priceHistory.${index}.startMonth`}
+                            />
+                          </Grid>
+                          <Grid item xs={4}>
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                            >
+                              Đến tháng
+                            </Typography>
+                            <FieldMonthYear
+                              formik={formik}
+                              fieldName={`priceHistory.${index}.endMonth`}
+                            />
+                          </Grid>
+
+                          <Grid item xs={3}>
+                            <Typography
+                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                            >
+                              Đơn giá
+                            </Typography>
+                            <TextFieldNumber
+                              formik={formik}
+                              field={`priceHistory.${index}.price`}
+                            />
+                          </Grid>
+
+                          <Grid item xs={1}>
+                            {formik.values.priceHistory.length > 1 && (
+                              <IconButton
+                                color="error"
+                                onClick={() => remove(index)}
+                                sx={{ mt: 2 }}
+                              >
+                                <Delete />
+                              </IconButton>
+                            )}
+                          </Grid>
                         </Grid>
-                      </Grid>
-                    ))}
+                      ),
+                    )}
 
                     {/* Add button */}
                     <Box textAlign="right" sx={{ mt: 1 }}>

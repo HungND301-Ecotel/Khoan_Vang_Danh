@@ -42,6 +42,8 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
 
+import useMinimizedModal from "../../hooks/useMinimizedModal";
+
 export default function RockRatio() {
   const [open, setOpen] = useState(false);
   const [selectedRockRatio, setSelectedRockRatio] =
@@ -52,6 +54,9 @@ export default function RockRatio() {
   const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<RockRatioType>
+  >(setOpen, "Tỉ lệ đá lẫn trong gương");
 
   const {
     data: rockratios = {
@@ -82,6 +87,7 @@ export default function RockRatio() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rockratios"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm thành công");
     },
     onError: (error: any) => {
@@ -97,6 +103,7 @@ export default function RockRatio() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rockratios"] });
       setOpen(false);
+      clearMinimize();
       setSelectedRockRatio(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -177,8 +184,9 @@ export default function RockRatio() {
   };
 
   const handleSubmit = (values: Partial<RockRatioType>) => {
-    if (selectedRockRatio) {
-      updateMutation.mutate({ ...values, _id: selectedRockRatio._id });
+    const targetId = selectedRockRatio?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -297,6 +305,9 @@ export default function RockRatio() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedRockRatio={selectedRockRatio}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

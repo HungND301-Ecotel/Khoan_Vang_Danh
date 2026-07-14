@@ -75,107 +75,59 @@ const calculatedPhases = async (phases, month, type) => {
   const calculatedPhases = [];
 
   for (const phaseData of phases) {
-    // 1. Lấy dữ liệu Assignment Norm và Adjustment Norm
+    // Vẫn cần AssignmentNorm để kiểm tra loại than (coal_type) phục vụ tính toán số lượng
     const assignmentDoc = await AssignmentNorm.findById(
       phaseData.assignmentNormCode,
-    )
-      .populate("norms.assignmentCode")
-      .lean();
+    ).lean();
 
-    const adjustmentDoc = await AdjustmentNorm.findById(
-      phaseData.adjustmentNormCode,
-    )
-      .populate("norms.assignmentCode")
-      .lean();
+    const phaseDetails = [];
+    let total = 0;
 
-    // Khởi tạo Map và Set để quản lý dữ liệu
-    const assignmentNormsMap = new Map(); // Lưu trữ Base Norm: assignmentId -> normValue
-    const adjustmentFactorsMap = new Map(); // Lưu trữ Adjustment Factor: assignmentId -> factorValue
-    const uniqueAssignmentCodeIds = new Set(); // Lưu trữ tất cả IDs duy nhất
+    if (phaseData.assignmentCodes && Array.isArray(phaseData.assignmentCodes)) {
+      for (const inputCodeData of phaseData.assignmentCodes) {
+        const assignmentId = inputCodeData.assignmentCode?._id
+          ? inputCodeData.assignmentCode._id.toString()
+          : inputCodeData.assignmentCode?.toString();
 
-    // Thu thập Base Norms và IDs
-    if (phaseData.assignmentCodes && Array.isArray(phaseData.assignmentCodes) && phaseData.assignmentCodes.length > 0) {
-      phaseData.assignmentCodes.forEach((n) => {
-        const id = n.assignmentCode && (n.assignmentCode._id ? n.assignmentCode._id.toString() : n.assignmentCode.toString());
-        if (id) {
-          assignmentNormsMap.set(id, n.baseNorm ?? n.norm ?? 0);
-          uniqueAssignmentCodeIds.add(id);
-        }
-      });
-    } else if (assignmentDoc && assignmentDoc.norms) {
-      assignmentDoc.norms.forEach((n) => {
-        const id = n.assignmentCode && n.assignmentCode._id ? n.assignmentCode._id.toString() : undefined;
-        if (id) {
-          assignmentNormsMap.set(id, n.norm || 0);
-          uniqueAssignmentCodeIds.add(id);
-        }
-      });
-    }
+        if (!assignmentId) continue;
 
-    // Thu thập Adjustment Factors và IDs
-    if (adjustmentDoc && adjustmentDoc.norms) {
-      adjustmentDoc.norms.forEach((n) => {
-        const id = n.assignmentCode && n.assignmentCode._id.toString();
-        adjustmentFactorsMap.set(id, n.norm || 1); // Hệ số mặc định là 1 nếu thiếu
-        uniqueAssignmentCodeIds.add(id);
-      });
-    }
+        const baseNorm = inputCodeData.baseNorm || 0;
+        const adjustmentNorm = inputCodeData.adjustmentNorm || 1;
+        const norm = inputCodeData.norm || 0;
 
-    const phaseDetails = []; // Mảng chứa chi tiết tính toán cho từng assignmentCode trong phase này
-    let total = 0; // Tổng chi phí kế hoạch của cả phase
+        // B. Tính Số lượng (Quantity)
+        const phaseQuantity = phaseData.production || 0;
+        const isCoalType = ["coal_kb", "coal_zh", "coal_zry"].includes(
+          assignmentDoc?.type,
+        );
+        const quantity = isCoalType
+          ? (norm * phaseQuantity) / 1000
+          : norm * phaseQuantity;
 
-    // 2. Lặp qua tất cả AssignmentCode IDs duy nhất (Sử dụng for...of để dùng await)
-    for (const assignmentId of uniqueAssignmentCodeIds) {
-      // Tìm dữ liệu từ frontend gửi lên (nếu có)
-      const inputCodeData = phaseData.assignmentCodes?.find(
-        (ac) =>
-          (ac.assignmentCode?._id || ac.assignmentCode)?.toString() ===
+        // C. Tính Đơn giá bình quân (Price)
+        const price = await recalculateAssignmentCodePrice(
           assignmentId,
-      );
+          null,
+          null,
+          month,
+        );
 
-      const baseNorm = inputCodeData?.baseNorm ?? (assignmentNormsMap.get(assignmentId) || 1);
-      // Nếu adjustmentFactor không tồn tại trong Adjustment Map, mặc định là 1
-      const adjustmentNorm = inputCodeData?.adjustmentNorm ?? (adjustmentFactorsMap.get(assignmentId) || 1);
+        // D. Tính Chi phí (Cost)
+        const cost = (price || 0) * (quantity || 0);
+        total += cost;
 
-      // A. Tính Định mức cuối cùng (Norm)
-      // Ưu tiên dùng norm từ frontend, nếu không có mới tính toán
-      const norm = inputCodeData?.norm ?? baseNorm * adjustmentNorm;
-      // const norm = baseNorm * adjustmentNorm;
-
-      // B. Tính Số lượng (Quantity)
-      // Giả định: Số lượng = Định mức * Sản lượng/Số lượng của Phase
-      // phaseData.production hoặc phaseData.quantity (dùng phaseData.production theo code cũ)
-      const phaseQuantity = phaseData.production || 0;
-      const isCoalType = ["coal_kb", "coal_zh", "coal_zry"].includes(
-        assignmentDoc?.type,
-      );
-      const quantity = isCoalType
-        ? (norm * phaseQuantity) / 1000
-        : norm * phaseQuantity;
-
-      // C. Tính Đơn giá bình quân (Price)
-      // Phải dùng await ở đây!
-      const price = await recalculateAssignmentCodePrice(
-        assignmentId,
-        null,
-        null,
-        month,
-      );
-      // D. Tính Chi phí (Cost)
-      const cost = price * quantity || 0;
-      total += cost;
-
-      // Lưu chi tiết cho phase (dùng cho plannedCost array)
-      phaseDetails.push({
-        assignmentCode: assignmentId,
-        baseNorm: baseNorm,
-        adjustmentNorm: adjustmentNorm,
-        norm: norm || 0,
-        quantity: quantity || 0,
-        price: price || 0, // Đơn giá bình quân
-        cost: cost || 0, // Chi phí kế hoạch chi tiết
-      });
+        phaseDetails.push({
+          assignmentCode: assignmentId,
+          baseNorm: baseNorm,
+          adjustmentNorm: adjustmentNorm,
+          norm: norm,
+          quantity: quantity || 0,
+          price: price || 0,
+          cost: cost || 0,
+        });
+      }
     }
+
     const totalCostKey =
       type === "initial"
         ? "totalInitialPlannedCost"
@@ -188,12 +140,10 @@ const calculatedPhases = async (phases, month, type) => {
         : type === "used"
           ? "usedCostDetails"
           : "budgetCostDetails";
-    // 3. Chuẩn bị dữ liệu cho InitialPlannedCost
+
     calculatedPhases.push({
       ...phaseData,
-      // Lưu lại tổng chi phí (hoặc chi tiết nếu schema cho phép)
       [totalCostKey]: total,
-      // Lưu chi tiết định mức/chi phí nếu bạn muốn hiển thị bảng con chi tiết
       [detail]: phaseDetails,
     });
   }

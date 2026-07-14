@@ -38,6 +38,132 @@ import Profile from "../components/Profile/Profile";
 import ChangePass from "../components/ChangePass/ChangePass";
 import { systemConfigsAtom } from "../atoms/systemConfigAtoms";
 import SystemConfigModal from "../components/SystemConfig/SystemConfigModal";
+import { tabsAtom, activeTabIdAtom, ROUTE_TITLES, minimizedModalsAtom } from "../atoms/tabAtoms";
+import FloatingMinimizeButton from "../components/Common/FloatingMinimizeButton";
+import CloseIcon from "@mui/icons-material/Close";
+import { showErrorAlert } from "../components/Alert";
+
+const TabBar = () => {
+  const [tabs, setTabs] = useAtom(tabsAtom);
+  const [activeTabId, setActiveTabId] = useAtom(activeTabIdAtom);
+  const [, setMinimizedModals] = useAtom(minimizedModalsAtom);
+  const navigate = useNavigate();
+
+  const handleTabClick = (path: string) => {
+    navigate(path);
+  };
+
+  const handleCloseTab = (e: React.MouseEvent, tabId: string) => {
+    e.stopPropagation();
+    const newTabs = tabs.filter(t => t.id !== tabId);
+    setTabs(newTabs);
+    setMinimizedModals(prev => {
+      const next = { ...prev };
+      delete next[tabId];
+      return next;
+    });
+
+    if (activeTabId === tabId) {
+      if (newTabs.length > 0) {
+        navigate(newTabs[newTabs.length - 1].path);
+      } else {
+        navigate('/'); // Default fallback
+      }
+    }
+  };
+
+  if (tabs.length === 0) return null;
+
+  return (
+    <Box 
+      sx={{ 
+        display: "flex", 
+        gap: 1.5, 
+        overflowX: "auto", 
+        mb: 3, 
+        px: 2, 
+        py: 1.5,
+        position: "sticky",
+        top: "100px",
+        zIndex: 10,
+        bgcolor: "rgba(255, 255, 255, 0.85)", 
+        backdropFilter: "blur(10px)",
+        borderRadius: "16px",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+        border: "1px solid rgba(255,255,255,0.5)",
+        "&::-webkit-scrollbar": { height: "6px" },
+        "&::-webkit-scrollbar-track": { background: "transparent" },
+        "&::-webkit-scrollbar-thumb": { background: "#D1D5DB", borderRadius: "10px" },
+        "&::-webkit-scrollbar-thumb:hover": { background: "#9CA3AF" },
+      }}
+    >
+      {tabs.map((tab) => {
+        const isActive = tab.id === activeTabId;
+        return (
+          <Box
+            key={tab.id}
+            onClick={() => handleTabClick(tab.path)}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              px: 2.5,
+              py: 1,
+              bgcolor: isActive ? "#EBF5FF" : "#FFFFFF",
+              color: isActive ? "#0062CC" : "#4B5563",
+              border: "1px solid",
+              borderColor: isActive ? "#90CAF9" : "#E5E7EB",
+              borderRadius: "24px",
+              cursor: "pointer",
+              flexShrink: 0,
+              minWidth: "fit-content",
+              maxWidth: "240px",
+              fontWeight: isActive ? 600 : 500,
+              transition: "all 0.2s ease-in-out",
+              boxShadow: isActive ? "0 2px 8px rgba(0, 123, 255, 0.15)" : "0 1px 3px rgba(0,0,0,0.04)",
+              "&:hover": {
+                bgcolor: isActive ? "#EBF5FF" : "#F9FAFB",
+                borderColor: isActive ? "#90CAF9" : "#D1D5DB",
+                transform: "translateY(-1px)",
+                boxShadow: isActive ? "0 4px 12px rgba(0, 123, 255, 0.2)" : "0 2px 6px rgba(0,0,0,0.06)",
+              },
+            }}
+          >
+            <Typography 
+              noWrap 
+              variant="body2" 
+              sx={{ 
+                flexGrow: 1, 
+                mr: 1, 
+                fontSize: "13.5px",
+                userSelect: "none"
+              }}
+            >
+              {tab.title}
+            </Typography>
+            <Box 
+              onClick={(e) => handleCloseTab(e, tab.id)}
+              sx={{ 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                borderRadius: "50%",
+                p: 0.4,
+                color: isActive ? "#0062CC" : "#9CA3AF",
+                transition: "all 0.2s ease",
+                "&:hover": { 
+                  bgcolor: isActive ? "rgba(0, 98, 204, 0.12)" : "rgba(0,0,0,0.08)",
+                  color: isActive ? "#004B99" : "#4B5563",
+                }
+              }}
+            >
+              <CloseIcon sx={{ fontSize: 14 }} />
+            </Box>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+};
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
@@ -47,7 +173,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [openProfile, setOpenProfile] = useState(false);
   const [openChangePass, setOpenChangePass] = useState(false);
   const [openSystemConfig, setOpenSystemConfig] = useState(false);
-  const [, setSystemConfigs] = useAtom(systemConfigsAtom);
+  const [systemConfigs, setSystemConfigs] = useAtom(systemConfigsAtom);
 
   const [menuDanhMucEl, setMenuDanhMucEl] = useState<HTMLElement | null>(null);
   const [menuDonGiaEl, setMenuDonGiaEl] = useState<HTMLElement | null>(null);
@@ -63,6 +189,41 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     queryKey: ["phases"],
     queryFn: () => api.get("/phases").then((res) => res.data.data),
   });
+
+  const [tabs, setTabs] = useAtom(tabsAtom);
+  const [, setActiveTabId] = useAtom(activeTabIdAtom);
+
+  const maxTabsConfig = systemConfigs.find((c) => c.key === "MAX_TABS_PER_USER")?.value;
+  const maxTabs = maxTabsConfig ? parseInt(maxTabsConfig, 10) : 7;
+
+  const handleNavigate = (path: string) => {
+    if (path === "/login" || path === "/") {
+      navigate(path);
+      return;
+    }
+    const existingTab = tabs.find((t) => t.id === path);
+    if (!existingTab && tabs.length >= maxTabs) {
+      showErrorAlert(`Số lượng tab mở đã đạt giới hạn (tối đa ${maxTabs} tab). Vui lòng đóng bớt tab!`);
+      return;
+    }
+    navigate(path);
+  };
+
+  useEffect(() => {
+    const currentPath = location.pathname;
+    setActiveTabId(currentPath);
+
+    setTabs(prev => {
+      if (!prev.find(t => t.id === currentPath)) {
+        return [...prev, {
+          id: currentPath,
+          path: currentPath,
+          title: ROUTE_TITLES[currentPath] || 'Tab mới'
+        }];
+      }
+      return prev;
+    });
+  }, [location.pathname, setActiveTabId, setTabs]);
 
   useEffect(() => {
     const fetchSystemConfigs = async () => {
@@ -158,7 +319,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <LineChart strokeWidth="1" style={{ color: "#f35816ff" }} />
               }
               sx={{ color: "black" }}
-              onClick={() => navigate("/report/technologykpireport")}
+              onClick={() => handleNavigate("/report/technologykpireport")}
             >
               BÁO CÁO
             </Button>
@@ -203,10 +364,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           mt: 12,
           p: 3,
           minHeight: "100vh",
+          minWidth: 0,
           backgroundColor: "#f1f2f5",
         }}
       >
+        <TabBar />
         {children || <Outlet />}
+        <FloatingMinimizeButton />
       </Box>
 
       <Menu
@@ -221,7 +385,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
-            navigate("/department");
+            handleNavigate("/department");
             setMenuDanhMucEl(null);
           }}
         >
@@ -229,7 +393,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/unit");
+            handleNavigate("/unit");
             setMenuDanhMucEl(null);
           }}
         >
@@ -237,7 +401,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/devicecode");
+            handleNavigate("/devicecode");
             setMenuDanhMucEl(null);
           }}
         >
@@ -245,7 +409,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/assignmentcode");
+            handleNavigate("/assignmentcode");
             setMenuDanhMucEl(null);
           }}
         >
@@ -288,7 +452,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         <MenuItem
           onClick={() => {
-            navigate("/rockratio");
+            handleNavigate("/rockratio");
             setMenuDanhMucEl(null);
           }}
         >
@@ -296,7 +460,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/mirrorratio");
+            handleNavigate("/mirrorratio");
             setMenuDanhMucEl(null);
           }}
         >
@@ -304,7 +468,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/adjustmentfactorfornorms");
+            handleNavigate("/adjustmentfactorfornorms");
             setMenuDanhMucEl(null);
           }}
         >
@@ -314,7 +478,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {/* Công đoạn sản xuất */}
         <MenuItem
           onClick={() => {
-            navigate("/ratedadjustmentfactor");
+            handleNavigate("/ratedadjustmentfactor");
             setMenuDanhMucEl(null);
           }}
         >
@@ -323,7 +487,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         <MenuItem
           onClick={() => {
-            navigate("/parameter");
+            handleNavigate("/parameter");
             setMenuDanhMucEl(null);
           }}
         >
@@ -332,7 +496,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         <MenuItem
           onClick={() => {
-            navigate("/productionscope");
+            handleNavigate("/productionscope");
             setMenuDanhMucEl(null);
           }}
         >
@@ -357,7 +521,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
-            navigate("/materialassignment");
+            handleNavigate("/materialassignment");
             setMenuDanhMucEl(null);
             setMaterialSubMenuEl(null);
           }}
@@ -373,7 +537,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/materialassignmentoutplan"); // Update with your actual route
+            handleNavigate("/materialassignmentoutplan"); // Update with your actual route
             setMenuDanhMucEl(null);
             setMaterialSubMenuEl(null);
           }}
@@ -397,7 +561,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
-            navigate("/materialunitprice");
+            handleNavigate("/materialunitprice");
             setMenuDonGiaEl(null);
           }}
         >
@@ -405,7 +569,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/excavationnorms");
+            handleNavigate("/excavationnorms");
             setMenuDonGiaEl(null);
           }}
         >
@@ -413,7 +577,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/cuttingnorms");
+            handleNavigate("/cuttingnorms");
             setMenuDonGiaEl(null);
           }}
         >
@@ -422,7 +586,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         <MenuItem
           onClick={() => {
-            navigate("/coalcuttingnorms");
+            handleNavigate("/coalcuttingnorms");
             setMenuDonGiaEl(null);
           }}
         >
@@ -438,7 +602,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
-            navigate("/initialplannedcosts");
+            handleNavigate("/initialplannedcosts");
             setMenuThongKeEl(null);
           }}
         >
@@ -446,7 +610,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/materialcostused");
+            handleNavigate("/materialcostused");
             setMenuThongKeEl(null);
           }}
         >
@@ -454,7 +618,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/materialbudget");
+            handleNavigate("/materialbudget");
             setMenuThongKeEl(null);
           }}
         >
@@ -462,7 +626,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            navigate("/settlementReportSummary");
+            handleNavigate("/settlementReportSummary");
             setMenuThongKeEl(null);
           }}
         >

@@ -37,6 +37,7 @@ import { parseAxiosError } from "../../utils/handleApiError";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function DeviceCode() {
   const [open, setOpen] = useState(false);
@@ -48,6 +49,9 @@ export default function DeviceCode() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<DeviceCodeType>
+  >(setOpen, "Mã thiết bị");
 
   const queryClient = useQueryClient();
   const {
@@ -70,6 +74,7 @@ export default function DeviceCode() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devicecodes"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -96,6 +101,7 @@ export default function DeviceCode() {
       queryClient.invalidateQueries({ queryKey: ["devicecodes"] });
       setOpen(false);
       setSelectedDeviceCode(null);
+      clearMinimize();
       showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
@@ -132,8 +138,9 @@ export default function DeviceCode() {
     },
   });
   const handleSubmit = (values: Partial<DeviceCodeType>) => {
-    if (selectedDeviceCode) {
-      updateMutation.mutate({ ...values, _id: selectedDeviceCode._id });
+    const targetId = selectedDeviceCode?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -350,6 +357,8 @@ export default function DeviceCode() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedDeviceCode={selectedDeviceCode}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
       />
     </Box>
   );

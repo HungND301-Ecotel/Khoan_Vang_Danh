@@ -15,7 +15,7 @@ import { FormikProvider, useFormik } from "formik";
 import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
 
-import { MaterialCostUsedInputType } from "../../../types";
+import { BaseConfigModalProps, MaterialCostUsedInputType } from "../../../types";
 import { readExcelFile } from "../../../utils/readExcel";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 import BaseModal from "../../../components/Common/BaseModal";
@@ -36,15 +36,14 @@ export default function MaterialCostUsedModal({
   setOpen,
   handleSubmit,
   selected,
-}: {
-  open: boolean;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  handleSubmit: (values: Partial<MaterialCostUsedInputType>) => void;
-  selected: any | null;
-}) {
+  minimizedData,
+  onMinimize,
+  clearMinimize,
+}: BaseConfigModalProps<MaterialCostUsedInputType, any>) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewRow[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<number[]>([0]);
 
   const systemConfigs = useAtomValue(systemConfigsAtom);
   const cuttingPhaseGroupKey = useMemo(() => {
@@ -55,8 +54,8 @@ export default function MaterialCostUsedModal({
 
   const formikForScope = useFormik({
     initialValues: { 
-      department: selected?.department?._id ? String(selected.department._id) : "",
-      productionScope: selected?.productionScope?._id ? String(selected.productionScope._id) : "" 
+      department: selected?.department?._id || minimizedData?.department?._id || "",
+      productionScope: selected?.productionScope?._id || minimizedData?.productionScope?._id || "" 
     },
     onSubmit: () => {},
   });
@@ -73,7 +72,7 @@ export default function MaterialCostUsedModal({
     createMutation,
   } = useModalQueries(formikForScope.values.department, formikForScope.values.productionScope, open);
 
-  const initialValues = useInitialValues(selected, materialassignments.data, cuttingPhaseGroupKey);
+  const initialValues = useInitialValues(selected, minimizedData, materialassignments.data, cuttingPhaseGroupKey);
 
   const formik = useFormik({
     initialValues: initialValues,
@@ -81,7 +80,7 @@ export default function MaterialCostUsedModal({
     enableReinitialize: true,
     onSubmit: async (values) => {
       const payload: Partial<MaterialCostUsedInputType> & { isOtherTask?: boolean } = {
-        _id: selected?._id,
+        _id: selected?._id || minimizedData?._id,
         isOtherTask: values.isOtherTask,
         department: values?.department,
         productionScope: values.isOtherTask ? undefined : values?.productionScope,
@@ -108,16 +107,28 @@ export default function MaterialCostUsedModal({
   }, [formik.values.department, formik.values.productionScope]);
 
   useEffect(() => {
-    if (initialplannedcost && selected) {
+    if (initialplannedcost && (selected || minimizedData)) {
       const group = initialplannedcost?.group?.find(
-        (i: any) => selected.month === i.month,
+        (i: any) => (selected?.month || minimizedData?.month) === i.month,
       );
       formik.setFieldValue("groupIndexes", group);
     }
-  }, [initialplannedcost, selected]);
+  }, [initialplannedcost, selected, minimizedData]);
 
   const handleClose = () => {
     formik.resetForm();
+    setOpen(false);
+    setExpandedGroups([0]);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) {
+      onMinimize({
+        ...formik.values,
+        _id: selected?._id || minimizedData?._id,
+      });
+    }
     setOpen(false);
   };
 
@@ -353,9 +364,8 @@ export default function MaterialCostUsedModal({
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selected
-          ? "Chỉnh sửa chi phí vật tư thực hiện"
+      onMinimize={handleMinimize}
+      title={(selected?._id || minimizedData?._id) ? "Chỉnh sửa chi phí vật tư thực hiện"
           : "Tạo mới chi phí vật tư thực hiện"
       }
       breadcrumbs={[
@@ -391,7 +401,7 @@ export default function MaterialCostUsedModal({
               textTransform: "none",
             }}
           >
-            {selected ? "Cập nhật" : "Xác nhận"}
+            {(selected?._id || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }
@@ -480,7 +490,7 @@ export default function MaterialCostUsedModal({
                   sx={{ background: "white" }}
                   size="small"
                   error={Boolean(formik.touched.month && formik.errors.month)}
-                  helperText={formik.touched.month ? formik.errors.month : ""}
+                  helperText={formik.touched.month ? String(formik.errors.month || "") : ""}
                 />
               )}
             />

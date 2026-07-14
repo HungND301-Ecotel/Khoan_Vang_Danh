@@ -47,6 +47,8 @@ import { formatDecimal } from "../../utils/helpers";
 import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDialog";
 import PageAction from "../../components/Common/PageAction";
 
+import useMinimizedModal from "../../hooks/useMinimizedModal";
+
 export default function AdjustmentNormKKT() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [selected, setSelected] = useState<AdjustmentNormOutputType | null>(
@@ -63,6 +65,9 @@ export default function AdjustmentNormKKT() {
   });
 
   const queryClient = useQueryClient();
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<AdjustmentNormInputType>
+  >(setOpen, "Hệ số điều chỉnh định mức (CKKT)");
 
   // Fetch all data without search parameter to handle filtering locally
   const {
@@ -96,6 +101,7 @@ export default function AdjustmentNormKKT() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -119,6 +125,7 @@ export default function AdjustmentNormKKT() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adjustmentnorms"] });
       setOpen(false);
+      clearMinimize();
       setSelected(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -196,8 +203,9 @@ export default function AdjustmentNormKKT() {
   };
 
   const handleSubmit = (values: Partial<AdjustmentNormInputType>) => {
-    if (selected) {
-      updateMutation.mutate({ ...values, _id: selected._id });
+    const targetId = selected?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -383,6 +391,9 @@ export default function AdjustmentNormKKT() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selected={selected}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
       <ImportErrorDialog
         open={errorDialog.open}

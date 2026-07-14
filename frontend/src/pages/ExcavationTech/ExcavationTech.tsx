@@ -41,6 +41,7 @@ import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function ExcavationTech() {
   const [open, setOpen] = useState(false);
@@ -57,6 +58,9 @@ export default function ExcavationTech() {
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<ExcavationTechType>
+  >(setOpen, "Công nghệ xúc");
   const {
     data: excavationtechs = {
       totalDocs: 0,
@@ -111,6 +115,7 @@ export default function ExcavationTech() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["excavationtechs"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -130,6 +135,7 @@ export default function ExcavationTech() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["excavationtechs"] });
       setOpen(false);
+      clearMinimize();
       setSelectedExcavationTech(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -171,8 +177,9 @@ export default function ExcavationTech() {
   });
 
   const handleSubmit = (values: Partial<ExcavationTechType>) => {
-    if (selectedExcavationTech) {
-      updateMutation.mutate({ ...values, _id: selectedExcavationTech._id });
+    const targetId = selectedExcavationTech?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -273,6 +280,9 @@ export default function ExcavationTech() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedExcavationTech={selectedExcavationTech}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

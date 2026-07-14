@@ -29,16 +29,22 @@ export default function PhaseGroupModal({
   setOpen,
   handleSubmit,
   selectedPhaseGroup,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<PhaseGroupType>) => void;
   selectedPhaseGroup: PhaseGroupType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      code: selectedPhaseGroup ? selectedPhaseGroup.code : "",
-      name: selectedPhaseGroup ? selectedPhaseGroup.name : "",
+      code: minimizedData ? minimizedData.code : (selectedPhaseGroup ? selectedPhaseGroup.code : ""),
+      name: minimizedData ? minimizedData.name : (selectedPhaseGroup ? selectedPhaseGroup.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -50,15 +56,19 @@ export default function PhaseGroupModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedPhaseGroup?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedPhaseGroup
-          ? "Chỉnh sửa nhóm công đoạn sản xuẩt"
+      onMinimize={handleMinimize}
+      title={(selectedPhaseGroup || minimizedData?._id) ? "Chỉnh sửa nhóm công đoạn sản xuẩt"
           : "Tạo mới nhóm công đoạn sản xuất"
       }
       breadcrumbs={[
@@ -94,7 +104,7 @@ export default function PhaseGroupModal({
               textTransform: "none",
             }}
           >
-            {selectedPhaseGroup ? "Cập nhật" : "Xác nhận"}
+            {(selectedPhaseGroup || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

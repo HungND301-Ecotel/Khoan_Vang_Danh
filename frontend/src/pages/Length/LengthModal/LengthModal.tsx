@@ -28,15 +28,21 @@ export default function LengthModal({
   setOpen,
   handleSubmit,
   selectedLength,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<LengthType>) => void;
   selectedLength: LengthType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      name: selectedLength ? selectedLength.name : "",
+      name: minimizedData ? minimizedData.name : (selectedLength ? selectedLength.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -48,13 +54,19 @@ export default function LengthModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedLength?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={selectedLength ? "Chỉnh sửa chiều dài lò" : "Tạo mới chiều dài lò"}
+      onMinimize={handleMinimize}
+      title={(selectedLength || minimizedData?._id) ? "Chỉnh sửa chiều dài lò" : "Tạo mới chiều dài lò"}
       breadcrumbs={["Danh mục", "Thông số", "Chiều dài lò"]}
       showZoom={true}
       actions={
@@ -84,7 +96,7 @@ export default function LengthModal({
               textTransform: "none",
             }}
           >
-            {selectedLength ? "Cập nhật" : "Xác nhận"}
+            {(selectedLength || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

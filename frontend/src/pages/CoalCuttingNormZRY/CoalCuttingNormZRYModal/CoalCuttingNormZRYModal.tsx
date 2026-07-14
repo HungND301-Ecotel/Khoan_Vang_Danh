@@ -27,9 +27,9 @@ import {
   AssignmentCodeOutputType,
   AssignmentNormInputType,
   AssignmentNormOutputType,
-  HardnessType,
   ThicknessType,
   LengthType,
+  BaseConfigModalProps,
 } from "../../../types";
 import SimpleImportModal from "../../../components/ReadExcel/ReadExcelModal";
 import { readExcelFile } from "../../../utils/readExcel";
@@ -63,11 +63,10 @@ export default function CuttingNormZRYModal({
   selected,
   hasExistingRecords,
   existingNorms,
-}: {
-  open: boolean;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-  handleSubmit: (values: Partial<AssignmentNormInputType>) => void;
-  selected: AssignmentNormOutputType | null;
+  minimizedData,
+  onMinimize,
+  clearMinimize,
+}: BaseConfigModalProps<AssignmentNormInputType, AssignmentNormOutputType> & {
   hasExistingRecords: boolean;
   existingNorms: AssignmentNormOutputType[];
 }) {
@@ -108,19 +107,19 @@ export default function CuttingNormZRYModal({
 
   const formik = useFormik({
     initialValues: {
-      hardness: "",
-      code: "",
-      length: "",
-      thickness: "",
+      hardness: minimizedData?.hardness || "",
+      code: minimizedData?.code || selected?.code || "",
+      length: minimizedData?.length || "",
+      thickness: minimizedData?.thickness || "",
       type: "coal_zry",
-      interpolationMethod: "",
-      predictingPoint: "",
-      upperLimitNorm: "",
-      upperLimitPoint: "",
-      lowerLimitNorm: "",
-      lowerLimitPoint: "",
-      interpolatedNorm: "",
-      norms: [] as any[],
+      interpolationMethod: minimizedData?.interpolationMethod || "",
+      predictingPoint: minimizedData?.predictingPoint || "",
+      upperLimitNorm: minimizedData?.upperLimitNorm || "",
+      upperLimitPoint: minimizedData?.upperLimitPoint || "",
+      lowerLimitNorm: minimizedData?.lowerLimitNorm || "",
+      lowerLimitPoint: minimizedData?.lowerLimitPoint || "",
+      interpolatedNorm: minimizedData?.interpolatedNorm || "",
+      norms: minimizedData?.norms || ([] as any[]),
     },
     enableReinitialize: true,
     validationSchema,
@@ -135,8 +134,8 @@ export default function CuttingNormZRYModal({
           | "coal_zh"
           | "coal_zry",
         norms: values?.norms
-          ?.filter((item) => item.assignmentCode && item.norm)
-          .map((item) => ({
+          ?.filter((item: any) => item.assignmentCode && item.norm)
+          .map((item: any) => ({
             assignmentCode: item.assignmentCode,
             norm: item?.norm,
           })),
@@ -145,7 +144,20 @@ export default function CuttingNormZRYModal({
   });
 
   useEffect(() => {
-    if (selected && selected.norms.length > 0 && open) {
+    if (minimizedData && open) {
+      const selectedCodes = assignmentcodes.data.filter((ac: any) =>
+        minimizedData.norms?.some(
+          (norm: any) =>
+            (typeof norm.assignmentCode === "string"
+              ? norm.assignmentCode
+              : norm.assignmentCode?._id) === ac._id
+        )
+      );
+      setSelectedAssignmentCodes(selectedCodes);
+      if (minimizedData.upperLimitNorm || minimizedData.lowerLimitNorm) {
+        setShowAdditionalRows(true);
+      }
+    } else if (selected && selected.norms.length > 0 && open) {
       formik.setValues({
         ...formik.values,
         hardness: selected?.hardness?._id || "",
@@ -165,10 +177,10 @@ export default function CuttingNormZRYModal({
         selected.norms.some((norm) => norm.assignmentCode?._id === ac._id),
       );
       setSelectedAssignmentCodes(selectedCodes);
-    } else {
+    } else if (open) {
       setSelectedAssignmentCodes([]);
     }
-  }, [selected, assignmentcodes.data, open]);
+  }, [selected, minimizedData, assignmentcodes.data, open]);
   // Effect khi chọn cận trên
   useEffect(() => {
     if (formik.values.upperLimitNorm) {
@@ -295,7 +307,7 @@ export default function CuttingNormZRYModal({
     if (selectedAssignmentCodes.length > 0) {
       const updatedNorms = selectedAssignmentCodes.map((code) => {
         const existingNorm = formik.values.norms.find(
-          (n) => n.assignmentCode === code._id,
+          (n: any) => n.assignmentCode === code._id,
         );
         return {
           assignmentCode: code._id,
@@ -371,6 +383,11 @@ export default function CuttingNormZRYModal({
     setLowerNormsMap(new Map());
     setOriginalNorms([]);
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selected?._id || minimizedData?._id });
   };
 
   const handleImportData = (excelData: { code: string; norm: number }[]) => {
@@ -400,8 +417,8 @@ export default function CuttingNormZRYModal({
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selected ? "Chỉnh sửa định mức khấu than" : "Tạo mới định mức khấu than"
+      onMinimize={handleMinimize}
+      title={(selected || minimizedData?._id) ? "Chỉnh sửa định mức khấu than ZRY" : "Tạo mới định mức khấu than ZRY"
       }
       breadcrumbs={["Danh mục", "Khấu than", "ZRY"]}
       showZoom={true}
@@ -432,7 +449,7 @@ export default function CuttingNormZRYModal({
               textTransform: "none",
             }}
           >
-            {selected ? "Cập nhật" : "Xác nhận"}
+            {(selected || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

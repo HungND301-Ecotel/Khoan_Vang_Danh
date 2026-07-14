@@ -18,15 +18,19 @@ export default function DeviceCode({
   setOpen,
   handleSubmit,
   selectedDeviceCode,
+  minimizedData,
+  onMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<DeviceCodeType>) => void;
   selectedDeviceCode: DeviceCodeType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      code: selectedDeviceCode ? selectedDeviceCode.code : "",
+      code: minimizedData ? minimizedData.code : (selectedDeviceCode ? selectedDeviceCode.code : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -40,12 +44,18 @@ export default function DeviceCode({
     setOpen(false);
   };
 
+  const handleMinimize = () => {
+    if (onMinimize) {
+      onMinimize(formik.values);
+    }
+  };
+  
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedDeviceCode ? "Chỉnh sửa mã thiết bị" : "Tạo mới mã thiết bị"
+      onMinimize={handleMinimize}
+      title={(selectedDeviceCode || minimizedData?._id) ? "Chỉnh sửa mã thiết bị" : "Tạo mới mã thiết bị"
       }
       breadcrumbs={["Danh mục", "Mã thiết bị"]}
       showZoom={true}
@@ -76,7 +86,7 @@ export default function DeviceCode({
               textTransform: "none",
             }}
           >
-            {selectedDeviceCode ? "Cập nhật" : "Xác nhận"}
+            {(selectedDeviceCode || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

@@ -16,15 +16,19 @@ export default function UnitModal({
   setOpen,
   handleSubmit,
   selectedUnit,
+  minimizedData,
+  onMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<UnitType>) => void;
   selectedUnit: UnitType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      name: selectedUnit ? selectedUnit.name : "",
+      name: minimizedData ? minimizedData.name : (selectedUnit ? selectedUnit.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -38,12 +42,19 @@ export default function UnitModal({
     setOpen(false);
   };
 
+  const handleMinimize = () => {
+    if (onMinimize) {
+      onMinimize(formik.values);
+    }
+  };
+
   const title = selectedUnit ? "Chỉnh sửa đơn vị tính" : "Tạo mới đơn vị tính";
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
+      onMinimize={handleMinimize}
       title={title}
       breadcrumbs={["Danh mục", "Đơn vị tính"]}
       showZoom={true}
@@ -74,7 +85,7 @@ export default function UnitModal({
               textTransform: "none",
             }}
           >
-            {selectedUnit ? "Cập nhật" : "Xác nhận"}
+            {(selectedUnit || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

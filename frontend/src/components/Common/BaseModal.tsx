@@ -13,6 +13,7 @@ import {
   Theme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import RemoveIcon from "@mui/icons-material/Remove";
 import { ReactNode, useState } from "react";
 import { Divider } from "antd";
 import { CropFree, ZoomInMap, ZoomOutMap } from "@mui/icons-material";
@@ -31,6 +32,7 @@ interface BaseModalProps {
   customHeight?: string | number;
   sx?: SxProps<Theme>;
   titleExtra?: ReactNode;
+  onMinimize?: () => void;
 }
 
 export default function BaseModal({
@@ -47,6 +49,7 @@ export default function BaseModal({
   customHeight = "740px",
   sx,
   titleExtra,
+  onMinimize,
 }: BaseModalProps) {
   const [isZoomed, setIsZoomed] = useState(false);
 
@@ -87,7 +90,7 @@ export default function BaseModal({
           sx={{
             position: "absolute",
             top: "40px",
-            right: "80px",
+            right: onMinimize ? "120px" : "80px",
             zIndex: 1,
             p: 0,
             "& svg": {
@@ -100,6 +103,29 @@ export default function BaseModal({
           }}
         >
           {isZoomed ? <ZoomInMap /> : <CropFree /> }
+        </IconButton>
+      )}
+
+      {/* Nút Minimize */}
+      {onMinimize && (
+        <IconButton
+          onClick={onMinimize}
+          sx={{
+            position: "absolute",
+            top: "40px",
+            right: showZoom ? "80px" : "40px",
+            zIndex: 1,
+            p: 0,
+            "& svg": {
+              fontSize: "16px",
+              color: "#2B4A82",
+            },
+            "&:hover svg": {
+              color: "#007BFF",
+            },
+          }}
+        >
+          <RemoveIcon />
         </IconButton>
       )}
 

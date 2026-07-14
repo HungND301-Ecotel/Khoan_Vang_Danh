@@ -38,11 +38,17 @@ export default function PhaseModal({
   setOpen,
   handleSubmit,
   selectedPhase,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<PhaseInputType>) => void;
   selectedPhase: PhaseOutputType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const { data: phasegroups = { data: [] } } = useQuery({
     queryKey: ["phasegroups"],
@@ -51,9 +57,9 @@ export default function PhaseModal({
 
   const formik = useFormik({
     initialValues: {
-      code: selectedPhase ? selectedPhase.code : "",
-      name: selectedPhase ? selectedPhase.name : "",
-      phaseGroup: selectedPhase ? selectedPhase.phaseGroup?._id : "",
+      code: minimizedData ? minimizedData.code : (selectedPhase ? selectedPhase.code : ""),
+      name: minimizedData ? minimizedData.name : (selectedPhase ? selectedPhase.name : ""),
+      phaseGroup: minimizedData ? minimizedData.phaseGroup : (selectedPhase ? selectedPhase.phaseGroup?._id : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -65,15 +71,19 @@ export default function PhaseModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedPhase?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedPhase
-          ? "Chỉnh sửa công đoạn sản xuẩt"
+      onMinimize={handleMinimize}
+      title={(selectedPhase || minimizedData?._id) ? "Chỉnh sửa công đoạn sản xuẩt"
           : "Tạo mới công đoạn sản xuất"
       }
       breadcrumbs={["Danh mục", "Công đoạn sản xuất", "Công đoạn sản xuất"]}
@@ -105,7 +115,7 @@ export default function PhaseModal({
               textTransform: "none",
             }}
           >
-            {selectedPhase ? "Cập nhật" : "Xác nhận"}
+            {(selectedPhase || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

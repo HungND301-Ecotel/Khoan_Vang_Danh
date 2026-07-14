@@ -14,7 +14,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
-import { PhaseGroupType } from "../../../types";
+import { MiningtechType } from "../../../types";
 import { Divider } from "antd";
 import FieldInput from "../../../components/TextField/FieldInput";
 import BaseModal from "../../../components/Common/BaseModal";
@@ -24,21 +24,27 @@ const validationSchema = yup.object({
   name: yup.string().required("Tên công nghệ khai thác không được để trống"),
 });
 
-export default function PhaseGroupModal({
+export default function MiningTechModal({
   open,
   setOpen,
   handleSubmit,
   selectedPhaseGroup,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
-  handleSubmit: (values: Partial<PhaseGroupType>) => void;
-  selectedPhaseGroup: PhaseGroupType | null;
+  handleSubmit: (values: Partial<MiningtechType>) => void;
+  selectedPhaseGroup: MiningtechType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const formik = useFormik({
     initialValues: {
-      code: selectedPhaseGroup ? selectedPhaseGroup.code : "",
-      name: selectedPhaseGroup ? selectedPhaseGroup.name : "",
+      code: minimizedData ? minimizedData.code : (selectedPhaseGroup ? selectedPhaseGroup.code : ""),
+      name: minimizedData ? minimizedData.name : (selectedPhaseGroup ? selectedPhaseGroup.name : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -50,15 +56,19 @@ export default function PhaseGroupModal({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedPhaseGroup?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedPhaseGroup
-          ? "Chỉnh sửa công nghệ khai thác"
+      onMinimize={handleMinimize}
+      title={(selectedPhaseGroup || minimizedData?._id) ? "Chỉnh sửa công nghệ khai thác"
           : "Tạo mới công nghệ khai thác"
       }
       breadcrumbs={["Danh mục", "Thông số", "Công nghệ khai thác"]}
@@ -90,7 +100,7 @@ export default function PhaseGroupModal({
               textTransform: "none",
             }}
           >
-            {selectedPhaseGroup ? "Cập nhật" : "Xác nhận"}
+            {(selectedPhaseGroup || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

@@ -26,6 +26,8 @@ import CustomTable from "../../components/CustomTable/CustomTable";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
 
+import useMinimizedModal from "../../hooks/useMinimizedModal";
+
 export default function Department() {
   const [open, setOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<DepartmentType | null>(null);
@@ -35,6 +37,7 @@ export default function Department() {
   const [limit, setLimit] = useState(10);
 
   const queryClient = useQueryClient();
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<Partial<DepartmentType>>(setOpen, "Phân xưởng");
 
   const {
     data: departments = {
@@ -56,6 +59,7 @@ export default function Department() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -100,6 +104,7 @@ export default function Department() {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
       setOpen(false);
       setSelectedDepartment(null);
+      clearMinimize();
       showSuccessAlert("Sửa thành công");
     },
     onError: (error: any) => {
@@ -137,8 +142,9 @@ export default function Department() {
   });
 
   const handleSubmit = (values: Partial<DepartmentType>) => {
-    if (selectedDepartment) {
-      updateMutation.mutate({ ...values, _id: selectedDepartment._id });
+    const targetId = selectedDepartment?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -262,6 +268,9 @@ export default function Department() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedDepartment={selectedDepartment}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );

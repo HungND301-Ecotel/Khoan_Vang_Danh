@@ -36,11 +36,17 @@ export default function CrossSection({
   setOpen,
   handleSubmit,
   selectedCrossSection,
+  minimizedData,
+  onMinimize,
+  clearMinimize,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   handleSubmit: (values: Partial<CrossSectionInputType>) => void;
   selectedCrossSection: CrossSectionOutputType | null;
+  minimizedData?: any;
+  onMinimize?: (data: any) => void;
+  clearMinimize?: () => void;
 }) {
   const { data: units = { data: [] } } = useQuery({
     queryKey: ["units"],
@@ -49,8 +55,8 @@ export default function CrossSection({
 
   const formik = useFormik({
     initialValues: {
-      name: selectedCrossSection ? selectedCrossSection.name : "",
-      uom: selectedCrossSection ? selectedCrossSection.uom?._id : "",
+      name: minimizedData ? minimizedData.name : (selectedCrossSection ? selectedCrossSection.name : ""),
+      uom: minimizedData ? minimizedData.uom : (selectedCrossSection ? selectedCrossSection.uom?._id : ""),
     },
     enableReinitialize: true,
     validationSchema,
@@ -62,15 +68,19 @@ export default function CrossSection({
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
+    if (clearMinimize) clearMinimize();
+  };
+
+  const handleMinimize = () => {
+    if (onMinimize) onMinimize({ ...formik.values, _id: selectedCrossSection?._id || minimizedData?._id });
   };
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
-      title={
-        selectedCrossSection
-          ? "Chỉnh sửa tiết diện lò xén"
+      onMinimize={handleMinimize}
+      title={(selectedCrossSection || minimizedData?._id) ? "Chỉnh sửa tiết diện lò xén"
           : "Tạo mới tiết diện lò xén"
       }
       breadcrumbs={["Danh mục", "Thông số", "Tiết diện lò xén"]}
@@ -102,7 +112,7 @@ export default function CrossSection({
               textTransform: "none",
             }}
           >
-            {selectedCrossSection ? "Cập nhật" : "Xác nhận"}
+            {(selectedCrossSection || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }

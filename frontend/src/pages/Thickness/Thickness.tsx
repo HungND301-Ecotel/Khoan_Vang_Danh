@@ -41,6 +41,7 @@ import ThicknessService from "../../service/ThicknessService";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { ShowAlertImport } from "../../utils/AlertImport";
 import PageAction from "../../components/Common/PageAction";
+import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function Thickness() {
   const [open, setOpen] = useState(false);
@@ -56,6 +57,10 @@ export default function Thickness() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
+  const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
+    Partial<ThicknessType>
+  >(setOpen, "Độ dày vỉa");
 
   const {
     data: thickness = { totalDocs: 0, data: [] },
@@ -81,6 +86,7 @@ export default function Thickness() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["thickness"] });
       setOpen(false);
+      clearMinimize();
       showSuccessAlert("Thêm mới thành công");
     },
     onError: (error: any) => {
@@ -96,6 +102,7 @@ export default function Thickness() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["thickness"] });
       setOpen(false);
+      clearMinimize();
       setSelectedThickness(null);
       showSuccessAlert("Sửa thành công");
     },
@@ -160,8 +167,9 @@ export default function Thickness() {
   });
 
   const handleSubmit = (values: Partial<ThicknessType>) => {
-    if (selectedThickness) {
-      updateMutation.mutate({ ...values, _id: selectedThickness._id });
+    const targetId = selectedThickness?._id || minimizedData?._id;
+    if (targetId) {
+      updateMutation.mutate({ ...values, _id: targetId });
     } else {
       createMutation.mutate(values);
     }
@@ -269,6 +277,9 @@ export default function Thickness() {
         setOpen={setOpen}
         handleSubmit={handleSubmit}
         selectedThickness={selectedThickness}
+        minimizedData={minimizedData}
+        onMinimize={handleMinimize}
+        clearMinimize={clearMinimize}
       />
     </Box>
   );
