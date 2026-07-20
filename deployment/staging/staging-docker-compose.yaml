@@ -76,7 +76,15 @@ services:
   kvd_db:
     image: mongo
     container_name: kvd_mongo_db
-    command: ["mongod", "--bind_ip_all", "--replSet", "rs0"]
+    command:
+      [
+        "mongod",
+        "--bind_ip_all",
+        "--replSet",
+        "rs0",
+        "--keyFile",
+        "/etc/mongo-keyfile",
+      ]
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
