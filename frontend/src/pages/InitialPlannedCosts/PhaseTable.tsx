@@ -8,18 +8,80 @@ import {
   TableCell,
   Paper,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { Key, useState } from "react";
 import { InitialPlannedCostOutputType } from "../../types";
 import { Table, TableProps } from "antd";
-import { Edit, Visibility, VisibilityOff } from "@mui/icons-material";
-import { showErrorAlert } from "../../components/Alert";
+import { Delete, Edit, Visibility, VisibilityOff } from "@mui/icons-material";
+import {
+  showConfirmAlert,
+  showErrorAlert,
+  showSuccessAlert,
+} from "../../components/Alert";
 import AssignmentNormTable from "./AssignmentNormTable";
 import dayjs from "dayjs";
 import { formatDecimal, formattedPrice } from "../../utils/helpers";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "../../config/api.config";
 
-export default function PhaseTable({ data }: { data: any[] }) {
-  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
+export default function PhaseTable({
+  department,
+  month,
+  productionScope,
+  handleOpen,
+}: {
+  department: string;
+  month?: string;
+  productionScope: any;
+  handleOpen: (record: any) => void;
+}) {
+  const queryClient = useQueryClient();
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const productionScopeId = productionScope?._id || productionScope;
+
+  const { data: phases = [] } = useQuery({
+    queryKey: [
+      "initialplannedcost-phases",
+      department,
+      month,
+      productionScopeId,
+    ],
+    queryFn: async () => {
+      const res = await api.get(`/initialplannedcosts/phases`, {
+        params: {
+          department,
+          month,
+          productionScope: productionScopeId,
+        },
+      });
+      return res.data.data;
+    },
+    enabled: !!department && !!month && !!productionScopeId,
+  });
+
+  const { mutate: handleDeleteMutation, isPending: isDeletePending } =
+    useMutation({
+      mutationFn: async (id: string) =>
+        api.delete(`/initialplannedcosts/${id}`).then((res) => res.data),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
+        queryClient.invalidateQueries({
+          queryKey: ["initialplannedcost-months"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["initialplannedcost-scopes"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["initialplannedcost-phases"],
+        });
+        showSuccessAlert("Xóa thành công");
+      },
+      onError: (error: any) => {
+        const errorMessage =
+          error.response?.data?.message || error.message || "Lỗi khi xóa";
+        showErrorAlert(errorMessage);
+      },
+    });
 
   const handleView = (record: any) => {
     const id = record?.key;
@@ -28,27 +90,11 @@ export default function PhaseTable({ data }: { data: any[] }) {
     setExpandedRow((prev) => (prev === id ? null : id));
   };
 
-  const expandedRowRender = (record: any) => {
-    const key = record.phase?._id || "";
-    const data = expandedData[key] || record;
-    if (data === null) {
-      return (
-        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-          <Typography color="error">
-            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
-          </Typography>
-        </Box>
-      );
-    }
-    if (!data) {
-      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
-    }
-    return (
-      <Box sx={{ p: 2 }}>
-        <AssignmentNormTable data={data} />
-      </Box>
-    );
-  };
+  const expandedRowRender = (record: any) => (
+    <Box sx={{ p: 2 }}>
+      <AssignmentNormTable data={record} />
+    </Box>
+  );
 
   const innerColumns = [
     {
@@ -144,12 +190,68 @@ export default function PhaseTable({ data }: { data: any[] }) {
         </IconButton>
       ),
     },
+    {
+      title: <Typography>Sửa</Typography>,
+      dataIndex: "edit",
+      key: "edit",
+      width: 60,
+      align: "center" as const,
+      render: (_: any, record: any) => (
+        <IconButton
+          onClick={() =>
+            handleOpen({
+              ...record,
+              department,
+              month,
+              productionScope,
+            })
+          }
+          sx={{
+            color: "#666",
+            "&:hover": {
+              color: "#1976d2",
+              backgroundColor: "rgba(25, 118, 210, 0.04)",
+            },
+          }}
+        >
+          <Edit />
+        </IconButton>
+      ),
+    },
+    {
+      title: <Typography>Xóa</Typography>,
+      dataIndex: "delete",
+      key: "delete",
+      width: 60,
+      align: "center" as const,
+      render: (_: any, record: any) => (
+        <IconButton
+          onClick={async () => {
+            const isConfirmed = await showConfirmAlert(
+              "Bạn có chắc muốn xóa công đoạn này không? Không thể hoàn tác.",
+            );
+            if (isConfirmed) {
+              handleDeleteMutation(record?._id);
+            }
+          }}
+          sx={{
+            color: "#666",
+            "&:hover": {
+              color: "#d32f2f",
+              backgroundColor: "rgba(211,47,47,0.04)",
+            },
+          }}
+        >
+          <Delete />
+        </IconButton>
+      ),
+    },
   ];
   return (
     <Paper>
       <Table
         columns={innerColumns}
-        dataSource={data || []}
+        dataSource={phases || []}
         pagination={false}
         size="small"
         rowKey={(item) => item.key}

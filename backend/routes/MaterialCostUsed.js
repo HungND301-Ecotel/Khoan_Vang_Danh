@@ -1,9 +1,17 @@
-const router=require('express').Router()
-const MaterialCostUsedController=require('../controller/MaterialCostUsed')
+const router = require("express").Router();
+const MaterialCostUsedController = require("../controller/MaterialCostUsed");
 
-router.post('/',MaterialCostUsedController.create)
-router.put('/:id',MaterialCostUsedController.update)
-router.delete('/:id',MaterialCostUsedController.delete)
-router.get('/',MaterialCostUsedController.get)
+router.post("/", MaterialCostUsedController.create);
+router.post("/batch", MaterialCostUsedController.createBatch);
+router.put("/batch", MaterialCostUsedController.updateBatch);
 
-module.exports=router
+router.put("/:id", MaterialCostUsedController.update);
+router.delete("/department", MaterialCostUsedController.deleteByDepartment);
+router.delete("/:id", MaterialCostUsedController.delete);
+
+router.get("/", MaterialCostUsedController.get);
+router.get("/months", MaterialCostUsedController.getMonths);
+router.get("/scopes", MaterialCostUsedController.getScopesByMonth);
+router.get("/phases", MaterialCostUsedController.getPhasesByScope);
+
+module.exports = router;

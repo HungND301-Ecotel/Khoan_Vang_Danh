@@ -1,9 +1,7 @@
 import { Table, Typography } from "antd";
-import React from "react";
-import { Box, Paper } from "@mui/material";
+import { Paper } from "@mui/material";
 import { formatDecimal, formattedPrice } from "../../utils/helpers";
 
-// Giả sử Data type của AssignmentNormTable là object của một Phase trong InitialPlannedCostOutputType
 export default function AssignmentNormTable({ data }: { data: any }) {
   const innerColumns = [
     {
@@ -97,7 +95,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
     <Paper>
       <Table
         columns={innerColumns}
-        dataSource={data.initialPlannedCostDetails || []} // <-- Dùng mảng đã xử lý
+        dataSource={data?.initialPlannedCostDetails || []} // <-- Dùng mảng đã xử lý
         pagination={false}
         size="small"
         rowKey="key"

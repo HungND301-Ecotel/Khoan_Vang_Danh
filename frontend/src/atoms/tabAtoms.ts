@@ -1,4 +1,4 @@
-import { atom } from 'jotai';
+import { atom } from "jotai";
 
 export interface TabItem {
   id: string; // usually pathname
@@ -7,35 +7,44 @@ export interface TabItem {
 }
 
 export const tabsAtom = atom<TabItem[]>([]);
-export const activeTabIdAtom = atom<string>('/');
+export const activeTabIdAtom = atom<string>("/");
 
 // Maps a pathname to its minimized modal state
 export const minimizedModalsAtom = atom<
-  Record<string, { isMinimized: boolean; restoring: boolean; data: any; title?: string }>
+  Record<
+    string,
+    { isMinimized: boolean; restoring: boolean; data: any; title?: string }
+  >
 >({});
 
 // Helper mapping for standard titles
 export const ROUTE_TITLES: Record<string, string> = {
-  '/': 'Tổng quan',
-  '/department': 'Phân xưởng',
-  '/unit': 'Đơn vị tính',
-  '/devicecode': 'Mã thiết bị',
-  '/assignmentcode': 'Mã giao khoán',
-  '/materialassignment': 'Vật tư trong khoán',
-  '/materialassignmentoutplan': 'Vật tư khác',
-  '/rockratio': 'Tỷ lệ đá lẫn trong gương',
-  '/mirrorratio': 'Tỷ lệ gương than mềm',
-  '/adjustmentfactorfornorms': 'Hệ số điều chỉnh định mức',
-  '/ratedadjustmentfactor': 'Công đoạn sản xuất',
-  '/parameter': 'Thông số',
-  '/productionscope': 'Diện sản xuất',
-  '/materialunitprice': 'Đơn giá vật tư giao khoán',
-  '/excavationnorms': 'Định mức đào lò',
-  '/cuttingnorms': 'Định mức xén lò',
-  '/coalcuttingnorms': 'Định mức khấu than',
-  '/initialplannedcosts': 'Chi phí kế hoạch ban đầu',
-  '/materialcostused': 'Chi phí vật tư thực hiện',
-  '/materialbudget': 'Chi phí vật tư kế hoạch',
-  '/settlementReportSummary': 'Quyết toán giao khoán',
-  '/report/technologykpireport': 'Báo cáo',
+  "/": "Tổng quan",
+  "/department": "Phân xưởng",
+  "/unit": "Đơn vị tính",
+  "/devicecode": "Mã thiết bị",
+  "/assignmentcode": "Mã giao khoán",
+  "/materialassignment": "Vật tư trong khoán",
+  "/materialassignmentoutplan": "Vật tư khác",
+  "/rockratio": "Tỷ lệ đá lẫn trong gương",
+  "/mirrorratio": "Tỷ lệ gương than mềm",
+  "/adjustmentfactorfornorms": "Hệ số điều chỉnh định mức",
+  "/ratedadjustmentfactor": "Công đoạn sản xuất",
+  "/parameter": "Thông số",
+  "/productionscope": "Diện sản xuất",
+  "/materialunitprice": "Đơn giá vật tư giao khoán",
+  "/excavationnorms": "Định mức đào lò",
+  "/cuttingnorms": "Định mức xén lò",
+  "/coalcuttingnorms": "Định mức khấu than",
+  "/initialplannedcosts": "Chi phí kế hoạch ban đầu",
+  "/materialcostused": "Chi phí vật tư thực hiện",
+  "/materialbudget": "Chi phí vật tư kế hoạch",
+  "/settlementReportSummary": "Quyết toán giao khoán",
+  "/report/technologykpireport": "Báo cáo các chỉ tiêu công nghệ",
+  "/report/quarterlycontractsettlementreport": "Quyết toán quý",
+  "/report/contractsettlementreport": "Báo cáo quyết toán",
+  "/report/costreport": "Báo cáo kế hoạch điều hành",
+  "/report/materialconsumptionreport": "Báo cáo định mức vật tư",
+  "/report/settlementreport": "Báo cáo tổng hợp",
+  "/report/productionphasereport": "Báo cáo công đoạn sản xuất",
 };

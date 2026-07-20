@@ -3,12 +3,14 @@ import { getIn } from "formik";
 import { NumericFormat } from "react-number-format";
 
 interface Props {
+  title?: string;
   formik?: any;
   field?: string;
   disabled?: boolean;
   onValueChange?: (value: number) => void;
 }
 export default function TextFieldNumber({
+  title = "",
   formik,
   field,
   disabled = false,
@@ -23,6 +25,7 @@ export default function TextFieldNumber({
       fullWidth
       disabled={disabled}
       value={currentValue}
+      label={title}
       thousandSeparator="."
       decimalSeparator=","
       fixedDecimalScale={false}

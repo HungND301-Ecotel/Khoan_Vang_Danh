@@ -1,7 +1,6 @@
 const AssignmentCode = require("../model/AssignmentCode");
 const MaterialAssignment = require("../model/MaterialAssignment");
 const AssignmentNorm = require("../model/AssignmentNorm");
-const AdjustmentNorm = require("../model/AdjustmentNorm");
 
 const monthToNumber = (month) => (month ? Number(month.replace("-", "")) : "");
 
@@ -10,10 +9,17 @@ const recalculateAssignmentCodePrice = async (
   startDate,
   endDate,
   month,
+  session = null,
 ) => {
-  const allMaterials = await MaterialAssignment.find({
+  let query = MaterialAssignment.find({
     assignmentCode: assignmentCodeId,
   });
+
+  if (session) {
+    query = query.session(session);
+  }
+
+  const allMaterials = await query;
   if (allMaterials.length === 0) {
     return;
   }
@@ -61,96 +67,96 @@ const recalculateAssignmentCodePrice = async (
 
   return averagePrice;
 };
-const updatePriceAssignmentCode = async (assignmentCodeId) => {
+const updatePriceAssignmentCode = async (assignmentCodeId, session = null) => {
   const result = await recalculateAssignmentCodePrice(
     assignmentCodeId,
     null,
     null,
     null,
+    session,
   );
-  await AssignmentCode.findByIdAndUpdate(assignmentCodeId, { price: result });
+  await AssignmentCode.findByIdAndUpdate(
+    assignmentCodeId,
+    { price: result },
+    { session },
+  );
 };
 
-const calculatedPhases = async (phases, month, type) => {
-  const calculatedPhases = [];
+const calculatedPhase = async (data, month, type, session = null) => {
+  let query = AssignmentNorm.findById(data.assignmentNormCode);
 
-  for (const phaseData of phases) {
-    // Vẫn cần AssignmentNorm để kiểm tra loại than (coal_type) phục vụ tính toán số lượng
-    const assignmentDoc = await AssignmentNorm.findById(
-      phaseData.assignmentNormCode,
-    ).lean();
-
-    const phaseDetails = [];
-    let total = 0;
-
-    if (phaseData.assignmentCodes && Array.isArray(phaseData.assignmentCodes)) {
-      for (const inputCodeData of phaseData.assignmentCodes) {
-        const assignmentId = inputCodeData.assignmentCode?._id
-          ? inputCodeData.assignmentCode._id.toString()
-          : inputCodeData.assignmentCode?.toString();
-
-        if (!assignmentId) continue;
-
-        const baseNorm = inputCodeData.baseNorm || 0;
-        const adjustmentNorm = inputCodeData.adjustmentNorm || 1;
-        const norm = inputCodeData.norm || 0;
-
-        // B. Tính Số lượng (Quantity)
-        const phaseQuantity = phaseData.production || 0;
-        const isCoalType = ["coal_kb", "coal_zh", "coal_zry"].includes(
-          assignmentDoc?.type,
-        );
-        const quantity = isCoalType
-          ? (norm * phaseQuantity) / 1000
-          : norm * phaseQuantity;
-
-        // C. Tính Đơn giá bình quân (Price)
-        const price = await recalculateAssignmentCodePrice(
-          assignmentId,
-          null,
-          null,
-          month,
-        );
-
-        // D. Tính Chi phí (Cost)
-        const cost = (price || 0) * (quantity || 0);
-        total += cost;
-
-        phaseDetails.push({
-          assignmentCode: assignmentId,
-          baseNorm: baseNorm,
-          adjustmentNorm: adjustmentNorm,
-          norm: norm,
-          quantity: quantity || 0,
-          price: price || 0,
-          cost: cost || 0,
-        });
-      }
-    }
-
-    const totalCostKey =
-      type === "initial"
-        ? "totalInitialPlannedCost"
-        : type === "used"
-          ? "totalUsedCost"
-          : "totalBudgetCost";
-    const detail =
-      type === "initial"
-        ? "initialPlannedCostDetails"
-        : type === "used"
-          ? "usedCostDetails"
-          : "budgetCostDetails";
-
-    calculatedPhases.push({
-      ...phaseData,
-      [totalCostKey]: total,
-      [detail]: phaseDetails,
-    });
+  if (session) {
+    query = query.session(session);
   }
-  return calculatedPhases;
+
+  const assignmentDoc = await query.lean();
+
+  const details = [];
+  let total = 0;
+
+  if (data.assignmentCodes && Array.isArray(data.assignmentCodes)) {
+    for (const inputCodeData of data.assignmentCodes) {
+      const assignmentId = inputCodeData.assignmentCode?._id
+        ? inputCodeData.assignmentCode._id.toString()
+        : inputCodeData.assignmentCode?.toString();
+
+      if (!assignmentId) continue;
+
+      const baseNorm = inputCodeData.baseNorm || 0;
+      const adjustmentNorm = inputCodeData.adjustmentNorm || 1;
+      const norm = inputCodeData.norm || 0;
+
+      const phaseQuantity = data.production || 0;
+      const isCoalType = ["coal_kb", "coal_zh", "coal_zry"].includes(
+        assignmentDoc?.type,
+      );
+      const quantity = isCoalType
+        ? (norm * phaseQuantity) / 1000
+        : norm * phaseQuantity;
+
+      const price = await recalculateAssignmentCodePrice(
+        assignmentId,
+        null,
+        null,
+        month,
+      );
+
+      const cost = (price || 0) * (quantity || 0);
+      total += cost;
+
+      details.push({
+        assignmentCode: assignmentId,
+        baseNorm,
+        adjustmentNorm,
+        norm,
+        quantity: quantity || 0,
+        price: price || 0,
+        cost: cost || 0,
+      });
+    }
+  }
+
+  const totalCostKey =
+    type === "initial"
+      ? "totalInitialPlannedCost"
+      : type === "used"
+        ? "totalUsedCost"
+        : "totalBudgetCost";
+  const detailKey =
+    type === "initial"
+      ? "initialPlannedCostDetails"
+      : type === "used"
+        ? "usedCostDetails"
+        : "budgetCostDetails";
+
+  return {
+    ...data,
+    [totalCostKey]: total,
+    [detailKey]: details,
+  };
 };
 module.exports = {
   recalculateAssignmentCodePrice,
   updatePriceAssignmentCode,
-  calculatedPhases,
+  calculatedPhase,
 };

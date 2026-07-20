@@ -5,7 +5,8 @@ import { MaterialAssignmentInputType } from "../../../types";
 export function useModalQueries(
   department: string,
   productionScope: string,
-  open: boolean
+  month: string,
+  open: boolean,
 ) {
   const queryClient = useQueryClient();
 
@@ -13,7 +14,7 @@ export function useModalQueries(
     queryKey: ["availableScopes", department],
     queryFn: async () => {
       const res = await api.get(
-        `/initialplannedcosts/getScopesByDepartment/${department}`
+        `/initialplannedcosts/getScopesByDepartment/${department}`,
       );
       return res.data.data;
     },
@@ -37,11 +38,7 @@ export function useModalQueries(
   });
 
   const {
-    data: assignmentcodes = {
-      totalDocs: 0,
-      results: 0,
-      data: [],
-    },
+    data: assignmentcodes = { totalDocs: 0, results: 0, data: [] },
     isLoading: isLoadingAssignmentCodes,
     isFetching: isFetchingAssignmentCodes,
   } = useQuery({
@@ -65,15 +62,37 @@ export function useModalQueries(
       api.get("/materialassignments").then((res) => res.data.data),
   });
 
-  const { data: initialplannedcost } = useQuery({
-    queryKey: ["initialplannedcost", productionScope, department, open],
+  // Danh sách tháng có kế hoạch cho đúng department + productionScope
+  const initialplannedcostMonths = useQuery({
+    queryKey: [
+      "initialplannedcost-months-by-scope",
+      department,
+      productionScope,
+    ],
     queryFn: async () => {
-      const res = await api.get(
-        `/initialplannedcosts/getOne/${productionScope}?department=${department}`,
-      );
-      return res.data.data;
+      const res = await api.get("/initialplannedcosts/months", {
+        params: { department, productionScope },
+      });
+      return res.data.data; // [{ _id, month, totalMonthCost }]
     },
-    enabled: !!productionScope && !!department,
+    enabled: !!department && !!productionScope && open,
+  });
+
+  // Danh sách phase (công đoạn) thuộc department + productionScope + month đã chọn
+  const scopePhases = useQuery({
+    queryKey: [
+      "initialplannedcost-phases-for-scope",
+      department,
+      productionScope,
+      month,
+    ],
+    queryFn: async () => {
+      const res = await api.get("/initialplannedcosts/phases", {
+        params: { department, month, productionScope },
+      });
+      return res.data.data; // mảng phase-document phẳng: [{_id, phase, unit, production, assignmentNormCode, adjustmentNormCode, ...}]
+    },
+    enabled: !!department && !!productionScope && !!month && open,
   });
 
   const createMutation = useMutation({
@@ -82,9 +101,7 @@ export function useModalQueries(
         .post("/materialassignments", newMaterialAssignment)
         .then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["materialassignments"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["materialassignments"] });
     },
     onError: (error: any) => {
       console.log(error.response?.data?.message || error.response || "Lỗi");
@@ -101,7 +118,8 @@ export function useModalQueries(
     isFetchingAssignmentCodes,
     materialassignments,
     refetchMaterialAssignments,
-    initialplannedcost,
+    initialplannedcostMonths,
+    scopePhases,
     createMutation,
   };
 }

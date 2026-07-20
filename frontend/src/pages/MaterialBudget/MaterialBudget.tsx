@@ -1,62 +1,23 @@
-import React, { Fragment, useState } from "react";
-import {
-  Add,
-  ArrowDropDown,
-  Delete,
-  Edit,
-  FileDownload,
-  FileUpload,
-  FilterList,
-  Mail,
-  Print,
-  Search,
-  Visibility,
-  VisibilityOff,
-} from "@mui/icons-material";
-import {
-  Table as TableMui,
-  Box,
-  Breadcrumbs,
-  Button,
-  IconButton,
-  InputAdornment,
-  TextField,
-  Typography,
-} from "@mui/material";
+import React, { Key, useState } from "react";
+import { Add, Visibility, VisibilityOff } from "@mui/icons-material";
+import { Box, Breadcrumbs, IconButton, Typography } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
-import {
-  InitialPlannedCostInputType,
-  MaterialBudgetCostType,
-} from "../../types";
-import {
-  showConfirmAlert,
-  showErrorAlert,
-  showSuccessAlert,
-} from "../../components/Alert";
-import { Table, TableProps } from "antd";
+import { MaterialBudgetOutputType } from "../../types";
+import { showErrorAlert } from "../../components/Alert";
+import { TableProps } from "antd";
 import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
-import PhaseTable from "./PhaseTable";
-import dayjs from "dayjs";
-import GroupTable from "./GroupTable";
 import MonthTable from "./MonthTable";
 import { formattedPrice } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
-
-export default function MaterialBudget() {
+export default function MaterialBudgetCosts() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [selected, setSelected] = useState<any | null>(null);
-  const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
-  const [deletedIds, setDeletedIds] = useState<React.Key[]>([]);
-
-  const queryClient = useQueryClient();
 
   const { data: materialbudgets = { totalDocs: 0, data: [] }, isLoading } =
     useQuery({
@@ -75,73 +36,20 @@ export default function MaterialBudget() {
       },
     });
 
-  const handleDelete = () => {
-    if (deletedIds.length === 0) {
-      showErrorAlert("không tìm thấy bản ghi để xóa");
-      return;
-    }
-
-    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
-      if (result.isConfirmed) {
-        handleDeleteMutation(deletedIds);
-      }
-    });
-  };
-
-  const { mutate: handleDeleteMutation } = useMutation({
-    mutationFn: async (ids: React.Key[]) => {
-      const deletePromises = ids.map((id) =>
-        api.delete(`/initialplannedcosts/${id}`).then((res) => res.data),
-      );
-      return Promise.all(deletePromises);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
-      setSelectedRows([]);
-      showSuccessAlert("Xóa thành công");
-    },
-    onError: (error: any) => {
-      const errorMessage =
-        error.response?.data?.message || error.message || "Lỗi khi xóa";
-      console.error(errorMessage);
-      showErrorAlert(errorMessage);
-    },
-  });
-
-  const handleView = (materialbudget: MaterialBudgetCostType) => {
+  const handleView = (materialbudget: MaterialBudgetOutputType) => {
     const id = materialbudget?._id;
     if (!id) return;
 
     setExpandedRow((prev) => (prev === id ? null : id));
   };
 
-  const expandedRowRender = (record: MaterialBudgetCostType) => {
-    const key = record._id || "";
-    const data = expandedData[key] || record;
-    if (data === null) {
-      return (
-        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-          <Typography color="error">
-            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
-          </Typography>
-        </Box>
-      );
-    }
-    if (!data.months) {
-      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
-    }
-    return (
-      <Box>
-        <MonthTable
-          data={data.months}
-          department={record.department}
-          handleDeleteMutation={handleDeleteMutation}
-        />
-      </Box>
-    );
-  };
+  const expandedRowRender = (record: MaterialBudgetOutputType) => (
+    <Box>
+      <MonthTable department={record.department} />
+    </Box>
+  );
 
-  const columns: TableProps<MaterialBudgetCostType>["columns"] = [
+  const columns: TableProps<MaterialBudgetOutputType>["columns"] = [
     {
       title: "",
       dataIndex: "number",
@@ -152,14 +60,14 @@ export default function MaterialBudget() {
       ),
     },
     {
-      title: (
-        <Typography sx={{ fontWeight: "bold" }}>Phân xưởng</Typography>
-      ),
+      title: <Typography sx={{ fontWeight: "bold" }}>Phân xưởng </Typography>,
       dataIndex: "department",
       key: "department",
       width: 300,
       render: (_, record) => (
-        <Typography>{record.department?.name || record.department?.code}</Typography>
+        <Typography>
+          {record.department?.name || record.department?.code}
+        </Typography>
       ),
       sorter: (a, b) =>
         (a.department?.name ?? "").localeCompare(
@@ -183,7 +91,7 @@ export default function MaterialBudget() {
       key: "totalBudgetCost",
       width: 50,
       render: (text: string, item: any) => {
-        const total = item?.totalBudgetCost || 0;
+        const total = item.totalBudgetCost || 0;
         return <Typography> {formattedPrice(total)}</Typography>;
       },
     },
@@ -214,21 +122,10 @@ export default function MaterialBudget() {
     setSearchValue("");
   };
 
-  const rowSelection: TableRowSelection<MaterialBudgetCostType> = {
+  const rowSelection: TableRowSelection<MaterialBudgetOutputType> = {
     selectedRowKeys: selectedRows,
     onChange: (newSelectedRows: React.Key[]) => {
       setSelectedRows(newSelectedRows);
-
-      const selectedDocuments = materialbudgets.data.filter(
-        (g: MaterialBudgetCostType) => newSelectedRows.some((s) => s === g._id),
-      );
-      const allSelectedGroups = selectedDocuments.flatMap((g: any) => 
-        g.months.flatMap((m: any) => m.scopes)
-      );
-      const deletedGroupIds = allSelectedGroups.map(
-        (groupItem: any) => groupItem._id,
-      );
-      setDeletedIds(deletedGroupIds);
     },
   };
 
@@ -241,7 +138,7 @@ export default function MaterialBudget() {
     >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Thống kê vận hành</Typography>
-        <Typography>Chi phí vật tư kế hoạch </Typography>
+        <Typography>Chi phí kế hoạch ban đầu </Typography>
       </Breadcrumbs>
       <Box mt={3}>
         <Box>
@@ -250,10 +147,10 @@ export default function MaterialBudget() {
               variant="h4"
               sx={{ color: (theme) => custom_theme.palette.table_name.main }}
             >
-              Chi phí vật tư kế hoạch
+              Chi phí kế hoạch ban đầu
             </Typography>
             <PageAction
-              selectedIds={[]}
+              selectedIds={selectedRows}
               searchValue={searchValue}
               setSearchValue={setSearchValue}
               handleClearSearch={handleClearSearch}
@@ -261,7 +158,7 @@ export default function MaterialBudget() {
               totalItems={materialbudgets.totalDocs}
             />
           </Box>
-          <CustomTable<MaterialBudgetCostType>
+          <CustomTable<MaterialBudgetOutputType>
             data={materialbudgets.data}
             total={materialbudgets.totalDocs}
             page={page}

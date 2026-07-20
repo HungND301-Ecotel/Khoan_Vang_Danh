@@ -12,11 +12,17 @@ import {
   Badge,
   Tooltip,
   Typography,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  DialogActions,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
 
-import { Save, Undo } from "@mui/icons-material";
+import { Edit, Save, Undo } from "@mui/icons-material";
 import FieldRangeMonthYear from "../../ui/FieldRangeMonth_Year";
 import dayjs from "dayjs";
 import { showErrorAlert } from "../../components/Alert";
@@ -113,7 +119,10 @@ export default function SettlementReport() {
 
   // Chỉ cho phép kéo thả khi 1 tháng
   const hasPhase = selectedPhase.length > 0;
-  const canDragDrop = fromMonth === toMonth && !!selectedProductionScope;
+  const canDragDrop =
+    fromMonth === toMonth &&
+    !!selectedProductionScope &&
+    selectedPhase.length === 1;
 
   const isAllScopesMode = !selectedProductionScope;
   const effectiveHasPhase = hasPhase || isAllScopesMode;
@@ -190,10 +199,18 @@ export default function SettlementReport() {
     return apiResponse;
   }, [apiResponse, isAllScopesMode]);
 
+  const showSummary =
+    !!selectedDepartment &&
+    !!toMonth &&
+    !!fromMonth &&
+    !selectedProductionScope &&
+    selectedPhase.length === 0;
+
   const { blockKeys, rowGroups } = useSettlementTableData(
     transformedResponse as any,
     localData,
     effectiveHasPhase,
+    showSummary,
   );
 
   useEffect(() => {
@@ -258,13 +275,13 @@ export default function SettlementReport() {
 
   const handleDrop = (
     mapKey: string,
-    newAssignmentCodeId: string | null,
-    fromAssignmentCodeId: string,
+    targetCompoundKey: string, // dùng để so khớp group trong localData
+    fromCompoundKey: string, // dùng để check same-group (đổi tên cho khớp payload)
     payload: { materialCostId: string; materialItemId: string },
+    targetAssignmentCodeId: string | null, // 👈 THÊM MỚI — ObjectId thật, gửi backend khi lưu
     newPrice: number | null,
   ) => {
-    const targetKey = newAssignmentCodeId ?? "NO_ASSIGNMENTCODE";
-    if (fromAssignmentCodeId === targetKey) return;
+    if (fromCompoundKey === targetCompoundKey) return;
 
     setLocalData((prev) => {
       const newMap = new Map(prev);
@@ -286,9 +303,13 @@ export default function SettlementReport() {
 
       if (!draggedItem) return prev;
 
+      let matched = false;
       const updated = cleaned.map((group) => {
-        const groupKey = group?.assignmentCode?._id ?? "NO_ASSIGNMENTCODE";
-        if (groupKey === targetKey) {
+        const groupKey = group?.assignmentCode
+          ? `${group.assignmentCode.code}_${group.price}`
+          : `NO_ASSIGNMENTCODE_${group.price}`;
+        if (groupKey === targetCompoundKey) {
+          matched = true;
           return {
             ...group,
             materialUseds: [...group.materialUseds, draggedItem],
@@ -296,6 +317,13 @@ export default function SettlementReport() {
         }
         return group;
       });
+
+      if (!matched) {
+        console.warn(
+          "Không tìm thấy nhóm đích khi kéo thả:",
+          targetCompoundKey,
+        );
+      }
 
       newMap.set(mapKey, updated);
       return newMap;
@@ -306,7 +334,7 @@ export default function SettlementReport() {
       {
         materialCostId: payload.materialCostId,
         materialItemId: payload.materialItemId,
-        newAssignmentCodeId,
+        newAssignmentCodeId: targetAssignmentCodeId, // 👈 giờ đúng là ObjectId thật (hoặc null)
         newPrice,
       },
     ]);
@@ -363,6 +391,52 @@ export default function SettlementReport() {
       showErrorAlert(message);
     },
   });
+
+  const [editingMaterial, setEditingMaterial] = useState<{
+    materialCostId: string;
+    materialItemId: string;
+    materialName: string;
+    currentQuantity: number;
+  } | null>(null);
+  const [editQuantityInput, setEditQuantityInput] = useState<string>("");
+
+  const updateQuantityMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingMaterial) return;
+      await api.patch("/contractsettlements/updateMaterialQuantity", {
+        materialCostId: editingMaterial.materialCostId,
+        materialItemId: editingMaterial.materialItemId,
+        newQuantity: Number(editQuantityInput),
+      });
+    },
+    onSuccess: () => {
+      setEditingMaterial(null);
+      queryClient.invalidateQueries({
+        queryKey: [
+          "contractsettlements",
+          fromMonth,
+          toMonth,
+          selectedPhase,
+          selectedProductionScope,
+          selectedDepartment,
+        ],
+      });
+    },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
+    },
+  });
+
+  const handleOpenEditQuantity = (materialUsedRef: any) => {
+    setEditingMaterial({
+      materialCostId: materialUsedRef.materialCostId,
+      materialItemId: materialUsedRef.materialItemId,
+      materialName: materialUsedRef.material?.name || "",
+      currentQuantity: materialUsedRef.quantity || 0,
+    });
+    setEditQuantityInput(String(materialUsedRef.quantity || 0));
+  };
 
   const hasPending = pendingChanges.length > 0;
   // Hiện 3 cột định mức khi data đã tách công đoạn (bao gồm cả khi không chọn diện)
@@ -511,11 +585,10 @@ export default function SettlementReport() {
               </Tooltip>
             </Box>
           )}
-          {!canDragDrop && hasPending === false && selectedProductionScope && (
-            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-              * Kéo thả chỉ khả dụng khi chọn 1 tháng duy nhất
-            </Typography>
-          )}
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+            * Kéo thả, chỉnh sửa chỉ khả dụng khi chọn 1 tháng - 1 diện - 1 công
+            đoạn
+          </Typography>
         </Box>
       </Box>
 
@@ -701,6 +774,20 @@ export default function SettlementReport() {
                   >
                     Đơn giá khoán
                   </TableCell>
+                  {canDragDrop && (
+                    <TableCell
+                      align="center"
+                      rowSpan={6}
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontWeight: "bold",
+                        fontSize: "14px",
+                        p: 0.5,
+                        minWidth: 50,
+                        bgcolor: "white",
+                      }}
+                    ></TableCell>
+                  )}
                   {blockKeys.map((bk, idx) => (
                     <TableCell
                       key={idx}
@@ -1164,6 +1251,16 @@ export default function SettlementReport() {
                   >
                     Than nguyên khai
                   </TableCell>
+                  {canDragDrop && (
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontSize: "14px",
+                        p: 0.5,
+                      }}
+                    ></TableCell>
+                  )}
                   {blockKeys.map((bk, idx) => {
                     if (bk.isSummary) {
                       const sumCoal = blockKeys
@@ -1244,6 +1341,16 @@ export default function SettlementReport() {
                   >
                     Mét lò đào
                   </TableCell>
+                  {canDragDrop && (
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontSize: "14px",
+                        p: 0.5,
+                      }}
+                    ></TableCell>
+                  )}
                   {blockKeys.map((bk, idx) => {
                     if (bk.isSummary) {
                       const sumExcavation = blockKeys
@@ -1327,6 +1434,16 @@ export default function SettlementReport() {
                   >
                     Mét lò xén
                   </TableCell>
+                  {canDragDrop && (
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontSize: "14px",
+                        p: 0.5,
+                      }}
+                    ></TableCell>
+                  )}
                   {blockKeys.map((bk, idx) => {
                     if (bk.isSummary) {
                       const sumCutting = blockKeys
@@ -1410,6 +1527,16 @@ export default function SettlementReport() {
                   >
                     Tỉ lệ đá lẫn trong gương (Ckep)
                   </TableCell>
+                  {canDragDrop && (
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontSize: "14px",
+                        p: 0.5,
+                      }}
+                    ></TableCell>
+                  )}
                   {blockKeys.map((bk, idx) => {
                     if (bk.isSummary) {
                       return (
@@ -1485,6 +1612,16 @@ export default function SettlementReport() {
                   >
                     Vật tư có định mức
                   </TableCell>
+                  {canDragDrop && (
+                    <TableCell
+                      align="center"
+                      sx={{
+                        border: "1px solid #ddd",
+                        fontSize: "14px",
+                        p: 0.5,
+                      }}
+                    ></TableCell>
+                  )}
                   {blockKeys.map((bk, idx) => {
                     if (bk.isSummary) {
                       return (
@@ -1576,7 +1713,6 @@ export default function SettlementReport() {
                                   const payload = JSON.parse(
                                     e.dataTransfer.getData("application/json"),
                                   );
-                                  // Lấy mapKey đầu tiên vì canDragDrop = true nghĩa là chỉ có 1 tháng (1 block)
                                   const mapKey =
                                     blockKeys.length > 0
                                       ? getBlockId(
@@ -1587,13 +1723,16 @@ export default function SettlementReport() {
                                   if (mapKey) {
                                     handleDrop(
                                       mapKey,
-                                      assignment.assignmentCode?._id ?? null,
-                                      payload.fromAssignmentCodeId,
+                                      assignment.compoundKey, // targetCompoundKey
+                                      payload.fromCompoundKey, // 👈 sửa tên field đọc đúng
                                       {
                                         materialCostId: payload.materialCostId,
                                         materialItemId: payload.materialItemId,
                                       },
-                                      assignment.price ?? null,
+                                      assignment.assignmentCode?._id ?? null, // 👈 targetAssignmentCodeId (ObjectId thật)
+                                      assignment.assignmentCode
+                                        ? assignment.price
+                                        : null,
                                     );
                                   }
                                 } catch {}
@@ -1705,6 +1844,16 @@ export default function SettlementReport() {
                             ? formattedPrice(assignment.price)
                             : ""}
                         </TableCell>
+                        {canDragDrop && (
+                          <TableCell
+                            align="center"
+                            sx={{
+                              border: "1px solid #ddd",
+                              fontSize: "14px",
+                              p: 0.5,
+                            }}
+                          ></TableCell>
+                        )}
 
                         {/* Mapped dynamic columns for Assignment */}
                         {blockKeys.map((bk, idx) => {
@@ -1972,9 +2121,8 @@ export default function SettlementReport() {
                                             materialUsedRef.materialCostId,
                                           materialItemId:
                                             materialUsedRef.materialItemId,
-                                          fromAssignmentCodeId:
-                                            assignment.assignmentCode?._id ??
-                                            "NO_ASSIGNMENTCODE",
+                                          fromCompoundKey:
+                                            assignment.compoundKey,
                                         }),
                                       );
                                     }
@@ -2091,6 +2239,29 @@ export default function SettlementReport() {
                                   ? ""
                                   : formattedPrice(materialUsedRef.price)}
                               </TableCell>
+                              {canDragDrop && (
+                                <TableCell
+                                  align="center"
+                                  sx={{
+                                    border: "1px solid #ddd",
+                                    fontSize: "14px",
+                                    p: 0.5,
+                                  }}
+                                >
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      handleOpenEditQuantity(materialUsedRef)
+                                    }
+                                    sx={{
+                                      color: "#666",
+                                      "&:hover": { color: "#1976d2" },
+                                    }}
+                                  >
+                                    <Edit fontSize="small" />
+                                  </IconButton>
+                                </TableCell>
+                              )}
 
                               {/* Mapped dynamic columns for Material */}
                               {blockKeys.map((bk, idx) => {
@@ -2342,7 +2513,7 @@ export default function SettlementReport() {
                   <TableRow>
                     <TableCell
                       align="center"
-                      colSpan={8}
+                      colSpan={canDragDrop ? 9 : 8}
                       sx={{
                         border: "1px solid #ddd",
                         fontWeight: "bold",
@@ -2353,6 +2524,7 @@ export default function SettlementReport() {
                     >
                       Tổng chi phí
                     </TableCell>
+
                     {blockKeys.map((bk, idx) => {
                       if (bk.isSummary) {
                         let totalPlanSum = 0;
@@ -2504,6 +2676,39 @@ export default function SettlementReport() {
           </Box>
         </Box>
       )}
+      <Dialog open={!!editingMaterial} onClose={() => setEditingMaterial(null)}>
+        <DialogTitle>Sửa số lượng thực hiện</DialogTitle>
+        <DialogContent sx={{ minWidth: 320, pt: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2, color: "#666" }}>
+            {editingMaterial?.materialName}
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Số lượng thực hiện"
+            type="number"
+            size="small"
+            value={editQuantityInput}
+            onChange={(e) => setEditQuantityInput(e.target.value)}
+            inputProps={{ min: 0, step: "any" }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditingMaterial(null)}>Hủy</Button>
+          <Button
+            variant="contained"
+            onClick={() => updateQuantityMutation.mutate()}
+            disabled={
+              updateQuantityMutation.isPending ||
+              editQuantityInput === "" ||
+              Number.isNaN(Number(editQuantityInput)) ||
+              Number(editQuantityInput) < 0
+            }
+          >
+            {updateQuantityMutation.isPending ? "Đang lưu..." : "Lưu"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }

@@ -6,22 +6,32 @@ import React, { useState } from "react";
 import PhaseTable from "./PhaseTable";
 import { showConfirmAlert } from "../../components/Alert";
 import { formattedPrice } from "../../utils/helpers";
+import { useQuery } from "@tanstack/react-query";
+import api from "../../config/api.config";
 
 export default function GroupTable({
-  data,
   handleOpen,
   department,
   month,
-  handleDeleteMutation,
 }: {
-  data: any[];
   handleOpen: (record: any) => void;
   department?: any;
   month?: string;
-  handleDeleteMutation: (ids: React.Key[]) => void;
 }) {
   const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const departmentId = department?._id || department;
+  const { data: scopes = [] } = useQuery({
+    queryKey: ["initialplannedcost-scopes", departmentId, month],
+    queryFn: async () => {
+      const res = await api.get(`/initialplannedcosts/scopes`, {
+        params: { department: departmentId, month },
+      });
+      return res.data.data;
+    },
+    enabled: !!departmentId && !!month,
+  });
 
   const handleView = (record: any) => {
     const id = record?._id;
@@ -31,23 +41,14 @@ export default function GroupTable({
   };
 
   const expandedRowRender = (record: any) => {
-    const key = record._id || "";
-    const data = expandedData[key] || record;
-    if (data === null) {
-      return (
-        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-          <Typography color="error">
-            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
-          </Typography>
-        </Box>
-      );
-    }
-    if (!data.phases) {
-      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
-    }
     return (
       <Box sx={{ padding: "10px" }}>
-        <PhaseTable data={data.phases} />
+        <PhaseTable
+          department={departmentId}
+          month={month}
+          productionScope={record?.productionScope}
+          handleOpen={handleOpen}
+        />
       </Box>
     );
   };
@@ -57,9 +58,7 @@ export default function GroupTable({
       dataIndex: "productionScope",
       key: "productionScope",
       render: (text: any, item: any, index: number) => (
-        <Typography fontWeight="bold">
-          {item.productionScope?.code}
-        </Typography>
+        <Typography fontWeight="bold">{item.productionScope?.code}</Typography>
       ),
     },
     {
@@ -94,67 +93,12 @@ export default function GroupTable({
         </IconButton>
       ),
     },
-    {
-      title: "",
-      dataIndex: "add",
-      key: "add",
-      width: 50,
-      align: "center" as const,
-      render: (_: any, record: any) => (
-        <IconButton
-          onClick={() =>
-            handleOpen({
-              ...record,
-              department: department,
-              month: month,
-            })
-          }
-          sx={{
-            color: "#666",
-            "&:hover": {
-              color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)",
-            },
-          }}
-        >
-          <Edit />
-        </IconButton>
-      ),
-    },
-    {
-      title: "",
-      dataIndex: "delete",
-      key: "delete",
-      width: 50,
-      align: "center" as const,
-      render: (_: any, record: any) => (
-        <IconButton
-          onClick={async () => {
-            const isConfirmed = await showConfirmAlert(
-              "Bạn có chắc muốn xóa bản ghi này không?. Không thể hoàn tác.",
-            );
-            if (isConfirmed) {
-              handleDeleteMutation([record._id]);
-            }
-          }}
-          sx={{
-            color: "#666",
-            "&:hover": {
-              color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)",
-            },
-          }}
-        >
-          <Delete />
-        </IconButton>
-      ),
-    },
   ];
   return (
     <Paper>
       <Table
         columns={innerColumns}
-        dataSource={data || []}
+        dataSource={scopes || []}
         pagination={false}
         size="small"
         rowKey={(item) => item._id}

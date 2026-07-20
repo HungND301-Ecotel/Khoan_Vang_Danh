@@ -5,55 +5,46 @@ import dayjs from "dayjs";
 import React, { useState } from "react";
 import GroupTable from "./GroupTable";
 import { formattedPrice } from "../../utils/helpers";
+import { useQuery } from "@tanstack/react-query";
+import api from "../../config/api.config";
 
 export default function MonthTable({
-  data,
   handleOpen,
   department,
-  handleDeleteMutation,
 }: {
-  data: any[];
   handleOpen: (record: any) => void;
   department?: any;
-  handleDeleteMutation: (params: { ids: React.Key[], isOtherTask?: boolean }) => void;
 }) {
-  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const departmentId = department?._id || department;
+
+  const { data: months = [], isLoading } = useQuery({
+    queryKey: ["materialcostused-months", departmentId],
+    queryFn: async () => {
+      const res = await api.get(`/materialcostuseds/months`, {
+        params: { department: departmentId },
+      });
+      return res.data.data;
+    },
+    enabled: !!departmentId,
+  });
 
   const handleView = (record: any) => {
     const id = record?._id;
     if (!id) return;
-
     setExpandedRow((prev) => (prev === id ? null : id));
   };
 
-  const expandedRowRender = (record: any) => {
-    const key = record._id || "";
-    const data = expandedData[key] || record;
-    if (data === null) {
-      return (
-        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-          <Typography color="error">
-            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
-          </Typography>
-        </Box>
-      );
-    }
-    if (!data.scopes) {
-      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
-    }
-    return (
-      <Box sx={{ padding: "10px" }}>
-        <GroupTable
-          data={data.scopes}
-          handleOpen={handleOpen}
-          department={department}
-          month={data.month}
-          handleDeleteMutation={handleDeleteMutation}
-        />
-      </Box>
-    );
-  };
+  const expandedRowRender = (record: any) => (
+    <Box sx={{ padding: "10px" }}>
+      <GroupTable
+        handleOpen={handleOpen}
+        department={department}
+        month={record.month}
+      />
+    </Box>
+  );
 
   const innerColumns = [
     {
@@ -104,11 +95,12 @@ export default function MonthTable({
     <Paper>
       <Table
         columns={innerColumns}
-        dataSource={data || []}
+        dataSource={months || []}
         pagination={false}
         size="small"
         rowKey={(item) => item._id}
         showHeader={false}
+        loading={isLoading}
         expandable={{
           expandedRowKeys: expandedRow ? [expandedRow] : [],
           onExpand: (expanded, record) => {
@@ -117,17 +109,13 @@ export default function MonthTable({
           expandedRowRender,
           showExpandColumn: false,
         }}
-        onRow={() => ({
-          className: "month-custom-row",
-        })}
+        onRow={() => ({ className: "month-custom-row" })}
         rowClassName={(record, index) =>
           index === 0 ? "month-custom-row first-data-row" : "month-custom-row"
         }
       />
       <style>{`
-        .month-custom-row > td {
-          background-color: #e0e0e0 !important;
-        }
+        .month-custom-row > td { background-color: #e0e0e0 !important; }
       `}</style>
     </Paper>
   );

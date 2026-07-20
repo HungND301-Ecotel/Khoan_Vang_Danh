@@ -52,6 +52,7 @@ import SettlementReport from "./pages/Report/SettlementReport";
 import ContractSettlementReport from "./pages/Report/ContractSettlementReport";
 import ProductionPhaseReport from "./pages/Report/ProductionPhaseReport";
 import ReportLayout from "./layout/ReportLayout";
+import Quarterlycontractsettlement from "./pages/Report/Quarterlycontractsettlement";
 
 const PrivateRoute: React.FC = () => {
   const token = localStorage.getItem("token");
@@ -71,8 +72,9 @@ const App = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        {/* Report routes với ReportLayout riêng */}
+        {/* Tất cả các route được bảo vệ */}
         <Route element={<PrivateRoute />}>
+          {/* Nhóm 1: Các route báo cáo đi qua ReportLayout */}
           <Route path="/report" element={<ReportLayout />}>
             <Route
               path="technologykpireport"
@@ -84,64 +86,73 @@ const App = () => {
               element={<MaterialConsumptionReport />}
             />
             <Route path="settlementreport" element={<SettlementReport />} />
-            <Route path="contractsettlementreport" element={<ContractSettlementReport />} />
+            <Route
+              path="contractsettlementreport"
+              element={<ContractSettlementReport />}
+            />
             <Route
               path="productionphasereport"
               element={<ProductionPhaseReport />}
             />
+            <Route
+              path="quarterlycontractsettlementreport"
+              element={<Quarterlycontractsettlement />}
+            />
           </Route>
 
-          {/* Tất cả các route được bảo vệ - dùng MainLayout từ PrivateRoute */}
-          <Route path="/" element={<Dashboard />} />
-          <Route
-            path="/settlementReportSummary"
-            element={<SettlementReportSummary />}
-          />
-          <Route
-            path="/ratedadjustmentfactor"
-            element={<Ratedadjustmentfactor />}
-          />
-          <Route path="/parameter" element={<Parameter />} />
-          <Route
-            path="/adjustmentfactorfornorms"
-            element={<Adjustmentfactorfornorms />}
-          />
-          <Route path="/unit" element={<Unit />} />
-          <Route path="/department" element={<Department />} />
-          <Route path="/phasegroup" element={<PhaseGroup />} />
-          <Route path="/phase" element={<Phase />} />
-          <Route path="/assignmentcode" element={<AssignmentCode />} />
-          <Route path="/materialassignment" element={<MaterialAssignment />} />
-          <Route
-            path="/materialassignmentoutplan"
-            element={<MaterialAssignmentOutPlan />}
-          />
-          <Route path="/excavationtech" element={<ExcavationTech />} />
-          <Route path="/crosssections" element={<CrossSection />} />
-          <Route path="/hardness" element={<Hardness />} />
-          <Route path="/curbslopes" element={<CurbSlope />} />
-          <Route path="/thickness" element={<Thickness />} />
-          <Route path="/length" element={<Length />} />
-          <Route path="/miningtechs" element={<MiningTech />} />
-          <Route path="/materialunitprice" element={<Materialunitprice />} />
-          <Route path="/steps" element={<Step />} />
-          <Route path="/excavationnorms" element={<ExcavationNorm />} />
-          <Route path="/cuttingnorms" element={<CuttingNorm />} />
-          <Route path="/coalcuttingnorms" element={<CoalCuttingNorm />} />
-          <Route path="/rockratio" element={<RockRatio />} />
-          <Route path="/mirrorratio" element={<MirrorRatio />} />
-          <Route path="/adjustmentnormk_kt" element={<AdjustmentNormKKT />} />
-          <Route path="/adjustmentnormk_dl" element={<AdjustmentNormKDL />} />
-          <Route path="/adjustmentnorm_cm" element={<AdjustmentNormCM />} />
-          <Route path="/productionscope" element={<ProductScope />} />
-          <Route path="/devicecode" element={<DeviceCode />} />
-          <Route path="/materialbudget" element={<MaterialBudget />} />
-          <Route path="/materialcostused" element={<MaterialCostUsed />} />
-          <Route path="/settlementreports" element={<Setttlementreport />} />
-          <Route
-            path="/initialplannedcosts"
-            element={<InitialPlannedCosts />}
-          />
+          {/* Nhóm 2: Các route trang quản trị thông thường (Nên bọc trong index hoặc path rõ ràng) */}
+          <Route path="">
+            <Route index element={<Dashboard />} /> {/* Thay cho path="/" */}
+            <Route
+              path="settlementReportSummary"
+              element={<SettlementReportSummary />}
+            />
+            <Route
+              path="ratedadjustmentfactor"
+              element={<Ratedadjustmentfactor />}
+            />
+            <Route path="parameter" element={<Parameter />} />
+            <Route
+              path="adjustmentfactorfornorms"
+              element={<Adjustmentfactorfornorms />}
+            />
+            <Route path="unit" element={<Unit />} />
+            <Route path="department" element={<Department />} />
+            <Route path="phasegroup" element={<PhaseGroup />} />
+            <Route path="phase" element={<Phase />} />
+            <Route path="assignmentcode" element={<AssignmentCode />} />
+            <Route path="materialassignment" element={<MaterialAssignment />} />
+            <Route
+              path="materialassignmentoutplan"
+              element={<MaterialAssignmentOutPlan />}
+            />
+            <Route path="excavationtech" element={<ExcavationTech />} />
+            <Route path="crosssections" element={<CrossSection />} />
+            <Route path="hardness" element={<Hardness />} />
+            <Route path="curbslopes" element={<CurbSlope />} />
+            <Route path="thickness" element={<Thickness />} />
+            <Route path="length" element={<Length />} />
+            <Route path="miningtechs" element={<MiningTech />} />
+            <Route path="materialunitprice" element={<Materialunitprice />} />
+            <Route path="steps" element={<Step />} />
+            <Route path="excavationnorms" element={<ExcavationNorm />} />
+            <Route path="cuttingnorms" element={<CuttingNorm />} />
+            <Route path="coalcuttingnorms" element={<CoalCuttingNorm />} />
+            <Route path="rockratio" element={<RockRatio />} />
+            <Route path="mirrorratio" element={<MirrorRatio />} />
+            <Route path="adjustmentnormk_kt" element={<AdjustmentNormKKT />} />
+            <Route path="adjustmentnormk_dl" element={<AdjustmentNormKDL />} />
+            <Route path="adjustmentnorm_cm" element={<AdjustmentNormCM />} />
+            <Route path="productionscope" element={<ProductScope />} />
+            <Route path="devicecode" element={<DeviceCode />} />
+            <Route path="materialbudget" element={<MaterialBudget />} />
+            <Route path="materialcostused" element={<MaterialCostUsed />} />
+            <Route path="settlementreports" element={<Setttlementreport />} />
+            <Route
+              path="initialplannedcosts"
+              element={<InitialPlannedCosts />}
+            />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

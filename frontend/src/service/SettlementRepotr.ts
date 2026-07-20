@@ -23,26 +23,26 @@ const SettlementService = {
     link.parentNode?.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
-  exportFileM3: async (data: any) => {
+  exportQuarterFile: async (params: {
+    quarter: string;
+    year: string;
+    department: string;
+  }) => {
     const res = await api.post(
-      "/contractsettlements/getExcelM3",
-      { data: data },
-      {
-        responseType: "blob",
-      },
+      "/contractsettlements/getQuarterExcel",
+      { data: params },
+      { responseType: "blob" },
     );
     const blob = new Blob([res.data], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `*.xlsx`);
-
-    document.body.appendChild(link);
-    link.click();
-    link.parentNode?.removeChild(link);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `QuyetToanGiaoKhoanQuy${params.quarter}_${params.year}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
     window.URL.revokeObjectURL(url);
   },
 

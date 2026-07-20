@@ -12,7 +12,7 @@ import {
   Typography,
   CircularProgress,
 } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FieldRangeMonthYear from "../../ui/FieldRangeMonth_Year";
@@ -138,48 +138,58 @@ export default function ContractSettlementReport() {
     transformedResponse as any,
     localData,
     true,
+    true,
   );
 
   useEffect(() => {
+    let animationFrameId: number;
+
     const updateWidth = () => {
+      // Tránh tính toán nếu component đã bị unmount
+      if (!tableContainerRef.current && !tableRef.current) return;
+
+      let newWidth = 0;
       if (tableContainerRef.current) {
-        setTableWidth(tableContainerRef.current.scrollWidth);
+        newWidth = tableContainerRef.current.scrollWidth;
       } else if (tableRef.current) {
-        setTableWidth(tableRef.current.offsetWidth);
+        newWidth = tableRef.current.offsetWidth;
       }
+
+      setTableWidth((prevWidth) =>
+        prevWidth !== newWidth ? newWidth : prevWidth,
+      );
     };
 
     const observer = new ResizeObserver(() => {
-      updateWidth();
+      // Sử dụng requestAnimationFrame để hoãn việc setState cho tới khung hình tiếp theo, tránh loop liên tục
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(updateWidth);
     });
 
-    if (tableRef.current) {
-      observer.observe(tableRef.current);
-    }
-    if (tableContainerRef.current) {
-      observer.observe(tableContainerRef.current);
-    }
+    if (tableRef.current) observer.observe(tableRef.current);
+    if (tableContainerRef.current) observer.observe(tableContainerRef.current);
 
-    updateWidth(); // initial update
+    updateWidth();
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(animationFrameId);
+    };
   }, [apiResponse, blockKeys]);
 
   // Sync localData khi API response thay đổi
   useEffect(() => {
     if (!transformedResponse?.length) {
-      setLocalData(new Map());
+      setLocalData((prev) => (prev.size !== 0 ? new Map() : prev));
       return;
     }
     const map = new Map<string, DataItem[]>();
-
     (transformedResponse as MonthlyDataWithPhase[]).forEach((monthEntry) => {
       (monthEntry.phases || []).forEach((phaseEntry) => {
         const key = `${monthEntry.month}_${phaseEntry.phaseId}`;
         map.set(key, phaseEntry.data);
       });
     });
-
     setLocalData(map);
   }, [transformedResponse]);
 
@@ -390,16 +400,18 @@ export default function ContractSettlementReport() {
               overflowX: "auto",
               overflowY: "hidden",
               position: "sticky",
-              top: 100, // ✅ khớp với AppBar height: 100 trong MainLayout
+              top: 100,
               zIndex: 11,
               bgcolor: "white",
               borderBottom: "1px solid #ddd",
             }}
             onScroll={(e) => {
-              if (tableContainerRef.current) {
-                tableContainerRef.current.scrollLeft = (
-                  e.target as HTMLDivElement
-                ).scrollLeft;
+              const target = e.target as HTMLDivElement;
+              if (
+                tableContainerRef.current &&
+                tableContainerRef.current.scrollLeft !== target.scrollLeft
+              ) {
+                tableContainerRef.current.scrollLeft = target.scrollLeft;
               }
             }}
           >
@@ -414,10 +426,12 @@ export default function ContractSettlementReport() {
               width: "100%",
             }}
             onScroll={(e) => {
-              if (topScrollRef.current) {
-                topScrollRef.current.scrollLeft = (
-                  e.target as HTMLDivElement
-                ).scrollLeft;
+              const target = e.target as HTMLDivElement;
+              if (
+                topScrollRef.current &&
+                topScrollRef.current.scrollLeft !== target.scrollLeft
+              ) {
+                topScrollRef.current.scrollLeft = target.scrollLeft;
               }
             }}
           >

@@ -1,6 +1,5 @@
 import { Table, Typography } from "antd";
-import React from "react";
-import { Box, Paper } from "@mui/material";
+import { Paper } from "@mui/material";
 import { formatDecimal, formattedPrice } from "../../utils/helpers";
 
 export default function AssignmentNormTable({ data }: { data: any }) {
@@ -96,7 +95,7 @@ export default function AssignmentNormTable({ data }: { data: any }) {
     <Paper>
       <Table
         columns={innerColumns}
-        dataSource={data.budgetCostDetails || []} // <-- Dùng mảng đã xử lý
+        dataSource={data?.budgetCostDetails || []} // <-- Dùng mảng đã xử lý
         pagination={false}
         size="small"
         rowKey="key"

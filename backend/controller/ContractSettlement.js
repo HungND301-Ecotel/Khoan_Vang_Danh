@@ -31,56 +31,51 @@ function processBudgetAndUsedData(
 ) {
   const mergedGroupsMap = new Map();
 
-  // 1. Hợp nhất TẤT CẢ Budget Phases từ TẤT CẢ Budget Docs
-  materialBudgetDocs.forEach((budgetDoc) => {
-    // Lọc phase nếu tham số phase được truyền
-    const phasesToProcess = phase
-      ? budgetDoc.phases.filter((p) => String(p.phase._id) === phase)
-      : budgetDoc.phases;
-    phasesToProcess.forEach((budgetPhase) => {
-      budgetPhase.budgetCostDetails.forEach((detail) => {
-        const code = detail.assignmentCode?.code;
-        const price = detail.price || 0;
-        const compoundKey = `${code}_${price}`;
+  // 1. Hợp nhất budgetCostDetails - lọc theo phase nếu có, đọc thẳng từ doc (không còn lồng trong phases[])
+  const filteredBudgetDocs = phase
+    ? materialBudgetDocs.filter(
+        (d) => String(d.phase?._id || d.phase) === String(phase),
+      )
+    : materialBudgetDocs;
 
-        // Nếu đã tồn tại key, cộng dồn Quantity và Cost (vì có thể trùng ở document khác)
-        if (mergedGroupsMap.has(compoundKey)) {
-          const existing = mergedGroupsMap.get(compoundKey);
-          existing.plan_Quantity += detail.quantity || 0;
-          existing.plan_Cost += detail.cost || 0;
-          existing.norm += detail.norm || 0;
-        } else {
-          // Khởi tạo nhóm mới
-          mergedGroupsMap.set(compoundKey, {
-            assignmentCode: detail.assignmentCode,
-            baseNorm: detail.baseNorm,
-            adjustmentNorm: detail.adjustmentNorm,
-            norm: detail.norm,
-            price: price,
-            plan_Quantity: detail.quantity || 0, // Giá trị khởi tạo
-            plan_Cost: detail.cost || 0, // Giá trị khởi tạo
-            used_Quantity: 0,
-            used_Cost: 0,
-            materialUseds: [],
-          });
-        }
-      });
+  filteredBudgetDocs.forEach((budgetDoc) => {
+    (budgetDoc.budgetCostDetails || []).forEach((detail) => {
+      const code = detail.assignmentCode?.code;
+      const price = detail.price || 0;
+      const compoundKey = `${code}_${price}`;
+
+      if (mergedGroupsMap.has(compoundKey)) {
+        const existing = mergedGroupsMap.get(compoundKey);
+        existing.plan_Quantity += detail.quantity || 0;
+        existing.plan_Cost += detail.cost || 0;
+        existing.norm += detail.norm || 0;
+      } else {
+        mergedGroupsMap.set(compoundKey, {
+          assignmentCode: detail.assignmentCode,
+          baseNorm: detail.baseNorm,
+          adjustmentNorm: detail.adjustmentNorm,
+          norm: detail.norm,
+          price: price,
+          plan_Quantity: detail.quantity || 0,
+          plan_Cost: detail.cost || 0,
+          used_Quantity: 0,
+          used_Cost: 0,
+          materialUseds: [],
+        });
+      }
     });
   });
 
-  // 2. Hợp nhất TẤT CẢ Used Materials từ TẤT CẢ Used Docs
-  materialCostUsedDocs.forEach((usedDoc) => {
-    // Nếu có lọc theo phase, chỉ lấy các usedDoc có chứa phase đó
-    if (phase) {
-      const hasPhase = usedDoc.phases?.some(
-        (p) => String(p.phase?._id || p.phase) === String(phase),
-      );
-      if (!hasPhase) return;
-    }
+  // 2. Hợp nhất materials thực hiện - lọc theo phase nếu có
+  // (materials vốn đã ở top-level của MaterialCostUsed, không đổi, chỉ đổi điều kiện lọc phase)
+  const filteredUsedDocs = phase
+    ? materialCostUsedDocs.filter(
+        (d) => String(d.phase?._id || d.phase) === String(phase),
+      )
+    : materialCostUsedDocs;
 
-    // Lặp qua tất cả vật tư trong document Used này
+  filteredUsedDocs.forEach((usedDoc) => {
     usedDoc.materials.forEach((mat) => {
-      // Ưu tiên assignmentCode trực tiếp trên material item, fallback về assignmentCode từ material reference
       const assignmentCodeDoc =
         mat.assignmentCode || mat.material?.assignmentCode;
       const code = assignmentCodeDoc?.code || "";
@@ -95,7 +90,6 @@ function processBudgetAndUsedData(
       let group = mergedGroupsMap.get(compoundKey);
 
       if (!group) {
-        // Trường hợp vật tư Used không có trong Budget Hợp nhất
         group = {
           assignmentCode: assignmentCodeDoc,
           baseNorm: "",
@@ -111,11 +105,9 @@ function processBudgetAndUsedData(
         mergedGroupsMap.set(compoundKey, group);
       }
 
-      // Cập nhật tổng thực hiện (cho cả nhóm cũ và nhóm mới được tạo)
       group.used_Quantity += quantity;
       group.used_Cost += cost;
 
-      // Thêm chi tiết vật tư vào nhóm (Có thể có chi tiết từ các Used Docs khác nhau)
       group.materialUseds.push({
         materialCostId: usedDoc._id,
         materialItemId: mat._id,
@@ -127,265 +119,31 @@ function processBudgetAndUsedData(
     });
   });
 
-  // 3. Tính toán Variance và Sắp xếp
+  // 3. Tính Variance và sắp xếp — GIỮ NGUYÊN không đổi
   const finalGroups = Array.from(mergedGroupsMap.values()).map((group) => {
-    // Nếu là vật tư không có định mức, gán kế hoạch bằng thực hiện
     if (!group.assignmentCode) {
       group.plan_Quantity = group.used_Quantity;
       group.plan_Cost = group.used_Cost;
     }
-
     const varianceQuantity = group.plan_Quantity - group.used_Quantity;
     const varianceCost = group.plan_Cost - group.used_Cost;
-    return {
-      ...group,
-      varianceQuantity: varianceQuantity,
-      varianceCost: varianceCost,
-    };
+    return { ...group, varianceQuantity, varianceCost };
   });
 
-  // ... (Phần sắp xếp giữ nguyên) ...
   finalGroups.sort((a, b) => {
     const codeA = a.assignmentCode?.code || "NO_ASSIGNMENTCODE";
     const codeB = b.assignmentCode?.code || "NO_ASSIGNMENTCODE";
-    // 1. Đẩy nhóm không có Mã giao khoán xuống cuối
-    if (codeA === "NO_ASSIGNMENTCODE" && codeB !== "NO_ASSIGNMENTCODE") {
+    if (codeA === "NO_ASSIGNMENTCODE" && codeB !== "NO_ASSIGNMENTCODE")
       return 1;
-    }
-    if (codeA !== "NO_ASSIGNMENTCODE" && codeB === "NO_ASSIGNMENTCODE") {
+    if (codeA !== "NO_ASSIGNMENTCODE" && codeB === "NO_ASSIGNMENTCODE")
       return -1;
-    }
-    // 2. Sắp xếp Alphabetical
-    if (codeA < codeB) {
-      return -1;
-    }
-    if (codeA > codeB) {
-      return 1;
-    }
+    if (codeA < codeB) return -1;
+    if (codeA > codeB) return 1;
     return 0;
   });
 
   return finalGroups;
 }
-
-async function getMonth(res, productionScope, phase, matchQuery) {
-  const materialCostUseds = await MaterialCostUsed.find(matchQuery)
-    .populate({
-      path: "productionScope",
-      select: "code name",
-    })
-    .populate({
-      path: "department",
-      select: "code name",
-    })
-    .populate({
-      path: "phases.phase",
-      select: "code name phaseGroup",
-      populate: [{ path: "phaseGroup", populate: "code name" }],
-    })
-    .populate({
-      path: "materials.material",
-      populate: [
-        { path: "uom", select: "name" },
-        {
-          path: "assignmentCode",
-          select: "code name uom deviceCode",
-          populate: [{ path: "uom" }, { path: "deviceCode" }],
-        },
-      ],
-    })
-    .populate({
-      path: "materials.assignmentCode",
-      select: "code name uom deviceCode",
-      populate: [{ path: "uom" }, { path: "deviceCode" }],
-    })
-    .lean();
-
-  if (materialCostUseds.length === 0) {
-    return res.status(404).json({
-      status: "error",
-      message: "Không tìm thấy dữ liệu chi phí thực hiện.",
-    });
-  }
-
-  const materialBudgets = await MaterialBudget.find(matchQuery)
-    .populate({
-      path: "productionScope",
-      select: "code name",
-    })
-    .populate({
-      path: "department",
-      select: "code name",
-    })
-    .populate({
-      path: "phases.phase",
-      select: "code name phaseGroup",
-      populate: [{ path: "phaseGroup", populate: "code name" }],
-    })
-    .populate({
-      path: "phases.budgetCostDetails.assignmentCode", // Đường dẫn lồng
-      select: "code name uom deviceCode",
-      populate: [{ path: "uom" }, { path: "deviceCode" }],
-    })
-    .populate({
-      path: "phases.assignmentNormCode",
-      select: "norms code",
-      populate: [{ path: "norms.assignmentCode", populate: "uom" }],
-    })
-    .populate({
-      path: "phases.adjustmentNormCode",
-      select: "norms code rockRatio",
-      populate: [
-        { path: "norms.assignmentCode", populate: "uom" },
-        { path: "rockRatio", select: "name" },
-      ],
-    })
-    .lean();
-
-  if (materialBudgets.length === 0) {
-    return res.status(404).json({
-      status: "error",
-      message: "Không tìm thấy dữ liệu chi phí kế hoạch.",
-    });
-  }
-
-  const allScopes = new Map();
-  const allPhases = new Map();
-
-  // Khởi tạo các tổng sản lượng
-  let totalCoal = 0;
-  let totalExcavation = 0;
-  let totalCutting = 0;
-  let rockRatio = null;
-
-  materialBudgets.forEach((budgetDoc) => {
-    // 1. Thu thập Production Scope
-    if (budgetDoc.productionScope) {
-      const scopeId = String(budgetDoc.productionScope._id);
-      if (!allScopes.has(scopeId)) {
-        allScopes.set(scopeId, {
-          _id: scopeId,
-          code: budgetDoc.productionScope.code,
-          name: budgetDoc.productionScope.name,
-        });
-      }
-    }
-
-    // Lọc phase theo tham số query (Chỉ dùng để lấy Tỉ lệ đá kẹp nếu cần)
-    const phasesToCheck = phase
-      ? budgetDoc.phases.filter((p) => {
-          const phaseList = Array.isArray(phase) ? phase : phase.split(",");
-          return phaseList.includes(String(p.phase._id));
-        })
-      : budgetDoc.phases;
-
-    phasesToCheck.forEach((budgetPhase) => {
-      const phaseDoc = budgetPhase.phase;
-      const phaseId = String(phaseDoc._id);
-      const production = budgetPhase.production || 0;
-
-      // Thu thập Phase (để tránh trùng lặp)
-      if (!allPhases.has(phaseId)) {
-        allPhases.set(phaseId, {
-          _id: phaseId,
-          code: phaseDoc.code,
-          name: phaseDoc.name,
-        });
-      }
-
-      // Tính tổng các loại sản lượng riêng biệt (Luôn cộng dồn TẤT CẢ phase đã lọc)
-      switch (phaseDoc.phaseGroup?.name.toLowerCase()) {
-        case PhaseType.COAL.toLowerCase():
-          totalCoal += production;
-          break;
-        case PhaseType.EXCAVATION.toLowerCase():
-          totalExcavation += production;
-          break;
-        case PhaseType.CUTTING.toLowerCase():
-          totalCutting += production;
-          break;
-      }
-
-      if (phase && productionScope) {
-        const phaseList = Array.isArray(phase) ? phase : phase.split(",");
-        if (phaseList.includes(phaseId)) {
-          // Lấy giá trị từ adjustmentNormCode đã được populate
-          const rockRatioDoc = budgetPhase.adjustmentNormCode?.rockRatio;
-
-          if (rockRatioDoc && rockRatioDoc.name !== undefined) {
-            rockRatio = rockRatioDoc.name;
-          } else {
-            rockRatio = null;
-          }
-        }
-      }
-    });
-  });
-
-  const info = {
-    productionScopes: Array.from(allScopes.values()),
-    phases: Array.from(allPhases.values()),
-    totalCoal,
-    totalCutting,
-    totalExcavation,
-    rockRatio,
-  };
-
-  const data = processBudgetAndUsedData(
-    materialBudgets,
-    materialCostUseds,
-    phase,
-  );
-  return { data, info };
-}
-exports.getMonth = async (req, res) => {
-  try {
-    const { productionScope, fromMonth, toMonth, phase, department } =
-      req.query;
-
-    if (!productionScope) {
-      return res.status(400).json({
-        status: "error",
-        message: "Tham số diện sản xuất là bắt buộc.",
-      });
-    }
-
-    // Luôn lọc theo tháng và diện sản xuất
-    const matchQuery = {
-      department: department,
-      productionScope: productionScope,
-    };
-
-    if (fromMonth && toMonth) {
-      matchQuery.month = { $gte: fromMonth, $lte: toMonth };
-    } else if (fromMonth) {
-      matchQuery.month = { $gte: fromMonth };
-    } else if (toMonth) {
-      matchQuery.month = { $lte: toMonth };
-    }
-
-    // Chỉ lọc theo công đoạn khi có chọn
-    if (phase) {
-      const phaseList = Array.isArray(phase) ? phase : phase.split(",");
-      matchQuery["phases.phase"] = { $in: phaseList };
-    }
-
-    const { data, info } = await getMonth(
-      res,
-      productionScope,
-      phase || null,
-      matchQuery,
-    );
-
-    res.status(200).json({
-      status: "success",
-      data: { data, info },
-    });
-  } catch (err) {
-    console.log(err.stack);
-    res.status(500).json({ status: "error", message: err.message });
-  }
-};
 
 // Hàm helper tách budget/used theo tháng cụ thể
 function filterDocsByMonth(docs, month) {
@@ -402,7 +160,13 @@ function buildInfo(materialBudgets, phaseId, productionScope) {
   let totalCutting = 0;
   let rockRatio = null;
 
-  materialBudgets.forEach((budgetDoc) => {
+  const docsToCheck = phaseId
+    ? materialBudgets.filter(
+        (d) => String(d.phase?._id || d.phase) === String(phaseId),
+      )
+    : materialBudgets;
+
+  docsToCheck.forEach((budgetDoc) => {
     if (budgetDoc.productionScope) {
       const scopeId = String(budgetDoc.productionScope._id);
       if (!allScopes.has(scopeId)) {
@@ -414,40 +178,36 @@ function buildInfo(materialBudgets, phaseId, productionScope) {
       }
     }
 
-    const phasesToCheck = phaseId
-      ? budgetDoc.phases.filter((p) => String(p.phase._id) === phaseId)
-      : budgetDoc.phases;
+    const phaseDoc = budgetDoc.phase;
+    if (!phaseDoc) return;
 
-    phasesToCheck.forEach((budgetPhase) => {
-      const phaseDoc = budgetPhase.phase;
-      const phaseIdStr = String(phaseDoc._id);
-      const production = budgetPhase.production || 0;
+    const phaseIdStr = String(phaseDoc._id);
+    const production = budgetDoc.production || 0;
 
-      if (!allPhases.has(phaseIdStr)) {
-        allPhases.set(phaseIdStr, {
-          _id: phaseIdStr,
-          code: phaseDoc.code,
-          name: phaseDoc.name,
-        });
-      }
+    if (!allPhases.has(phaseIdStr)) {
+      allPhases.set(phaseIdStr, {
+        _id: phaseIdStr,
+        code: phaseDoc.code,
+        name: phaseDoc.name,
+      });
+    }
 
-      switch (phaseDoc.phaseGroup?.name.toLowerCase()) {
-        case PhaseType.COAL.toLowerCase():
-          totalCoal += production;
-          break;
-        case PhaseType.EXCAVATION.toLowerCase():
-          totalExcavation += production;
-          break;
-        case PhaseType.CUTTING.toLowerCase():
-          totalCutting += production;
-          break;
-      }
+    switch (phaseDoc.phaseGroup?.name.toLowerCase()) {
+      case PhaseType.COAL.toLowerCase():
+        totalCoal += production;
+        break;
+      case PhaseType.EXCAVATION.toLowerCase():
+        totalExcavation += production;
+        break;
+      case PhaseType.CUTTING.toLowerCase():
+        totalCutting += production;
+        break;
+    }
 
-      if (phaseId && productionScope) {
-        const rockRatioDoc = budgetPhase.adjustmentNormCode?.rockRatio;
-        rockRatio = rockRatioDoc?.name !== undefined ? rockRatioDoc.name : null;
-      }
-    });
+    if (phaseId && productionScope) {
+      const rockRatioDoc = budgetDoc.adjustmentNormCode?.rockRatio;
+      rockRatio = rockRatioDoc?.name !== undefined ? rockRatioDoc.name : null;
+    }
   });
 
   return {
@@ -468,13 +228,12 @@ async function getMonthGrouped(
   fromMonth,
   toMonth,
 ) {
-  // 1. Query 1 lần duy nhất (giữ nguyên populate như cũ)
   const [materialCostUseds, materialBudgets] = await Promise.all([
     MaterialCostUsed.find(matchQuery)
       .populate({ path: "productionScope", select: "code name" })
       .populate({ path: "department", select: "code name" })
       .populate({
-        path: "phases.phase",
+        path: "phase", // 👈 đổi từ "phases.phase"
         select: "code name phaseGroup",
         populate: [{ path: "phaseGroup", populate: "code name" }],
       })
@@ -500,22 +259,22 @@ async function getMonthGrouped(
       .populate({ path: "productionScope", select: "code name" })
       .populate({ path: "department", select: "code name" })
       .populate({
-        path: "phases.phase",
+        path: "phase", // 👈 đổi từ "phases.phase"
         select: "code name phaseGroup",
         populate: [{ path: "phaseGroup", populate: "code name" }],
       })
       .populate({
-        path: "phases.budgetCostDetails.assignmentCode",
+        path: "budgetCostDetails.assignmentCode", // 👈 đổi từ "phases.budgetCostDetails.assignmentCode"
         select: "code name uom deviceCode",
         populate: [{ path: "uom" }, { path: "deviceCode" }],
       })
       .populate({
-        path: "phases.assignmentNormCode",
+        path: "assignmentNormCode", // 👈 đổi từ "phases.assignmentNormCode"
         select: "norms code",
         populate: [{ path: "norms.assignmentCode", populate: "uom" }],
       })
       .populate({
-        path: "phases.adjustmentNormCode",
+        path: "adjustmentNormCode", // 👈 đổi từ "phases.adjustmentNormCode"
         select: "norms code rockRatio",
         populate: [
           { path: "norms.assignmentCode", populate: "uom" },
@@ -531,21 +290,7 @@ async function getMonthGrouped(
   if (materialBudgets.length === 0) {
     throw { status: 404, message: "Không tìm thấy dữ liệu chi phí kế hoạch." };
   }
-  // DEBUG
-  console.log("=== DEBUG ===");
-  console.log("fromMonth:", fromMonth, "toMonth:", toMonth);
-  console.log("materialBudgets count:", materialBudgets.length);
-  console.log("materialCostUseds count:", materialCostUseds.length);
 
-  // Xem field month trong docs có đúng format không
-  console.log("Budget months:", [
-    ...new Set(materialBudgets.map((d) => d.month)),
-  ]);
-  console.log("Used months:", [
-    ...new Set(materialCostUseds.map((d) => d.month)),
-  ]);
-
-  // 2. Tạo danh sách tháng
   const months = generateMonthRange(fromMonth, toMonth);
   const phaseList = phase
     ? Array.isArray(phase)
@@ -553,20 +298,17 @@ async function getMonthGrouped(
       : phase.split(",")
     : null;
 
-  // 3. Group theo tháng
   const result = months.map((month) => {
     const budgetsByMonth = filterDocsByMonth(materialBudgets, month);
     const usedsByMonth = filterDocsByMonth(materialCostUseds, month);
 
     if (!phaseList) {
-      // Không chọn công đoạn: gộp tất cả phase trong tháng
       return {
         month,
         info: buildInfo(budgetsByMonth, null, productionScope),
         data: processBudgetAndUsedData(budgetsByMonth, usedsByMonth, null),
       };
     } else {
-      // Có chọn công đoạn: tách từng phase trong tháng
       const phases = phaseList
         .map((phaseId) => {
           const info = buildInfo(budgetsByMonth, phaseId, productionScope);
@@ -580,26 +322,18 @@ async function getMonthGrouped(
           let phaseCode = info.phases[0]?.code || "";
 
           // Nếu budget không có phase này, tìm phase name/code từ usedsByMonth
+          // (đổi từ tìm trong usedDoc.phases[] sang so sánh trực tiếp usedDoc.phase)
           if (!phaseCode && usedsByMonth && usedsByMonth.length > 0) {
-            for (const usedDoc of usedsByMonth) {
-              const matchedPhase = usedDoc.phases?.find(
-                (p) => String(p.phase?._id || p.phase) === String(phaseId),
-              );
-              if (matchedPhase && matchedPhase.phase) {
-                phaseName = matchedPhase.phase.name || "";
-                phaseCode = matchedPhase.phase.code || "";
-                break;
-              }
+            const matchedUsedDoc = usedsByMonth.find(
+              (d) => String(d.phase?._id || d.phase) === String(phaseId),
+            );
+            if (matchedUsedDoc && matchedUsedDoc.phase) {
+              phaseName = matchedUsedDoc.phase.name || "";
+              phaseCode = matchedUsedDoc.phase.code || "";
             }
           }
 
-          return {
-            phaseId,
-            phaseName,
-            phaseCode,
-            info,
-            data,
-          };
+          return { phaseId, phaseName, phaseCode, info, data };
         })
         .filter((p) => {
           const hasData = p.data && p.data.length > 0;
@@ -615,11 +349,8 @@ async function getMonthGrouped(
     }
   });
 
-  // 4. Bỏ những tháng không có data (cả budget lẫn used đều rỗng)
   return result.filter((entry) => {
-    if (entry.data) {
-      return entry.data.length > 0;
-    }
+    if (entry.data) return entry.data.length > 0;
     return entry.phases && entry.phases.length > 0;
   });
 }
@@ -652,7 +383,7 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
         .populate({ path: "productionScope", select: "code name" })
         .populate({ path: "department", select: "code name" })
         .populate({
-          path: "phases.phase",
+          path: "phase", // 👈 đổi từ "phases.phase"
           select: "code name phaseGroup",
           populate: [{ path: "phaseGroup", populate: "code name" }],
         })
@@ -668,22 +399,22 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
         .populate({ path: "productionScope", select: "code name" })
         .populate({ path: "department", select: "code name" })
         .populate({
-          path: "phases.phase",
+          path: "phase", // 👈 đổi từ "phases.phase"
           select: "code name phaseGroup",
           populate: [{ path: "phaseGroup", populate: "code name" }],
         })
         .populate({
-          path: "phases.budgetCostDetails.assignmentCode",
+          path: "budgetCostDetails.assignmentCode", // 👈 đổi
           select: "code name uom deviceCode",
           populate: [{ path: "uom" }, { path: "deviceCode" }],
         })
         .populate({
-          path: "phases.assignmentNormCode",
+          path: "assignmentNormCode", // 👈 đổi
           select: "norms code",
           populate: [{ path: "norms.assignmentCode", populate: "uom" }],
         })
         .populate({
-          path: "phases.adjustmentNormCode",
+          path: "adjustmentNormCode", // 👈 đổi
           select: "norms code rockRatio",
           populate: [
             { path: "norms.assignmentCode", populate: "uom" },
@@ -715,10 +446,8 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
     const usedsByMonth = materialCostUseds.filter((d) => d.month === month);
     const othersByMonth = otherMaterialCosts.filter((d) => d.month === month);
 
-    // --- Build info (aggregate all scopes in month) ---
     const info = buildInfo(budgetsByMonth, null, null);
 
-    // --- Build scopeGroups: group by productionScope → then by phase ---
     const scopeMap = new Map();
     budgetsByMonth.forEach((budgetDoc) => {
       if (!budgetDoc.productionScope) return;
@@ -735,7 +464,6 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       scopeMap.get(scopeId).budgetDocs.push(budgetDoc);
     });
 
-    // Assign usedDocs to their scope
     usedsByMonth.forEach((usedDoc) => {
       if (!usedDoc.productionScope) return;
       const scopeId = String(usedDoc.productionScope._id);
@@ -744,21 +472,19 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       }
     });
 
-    // For each scope, split by phase
     const scopeGroups = Array.from(scopeMap.values()).map((scope) => {
-      // Collect all phaseIds within this scope's budgetDocs
+      // Mỗi budgetDoc giờ = 1 phase, không cần loop bd.phases nữa
       const phaseMap = new Map();
       scope.budgetDocs.forEach((bd) => {
-        bd.phases.forEach((p) => {
-          const phaseId = String(p.phase._id);
-          if (!phaseMap.has(phaseId)) {
-            phaseMap.set(phaseId, {
-              phaseId,
-              phaseCode: p.phase.code,
-              phaseName: p.phase.name,
-            });
-          }
-        });
+        if (!bd.phase) return;
+        const phaseId = String(bd.phase._id);
+        if (!phaseMap.has(phaseId)) {
+          phaseMap.set(phaseId, {
+            phaseId,
+            phaseCode: bd.phase.code,
+            phaseName: bd.phase.name,
+          });
+        }
       });
 
       const phases = Array.from(phaseMap.values()).map((phaseEntry) => {
@@ -789,8 +515,7 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       };
     });
 
-    // --- Build otherTasks from OtherMaterialCost ---
-    // Treat them like NO_ASSIGNMENTCODE materials: KH = TH
+    // --- otherTasks: GIỮ NGUYÊN không đổi (OtherMaterialCost không có phase) ---
     const otherMaterials = [];
     othersByMonth.forEach((otherDoc) => {
       otherDoc.materials.forEach((mat) => {
@@ -809,7 +534,6 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       });
     });
 
-    // Group by assignmentCode compound key (same as processBudgetAndUsedData)
     const otherGroupMap = new Map();
     otherMaterials.forEach((mat) => {
       const code = mat.assignmentCode?.code || "";
@@ -830,7 +554,6 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       const group = otherGroupMap.get(compoundKey);
       group.used_Quantity += mat.quantity;
       group.used_Cost += mat.cost;
-      // KH = TH for other tasks
       group.plan_Quantity += mat.quantity;
       group.plan_Cost += mat.cost;
       group.materialUseds.push({
@@ -853,16 +576,10 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       month,
       info,
       scopeGroups,
-      otherTasks:
-        othersByMonth.length > 0
-          ? {
-              data: otherTasksData,
-            }
-          : null,
+      otherTasks: othersByMonth.length > 0 ? { data: otherTasksData } : null,
     };
   });
 
-  // Remove months with no data at all
   return result.filter(
     (entry) => entry.scopeGroups.length > 0 || entry.otherTasks !== null,
   );
@@ -888,7 +605,6 @@ exports.getMonth = async (req, res) => {
       });
     }
 
-    // --- BRANCH: Không chọn Diện sản xuất ---
     if (!productionScope) {
       const data = await getMonthGroupedAllScopes(
         department,
@@ -900,7 +616,6 @@ exports.getMonth = async (req, res) => {
         .json({ status: "success", data, mode: "allScopes" });
     }
 
-    // --- BRANCH: Đã chọn Diện sản xuất (luồng cũ) ---
     const matchQuery = {
       department,
       productionScope,
@@ -909,7 +624,7 @@ exports.getMonth = async (req, res) => {
 
     if (phase) {
       const phaseList = Array.isArray(phase) ? phase : phase.split(",");
-      matchQuery["phases.phase"] = { $in: phaseList };
+      matchQuery["phase"] = { $in: phaseList }; // 👈 đổi từ "phases.phase"
     }
 
     const data = await getMonthGrouped(
@@ -931,16 +646,6 @@ exports.getMonth = async (req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 };
-
-function getColumnName(n) {
-  let s = "";
-  while (n > 0) {
-    let m = (n - 1) % 26;
-    s = String.fromCharCode(65 + m) + s;
-    n = Math.floor((n - m) / 26);
-  }
-  return s;
-}
 
 function transformToTableData(apiResponse) {
   if (!apiResponse || apiResponse.length === 0) {
@@ -2299,26 +2004,13 @@ function getMonthsInQuarter(year, quarter) {
   return months;
 }
 
-async function getQuarterData(
-  res,
-  quarter,
-  year,
-  phase,
-  productionScope,
-  department,
-) {
+async function getQuarterData(res, quarter, year, department) {
   const months = getMonthsInQuarter(Number(year), Number(quarter));
 
   const matchQuery = {};
-  if (department) matchQuery.department = department;
-  if (productionScope) matchQuery.productionScope = productionScope;
   matchQuery.month = { $in: months };
-  if (phase) {
-    const phaseList = Array.isArray(phase) ? phase : phase.split(",");
-    matchQuery["phases.phase"] = { $in: phaseList };
-  }
+  if (department) matchQuery.department = department;
 
-  // Khởi tạo các tổng cho quý
   let totalCoal = 0;
   let totalCutting = 0;
   let totalExcavation = 0;
@@ -2328,7 +2020,7 @@ async function getQuarterData(
       .populate({ path: "productionScope", select: "code name" })
       .populate({ path: "department", select: "code name" })
       .populate({
-        path: "phases.phase",
+        path: "phase", // 👈 đổi
         select: "code name phaseGroup",
         populate: [{ path: "phaseGroup", populate: "code name" }],
       })
@@ -2354,22 +2046,22 @@ async function getQuarterData(
       .populate({ path: "productionScope", select: "code name" })
       .populate({ path: "department", select: "code name" })
       .populate({
-        path: "phases.phase",
+        path: "phase", // 👈 đổi
         select: "code name phaseGroup",
         populate: [{ path: "phaseGroup", populate: "code name" }],
       })
       .populate({
-        path: "phases.budgetCostDetails.assignmentCode",
+        path: "budgetCostDetails.assignmentCode", // 👈 đổi
         select: "code name uom deviceCode",
         populate: [{ path: "uom" }, { path: "deviceCode" }],
       })
       .populate({
-        path: "phases.assignmentNormCode",
+        path: "assignmentNormCode", // 👈 đổi
         select: "norms code",
         populate: [{ path: "norms.assignmentCode", populate: "uom" }],
       })
       .populate({
-        path: "phases.adjustmentNormCode",
+        path: "adjustmentNormCode", // 👈 đổi
         select: "norms code rockRatio",
         populate: [
           { path: "norms.assignmentCode", populate: "uom" },
@@ -2379,38 +2071,32 @@ async function getQuarterData(
       .lean(),
   ]);
 
-  // Tổng hợp Sản lượng
+  // Tổng hợp sản lượng - bỏ vòng lặp budgetDoc.phases, đọc thẳng từ doc
   materialBudgets.forEach((budgetDoc) => {
-    budgetDoc.phases.forEach((budgetPhase) => {
-      const phaseDoc = budgetPhase.phase;
-      const production = budgetPhase.production || 0;
+    const phaseDoc = budgetDoc.phase;
+    if (!phaseDoc) return;
+    const production = budgetDoc.production || 0;
 
-      switch (phaseDoc.phaseGroup?.name.toLowerCase()) {
-        case PhaseType.COAL.toLowerCase():
-          totalCoal += production;
-          break;
-        case PhaseType.EXCAVATION.toLowerCase():
-          totalExcavation += production;
-          break;
-        case PhaseType.CUTTING.toLowerCase():
-          totalCutting += production;
-          break;
-      }
-    });
+    switch (phaseDoc.phaseGroup?.name.toLowerCase()) {
+      case PhaseType.COAL.toLowerCase():
+        totalCoal += production;
+        break;
+      case PhaseType.EXCAVATION.toLowerCase():
+        totalExcavation += production;
+        break;
+      case PhaseType.CUTTING.toLowerCase():
+        totalCutting += production;
+        break;
+    }
   });
 
-  // Hợp nhất dữ liệu bằng logic chung
   const finalGroups = processBudgetAndUsedData(
     materialBudgets,
     materialCostUseds,
     null,
   );
 
-  const info = {
-    totalCoal,
-    totalCutting,
-    totalExcavation,
-  };
+  const info = { totalCoal, totalCutting, totalExcavation };
 
   return { data: finalGroups, info };
 }
@@ -2420,7 +2106,7 @@ async function getQuarterData(
 // ----------------------------------------------------------------------
 exports.getQuarter = async (req, res) => {
   try {
-    const { quarter, year, phase, productionScope, department } = req.query;
+    const { quarter, year, department } = req.query;
 
     if (!quarter || !year) {
       return res
@@ -2432,8 +2118,6 @@ exports.getQuarter = async (req, res) => {
       res,
       quarter,
       year,
-      phase || null,
-      productionScope || null,
       department || null,
     );
 
@@ -2441,6 +2125,428 @@ exports.getQuarter = async (req, res) => {
       status: "success",
       data: { data, info },
     });
+  } catch (err) {
+    console.log(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+exports.getQuarterExcel = async (req, res) => {
+  try {
+    const { quarter, year, department } = req.body.data || req.query;
+
+    if (!quarter || !year || !department) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu tham số quarter, year hoặc department.",
+      });
+    }
+
+    const deptDoc = await Department.findById(department).lean();
+    const departmentName = deptDoc ? deptDoc.name : "";
+
+    const { data: rows, info } = await getQuarterData(
+      res,
+      quarter,
+      year,
+      department,
+    );
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Quyết toán giao khoán quý");
+
+    worksheet.views = [{ showGridLines: true }];
+
+    worksheet.mergeCells("A1:H1");
+    const titleCell = worksheet.getCell("A1");
+    titleCell.value = "CÔNG TY CP THAN VÀNG DANH - VINACOMIN";
+    titleCell.font = { name: "Arial", size: 10, bold: true };
+    titleCell.alignment = { vertical: "middle", horizontal: "left" };
+
+    worksheet.mergeCells("A2:H2");
+    const deptTitleCell = worksheet.getCell("A2");
+    deptTitleCell.value = `Đơn vị: ${departmentName}`;
+    deptTitleCell.font = { name: "Arial", size: 10, bold: true };
+    deptTitleCell.alignment = { vertical: "middle", horizontal: "left" };
+
+    const setCell = (row, col, val, styles = {}) => {
+      const cell = worksheet.getCell(row, col);
+      cell.value = val;
+      cell.font = { name: "Arial", size: 9, ...styles.font };
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+        wrapText: true,
+        ...styles.alignment,
+      };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFa8a8a4" } },
+        left: { style: "thin", color: { argb: "FFa8a8a4" } },
+        bottom: { style: "thin", color: { argb: "FFa8a8a4" } },
+        right: { style: "thin", color: { argb: "FFa8a8a4" } },
+      };
+      return cell;
+    };
+
+    const mergeAndStyle = (
+      startRow,
+      startCol,
+      endRow,
+      endCol,
+      val,
+      styles = {},
+    ) => {
+      worksheet.mergeCells(startRow, startCol, endRow, endCol);
+      for (let r = startRow; r <= endRow; r++) {
+        for (let c = startCol; c <= endCol; c++) {
+          setCell(r, c, "", styles);
+        }
+      }
+      return setCell(startRow, startCol, val, styles);
+    };
+
+    const numOrEmpty = (val) => {
+      if (val === null || val === undefined || val === "") return "";
+      const n = Number(val);
+      if (Number.isNaN(n) || n === 0) return "";
+      return n;
+    };
+
+    // ===== Header (7 cột metadata + 10 cột dữ liệu = cột 8..17) =====
+    const startHeaderRow = 4;
+
+    mergeAndStyle(startHeaderRow, 1, startHeaderRow + 3, 1, "STT", {
+      font: { bold: true },
+    });
+    mergeAndStyle(
+      startHeaderRow,
+      2,
+      startHeaderRow + 3,
+      2,
+      "Mã vật tư, tài sản",
+      { font: { bold: true } },
+    );
+    mergeAndStyle(startHeaderRow, 3, startHeaderRow + 3, 3, "Mã thiết bị", {
+      font: { bold: true },
+    });
+    mergeAndStyle(startHeaderRow, 4, startHeaderRow + 3, 4, "Mã giao khoán", {
+      font: { bold: true },
+    });
+    mergeAndStyle(
+      startHeaderRow,
+      5,
+      startHeaderRow + 3,
+      5,
+      "Tên vật tư, tài sản",
+      {
+        font: { bold: true },
+        alignment: { horizontal: "left" },
+      },
+    );
+    mergeAndStyle(startHeaderRow, 6, startHeaderRow + 3, 6, "ĐVT", {
+      font: { bold: true },
+    });
+    mergeAndStyle(startHeaderRow, 7, startHeaderRow + 3, 7, "Đơn giá khoán", {
+      font: { bold: true },
+    });
+
+    const dataStart = 8; // cột 8..17 (10 cột)
+
+    mergeAndStyle(
+      startHeaderRow,
+      dataStart,
+      startHeaderRow,
+      dataStart + 9,
+      `Quyết toán giao khoán quý ${quarter} năm ${year}`,
+      { font: { bold: true } },
+    );
+    mergeAndStyle(
+      startHeaderRow + 1,
+      dataStart,
+      startHeaderRow + 1,
+      dataStart + 3,
+      "Kế hoạch",
+      { font: { bold: true } },
+    );
+    mergeAndStyle(
+      startHeaderRow + 1,
+      dataStart + 4,
+      startHeaderRow + 1,
+      dataStart + 7,
+      "Thực hiện",
+      { font: { bold: true } },
+    );
+    mergeAndStyle(
+      startHeaderRow + 1,
+      dataStart + 8,
+      startHeaderRow + 1,
+      dataStart + 9,
+      "So sánh lãi(+); lỗ(-)",
+      { font: { bold: true } },
+    );
+
+    mergeAndStyle(
+      startHeaderRow + 2,
+      dataStart,
+      startHeaderRow + 2,
+      dataStart + 2,
+      "Số lượng",
+      { font: { bold: true } },
+    );
+    mergeAndStyle(
+      startHeaderRow + 2,
+      dataStart + 3,
+      startHeaderRow + 3,
+      dataStart + 3,
+      "Giá trị",
+      { font: { bold: true } },
+    );
+    mergeAndStyle(
+      startHeaderRow + 2,
+      dataStart + 4,
+      startHeaderRow + 2,
+      dataStart + 6,
+      "Số lượng",
+      { font: { bold: true } },
+    );
+    mergeAndStyle(
+      startHeaderRow + 2,
+      dataStart + 7,
+      startHeaderRow + 3,
+      dataStart + 7,
+      "Giá trị",
+      { font: { bold: true } },
+    );
+    mergeAndStyle(
+      startHeaderRow + 2,
+      dataStart + 8,
+      startHeaderRow + 3,
+      dataStart + 8,
+      "Số lượng",
+      { font: { bold: true } },
+    );
+    mergeAndStyle(
+      startHeaderRow + 2,
+      dataStart + 9,
+      startHeaderRow + 3,
+      dataStart + 9,
+      "Giá trị",
+      { font: { bold: true } },
+    );
+
+    setCell(startHeaderRow + 3, dataStart, "Tổng", { font: { bold: true } });
+    setCell(startHeaderRow + 3, dataStart + 1, "Trong khoán", {
+      font: { bold: true },
+    });
+    setCell(startHeaderRow + 3, dataStart + 2, "Ngoài khoán", {
+      font: { bold: true },
+    });
+    setCell(startHeaderRow + 3, dataStart + 4, "Tổng", {
+      font: { bold: true },
+    });
+    setCell(startHeaderRow + 3, dataStart + 5, "Trong khoán", {
+      font: { bold: true },
+    });
+    setCell(startHeaderRow + 3, dataStart + 6, "Ngoài khoán", {
+      font: { bold: true },
+    });
+
+    let currentRow = startHeaderRow + 4;
+
+    // ===== 5 dòng chỉ số đầu (Than nguyên khai, Mét lò đào,...) =====
+    const topRowLabels = [
+      { label: "Than nguyên khai", val: info.totalCoal },
+      { label: "Mét lò đào", val: info.totalExcavation },
+      { label: "Mét lò xén", val: info.totalCutting },
+      { label: "Tỉ lệ đá lẫn trong gương (Ckep)", val: "" },
+      { label: "Vật tư có định mức", val: "" },
+    ];
+
+    topRowLabels.forEach((row, idx) => {
+      setCell(currentRow, 1, idx + 1, { font: { bold: true } });
+      mergeAndStyle(currentRow, 2, currentRow, 7, row.label, {
+        font: { bold: true },
+        alignment: { horizontal: "left" },
+      });
+      for (let c = dataStart; c < dataStart + 10; c++)
+        setCell(currentRow, c, "");
+      if (idx < 3) {
+        setCell(currentRow, dataStart + 4, numOrEmpty(row.val));
+      }
+      currentRow++;
+    });
+
+    // ===== Row Groups (Assignment + Materials) =====
+    let sttCounter = 6;
+    rows.forEach((assignment) => {
+      setCell(currentRow, 1, sttCounter++, { font: { bold: true } });
+      setCell(currentRow, 2, "", { font: { bold: true } });
+      setCell(
+        currentRow,
+        3,
+        assignment.assignmentCode?.deviceCode?.code || "",
+        { font: { bold: true } },
+      );
+      setCell(currentRow, 4, assignment.assignmentCode?.code || "", {
+        font: { bold: true },
+      });
+      setCell(
+        currentRow,
+        5,
+        assignment.assignmentCode?.name || "Vật tư không có định mức",
+        { font: { bold: true }, alignment: { horizontal: "left" } },
+      );
+      setCell(currentRow, 6, assignment.assignmentCode?.uom?.name || "", {
+        font: { bold: true },
+      });
+      setCell(
+        currentRow,
+        7,
+        assignment.assignmentCode ? "" : assignment.price,
+        { font: { bold: true } },
+      );
+
+      setCell(
+        currentRow,
+        dataStart,
+        assignment.assignmentCode ? numOrEmpty(assignment.plan_Quantity) : "",
+      );
+      setCell(currentRow, dataStart + 1, "");
+      setCell(currentRow, dataStart + 2, "");
+      setCell(
+        currentRow,
+        dataStart + 3,
+        assignment.assignmentCode ? numOrEmpty(assignment.plan_Cost) : "",
+      );
+      setCell(
+        currentRow,
+        dataStart + 4,
+        assignment.assignmentCode ? numOrEmpty(assignment.used_Quantity) : "",
+      );
+      setCell(currentRow, dataStart + 5, "");
+      setCell(currentRow, dataStart + 6, "");
+      setCell(
+        currentRow,
+        dataStart + 7,
+        assignment.assignmentCode ? numOrEmpty(assignment.used_Cost) : "",
+      );
+      setCell(
+        currentRow,
+        dataStart + 8,
+        assignment.assignmentCode
+          ? numOrEmpty(assignment.varianceQuantity)
+          : "",
+      );
+      setCell(
+        currentRow,
+        dataStart + 9,
+        assignment.assignmentCode ? numOrEmpty(assignment.varianceCost) : "",
+      );
+
+      currentRow++;
+
+      (assignment.materialUseds || []).forEach((mu) => {
+        setCell(currentRow, 1, "");
+        setCell(currentRow, 2, mu?.material?.code || "");
+        setCell(currentRow, 3, "");
+        setCell(currentRow, 4, "");
+        setCell(currentRow, 5, mu?.material?.name || "", {
+          alignment: { horizontal: "left" },
+        });
+        setCell(currentRow, 6, mu?.material?.uom?.name || "");
+        setCell(
+          currentRow,
+          7,
+          assignment.assignmentCode ? "" : numOrEmpty(mu?.price),
+        );
+
+        setCell(
+          currentRow,
+          dataStart,
+          assignment.assignmentCode ? "" : numOrEmpty(mu?.quantity),
+        );
+        setCell(currentRow, dataStart + 1, "");
+        setCell(currentRow, dataStart + 2, "");
+        setCell(
+          currentRow,
+          dataStart + 3,
+          assignment.assignmentCode ? "" : numOrEmpty(mu?.cost),
+        );
+        setCell(currentRow, dataStart + 4, numOrEmpty(mu?.quantity));
+        setCell(currentRow, dataStart + 5, "");
+        setCell(currentRow, dataStart + 6, "");
+        setCell(
+          currentRow,
+          dataStart + 7,
+          assignment.assignmentCode ? "" : numOrEmpty(mu?.cost),
+        );
+        setCell(currentRow, dataStart + 8, "");
+        setCell(currentRow, dataStart + 9, "");
+
+        currentRow++;
+      });
+    });
+
+    // ===== Tổng chi phí =====
+    mergeAndStyle(currentRow, 1, currentRow, 7, "Tổng chi phí", {
+      font: { bold: true },
+      alignment: { horizontal: "center" },
+    });
+
+    let totalPlan = 0;
+    let totalUsed = 0;
+    rows.forEach((assignment) => {
+      if (assignment.assignmentCode) {
+        totalPlan += Number(assignment.plan_Cost || 0);
+        totalUsed += Number(assignment.used_Cost || 0);
+      } else {
+        (assignment.materialUseds || []).forEach((mu) => {
+          totalPlan += Number(mu?.cost || 0);
+          totalUsed += Number(mu?.cost || 0);
+        });
+      }
+    });
+    const totalVariance = totalPlan - totalUsed;
+
+    setCell(currentRow, dataStart, "");
+    setCell(currentRow, dataStart + 1, "");
+    setCell(currentRow, dataStart + 2, "");
+    setCell(currentRow, dataStart + 3, numOrEmpty(totalPlan), {
+      font: { bold: true },
+    });
+    setCell(currentRow, dataStart + 4, "");
+    setCell(currentRow, dataStart + 5, "");
+    setCell(currentRow, dataStart + 6, "");
+    setCell(currentRow, dataStart + 7, numOrEmpty(totalUsed), {
+      font: { bold: true },
+    });
+    setCell(currentRow, dataStart + 8, "");
+    setCell(currentRow, dataStart + 9, numOrEmpty(totalVariance), {
+      font: { bold: true },
+    });
+
+    worksheet.getColumn(1).width = 6;
+    worksheet.getColumn(2).width = 15;
+    worksheet.getColumn(3).width = 15;
+    worksheet.getColumn(4).width = 15;
+    worksheet.getColumn(5).width = 35;
+    worksheet.getColumn(6).width = 8;
+    worksheet.getColumn(7).width = 15;
+    for (let c = dataStart; c < dataStart + 10; c++) {
+      worksheet.getColumn(c).width = 13;
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=QuyetToanGiaoKhoanQuy${quarter}_${year}.xlsx`,
+    );
+    res.send(buffer);
   } catch (err) {
     console.log(err.stack);
     res.status(500).json({ status: "error", message: err.message });
@@ -2516,7 +2622,7 @@ exports.getDashboardData = async (req, res) => {
 
         const materialBudgets = await MaterialBudget.find(matchQuery)
           .populate({
-            path: "phases.budgetCostDetails.assignmentCode",
+            path: "budgetCostDetails.assignmentCode",
             select: "code name uom deviceCode",
             populate: [{ path: "uom" }, { path: "deviceCode" }],
           })
@@ -2628,6 +2734,68 @@ exports.updateMaterialAssignmentCode = async (req, res) => {
     res.status(200).json({
       status: "success",
       message: "Cập nhật mã giao khoán, đơn giá và chi phí thành công.",
+    });
+  } catch (err) {
+    console.log(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+exports.updateMaterialQuantity = async (req, res) => {
+  try {
+    const { materialCostId, materialItemId, newQuantity } = req.body;
+
+    if (
+      !materialCostId ||
+      !materialItemId ||
+      newQuantity === undefined ||
+      newQuantity === null
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu materialCostId, materialItemId hoặc newQuantity.",
+      });
+    }
+
+    const quantity = Number(newQuantity);
+    if (Number.isNaN(quantity) || quantity < 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "Số lượng không hợp lệ.",
+      });
+    }
+
+    const doc = await MaterialCostUsed.findById(materialCostId);
+    if (!doc) {
+      return res.status(404).json({
+        status: "error",
+        message: "Không tìm thấy dữ liệu.",
+      });
+    }
+
+    const material = doc.materials.id(materialItemId);
+    if (!material) {
+      return res.status(404).json({
+        status: "error",
+        message: "Không tìm thấy vật tư cần cập nhật.",
+      });
+    }
+
+    // Giữ nguyên price hiện tại, chỉ đổi quantity và tính lại cost của item này
+    material.quantity = quantity;
+    material.cost = quantity * (material.price || 0);
+
+    // Tính lại totalUsedCost của cả document dựa trên tổng cost mới
+    doc.totalUsedCost = doc.materials.reduce(
+      (sum, m) => sum + (m.cost || 0),
+      0,
+    );
+
+    await doc.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Cập nhật số lượng thực hiện thành công.",
     });
   } catch (err) {
     console.log(err.stack);

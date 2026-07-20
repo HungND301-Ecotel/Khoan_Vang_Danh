@@ -1,4 +1,5 @@
 import * as Yup from "yup";
+
 export const validationSchema = Yup.object().shape({
   department: Yup.string().required("Vui lòng chọn phân xưởng"),
   isOtherTask: Yup.boolean(),
@@ -8,25 +9,27 @@ export const validationSchema = Yup.object().shape({
     otherwise: (schema) => schema.nullable(),
   }),
   month: Yup.string().required("Vui lòng chọn thời gian"),
-  groupIndexes: Yup.object().when("isOtherTask", {
+
+  phase: Yup.string().when("isOtherTask", {
     is: false,
-    then: (schema) => schema.required("Vui lòng chọn thời gian"),
+    then: (schema) => schema.required("Vui lòng chọn công đoạn"),
     otherwise: (schema) => schema.nullable(),
   }),
-  phases: Yup.array().when("isOtherTask", {
+  production: Yup.number().when("isOtherTask", {
     is: false,
-    then: (schema) => schema.of(
-      Yup.object().shape({
-        phase: Yup.string().required("Vui lòng chọn công đoạn"),
-        production: Yup.number()
-          .typeError("Sản lượng phải là số")
-          .min(0, "Sản lượng phải lớn hơn 0")
-          .required("Vui lòng nhập sản lượng"),
-        unit: Yup.string().required("Vui lòng nhập đơn vị tính"),
-      })
-    ),
+    then: (schema) =>
+      schema
+        .typeError("Sản lượng phải là số")
+        .min(0, "Sản lượng phải lớn hơn hoặc bằng 0")
+        .required("Vui lòng nhập sản lượng"),
     otherwise: (schema) => schema.nullable(),
   }),
+  unit: Yup.string().when("isOtherTask", {
+    is: false,
+    then: (schema) => schema.required("Vui lòng nhập đơn vị tính"),
+    otherwise: (schema) => schema.nullable(),
+  }),
+
   materials: Yup.array().of(
     Yup.object().shape({
       quantity: Yup.number()

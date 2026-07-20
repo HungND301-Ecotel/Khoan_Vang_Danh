@@ -1,4 +1,11 @@
-import { Box, IconButton, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  MenuItem,
+  Paper,
+  TextField,
+  Typography,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { FieldArray } from "formik";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
@@ -24,6 +31,7 @@ export default function PhaseSection({
   getError,
 }: PhaseSectionProps) {
   const phases = formik.values.groups[gIdx]?.phases || [];
+  console.log(phases);
 
   return (
     <FieldArray name={`groups.${gIdx}.phases`}>
@@ -76,13 +84,15 @@ export default function PhaseSection({
                   >
                     Công đoạn {pIdx + 1}
                   </Typography>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => removePhase(pIdx)}
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
+                  {pIdx > 0 && (
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => removePhase(pIdx)}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  )}
                 </Box>
                 <Box
                   sx={{
@@ -150,7 +160,8 @@ export default function PhaseSection({
                           const codes = newValue.norms.map((n: any) => {
                             const adjNorm = adjustmentDoc?.norms?.find(
                               (an: any) =>
-                                (an.assignmentCode?._id || an.assignmentCode) ===
+                                (an.assignmentCode?._id ||
+                                  an.assignmentCode) ===
                                 (n.assignmentCode?._id || n.assignmentCode),
                             );
                             const adjFactor = adjNorm?.norm ?? 1;
@@ -262,9 +273,10 @@ export default function PhaseSection({
                         }}
                       />
 
-                      {formik.values.groups[gIdx].phases[pIdx].assignmentCodes?.filter(
-                        (ac: any) => ac.checked,
-                      ).length > 0 && (
+                      {formik.values.groups[gIdx].phases[
+                        pIdx
+                      ].assignmentCodes?.filter((ac: any) => ac.checked)
+                        .length > 0 && (
                         <Box
                           sx={{
                             mt: 2,

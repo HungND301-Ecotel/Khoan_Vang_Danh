@@ -5,18 +5,28 @@ import dayjs from "dayjs";
 import React, { useState } from "react";
 import GroupTable from "./GroupTable";
 import { formattedPrice } from "../../utils/helpers";
+import { useQuery } from "@tanstack/react-query";
+import api from "../../config/api.config";
 
 export default function MonthTable({
-  data,
   department,
-  handleDeleteMutation,
 }: {
-  data: any[];
   department?: any;
-  handleDeleteMutation: (ids: React.Key[]) => void;
 }) {
-  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const departmentId = department?._id || department;
+
+  const { data: months = [], isLoading } = useQuery({
+    queryKey: ["materialbudget-months", departmentId],
+    queryFn: async () => {
+      const res = await api.get(`/materialbudgets/months`, {
+        params: { department: departmentId },
+      });
+      return res.data.data;
+    },
+    enabled: !!departmentId, // chỉ gọi khi department đã xác định (tức là hàng đã được expand)
+  });
 
   const handleView = (record: any) => {
     const id = record?._id;
@@ -25,32 +35,14 @@ export default function MonthTable({
     setExpandedRow((prev) => (prev === id ? null : id));
   };
 
-  const expandedRowRender = (record: any) => {
-    const key = record._id || "";
-    const data = expandedData[key] || record;
-    if (data === null) {
-      return (
-        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-          <Typography color="error">
-            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
-          </Typography>
-        </Box>
-      );
-    }
-    if (!data.scopes) {
-      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
-    }
-    return (
-      <Box sx={{ padding: "10px" }}>
-        <GroupTable
-          data={data.scopes}
-          department={department}
-          month={data.month}
-          handleDeleteMutation={handleDeleteMutation}
-        />
-      </Box>
-    );
-  };
+  const expandedRowRender = (record: any) => (
+    <Box sx={{ padding: "10px" }}>
+      <GroupTable
+        department={department}
+        month={record.month}
+      />
+    </Box>
+  );
 
   const innerColumns = [
     {
@@ -101,7 +93,7 @@ export default function MonthTable({
     <Paper>
       <Table
         columns={innerColumns}
-        dataSource={data || []}
+        dataSource={months || []}
         pagination={false}
         size="small"
         rowKey={(item) => item._id}

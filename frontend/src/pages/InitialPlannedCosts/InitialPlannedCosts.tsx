@@ -1,28 +1,6 @@
-import React, { Fragment, useState } from "react";
-import {
-  Add,
-  ArrowDropDown,
-  Delete,
-  Edit,
-  FileDownload,
-  FileUpload,
-  FilterList,
-  Mail,
-  Print,
-  Search,
-  Visibility,
-  VisibilityOff,
-} from "@mui/icons-material";
-import {
-  Table as TableMui,
-  Box,
-  Breadcrumbs,
-  Button,
-  IconButton,
-  InputAdornment,
-  TextField,
-  Typography,
-} from "@mui/material";
+import React, { Key, useState } from "react";
+import { Add, Visibility, VisibilityOff } from "@mui/icons-material";
+import { Box, Breadcrumbs, IconButton, Typography } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import {
@@ -39,9 +17,6 @@ import { TableRowSelection } from "antd/es/table/interface";
 import custom_theme from "../../theme";
 import CustomTable from "../../components/CustomTable/CustomTable";
 import InitialPlannedCostModal from "./InitialPlannedCostModal/InitialPlannedCostModal";
-import PhaseTable from "./PhaseTable";
-import dayjs from "dayjs";
-import GroupTable from "./GroupTable";
 import MonthTable from "./MonthTable";
 import { formattedPrice } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
@@ -54,8 +29,6 @@ export default function InitialPlannedCosts() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
-  const [deletedIds, setDeletedIds] = useState<React.Key[]>([]);
 
   const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
     Partial<InitialPlannedCostInputType>
@@ -81,87 +54,62 @@ export default function InitialPlannedCosts() {
     });
 
   const createMutation = useMutation({
-    mutationFn: (newInitialPlannedCost: Partial<InitialPlannedCostInputType>) =>
-      api
-        .post("/initialplannedcosts", newInitialPlannedCost)
-        .then((res) => res.data),
+    mutationFn: (payload: { items: any[] }) =>
+      api.post("/initialplannedcosts/batch", payload).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
-      setOpen(false);
-      clearMinimize();
-      showSuccessAlert("Thêm mới thành công");
-    },
-    onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || "Lỗi khi thêm mới";
-      console.log(errorMessage);
-      showErrorAlert(errorMessage);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (
-      updateInitialPlannedCost: Partial<InitialPlannedCostInputType>,
-    ) =>
-      api
-        .put(
-          `/initialplannedcosts/${updateInitialPlannedCost._id}`,
-          updateInitialPlannedCost,
-        )
-        .then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
+      queryClient.invalidateQueries({
+        queryKey: ["initialplannedcost-months"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["initialplannedcost-scopes"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["initialplannedcost-phases"],
+      });
       setOpen(false);
       setSelected(null);
       clearMinimize();
-      showSuccessAlert("Sửa thành công");
+      showSuccessAlert("Lưu thành công");
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || "Lỗi khi cập nhật";
+      const errorMessage = error.response?.data?.message || "Lỗi khi lưu";
       console.log(errorMessage);
       showErrorAlert(errorMessage);
     },
   });
 
-  const handleDelete = () => {
-    if (deletedIds.length === 0) {
-      showErrorAlert("không tìm thấy bản ghi để xóa");
-      return;
-    }
+  const {
+    mutate: handleDeleteByDepartmentMutation,
+    isPending: isDeleteDeptPending,
+  } = useMutation({
+    mutationFn: async (departmentIds: Key[]) =>
+      api
+        .delete(`/initialplannedcosts/department`, { data: { departmentIds } })
+        .then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
+      showSuccessAlert("Xóa toàn bộ dữ liệu phân xưởng thành công");
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Lỗi khi xóa";
+      showErrorAlert(errorMessage);
+    },
+  });
 
-    showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
+  const handleDeleteDepartment = () => {
+    showConfirmAlert(
+      "Bạn có chắc muốn xóa TOÀN BỘ dữ liệu của phân xưởng này (tất cả các tháng)? Không thể hoàn tác.",
+    ).then((result) => {
       if (result.isConfirmed) {
-        handleDeleteMutation(deletedIds);
+        handleDeleteByDepartmentMutation(selectedRows);
       }
     });
   };
 
-  const { mutate: handleDeleteMutation, isPending: isDeletePending } =
-    useMutation({
-      mutationFn: async (ids: React.Key[]) => {
-        const deletePromises = ids.map((id) =>
-          api.delete(`/initialplannedcosts/${id}`).then((res) => res.data),
-        );
-        return Promise.all(deletePromises);
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["initialplannedcosts"] });
-        setSelectedRows([]);
-        showSuccessAlert("Xóa thành công");
-      },
-      onError: (error: any) => {
-        const errorMessage =
-          error.response?.data?.message || error.message || "Lỗi khi xóa";
-        console.error(errorMessage);
-        showErrorAlert(errorMessage);
-      },
-    });
-
-  const handleSubmit = (values: Partial<InitialPlannedCostInputType>) => {
-    if (values._id) {
-      updateMutation.mutate(values);
-    } else {
-      createMutation.mutate(values);
-    }
+  const handleSubmit = (items: any[]) => {
+    createMutation.mutate({ items });
   };
 
   const handleOpen = (initialplannedcost?: any) => {
@@ -181,32 +129,11 @@ export default function InitialPlannedCosts() {
     setExpandedRow((prev) => (prev === id ? null : id));
   };
 
-  const expandedRowRender = (record: InitialPlannedCostOutputType) => {
-    const key = record._id || "";
-    const data = expandedData[key] || record;
-    if (data === null) {
-      return (
-        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-          <Typography color="error">
-            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
-          </Typography>
-        </Box>
-      );
-    }
-    if (!data.months) {
-      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
-    }
-    return (
-      <Box>
-        <MonthTable
-          data={data.months}
-          handleOpen={handleOpen}
-          department={record.department}
-          handleDeleteMutation={handleDeleteMutation}
-        />
-      </Box>
-    );
-  };
+  const expandedRowRender = (record: InitialPlannedCostOutputType) => (
+    <Box>
+      <MonthTable department={record.department} handleOpen={handleOpen} />
+    </Box>
+  );
 
   const columns: TableProps<InitialPlannedCostOutputType>["columns"] = [
     {
@@ -310,18 +237,6 @@ export default function InitialPlannedCosts() {
     selectedRowKeys: selectedRows,
     onChange: (newSelectedRows: React.Key[]) => {
       setSelectedRows(newSelectedRows);
-
-      const selectedDocuments = initialplannedcosts.data.filter(
-        (g: InitialPlannedCostOutputType) =>
-          newSelectedRows.some((s) => s === g._id),
-      );
-      const allSelectedGroups = selectedDocuments.flatMap((g: any) =>
-        g.months.flatMap((m: any) => m.scopes),
-      );
-      const deletedGroupIds = allSelectedGroups.map(
-        (groupItem: any) => groupItem._id,
-      );
-      setDeletedIds(deletedGroupIds);
     },
   };
 
@@ -347,8 +262,8 @@ export default function InitialPlannedCosts() {
             </Typography>
             <PageAction
               selectedIds={selectedRows}
-              handleDelete={handleDelete}
-              deleteMutation={handleDeleteMutation}
+              handleDelete={handleDeleteDepartment}
+              deleteMutation={handleDeleteByDepartmentMutation}
               searchValue={searchValue}
               setSearchValue={setSearchValue}
               handleOpen={handleOpen}

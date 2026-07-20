@@ -1,9 +1,4 @@
-import {
-  Box,
-  Button,
-  Divider,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Divider, Typography } from "@mui/material";
 import { Dispatch, SetStateAction, useState, useMemo } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import { FieldArray, FormikProvider, useFormik } from "formik";
@@ -12,7 +7,10 @@ import { useAtomValue } from "jotai";
 
 import BaseModal from "../../../components/Common/BaseModal";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
-import { InitialPlannedCostInputType, BaseConfigModalProps } from "../../../types";
+import {
+  InitialPlannedCostInputType,
+  BaseConfigModalProps,
+} from "../../../types";
 import { systemConfigsAtom } from "../../../atoms/systemConfigAtoms";
 import { SYSTEM_KEYS } from "../../../utils/constant";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
@@ -21,6 +19,7 @@ import { useModalQueries } from "./useModalQueries";
 import { useInitialValues } from "./useInitialValues";
 import { validationSchema } from "./Validation";
 import GroupScopeSection from "./GroupScopeSection";
+import { showErrorAlert } from "../../../components/Alert";
 
 export default function InitialPlannedCostModal({
   open,
@@ -35,7 +34,9 @@ export default function InitialPlannedCostModal({
 
   const systemConfigs = useAtomValue(systemConfigsAtom);
   const cuttingPhaseGroupKey = useMemo(() => {
-    return systemConfigs.find((c) => c.key === SYSTEM_KEYS.KHAU_THAN)?.value || "";
+    return (
+      systemConfigs.find((c) => c.key === SYSTEM_KEYS.KHAU_THAN)?.value || ""
+    );
   }, [systemConfigs]);
 
   const {
@@ -46,7 +47,11 @@ export default function InitialPlannedCostModal({
     adjustmentnorms,
   } = useModalQueries();
 
-  const initialValues = useInitialValues(selected, minimizedData, cuttingPhaseGroupKey);
+  const initialValues = useInitialValues(
+    selected,
+    minimizedData,
+    cuttingPhaseGroupKey,
+  );
 
   const toggleExpand = (index: number) => {
     setExpandedGroups((prev) =>
@@ -68,44 +73,49 @@ export default function InitialPlannedCostModal({
     enableReinitialize: true,
     validationSchema,
     onSubmit: async (values) => {
-      const payload = {
-        department: values.department,
-        month: dayjs(new Date(values.month)).format("YYYY-MM"),
-        groups: values.groups.map((g: any) => ({
-          productionScope: g.productionScope,
-          phases: g.phases.map((p: any) => ({
-            phase: p.phase,
-            production: Number(p.production),
-            unit: String(p.unit),
-            assignmentNormCode: p.assignmentNormCode,
-            adjustmentNormCode: p.adjustmentNormCode,
-            assignmentCodes: (p.assignmentCodes || [])
-              .filter((ac: any) => ac.checked)
-              .map((ac: any) => ({
-                assignmentCode: ac.assignmentCode,
-                baseNorm: Number(ac.baseNorm || 0),
-                adjustmentNorm: Number(ac.adjustmentNorm || 1),
-                norm: Number(ac.norm || 0),
-              })),
-          })),
-        })),
-      };
+      const month = dayjs(new Date(values.month)).format("YYYY-MM");
 
-      if (selected?._id) {
-        // Edit 1 bản ghi
-        handleSubmit({
-          ...payload.groups[0],
-          _id: values._id,
+      const items = values.groups.flatMap((g: any) =>
+        g.phases.map((p: any) => ({
+          ...(selected?._id ? { _id: selected._id } : {}), // gắn _id nếu đang sửa
+          productionScope: g.productionScope,
           department: values.department,
-          month: values.month,
-        });
-      } else {
-        handleSubmit(payload);
+          month,
+          phase: p.phase,
+          production: Number(p.production),
+          unit: String(p.unit),
+          assignmentNormCode: p.assignmentNormCode,
+          adjustmentNormCode: p.adjustmentNormCode,
+          assignmentCodes: (p.assignmentCodes || [])
+            .filter((ac: any) => ac.checked)
+            .map((ac: any) => ({
+              assignmentCode: ac.assignmentCode,
+              baseNorm: Number(ac.baseNorm || 0),
+              adjustmentNorm: Number(ac.adjustmentNorm || 1),
+              norm: Number(ac.norm || 0),
+            })),
+        })),
+      );
+
+      const seen = new Set<string>();
+      const duplicated: string[] = [];
+      for (const it of items) {
+        const key = `${it.productionScope}_${it.phase}`;
+        if (seen.has(key)) {
+          duplicated.push(key);
+        }
+        seen.add(key);
       }
+      if (duplicated.length > 0) {
+        showErrorAlert(
+          "Có diện đang bị chọn trùng khâu, vui lòng kiểm tra lại trước khi lưu",
+        );
+        return;
+      }
+
+      handleSubmit(items); // luôn gửi mảng, kể cả sửa (mảng 1 phần tử, có _id)
     },
   });
-
-
 
   const handleClose = () => {
     formik.resetForm();
@@ -142,7 +152,8 @@ export default function InitialPlannedCostModal({
       open={open}
       onClose={handleClose}
       onMinimize={handleMinimize}
-      title={(selected?._id || minimizedData?._id)
+      title={
+        selected?._id || minimizedData?._id
           ? "Chỉnh sửa chi phí kế hoạch ban đầu"
           : "Tạo mới chi phí kế hoạch ban đầu"
       }
@@ -162,7 +173,7 @@ export default function InitialPlannedCostModal({
             onClick={() => {
               const newGroup = {
                 productionScope: "",
-                phases: [],
+                phases: [emptyPhase()],
               };
               formik.setFieldValue("groups", [
                 ...formik.values.groups,
@@ -192,7 +203,7 @@ export default function InitialPlannedCostModal({
             variant="contained"
             sx={{ borderRadius: "8px", textTransform: "none" }}
           >
-            {(selected?._id || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
+            {selected?._id || minimizedData?._id ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }
@@ -200,7 +211,9 @@ export default function InitialPlannedCostModal({
       <FormikProvider value={formik}>
         <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+            >
               Phân xưởng
             </Typography>
             <FieldAutoCompleted
@@ -212,7 +225,9 @@ export default function InitialPlannedCostModal({
             />
           </Box>
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+            >
               Thời gian
             </Typography>
             <FieldMonthYear formik={formik} fieldName="month" />

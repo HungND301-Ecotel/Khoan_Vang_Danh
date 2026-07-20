@@ -8,28 +8,29 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { FormikProvider, useFormik } from "formik";
 import dayjs from "dayjs";
-import { useAtomValue } from "jotai";
 
-import { BaseConfigModalProps, MaterialCostUsedInputType } from "../../../types";
+import {
+  BaseConfigModalProps,
+  MaterialCostUsedInputType,
+} from "../../../types";
 import { readExcelFile } from "../../../utils/readExcel";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 import BaseModal from "../../../components/Common/BaseModal";
-import { systemConfigsAtom } from "../../../atoms/systemConfigAtoms";
-import { SYSTEM_KEYS } from "../../../utils/constant";
 import FieldMonthYear from "../../../ui/FieldMonth_Year";
 
 import { PreviewRow } from "./types";
 import { useModalQueries } from "./useModalQueries";
 import { useInitialValues } from "./useInitialValues";
-import PhaseSection from "./PhaseSection";
 import MaterialSection from "./MaterialSection";
 import ImportPreviewDialog from "./ImportPreviewDialog";
 import { validationSchema } from "./Validation";
+import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
+import FieldInput from "../../../components/TextField/FieldInput";
 
 export default function MaterialCostUsedModal({
   open,
@@ -43,82 +44,85 @@ export default function MaterialCostUsedModal({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewRow[]>([]);
-  const [expandedGroups, setExpandedGroups] = useState<number[]>([0]);
-
-  const systemConfigs = useAtomValue(systemConfigsAtom);
-  const cuttingPhaseGroupKey = useMemo(() => {
-    return (
-      systemConfigs.find((c) => c.key === SYSTEM_KEYS.KHAU_THAN)?.value || ""
-    );
-  }, [systemConfigs]);
 
   const formikForScope = useFormik({
-    initialValues: { 
-      department: selected?.department?._id || minimizedData?.department?._id || "",
-      productionScope: selected?.productionScope?._id || minimizedData?.productionScope?._id || "" 
+    initialValues: {
+      department: selected?.department?._id || minimizedData?.department || "",
+      productionScope:
+        selected?.productionScope?._id || minimizedData?.productionScope || "",
+      month: selected?.month || minimizedData?.month || "",
     },
     onSubmit: () => {},
   });
-  
+
   const {
     availableScopes,
-    productionscopes,
-    phases,
     departments,
     assignmentcodes,
     materialassignments,
     refetchMaterialAssignments,
-    initialplannedcost,
+    initialplannedcostMonths,
+    scopePhases,
     createMutation,
-  } = useModalQueries(formikForScope.values.department, formikForScope.values.productionScope, open);
+  } = useModalQueries(
+    formikForScope.values.department,
+    formikForScope.values.productionScope,
+    formikForScope.values.month,
+    open,
+  );
 
-  const initialValues = useInitialValues(selected, minimizedData, materialassignments.data, cuttingPhaseGroupKey);
+  const initialValues = useInitialValues(
+    selected,
+    minimizedData,
+    materialassignments.data,
+  );
 
   const formik = useFormik({
-    initialValues: initialValues,
-    validationSchema: validationSchema,
+    initialValues,
+    validationSchema,
     enableReinitialize: true,
     onSubmit: async (values) => {
-      const payload: Partial<MaterialCostUsedInputType> & { isOtherTask?: boolean } = {
-        _id: selected?._id || minimizedData?._id,
+      const payload: any = {
+        _id: values._id || undefined,
         isOtherTask: values.isOtherTask,
-        department: values?.department,
-        productionScope: values.isOtherTask ? undefined : values?.productionScope,
-        month: dayjs(new Date(values.month)).format("YYYY-MM"),
-        phases: (values.phases || []).map((p: any) => ({
-          phase: p.phase ?? "",
-          production: Number(p.production ?? 0),
-          unit: String(p.unit ?? ""),
-          assignmentNormCode: p.assignmentNormCode,
-          adjustmentNormCode: p.adjustmentNormCode,
-        })),
+        department: values.department,
+        productionScope: values.isOtherTask
+          ? undefined
+          : values.productionScope,
+        month: dayjs(values.month, "YYYY-MM").isValid()
+          ? values.month
+          : dayjs(new Date(values.month)).format("YYYY-MM"),
+        phase: values.isOtherTask ? undefined : values.phase,
+        production: Number(values.production ?? 0),
+        unit: values.unit,
+        assignmentNormCode: values.assignmentNormCode,
+        adjustmentNormCode: values.adjustmentNormCode,
         materials: (values.materials || []).map((m: any) => ({
           material: m.material ?? "",
           quantity: Number(m.quantity ?? 0),
-        })) as any,
+        })),
       };
-      handleSubmit(payload);
+      handleSubmit([payload]);
     },
   });
 
+  // Đồng bộ formikForScope với formik để trigger query đúng lúc
   useEffect(() => {
     formikForScope.setFieldValue("department", formik.values.department);
-    formikForScope.setFieldValue("productionScope", formik.values.productionScope);
-  }, [formik.values.department, formik.values.productionScope]);
-
-  useEffect(() => {
-    if (initialplannedcost && (selected || minimizedData)) {
-      const group = initialplannedcost?.group?.find(
-        (i: any) => (selected?.month || minimizedData?.month) === i.month,
-      );
-      formik.setFieldValue("groupIndexes", group);
-    }
-  }, [initialplannedcost, selected, minimizedData]);
+    formikForScope.setFieldValue(
+      "productionScope",
+      formik.values.productionScope,
+    );
+    formikForScope.setFieldValue("month", formik.values.month);
+  }, [
+    formik.values.department,
+    formik.values.productionScope,
+    formik.values.month,
+  ]);
 
   const handleClose = () => {
     formik.resetForm();
     setOpen(false);
-    setExpandedGroups([0]);
     if (clearMinimize) clearMinimize();
   };
 
@@ -132,27 +136,20 @@ export default function MaterialCostUsedModal({
     setOpen(false);
   };
 
-  const updateGroupsFromSelectedIndexes = (selectedGroup: any) => {
-    const mapped = (selectedGroup.phases || []).map((g: any) => {
-      return {
-        phase: g.phase?._id || "",
-        production: 0,
-        unit:
-          g.unit ??
-          (g.phase?.code
-            .toLowerCase()
-            .includes(cuttingPhaseGroupKey?.toLowerCase())
-            ? "tấn"
-            : "mét"),
-        assignmentNormCode: g.assignmentNormCode?._id,
-        adjustmentNormCode: g.adjustmentNormCode?._id,
-      };
-    });
+  // Khi chọn 1 phase từ danh sách scopePhases, đổ production/unit/assignmentNormCode/adjustmentNormCode
+  // (giá trị mặc định từ kế hoạch) vào formik
+  const handleSelectPhase = (phaseDoc: any) => {
+    formik.setFieldValue("phase", phaseDoc?.phase?._id || "");
+    formik.setFieldValue("production", 0); // sản lượng thực tế nhập mới, không lấy từ kế hoạch
+    formik.setFieldValue("unit", phaseDoc?.unit || "");
     formik.setFieldValue(
-      "month",
-      selectedGroup.month ? dayjs(selectedGroup.month).format("YYYY-MM") : "",
+      "assignmentNormCode",
+      phaseDoc?.assignmentNormCode?._id,
     );
-    formik.setFieldValue("phases", mapped);
+    formik.setFieldValue(
+      "adjustmentNormCode",
+      phaseDoc?.adjustmentNormCode?._id,
+    );
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,7 +159,6 @@ export default function MaterialCostUsedModal({
     try {
       const rawData = await readExcelFile(file);
       const dataRows = rawData.slice(1);
-
       const parsedData: PreviewRow[] = [];
 
       dataRows.forEach((row, index) => {
@@ -183,7 +179,11 @@ export default function MaterialCostUsedModal({
         if (matchingMaterials.length > 0) {
           availableAssignments = matchingMaterials.map((m: any) =>
             m.assignmentCode
-              ? { _id: m.assignmentCode._id, code: m.assignmentCode.code, name: m.assignmentCode.name || m.assignmentCode.code }
+              ? {
+                  _id: m.assignmentCode._id,
+                  code: m.assignmentCode.code,
+                  name: m.assignmentCode.name || m.assignmentCode.code,
+                }
               : { _id: "none", code: "Không có", name: "Không có" },
           );
           availableAssignments = availableAssignments.filter(
@@ -234,9 +234,7 @@ export default function MaterialCostUsedModal({
     } catch (error) {
       console.error("Lỗi xử lý file Excel:", error);
     } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -294,16 +292,20 @@ export default function MaterialCostUsedModal({
     );
 
     const currentMaterials = [...(formik.values.materials || [])];
-    const currentSelectedMaterials = [...(formik.values.selectedMaterials || [])];
+    const currentSelectedMaterials = [
+      ...(formik.values.selectedMaterials || []),
+    ];
 
     validRows.forEach((r) => {
       const existingIndex = currentMaterials.findIndex(
-        (m) => m.material === r.matchingmaterial._id
+        (m) => m.material === r.matchingmaterial._id,
       );
       if (existingIndex !== -1) {
         currentMaterials[existingIndex] = {
           ...currentMaterials[existingIndex],
-          quantity: (Number(currentMaterials[existingIndex].quantity) || 0) + (Number(r.quantity) || 0)
+          quantity:
+            (Number(currentMaterials[existingIndex].quantity) || 0) +
+            (Number(r.quantity) || 0),
         };
       } else {
         currentMaterials.push({
@@ -316,7 +318,6 @@ export default function MaterialCostUsedModal({
 
     formik.setFieldValue(`materials`, currentMaterials);
     formik.setFieldValue(`selectedMaterials`, currentSelectedMaterials);
-
     setPreviewOpen(false);
   };
 
@@ -324,12 +325,10 @@ export default function MaterialCostUsedModal({
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Mẫu");
-
       worksheet.columns = [
         { header: "Mã vật tư", key: "code", width: 30 },
         { header: "Số lượng", key: "value", width: 20 },
       ];
-
       worksheet.getRow(1).font = { bold: true };
       worksheet.getRow(1).alignment = {
         vertical: "middle",
@@ -365,7 +364,9 @@ export default function MaterialCostUsedModal({
       open={open}
       onClose={handleClose}
       onMinimize={handleMinimize}
-      title={(selected?._id || minimizedData?._id) ? "Chỉnh sửa chi phí vật tư thực hiện"
+      title={
+        formik.values._id
+          ? "Chỉnh sửa chi phí vật tư thực hiện"
           : "Tạo mới chi phí vật tư thực hiện"
       }
       breadcrumbs={[
@@ -401,7 +402,7 @@ export default function MaterialCostUsedModal({
               textTransform: "none",
             }}
           >
-            {(selected?._id || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
+            {formik.values._id ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }
@@ -413,19 +414,20 @@ export default function MaterialCostUsedModal({
               checked={formik.values.isOtherTask}
               onChange={(e) => {
                 formik.setFieldValue("isOtherTask", e.target.checked);
-                if (e.target.checked) {
-                  formik.setFieldValue("productionScope", "");
-                  formik.setFieldValue("groupIndexes", null);
-                  formik.setFieldValue("phases", []);
-                } else {
-                  formik.setFieldValue("month", "");
-                  formik.setFieldValue("phases", []);
-                }
+                formik.setFieldValue("productionScope", "");
+                formik.setFieldValue("phase", "");
+                formik.setFieldValue("month", "");
+                formik.setFieldValue("production", 0);
+                formik.setFieldValue("unit", "");
+                formik.setFieldValue("assignmentNormCode", undefined);
+                formik.setFieldValue("adjustmentNormCode", undefined);
               }}
-              disabled={!!selected?._id}
+              disabled={!!formik.values._id}
             />
           }
-          label={<Typography sx={{ fontWeight: 500 }}>Công việc khác</Typography>}
+          label={
+            <Typography sx={{ fontWeight: 500 }}>Công việc khác</Typography>
+          }
         />
 
         <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
@@ -440,18 +442,22 @@ export default function MaterialCostUsedModal({
             data={departments.data}
             onChange={() => {
               formik.setFieldValue("productionScope", "");
-              formik.setFieldValue("groupIndexes", null);
-              formik.setFieldValue("phases", []);
+              formik.setFieldValue("phase", "");
+              formik.setFieldValue("month", "");
             }}
           />
         </Box>
 
         {!formik.values.isOtherTask && (
           <>
-            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+            >
               Mã diện sản xuất
             </Typography>
-            <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "center", width: "100%" }}
+            >
               <FieldAutoCompleted
                 formik={formik}
                 field="productionScope"
@@ -460,27 +466,35 @@ export default function MaterialCostUsedModal({
                 data={availableScopes}
                 disabled={!formik.values.department}
                 onChange={() => {
-                  formik.setFieldValue("groupIndexes", null);
-                  formik.setFieldValue("phases", []);
+                  formik.setFieldValue("phase", "");
+                  formik.setFieldValue("month", "");
                 }}
               />
             </Box>
           </>
         )}
 
-        {initialplannedcost && !formik.values.isOtherTask && (
+        {!formik.values.isOtherTask && formik.values.productionScope && (
           <Box>
-            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+            >
               Chọn thời gian
             </Typography>
             <Autocomplete
               fullWidth
-              options={initialplannedcost?.group || []}
-              getOptionLabel={(g: any) => `${dayjs(g.month).format("MM/YYYY")}`}
-              value={formik.values.groupIndexes || null}
+              options={initialplannedcostMonths.data || []}
+              getOptionLabel={(g: any) =>
+                dayjs(g.month, "YYYY-MM").format("MM/YYYY")
+              }
+              value={
+                initialplannedcostMonths.data?.find(
+                  (g: any) => g.month === formik.values.month,
+                ) || null
+              }
               onChange={(event, newValue) => {
-                formik.setFieldValue("groupIndexes", newValue);
-                updateGroupsFromSelectedIndexes(newValue);
+                formik.setFieldValue("month", newValue?.month || "");
+                formik.setFieldValue("phase", "");
               }}
               renderInput={(params) => (
                 <TextField
@@ -490,7 +504,11 @@ export default function MaterialCostUsedModal({
                   sx={{ background: "white" }}
                   size="small"
                   error={Boolean(formik.touched.month && formik.errors.month)}
-                  helperText={formik.touched.month ? String(formik.errors.month || "") : ""}
+                  helperText={
+                    formik.touched.month
+                      ? String(formik.errors.month || "")
+                      : ""
+                  }
                 />
               )}
             />
@@ -499,20 +517,67 @@ export default function MaterialCostUsedModal({
 
         {formik.values.isOtherTask && (
           <Box>
-            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+            >
               Thời gian
             </Typography>
             <FieldMonthYear formik={formik} fieldName="month" />
           </Box>
         )}
 
-        {formik.values.groupIndexes && !formik.values.isOtherTask && (
-          <PhaseSection
-            formik={formik}
-            phasesData={phases.data}
-            isOtherTask={formik.values.isOtherTask}
-            cuttingPhaseGroupKey={cuttingPhaseGroupKey}
-          />
+        {!formik.values.isOtherTask && formik.values.month && (
+          <Box>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}
+            >
+              Chọn công đoạn
+            </Typography>
+            <Autocomplete
+              fullWidth
+              options={scopePhases.data || []}
+              getOptionLabel={(p: any) =>
+                `${p.phase?.code || ""} - ${p.phase?.name || ""}`
+              }
+              value={
+                scopePhases.data?.find(
+                  (p: any) => p.phase?._id === formik.values.phase,
+                ) || null
+              }
+              onChange={(event, newValue) => handleSelectPhase(newValue)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Chọn công đoạn"
+                  placeholder="Chọn..."
+                  sx={{ background: "white" }}
+                  size="small"
+                  error={Boolean(formik.touched.phase && formik.errors.phase)}
+                  helperText={
+                    formik.touched.phase
+                      ? String(formik.errors.phase || "")
+                      : ""
+                  }
+                />
+              )}
+            />
+
+            {formik.values.phase && (
+              <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                <TextFieldNumber
+                  title="Sản lượng thực hiện"
+                  formik={formik}
+                  field="production"
+                />
+                <FieldInput
+                  title="ĐVT"
+                  formik={formik}
+                  field="unit"
+                  disabled
+                />
+              </Box>
+            )}
+          </Box>
         )}
 
         <Divider
@@ -525,7 +590,7 @@ export default function MaterialCostUsedModal({
           }}
         />
 
-        {(formik.values.groupIndexes || formik.values.isOtherTask) && (
+        {(formik.values.phase || formik.values.isOtherTask) && (
           <MaterialSection
             formik={formik}
             materialassignmentsData={materialassignments.data}

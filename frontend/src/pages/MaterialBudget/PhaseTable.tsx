@@ -1,25 +1,39 @@
-import {
-  Box,
-  IconButton,
-  Typography,
-  Table as TableMui,
-  TableHead,
-  TableRow,
-  TableCell,
-  Paper,
-} from "@mui/material";
+import { Box, IconButton, Typography, Paper } from "@mui/material";
 import React, { useState } from "react";
-import { MaterialBudgetCostType } from "../../types";
-import { Table, TableProps } from "antd";
-import { Edit, Visibility, VisibilityOff } from "@mui/icons-material";
-import { showErrorAlert } from "../../components/Alert";
+import { Table } from "antd";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import AssignmentNormTable from "./AssignmentNormTable";
-import dayjs from "dayjs";
 import { formatDecimal, formattedPrice } from "../../utils/helpers";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "../../config/api.config";
 
-export default function PhaseTable({ data }: { data: any[] }) {
-  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
+export default function PhaseTable({
+  department,
+  month,
+  productionScope,
+}: {
+  department: string;
+  month?: string;
+  productionScope: any;
+}) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const productionScopeId = productionScope?._id || productionScope;
+
+  const { data: phases = [] } = useQuery({
+    queryKey: ["materialbudget-phases", department, month, productionScopeId],
+    queryFn: async () => {
+      const res = await api.get(`/materialbudgets/phases`, {
+        params: {
+          department,
+          month,
+          productionScope: productionScopeId,
+        },
+      });
+      return res.data.data;
+    },
+    enabled: !!department && !!month && !!productionScopeId,
+  });
 
   const handleView = (record: any) => {
     const id = record?.key;
@@ -28,27 +42,11 @@ export default function PhaseTable({ data }: { data: any[] }) {
     setExpandedRow((prev) => (prev === id ? null : id));
   };
 
-  const expandedRowRender = (record: any) => {
-    const key = record.phase?._id || "";
-    const data = expandedData[key] || record;
-    if (data === null) {
-      return (
-        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-          <Typography color="error">
-            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
-          </Typography>
-        </Box>
-      );
-    }
-    if (!data) {
-      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
-    }
-    return (
-      <Box sx={{ p: 2 }}>
-        <AssignmentNormTable data={data} />
-      </Box>
-    );
-  };
+  const expandedRowRender = (record: any) => (
+    <Box sx={{ p: 2 }}>
+      <AssignmentNormTable data={record} />
+    </Box>
+  );
 
   const innerColumns = [
     {
@@ -83,6 +81,9 @@ export default function PhaseTable({ data }: { data: any[] }) {
       dataIndex: "unit",
       key: "unit",
       align: "center" as const,
+      render: (value: number) => (
+        <Typography>{value ? value.toLocaleString() : ""}</Typography>
+      ),
     },
     {
       title: <Typography>Sản lượng</Typography>,
@@ -146,7 +147,7 @@ export default function PhaseTable({ data }: { data: any[] }) {
     <Paper>
       <Table
         columns={innerColumns}
-        dataSource={data || []}
+        dataSource={phases || []}
         pagination={false}
         size="small"
         rowKey={(item) => item.key}

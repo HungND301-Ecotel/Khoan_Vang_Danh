@@ -6,80 +6,63 @@ export function useInitialValues(
   selected: any | null,
   minimizedData: any | null,
   materialassignmentsData: any[],
-  cuttingPhaseGroupKey: string
 ) {
   return useMemo(() => {
     if (minimizedData) {
       return minimizedData;
     }
+
+    // selected giờ là 1 MaterialCostUsed document phẳng (khi sửa):
+    // { _id, department, productionScope, month, phase, production, unit, materials: [...] }
     return {
-    isOtherTask: selected?.isOtherTask || false,
-    department: selected?.department?._id
-      ? String(selected.department._id)
-      : "",
-    productionScope: selected?.productionScope?._id
-      ? String(selected.productionScope._id)
-      : "",
-    groupIndexes: null,
-    month: selected?.month ? dayjs(selected?.month).format("YYYY-MM") : "",
-    phases: (selected?.phases || selected?.productionScope?.phases || []).map(
-      (p: any) => ({
-        phase: p.phase?._id ? String(p.phase._id) : "",
-        production: Number(p.production ?? 0),
-        unit:
-          p.phase?.unit ??
-          (p.phase?.code
-            ?.toLowerCase()
-            ?.includes(cuttingPhaseGroupKey?.toLowerCase())
-            ? "tấn"
-            : "mét"),
-      }),
-    ),
-    selectedMaterials: (() => {
-      const materialLookup = new Map(
-        (materialassignmentsData || []).map((m: Materials) => [m._id, m]),
-      );
-      const uniqueMaterialIds = new Set();
-      const result: any[] = [];
-      (selected?.materials || []).forEach((group: any) => {
-        (group.materials || []).forEach((i: any) => {
-          const materialId = i.material?._id;
-          if (
-            materialId &&
-            materialLookup.has(materialId) &&
-            !uniqueMaterialIds.has(materialId)
-          ) {
-            uniqueMaterialIds.add(materialId);
-            result.push(materialLookup.get(materialId));
-          }
-        });
-      });
-      return result;
-    })(),
-    materials: (() => {
-      const aggregatedMaterials = new Map();
-      (selected?.materials || []).forEach((group: any) => {
-        (group.materials || []).forEach((mat: any) => {
-          const matId = mat.material?._id ? String(mat.material._id) : "";
-          if (matId) {
-            if (aggregatedMaterials.has(matId)) {
-              aggregatedMaterials.set(
-                matId,
-                aggregatedMaterials.get(matId) + (Number(mat.quantity) || 0)
-              );
-            } else {
-              aggregatedMaterials.set(matId, Number(mat.quantity) || 0);
-            }
-          }
-        });
-      });
-      return Array.from(aggregatedMaterials.entries()).map(
-        ([material, quantity]) => ({
-          material,
-          quantity,
-        })
-      );
-    })(),
-  };
-  }, [selected, minimizedData, materialassignmentsData, cuttingPhaseGroupKey]);
+      _id: selected?._id || "",
+      isOtherTask: selected?.isOtherTask || false,
+      department: selected?.department?._id
+        ? String(selected.department._id)
+        : selected?.department || "",
+      productionScope: selected?.productionScope?._id
+        ? String(selected.productionScope._id)
+        : selected?.productionScope || "",
+      month: selected?.month
+        ? dayjs(selected.month, "YYYY-MM").isValid()
+          ? selected.month
+          : dayjs(selected.month).format("YYYY-MM")
+        : "",
+      // Chỉ còn 1 phase duy nhất, không còn mảng phases
+      phase: selected?.phase?._id ? String(selected.phase._id) : "",
+      production: Number(selected?.production ?? 0),
+      unit: selected?.unit ?? "",
+      assignmentNormCode:
+        selected?.assignmentNormCode?._id ||
+        selected?.assignmentNormCode ||
+        undefined,
+      adjustmentNormCode:
+        selected?.adjustmentNormCode?._id ||
+        selected?.adjustmentNormCode ||
+        undefined,
+
+      selectedMaterials: (() => {
+        const materialLookup = new Map(
+          (materialassignmentsData || []).map((m: Materials) => [m._id, m]),
+        );
+
+        return (selected?.materials || [])
+          .flatMap((group: any) => group.materials || [])
+          .map((item: any) => {
+            const materialId = item.material?._id || item.material;
+            return materialLookup.get(materialId);
+          })
+          .filter(Boolean);
+      })(),
+
+      materials: (selected?.materials || [])
+        .flatMap((group: any) => group.materials || [])
+        .map((item: any) => ({
+          material: item.material?._id
+            ? String(item.material._id)
+            : item.material,
+          quantity: Number(item.quantity ?? 0),
+        })),
+    };
+  }, [selected, minimizedData, materialassignmentsData]);
 }

@@ -72,28 +72,30 @@ export default function GroupScopeSection({
             labelkey="code"
             data={productionscopesData}
           />
-          <IconButton
-            onClick={() => {
-              const currentPhases = formik.values.groups[gIdx].phases || [];
-              formik.setFieldValue(`groups.${gIdx}.phases`, [
-                ...currentPhases,
-                emptyPhase(),
-              ]);
-              if (!expandedGroups.includes(gIdx)) {
-                setExpandedGroups((prev) => [...prev, gIdx]);
-              }
-            }}
-            size="small"
-            sx={{
-              color: "#007BFF",
-              border: "1px dashed #007BFF",
-              borderRadius: "6px",
-              p: 0.5,
-            }}
-            title="Thêm công đoạn"
-          >
-            <AddIcon fontSize="small" />
-          </IconButton>
+          {!selected?._id && (
+            <IconButton
+              onClick={() => {
+                const currentPhases = formik.values.groups[gIdx].phases || [];
+                formik.setFieldValue(`groups.${gIdx}.phases`, [
+                  ...currentPhases,
+                  emptyPhase(),
+                ]);
+                if (!expandedGroups.includes(gIdx)) {
+                  setExpandedGroups((prev) => [...prev, gIdx]);
+                }
+              }}
+              size="small"
+              sx={{
+                color: "#007BFF",
+                border: "1px dashed #007BFF",
+                borderRadius: "6px",
+                p: 0.5,
+              }}
+              title="Thêm công đoạn"
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+          )}
           <IconButton
             onClick={() => toggleExpand(gIdx)}
             size="small"

@@ -23,12 +23,17 @@ const REPORTS = [
     path: "/report/settlementreport",
   },
   {
-    id: 6,
+    id: 5,
     label: "Báo cáo quyết toán giao khoán",
     path: "/report/contractsettlementreport",
   },
   {
-    id: 5,
+    id: 6,
+    label: "Báo cáo quý",
+    path: "/report/quarterlycontractsettlementreport",
+  },
+  {
+    id: 7,
     label: "B/c công đoạn sản xuất",
     path: "/report/productionphasereport",
   },
@@ -77,7 +82,9 @@ export default function ReportSidebar() {
           return (
             <Box
               key={item.id}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                navigate(item.path);
+              }}
               sx={{
                 display: "flex",
                 alignItems: "flex-start", // Căn đỉnh để text dài không bị lệch icon

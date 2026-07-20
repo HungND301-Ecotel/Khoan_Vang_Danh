@@ -38,7 +38,12 @@ import Profile from "../components/Profile/Profile";
 import ChangePass from "../components/ChangePass/ChangePass";
 import { systemConfigsAtom } from "../atoms/systemConfigAtoms";
 import SystemConfigModal from "../components/SystemConfig/SystemConfigModal";
-import { tabsAtom, activeTabIdAtom, ROUTE_TITLES, minimizedModalsAtom } from "../atoms/tabAtoms";
+import {
+  tabsAtom,
+  activeTabIdAtom,
+  ROUTE_TITLES,
+  minimizedModalsAtom,
+} from "../atoms/tabAtoms";
 import FloatingMinimizeButton from "../components/Common/FloatingMinimizeButton";
 import CloseIcon from "@mui/icons-material/Close";
 import { showErrorAlert } from "../components/Alert";
@@ -55,9 +60,9 @@ const TabBar = () => {
 
   const handleCloseTab = (e: React.MouseEvent, tabId: string) => {
     e.stopPropagation();
-    const newTabs = tabs.filter(t => t.id !== tabId);
+    const newTabs = tabs.filter((t) => t.id !== tabId);
     setTabs(newTabs);
-    setMinimizedModals(prev => {
+    setMinimizedModals((prev) => {
       const next = { ...prev };
       delete next[tabId];
       return next;
@@ -67,7 +72,7 @@ const TabBar = () => {
       if (newTabs.length > 0) {
         navigate(newTabs[newTabs.length - 1].path);
       } else {
-        navigate('/'); // Default fallback
+        navigate("/"); // Default fallback
       }
     }
   };
@@ -75,25 +80,28 @@ const TabBar = () => {
   if (tabs.length === 0) return null;
 
   return (
-    <Box 
-      sx={{ 
-        display: "flex", 
-        gap: 1.5, 
-        overflowX: "auto", 
-        mb: 3, 
-        px: 2, 
+    <Box
+      sx={{
+        display: "flex",
+        gap: 1.5,
+        overflowX: "auto",
+        mb: 3,
+        px: 2,
         py: 1.5,
         position: "sticky",
         top: "100px",
-        zIndex: 10,
-        bgcolor: "rgba(255, 255, 255, 0.85)", 
+        zIndex: 99,
+        bgcolor: "rgba(255, 255, 255, 0.85)",
         backdropFilter: "blur(10px)",
         borderRadius: "16px",
         boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
         border: "1px solid rgba(255,255,255,0.5)",
         "&::-webkit-scrollbar": { height: "6px" },
         "&::-webkit-scrollbar-track": { background: "transparent" },
-        "&::-webkit-scrollbar-thumb": { background: "#D1D5DB", borderRadius: "10px" },
+        "&::-webkit-scrollbar-thumb": {
+          background: "#D1D5DB",
+          borderRadius: "10px",
+        },
         "&::-webkit-scrollbar-thumb:hover": { background: "#9CA3AF" },
       }}
     >
@@ -119,41 +127,47 @@ const TabBar = () => {
               maxWidth: "240px",
               fontWeight: isActive ? 600 : 500,
               transition: "all 0.2s ease-in-out",
-              boxShadow: isActive ? "0 2px 8px rgba(0, 123, 255, 0.15)" : "0 1px 3px rgba(0,0,0,0.04)",
+              boxShadow: isActive
+                ? "0 2px 8px rgba(0, 123, 255, 0.15)"
+                : "0 1px 3px rgba(0,0,0,0.04)",
               "&:hover": {
                 bgcolor: isActive ? "#EBF5FF" : "#F9FAFB",
                 borderColor: isActive ? "#90CAF9" : "#D1D5DB",
                 transform: "translateY(-1px)",
-                boxShadow: isActive ? "0 4px 12px rgba(0, 123, 255, 0.2)" : "0 2px 6px rgba(0,0,0,0.06)",
+                boxShadow: isActive
+                  ? "0 4px 12px rgba(0, 123, 255, 0.2)"
+                  : "0 2px 6px rgba(0,0,0,0.06)",
               },
             }}
           >
-            <Typography 
-              noWrap 
-              variant="body2" 
-              sx={{ 
-                flexGrow: 1, 
-                mr: 1, 
+            <Typography
+              noWrap
+              variant="body2"
+              sx={{
+                flexGrow: 1,
+                mr: 1,
                 fontSize: "13.5px",
-                userSelect: "none"
+                userSelect: "none",
               }}
             >
               {tab.title}
             </Typography>
-            <Box 
+            <Box
               onClick={(e) => handleCloseTab(e, tab.id)}
-              sx={{ 
-                display: "flex", 
-                alignItems: "center", 
+              sx={{
+                display: "flex",
+                alignItems: "center",
                 justifyContent: "center",
                 borderRadius: "50%",
                 p: 0.4,
                 color: isActive ? "#0062CC" : "#9CA3AF",
                 transition: "all 0.2s ease",
-                "&:hover": { 
-                  bgcolor: isActive ? "rgba(0, 98, 204, 0.12)" : "rgba(0,0,0,0.08)",
+                "&:hover": {
+                  bgcolor: isActive
+                    ? "rgba(0, 98, 204, 0.12)"
+                    : "rgba(0,0,0,0.08)",
                   color: isActive ? "#004B99" : "#4B5563",
-                }
+                },
               }}
             >
               <CloseIcon sx={{ fontSize: 14 }} />
@@ -181,19 +195,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [menuSettingsEl, setMenuSettingsEl] = useState<HTMLElement | null>(
     null,
   );
-  const [menuReport, setMenuReport] = useState<HTMLElement | null>(null);
   const [materialSubMenuEl, setMaterialSubMenuEl] =
     useState<null | HTMLElement>(null);
 
-  const { data: phases = [] } = useQuery({
-    queryKey: ["phases"],
-    queryFn: () => api.get("/phases").then((res) => res.data.data),
-  });
 
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [, setActiveTabId] = useAtom(activeTabIdAtom);
 
-  const maxTabsConfig = systemConfigs.find((c) => c.key === "MAX_TABS_PER_USER")?.value;
+  const maxTabsConfig = systemConfigs.find(
+    (c) => c.key === "MAX_TABS_PER_USER",
+  )?.value;
   const maxTabs = maxTabsConfig ? parseInt(maxTabsConfig, 10) : 7;
 
   const handleNavigate = (path: string) => {
@@ -203,7 +214,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     }
     const existingTab = tabs.find((t) => t.id === path);
     if (!existingTab && tabs.length >= maxTabs) {
-      showErrorAlert(`Số lượng tab mở đã đạt giới hạn (tối đa ${maxTabs} tab). Vui lòng đóng bớt tab!`);
+      showErrorAlert(
+        `Số lượng tab mở đã đạt giới hạn (tối đa ${maxTabs} tab). Vui lòng đóng bớt tab!`,
+      );
       return;
     }
     navigate(path);
@@ -213,13 +226,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const currentPath = location.pathname;
     setActiveTabId(currentPath);
 
-    setTabs(prev => {
-      if (!prev.find(t => t.id === currentPath)) {
-        return [...prev, {
-          id: currentPath,
-          path: currentPath,
-          title: ROUTE_TITLES[currentPath] || 'Tab mới'
-        }];
+    setTabs((prev) => {
+      if (!prev.find((t) => t.id === currentPath)) {
+        return [
+          ...prev,
+          {
+            id: currentPath,
+            path: currentPath,
+            title: ROUTE_TITLES[currentPath] || "Tab mới",
+          },
+        ];
       }
       return prev;
     });

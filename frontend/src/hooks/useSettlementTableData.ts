@@ -1,7 +1,12 @@
 // hooks/useSettlementTableData.ts
 
 import { useMemo } from "react";
-import { MonthlyDataNoPhase, MonthlyDataWithPhase, DataItem, InfoItem } from "../types";
+import {
+  MonthlyDataNoPhase,
+  MonthlyDataWithPhase,
+  DataItem,
+  InfoItem,
+} from "../types";
 
 export interface BlockKey {
   month: string;
@@ -33,9 +38,11 @@ export function useSettlementTableData(
   apiResponse: MonthlyDataNoPhase[] | MonthlyDataWithPhase[] | undefined,
   localData: Map<string, DataItem[]>,
   hasPhase: boolean,
+  showSummary: boolean,
 ) {
   return useMemo(() => {
-    if (!apiResponse?.length || localData.size === 0) return { blockKeys: [], rowGroups: [] };
+    if (!apiResponse?.length || localData.size === 0)
+      return { blockKeys: [], rowGroups: [] };
 
     // 1. Tạo danh sách blockKeys (thứ tự cột từ trái sang phải)
     const blockKeys: BlockKey[] = [];
@@ -58,22 +65,33 @@ export function useSettlementTableData(
           });
         });
         // Append Monthly Summary Block
-        blockKeys.push({
-          month: monthEntry.month,
-          phaseId: `SUMMARY_${monthEntry.month}`,
-          phaseCode: "BẢNG TỔNG HỢP",
-          scopeCode: "",
-          phaseName: "BẢNG TỔNG HỢP",
-          info: {
-            totalCoal: monthEntry.phases.reduce((sum, p) => sum + (p.info?.totalCoal || 0), 0),
-            totalExcavation: monthEntry.phases.reduce((sum, p) => sum + (p.info?.totalExcavation || 0), 0),
-            totalCutting: monthEntry.phases.reduce((sum, p) => sum + (p.info?.totalCutting || 0), 0),
-            rockRatio: null,
-            phases: [],
-            productionScopes: [],
-          },
-          isSummary: true,
-        });
+        if (showSummary) {
+          blockKeys.push({
+            month: monthEntry.month,
+            phaseId: `SUMMARY_${monthEntry.month}`,
+            phaseCode: "BẢNG TỔNG HỢP",
+            scopeCode: "",
+            phaseName: "BẢNG TỔNG HỢP",
+            info: {
+              totalCoal: monthEntry.phases.reduce(
+                (sum, p) => sum + (p.info?.totalCoal || 0),
+                0,
+              ),
+              totalExcavation: monthEntry.phases.reduce(
+                (sum, p) => sum + (p.info?.totalExcavation || 0),
+                0,
+              ),
+              totalCutting: monthEntry.phases.reduce(
+                (sum, p) => sum + (p.info?.totalCutting || 0),
+                0,
+              ),
+              rockRatio: null,
+              phases: [],
+              productionScopes: [],
+            },
+            isSummary: true,
+          });
+        }
       });
     }
 
@@ -133,7 +151,7 @@ export function useSettlementTableData(
             const count = (materialCounts.get(baseKey) ?? 0) + 1;
             materialCounts.set(baseKey, count);
             const matKey = `${baseKey}_${count}`;
-            
+
             if (!allMaterialKeys.includes(matKey)) {
               allMaterialKeys.push(matKey);
               materialMeta.set(matKey, mu);
@@ -157,29 +175,31 @@ export function useSettlementTableData(
           }) ?? null;
 
         const materialUseds: (any | null)[] = [];
-        
+
         if (groupItem && groupItem.materialUseds) {
-           const materialCounts = new Map<string, number>();
-           const matMap = new Map<string, any>();
-           groupItem.materialUseds.forEach((mu: any) => {
-              const baseKey = `${mu.material?._id}_${mu.price}`;
-              const count = (materialCounts.get(baseKey) ?? 0) + 1;
-              materialCounts.set(baseKey, count);
-              const matKey = `${baseKey}_${count}`;
-              matMap.set(matKey, mu);
-           });
-           
-           allMaterialKeys.forEach(matKey => {
-               materialUseds.push(matMap.get(matKey) ?? null);
-           });
+          const materialCounts = new Map<string, number>();
+          const matMap = new Map<string, any>();
+          groupItem.materialUseds.forEach((mu: any) => {
+            const baseKey = `${mu.material?._id}_${mu.price}`;
+            const count = (materialCounts.get(baseKey) ?? 0) + 1;
+            materialCounts.set(baseKey, count);
+            const matKey = `${baseKey}_${count}`;
+            matMap.set(matKey, mu);
+          });
+
+          allMaterialKeys.forEach((matKey) => {
+            materialUseds.push(matMap.get(matKey) ?? null);
+          });
         } else {
-           allMaterialKeys.forEach(() => materialUseds.push(null));
+          allMaterialKeys.forEach(() => materialUseds.push(null));
         }
 
         blocks.set(blockId, { groupData: groupItem, materialUseds });
       });
-      
-      const alignedMaterialsMeta = allMaterialKeys.map(k => materialMeta.get(k)!);
+
+      const alignedMaterialsMeta = allMaterialKeys.map(
+        (k) => materialMeta.get(k)!,
+      );
 
       return {
         compoundKey,
@@ -195,16 +215,19 @@ export function useSettlementTableData(
     rowGroups.sort((a, b) => {
       if (!a.assignmentCode && b.assignmentCode) return 1;
       if (a.assignmentCode && !b.assignmentCode) return -1;
-      
+
       if (a.assignmentCode && b.assignmentCode) {
         const codeA = a.assignmentCode.code || "";
         const codeB = b.assignmentCode.code || "";
-        return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+        return codeA.localeCompare(codeB, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
       }
-      
+
       return 0;
     });
 
     return { blockKeys, rowGroups };
-  }, [apiResponse, localData, hasPhase]);
+  }, [apiResponse, localData, hasPhase, showSummary]);
 }

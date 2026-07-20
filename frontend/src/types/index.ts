@@ -467,6 +467,7 @@ export interface MaterialBudgetInputType {
   phases: PhaseInputType[];
   phaseGroup?: string;
   production?: number;
+  department?: string;
   assignmentNormCode: string;
   adjustmentNormCode: string;
 }
@@ -479,6 +480,7 @@ export interface MaterialBudgetOutputType {
   phase?: PhaseOutputType;
   phaseGroup?: PhaseGroupType;
   production?: number;
+  department?: DepartmentType;
   assignmentNormCode?: AssignmentNormOutputType;
   adjustmentNormCode?: AdjustmentNormOutputType;
 }

@@ -62,12 +62,10 @@ export default function MaterialCostUsed() {
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [expandedData, setExpandedData] = useState<{ [key: string]: any }>({});
-  const [deletedIds, setDeletedIds] = useState<React.Key[]>([]);
 
   const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
-      Partial<MaterialCostUsedInputType>
-    >(setOpen, "Chi phí vật tư thực hiện");
+    Partial<MaterialCostUsedInputType>
+  >(setOpen, "Chi phí vật tư thực hiện");
 
   const queryClient = useQueryClient();
 
@@ -89,12 +87,21 @@ export default function MaterialCostUsed() {
     });
 
   const createMutation = useMutation({
-    mutationFn: (newMaterialCostUsed: Partial<MaterialCostUsedInputType> & { isOtherTask?: boolean }) => {
-      const endpoint = newMaterialCostUsed.isOtherTask ? "/othermaterialcosts" : "/materialcostuseds";
+    mutationFn: (
+      newMaterialCostUsed: Partial<MaterialCostUsedInputType> & {
+        isOtherTask?: boolean;
+      },
+    ) => {
+      const endpoint = newMaterialCostUsed.isOtherTask
+        ? "/othermaterialcosts"
+        : "/materialcostuseds";
       return api.post(endpoint, newMaterialCostUsed).then((res) => res.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-months"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-scopes"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-phases"] });
       setOpen(false);
       clearMinimize();
       showSuccessAlert("Thêm mới thành công");
@@ -107,12 +114,21 @@ export default function MaterialCostUsed() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (updateMaterialCostUsed: Partial<MaterialCostUsedInputType> & { isOtherTask?: boolean }) => {
-      const endpoint = updateMaterialCostUsed.isOtherTask ? `/othermaterialcosts/${updateMaterialCostUsed._id}` : `/materialcostuseds/${updateMaterialCostUsed._id}`;
+    mutationFn: (
+      updateMaterialCostUsed: Partial<MaterialCostUsedInputType> & {
+        isOtherTask?: boolean;
+      },
+    ) => {
+      const endpoint = updateMaterialCostUsed.isOtherTask
+        ? `/othermaterialcosts/${updateMaterialCostUsed._id}`
+        : `/materialcostuseds/${updateMaterialCostUsed._id}`;
       return api.put(endpoint, updateMaterialCostUsed).then((res) => res.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-months"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-scopes"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-phases"] });
       setOpen(false);
       setSelected(null);
       clearMinimize();
@@ -126,28 +142,31 @@ export default function MaterialCostUsed() {
   });
 
   const handleDelete = () => {
-    if (deletedIds.length === 0) {
+    if (selectedRows.length === 0) {
       showErrorAlert("Không tìm thấy bản ghi để xóa");
       return;
     }
 
     showConfirmAlert("Bạn có muốn xóa các bản ghi đã chọn?").then((result) => {
       if (result.isConfirmed) {
-        deleteMutation({ ids: deletedIds });
+        deleteMutation({ ids: selectedRows });
       }
     });
   };
 
   const { mutate: deleteMutation, isPending: isDeletePending } = useMutation({
-    mutationFn: async ({ ids, isOtherTask }: { ids: React.Key[], isOtherTask?: boolean }) => {
-      const deletePromises = ids.map((id) => {
-        const endpoint = isOtherTask ? `/othermaterialcosts/${id}` : `/materialcostuseds/${id}`;
-        return api.delete(endpoint).then((res) => res.data);
-      });
-      return Promise.all(deletePromises);
+    mutationFn: async ({ ids }: { ids: React.Key[] }) => {
+      return api
+        .delete(`/materialcostuseds/department`, {
+          data: { departmentIds: ids },
+        })
+        .then((res) => res.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-months"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-scopes"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-phases"] });
       setSelectedRows([]);
       showSuccessAlert("Xóa thành công");
     },
@@ -159,11 +178,11 @@ export default function MaterialCostUsed() {
     },
   });
 
-  const handleSubmit = (values: Partial<MaterialCostUsedInputType>) => {
-    if (values._id) {
-      updateMutation.mutate(values);
+  const handleSubmit = (values: MaterialCostUsedInputType[]) => {
+    if (values[0]._id) {
+      updateMutation.mutate(values[0]);
     } else {
-      createMutation.mutate(values);
+      createMutation.mutate(values[0]);
     }
   };
 
@@ -184,32 +203,11 @@ export default function MaterialCostUsed() {
     setExpandedRow((prev) => (prev === id ? null : id));
   };
 
-  const expandedRowRender = (record: MaterialCostUsedOutputType) => {
-    const key = record._id || "";
-    const data = expandedData[key] || record;
-    if (data === null) {
-      return (
-        <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-          <Typography color="error">
-            Không thể tải thông tin chi tiết. Có thể bản ghi đã bị xóa.
-          </Typography>
-        </Box>
-      );
-    }
-    if (!data.months) {
-      return <Box sx={{ p: 2 }}>Đang tải...</Box>;
-    }
-    return (
-      <Box>
-        <MonthTable
-          data={data.months}
-          handleOpen={handleOpen}
-          department={record.department}
-          handleDeleteMutation={deleteMutation}
-        />
-      </Box>
-    );
-  };
+  const expandedRowRender = (record: MaterialCostUsedOutputType) => (
+    <Box>
+      <MonthTable department={record.department} handleOpen={handleOpen} />
+    </Box>
+  );
 
   const columns: TableProps<MaterialCostUsedOutputType>["columns"] = [
     {
@@ -222,13 +220,13 @@ export default function MaterialCostUsed() {
       ),
     },
     {
-      title: (
-        <Typography sx={{ fontWeight: "bold" }}>Phân xưởng </Typography>
-      ),
+      title: <Typography sx={{ fontWeight: "bold" }}>Phân xưởng </Typography>,
       dataIndex: "department",
       key: "department",
       render: (_, record) => (
-        <Typography>{record.department?.name || record.department?.code}</Typography>
+        <Typography>
+          {record.department?.name || record.department?.code}
+        </Typography>
       ),
       sorter: (a, b) =>
         (a.department?.name ?? "").localeCompare(
@@ -312,17 +310,6 @@ export default function MaterialCostUsed() {
     selectedRowKeys: selectedRows,
     onChange: (newSelectedRows: React.Key[]) => {
       setSelectedRows(newSelectedRows);
-      const selectedDocuments = materialcostuseds.data.filter(
-        (g: MaterialCostUsedOutputType) =>
-          newSelectedRows.some((s) => s === g._id),
-      );
-      const allSelectedGroups = selectedDocuments.flatMap((g: any) => 
-        g.months.flatMap((m: any) => m.scopes)
-      );
-      const deletedGroupIds = allSelectedGroups.map(
-        (groupItem: any) => groupItem._id,
-      );
-      setDeletedIds(deletedGroupIds);
     },
   };
 

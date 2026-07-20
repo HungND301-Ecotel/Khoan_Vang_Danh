@@ -61,165 +61,222 @@ exports.delete = async (req, res) => {
   }
 };
 
+const mongoose = require("mongoose");
+
+// ===== Cấp 0: departments + tổng cost + khoảng tháng (đã có, chỉ gọn lại) =====
 exports.get = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    let scopeMatchQuery = {};
-
+    let matchStage = {};
+    if (req.query.department) {
+      matchStage.department = new mongoose.Types.ObjectId(req.query.department);
+    }
     if (req.query.q) {
       const departments = await Department.find({
         code: new RegExp(req.query.q, "i"),
       }).select("_id");
-      const departmentIds = departments.map((i) => i?._id);
-      scopeMatchQuery.department = { $in: departmentIds };
+      matchStage.department = { $in: departments.map((d) => d._id) };
     }
 
-    if (req.query.department) {
-      scopeMatchQuery.department = req.query.department;
-    }
+    const basePipeline = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: "$department",
+          totalBudgetCost: { $sum: "$totalBudgetCost" },
+          minMonth: { $min: "$month" },
+          maxMonth: { $max: "$month" },
+        },
+      },
+    ];
 
-    const uniqueDepartmentIds = await MaterialBudget.distinct(
-      "department",
-      scopeMatchQuery,
-    );
+    const countResult = await MaterialBudget.aggregate([
+      ...basePipeline,
+      { $count: "total" },
+    ]);
+    const totalItems = countResult[0]?.total || 0;
 
-    const totalItems = uniqueDepartmentIds.length;
+    const results = await MaterialBudget.aggregate([
+      ...basePipeline,
+      { $sort: { _id: 1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "departments",
+          localField: "_id",
+          foreignField: "_id",
+          as: "department",
+        },
+      },
+      { $unwind: "$department" },
+    ]);
 
-    const paginatedDepartmentIds = uniqueDepartmentIds.slice(skip, skip + limit);
-
-    const targetDepartments = await Department.find({
-      _id: { $in: paginatedDepartmentIds },
-    })
-      .select("code name")
-      .lean()
-      .exec();
-
-    const matchQuery = { department: { $in: paginatedDepartmentIds } };
-
-    const allDocs = await MaterialBudget.find(matchQuery)
-      .populate({
-        path: "productionScope",
-        select: "code name",
-      })
-      .populate({
-        path: "department",
-        select: "code name",
-      })
-      .populate("phases.phase", "code name")
-      .populate({
-        path: "phases.budgetCostDetails.assignmentCode",
-        select: "code name uom",
-        populate: "uom",
-      })
-      .populate({
-        path: "phases.assignmentNormCode",
-        select: "norms code",
-        populate: [{ path: "norms.assignmentCode", populate: "uom" }],
-      })
-      .populate({
-        path: "phases.adjustmentNormCode",
-        select: "norms code",
-        populate: [{ path: "norms.assignmentCode", populate: "uom" }],
-      })
-      .lean()
-      .exec();
-
-    const groupedMap = new Map();
-
-    for (const dept of targetDepartments) {
-      groupedMap.set(dept?._id.toString(), {
-        _id: dept?._id.toString(),
-        department: dept,
-        minMonth: null,
-        maxMonth: null,
-        totalBudgetCost: 0,
-        monthGroups: {},
-      });
-    }
-
-    for (const doc of allDocs) {
-      const deptId = doc.department?._id?.toString();
-
-      if (groupedMap.has(deptId)) {
-        const deptGroup = groupedMap.get(deptId);
-
-        const currentMonthDate = new Date(doc.month + "-01");
-        if (
-          !deptGroup.minMonth ||
-          currentMonthDate < new Date(deptGroup.minMonth + "-01")
-        ) {
-          deptGroup.minMonth = doc.month;
-        }
-        if (
-          !deptGroup.maxMonth ||
-          currentMonthDate > new Date(deptGroup.maxMonth + "-01")
-        ) {
-          deptGroup.maxMonth = doc.month;
-        }
-
-        deptGroup.totalBudgetCost += doc.totalBudgetCost || 0;
-
-        if (!deptGroup.monthGroups[doc.month]) {
-          deptGroup.monthGroups[doc.month] = {
-            _id: doc.month,
-            month: doc.month,
-            totalMonthCost: 0,
-            scopes: [],
-          };
-        }
-
-        const monthGroup = deptGroup.monthGroups[doc.month];
-        monthGroup.totalMonthCost += doc.totalBudgetCost || 0;
-
-        monthGroup.scopes.push({
-          _id: doc._id,
-          productionScope: doc.productionScope,
-          totalBudgetCost: doc.totalBudgetCost,
-          phases: doc.phases?.map((phaseItem) => ({
-            ...phaseItem,
-            key: `${doc._id.toString()}_${phaseItem.phase?._id?.toString()}`,
-          })),
-        });
-      }
-    }
-
-    const results = Array.from(groupedMap.values()).map((item) => {
-      const formatMonth = (m) => {
-        if (!m) return "";
-        const [y, mm] = m.split("-");
-        return `${mm}/${y}`;
-      };
-
-      const monthsArray = Object.values(item.monthGroups).sort((a, b) => {
-        return new Date(b.month + "-01") - new Date(a.month + "-01");
-      });
-
-      return {
-        _id: item._id,
-        department: item.department,
-        totalBudgetCost: item.totalBudgetCost,
-        month: `${formatMonth(item.minMonth)} -> ${formatMonth(item.maxMonth)}`,
-        months: monthsArray,
-      };
-    });
-
-    const totalPages = Math.ceil(totalItems / limit);
-    const pagination = {
-      data: results,
-      page: page,
-      totalDocs: totalItems,
-      totalPages: totalPages,
+    const formatMonth = (m) => {
+      if (!m) return "";
+      const [y, mm] = m.split("-");
+      return `${mm}/${y}`;
     };
 
-    res.status(200).json({ status: "success", data: pagination });
+    const data = results.map((r) => ({
+      _id: r._id,
+      department: {
+        _id: r.department._id,
+        code: r.department.code,
+        name: r.department.name,
+      },
+      totalBudgetCost: r.totalBudgetCost,
+      month: `${formatMonth(r.minMonth)} -> ${formatMonth(r.maxMonth)}`,
+    }));
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        data,
+        page,
+        totalDocs: totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+      },
+    });
   } catch (err) {
-    console.error(err.stack); // Dùng console.error để theo dõi lỗi
+    console.error(err.stack);
     res.status(500).json({ status: "error", message: err.message });
   }
 };
+
+// ===== Cấp 1: các tháng trong 1 department or  productionScope =====
+exports.getMonths = async (req, res) => {
+  try {
+    const { department, productionScope } = req.query;
+    if (!department) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Thiếu department" });
+    }
+
+    const matchStage = { department: new mongoose.Types.ObjectId(department) };
+    if (productionScope) {
+      matchStage.productionScope = new mongoose.Types.ObjectId(productionScope);
+    }
+
+    const results = await MaterialBudget.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: "$month",
+          totalMonthCost: { $sum: "$totalBudgetCost" },
+        },
+      },
+      { $sort: { _id: -1 } },
+    ]);
+
+    const data = results.map((r) => ({
+      _id: r._id,
+      month: r._id,
+      totalMonthCost: r.totalMonthCost,
+    }));
+
+    res.status(200).json({ status: "success", data });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+// ===== Cấp 2: các diện (productionScope) trong 1 department + 1 tháng =====
+exports.getScopesByMonth = async (req, res) => {
+  try {
+    const { department, month } = req.query;
+    if (!department || !month) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu department hoặc month",
+      });
+    }
+
+    const results = await MaterialBudget.aggregate([
+      {
+        $match: {
+          department: new mongoose.Types.ObjectId(department),
+          month,
+        },
+      },
+      {
+        $group: {
+          _id: "$productionScope",
+          totalBudgetCost: { $sum: "$totalBudgetCost" },
+        },
+      },
+      {
+        $lookup: {
+          from: "productionscopes",
+          localField: "_id",
+          foreignField: "_id",
+          as: "productionScope",
+        },
+      },
+      { $unwind: "$productionScope" },
+      { $sort: { "productionScope.code": 1 } },
+    ]);
+
+    const data = results.map((r) => ({
+      _id: r._id, // dùng làm khoá đại diện cho group (productionScope) khi cần xoá/sửa cả nhóm
+      productionScope: {
+        _id: r.productionScope._id,
+        code: r.productionScope.code,
+        name: r.productionScope.name,
+      },
+      totalBudgetCost: r.totalBudgetCost,
+    }));
+
+    res.status(200).json({ status: "success", data });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+// ===== Cấp 3: các phase thuộc 1 department + 1 tháng + 1 diện =====
+exports.getPhasesByScope = async (req, res) => {
+  try {
+    const { department, month, productionScope } = req.query;
+    if (!department || !month || !productionScope) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu department, month hoặc productionScope",
+      });
+    }
+
+    const docs = await MaterialBudget.find({
+      department,
+      month,
+      productionScope,
+    })
+      .populate("phase", "code name")
+      .populate({ path: "assignmentNormCode", select: "code" })
+      .populate({ path: "adjustmentNormCode", select: "code" })
+      .populate({
+        path: "budgetCostDetails.assignmentCode",
+        select: "code name uom",
+        populate: { path: "uom", select: "name" },
+      })
+      .lean();
+
+    const data = docs.map((d) => ({
+      ...d,
+      key: d._id.toString(),
+    }));
+
+    res.status(200).json({ status: "success", data });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
 exports.getOne = async (req, res) => {
   try {
     const materialbudget = await MaterialBudget.findById(req.params.id)

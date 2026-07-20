@@ -3,7 +3,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TextField,
@@ -12,67 +11,55 @@ import {
   MenuItem,
   Grid,
   Typography,
-  Breadcrumbs,
-  Tabs,
-  Tab,
-  Checkbox,
-  Button,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
-import {
-  MaterialAssignmentOutputType,
-  MaterialBudgetInputType,
-  PhaseOutputType,
-  ProductionScopeOutputType,
-} from "../../types";
-import {
-  ArrowDropDown,
-  CalendarToday,
-  FileDownload,
-  Mail,
-  Print,
-} from "@mui/icons-material";
-import custom_theme from "../../theme";
-import FieldMonthYear from "../../ui/FieldMonth_Year";
-import dayjs from "dayjs";
 import SettlementService from "../../service/SettlementRepotr";
 import { parseAxiosError } from "../../utils/handleApiError";
 import { showErrorAlert } from "../../components/Alert";
 import { formatDecimal, formattedPrice } from "../../utils/helpers";
+import FieldAutoCompleted from "../../components/TextField/FieldAutoCompleted";
 
 export default function Quarterlycontractsettlement() {
-  const [selectedPhase, setSelectedPhase] = useState("");
-  const [selectedProductionScope, setSelectedProductionScope] = useState("");
-  const [selectedQuarter, setSelectedQuarter] = useState<number | null>(1);
+  const [selectedQuarter, setSelectedQuarter] = useState("1");
+  const [selectedDepartment, setSelectedDepartment] = useState("");
 
   const queryClient = useQueryClient();
 
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedYear, setSelectedYear] = useState(currentYear.toString());
 
   const years = [];
 
   for (let i = 0; i < 20; i++) {
-    years.push(currentYear - i);
+    years.push({ _id: currentYear - i, label: currentYear - i });
   }
 
   const quarters = [
-    { value: 1, label: "Quý 1" },
-    { value: 2, label: "Quý 2" },
-    { value: 3, label: "Quý 3" },
-    { value: 4, label: "Quý 4" },
+    { _id: "1", label: "Quý 1" },
+    { _id: "2", label: "Quý 2" },
+    { _id: "3", label: "Quý 3" },
+    { _id: "4", label: "Quý 4" },
   ];
 
+  const { data: departments = { data: [] } } = useQuery({
+    queryKey: ["departments"],
+    queryFn: () => api.get("/departments").then((res) => res.data.data),
+  });
   const { data: contractsettlements = { data: [], info: {} } } = useQuery({
-    queryKey: ["contractsettlements", selectedQuarter, selectedYear],
+    queryKey: [
+      "contractsettlements",
+      selectedQuarter,
+      selectedYear,
+      selectedDepartment,
+    ],
     queryFn: () =>
       api
         .get(
-          `/contractsettlements/getQuarter?quarter=${selectedQuarter}&year=${selectedYear}&phase=${selectedPhase}&productionScope=${selectedProductionScope}`,
+          `/contractsettlements/getQuarter?quarter=${Number(selectedQuarter)}&year=${Number(selectedYear)}&department=${selectedDepartment}`,
         )
         .then((res) => res.data.data),
-    enabled: !!selectedQuarter && !!selectedYear,
+    enabled: !!selectedQuarter && !!selectedYear && !!selectedDepartment,
   });
 
   const exportExcel = useMutation({
@@ -169,114 +156,35 @@ export default function Quarterlycontractsettlement() {
     <Paper sx={{ width: "calc(100vw - 154px)", p: 2 }}>
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>
-          <Grid item xs={6}>
+          <Grid item xs={12}>
             <Grid container spacing={2} mb={3} alignItems="center">
-              <Grid item xs={3}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                >
-                  Chọn quý
-                </Typography>
-                <TextField
-                  fullWidth
-                  select
-                  value={selectedQuarter || ""}
-                  onChange={(e) => setSelectedQuarter(Number(e.target.value))}
-                  size="small"
-                >
-                  {quarters.map((quarter) => (
-                    <MenuItem key={quarter.value} value={quarter.value}>
-                      {quarter.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+              <Grid item xs={4}>
+                <FieldAutoCompleted
+                  data={departments?.data || []}
+                  value={selectedDepartment}
+                  setValue={setSelectedDepartment}
+                  title="Chọn phân xưởng"
+                  labelkey="name"
+                />
               </Grid>
-              <Grid item xs={3}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                >
-                  Chọn năm
-                </Typography>
-                <TextField
-                  fullWidth
-                  select
+              <Grid item xs={4}>
+                <FieldAutoCompleted
+                  data={quarters}
+                  value={selectedQuarter}
+                  setValue={setSelectedQuarter}
+                  title="Chọn quý"
+                  labelkey="label"
+                />
+              </Grid>
+              <Grid item xs={4}>
+                <FieldAutoCompleted
+                  data={years}
                   value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  size="small"
-                >
-                  {years.map((year) => (
-                    <MenuItem key={year} value={year}>
-                      {year}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  setValue={setSelectedYear}
+                  title="Chọn năm"
+                  labelkey="label"
+                />
               </Grid>
-              {/* <Grid item xs={3}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                >
-                  Chọn công đoạn
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Placeholder"
-                  onChange={(e) => setSelectedPhase(e.target.value)}
-                  sx={{
-                    // width: 168,
-                    // height: 32,
-                    // "& .MuiOutlinedInput-root": {
-                    //   backgroundColor: "#f8f9fa",
-                    //   "& fieldset": { borderColor: "#e0e0e0" },
-                    //   "&:hover fieldset": { borderColor: "#bdbdbd" },
-                    // },
-                    backgroundColor: '#fff'
-                  }}
-                  select
-                  variant="outlined"
-                >
-                  {phasegroups?.data?.map((item: PhaseOutputType) => (
-                    <MenuItem key={item._id} value={item._id}>
-                      {item.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={3}>
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 1, fontWeight: 500, color: "#333" }}
-                >
-                  Chọn diện sản xuất
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Placeholder"
-                  onChange={(e) => setSelectedProductionScope(e.target.value)}
-                  sx={{
-                    // width: 168,
-                    // height: 32,
-                    // "& .MuiOutlinedInput-root": {
-                    //   backgroundColor: "#f8f9fa",
-                    //   "& fieldset": { borderColor: "#e0e0e0" },
-                    //   "&:hover fieldset": { borderColor: "#bdbdbd" },
-                    // },
-                    backgroundColor: '#fff'
-                  }}
-                  select
-                  variant="outlined"
-                >
-                  {productionscopes?.data?.map((item: ProductionScopeOutputType) => (
-                    <MenuItem key={item._id} value={item._id}>
-                      {item.code}
-                    </MenuItem>
-                  ))}
-                </TextField> 
-              </Grid>*/}
             </Grid>
           </Grid>
           {/* <Grid
