@@ -212,7 +212,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       navigate(path);
       return;
     }
-    const existingTab = tabs.find((t) => t.id === path);
+
+    // Normalize path: /materialassignment → /materialassignment?type=in
+    let normalizedPath = path;
+    if (normalizedPath === "/materialassignment") {
+      normalizedPath = "/materialassignment?type=in";
+    }
+
+    const existingTab = tabs.find((t) => t.id === normalizedPath);
     if (!existingTab && tabs.length >= maxTabs) {
       showErrorAlert(
         `Số lượng tab mở đã đạt giới hạn (tối đa ${maxTabs} tab). Vui lòng đóng bớt tab!`,
@@ -223,23 +230,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    const currentPath = location.pathname;
-    setActiveTabId(currentPath);
+    // Normalize path: /materialassignment → /materialassignment?type=in
+    let normalizedPath = location.pathname + location.search;
+    if (normalizedPath === "/materialassignment") {
+      normalizedPath = "/materialassignment?type=in";
+    }
+
+    setActiveTabId(normalizedPath);
 
     setTabs((prev) => {
-      if (!prev.find((t) => t.id === currentPath)) {
+      if (!prev.find((t) => t.id === normalizedPath)) {
         return [
           ...prev,
           {
-            id: currentPath,
-            path: currentPath,
-            title: ROUTE_TITLES[currentPath] || "Tab mới",
+            id: normalizedPath,
+            path: normalizedPath,
+            title: ROUTE_TITLES[normalizedPath] || "Tab mới",
           },
         ];
       }
       return prev;
     });
-  }, [location.pathname, setActiveTabId, setTabs]);
+  }, [location.pathname, location.search, setActiveTabId, setTabs]);
 
   useEffect(() => {
     const fetchSystemConfigs = async () => {
@@ -537,7 +549,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
-            handleNavigate("/materialassignment");
+            handleNavigate("/materialassignment?type=in");
             setMenuDanhMucEl(null);
             setMaterialSubMenuEl(null);
           }}
@@ -553,7 +565,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            handleNavigate("/materialassignmentoutplan"); // Update with your actual route
+            handleNavigate("/materialassignment?type=out");
             setMenuDanhMucEl(null);
             setMaterialSubMenuEl(null);
           }}

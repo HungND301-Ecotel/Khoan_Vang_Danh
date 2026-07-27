@@ -7,7 +7,7 @@ const {
   recalculateAssignmentCodePrice,
   calculatedPhase,
 } = require("../utils/recalculateAssignmentCodePrice");
-const { monthToNumber } = require("../utils/helpers");
+const { monthToNumber, dateToNumber } = require("../utils/helpers");
 const Department = require("../model/Department");
 
 const syncRelatedData = async (data, oldKey, session) => {
@@ -29,7 +29,6 @@ const syncRelatedData = async (data, oldKey, session) => {
       await MaterialCostUsed.findOne(searchKey).session(session);
 
     const mcuProduction = existingMCU?.production ?? 0;
-    console.log("mcuProduction", mcuProduction);
 
     if (existingMCU) {
       existingMCU.productionScope = productionScope;
@@ -49,27 +48,39 @@ const syncRelatedData = async (data, oldKey, session) => {
             ).session(session);
             let matched = null;
 
+            // Chuyển month (yyyy-MM) sang dd/MM/yyyy để so sánh
+            let checkDate = month;
+            if (month && month.match(/^\d{4}-\d{2}$/)) {
+              const [year, m] = month.split("-");
+              checkDate = `01/${m}/${year}`;
+            }
+
             if (material && Array.isArray(material.priceHistory)) {
+              const checkDateNum = dateToNumber(checkDate);
               matched = material.priceHistory.find((priceItem) => {
-                const start = monthToNumber(priceItem.startMonth);
-                const end = monthToNumber(priceItem.endMonth);
-                const checkMonth = monthToNumber(month);
-                return start <= checkMonth && checkMonth <= end;
+                const start = dateToNumber(priceItem.startDate);
+                const end = dateToNumber(priceItem.endDate);
+                return start <= checkDateNum && checkDateNum <= end;
               });
             }
-            const priceResult = await recalculateAssignmentCodePrice(
-              material?.assignmentCode,
-              null,
-              null,
-              month,
-              session,
-            );
 
-            const price = material?.assignmentCode
-              ? priceResult
-              : matched
-                ? matched.price
-                : 0;
+            // Chi phí kế hoạch ban đầu: chỉ lấy plannedPrice (mode month)
+            let price = 0;
+            if (material?.assignmentCode) {
+              // Có mã giao khoán: lấy plannedPrice từ assignmentCode
+              const priceResult = await recalculateAssignmentCodePrice(
+                material?.assignmentCode,
+                null,
+                null,
+                month,  // truyền tháng
+                session,
+                true,   // isMonthMode = true
+              );
+              price = priceResult?.plannedPrice ?? 0;
+            } else if (matched) {
+              // Không có mã giao khoán: lấy plannedPrice từ priceHistory
+              price = matched.plannedPrice ?? 0;
+            }
             return {
               material: doc.material,
               quantity: Number(doc.quantity),

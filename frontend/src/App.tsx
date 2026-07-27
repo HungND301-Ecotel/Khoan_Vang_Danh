@@ -14,7 +14,6 @@ import AssignmentCode from "./pages/AssignmentCode/AssignmentCode";
 import Unit from "./pages/Unit/Unit";
 import Department from "./pages/Department/Department";
 import MaterialAssignment from "./pages/MaterialAssignment/MaterialAssignment";
-import MaterialAssignmentOutPlan from "./pages/MaterialAssignmentOutPlan/MaterialAssignmentOutPlan";
 import PhaseGroup from "./pages/PhaseGroup/PhaseGroup";
 import Phase from "./pages/Phase/Phase";
 import ExcavationTech from "./pages/ExcavationTech/ExcavationTech";
@@ -122,10 +121,6 @@ const App = () => {
             <Route path="phase" element={<Phase />} />
             <Route path="assignmentcode" element={<AssignmentCode />} />
             <Route path="materialassignment" element={<MaterialAssignment />} />
-            <Route
-              path="materialassignmentoutplan"
-              element={<MaterialAssignmentOutPlan />}
-            />
             <Route path="excavationtech" element={<ExcavationTech />} />
             <Route path="crosssections" element={<CrossSection />} />
             <Route path="hardness" element={<Hardness />} />

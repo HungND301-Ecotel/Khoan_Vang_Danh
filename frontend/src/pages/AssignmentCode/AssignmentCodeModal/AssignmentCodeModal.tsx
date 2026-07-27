@@ -1,4 +1,4 @@
-import { Box, Button, DialogActions, Typography } from "@mui/material";
+import { Box, Button, DialogActions, TextField, Typography } from "@mui/material";
 import { Dispatch, SetStateAction } from "react";
 import * as yup from "yup";
 import { useFormik } from "formik";
@@ -12,6 +12,7 @@ import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted
 import FieldInput from "../../../components/TextField/FieldInput";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import BaseModal from "../../../components/Common/BaseModal";
+import { formattedPrice } from "../../../utils/helpers";
 
 const validationSchema = yup.object({
   code: yup.string().required("Mã giao khoán không được để trống"),
@@ -66,11 +67,6 @@ export default function AssignmentCodeModal({
         : selectedAssignmentCode
           ? selectedAssignmentCode.deviceCode?._id
           : "",
-      price: minimizedData
-        ? minimizedData.price
-        : selectedAssignmentCode
-          ? selectedAssignmentCode.price
-          : undefined,
     },
     enableReinitialize: true,
     validationSchema,
@@ -97,7 +93,9 @@ export default function AssignmentCodeModal({
       open={open}
       onClose={handleClose}
       onMinimize={handleMinimize}
-      title={(selectedAssignmentCode || minimizedData?._id) ? "Chỉnh sửa mã giao khoán"
+      title={
+        selectedAssignmentCode || minimizedData?._id
+          ? "Chỉnh sửa mã giao khoán"
           : "Tạo mới mã giao khoán"
       }
       breadcrumbs={["Danh mục", "Mã giao khoán"]}
@@ -129,7 +127,9 @@ export default function AssignmentCodeModal({
               textTransform: "none",
             }}
           >
-            {(selectedAssignmentCode || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
+            {selectedAssignmentCode || minimizedData?._id
+              ? "Cập nhật"
+              : "Xác nhận"}
           </Button>
         </>
       }
@@ -183,11 +183,45 @@ export default function AssignmentCodeModal({
               data={devicecodes.data}
             />
           </Box>
-          <Box>
-            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-              Đơn giá
-            </Typography>
-            <TextFieldNumber formik={formik} field="price" disabled={true} />
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Đơn giá kế hoạch
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                value={formattedPrice(selectedAssignmentCode?.plannedPrice)}
+                disabled
+                sx={{
+                  "& .MuiInputBase-root": {
+                    height: "32px",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                    backgroundColor: "#F5F5F5",
+                  },
+                }}
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Đơn giá thực hiện
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                value={formattedPrice(selectedAssignmentCode?.executionPrice)}
+                disabled
+                sx={{
+                  "& .MuiInputBase-root": {
+                    height: "32px",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                    backgroundColor: "#F5F5F5",
+                  },
+                }}
+              />
+            </Box>
           </Box>
         </Box>
       </Box>

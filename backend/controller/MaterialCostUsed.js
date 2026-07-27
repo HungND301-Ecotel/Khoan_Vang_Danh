@@ -7,7 +7,7 @@ const {
   recalculateAssignmentCodePrice,
   calculatedPhase,
 } = require("../utils/recalculateAssignmentCodePrice");
-const { monthToNumber } = require("../utils/helpers");
+const { monthToNumber, dateToNumber } = require("../utils/helpers");
 const Department = require("../model/Department");
 const InitialPlannedCost = require("../model/InitialPlannedCost"); // 👈 thêm import
 
@@ -111,7 +111,7 @@ const groupMaterialsByAssignmentCode = (materials) => {
   return result;
 };
 
-const buildMaterials = async (materials, month, session = null) => {
+const buildMaterials = async (materials, date, session = null) => {
   const processedMaterials = await Promise.all(
     materials.map(async (doc) => {
       const query = MaterialAssignment.findById(doc.material);
@@ -123,28 +123,38 @@ const buildMaterials = async (materials, month, session = null) => {
       let matched = null;
 
       if (material && Array.isArray(material.priceHistory)) {
-        matched = material.priceHistory.find((priceItem) => {
-          const start = monthToNumber(priceItem.startMonth);
-          const end = monthToNumber(priceItem.endMonth);
-          const checkMonth = monthToNumber(month);
+        // date có thể là "dd/MM/yyyy" hoặc "yyyy-MM" (backward compat)
+        // Chuyển về dd/MM/yyyy để so sánh
+        let checkDate = date;
+        if (date && date.match(/^\d{4}-\d{2}$/)) {
+          // Nếu là "2026-01", chuyển thành "01/01/2026"
+          const [year, month] = date.split('-');
+          checkDate = `01/${month}/${year}`;
+        }
+        const checkDateNum = dateToNumber(checkDate);
 
-          return start <= checkMonth && checkMonth <= end;
+        matched = material.priceHistory.find((priceItem) => {
+          const start = dateToNumber(priceItem.startDate);
+          const end = dateToNumber(priceItem.endDate);
+          return start <= checkDateNum && checkDateNum <= end;
         });
       }
 
-      const assignmentPrice = await recalculateAssignmentCodePrice(
+      const assignmentPriceResult = await recalculateAssignmentCodePrice(
         material?.assignmentCode,
         null,
         null,
-        month,
+        date,
         session,
       );
 
-      const price = material?.assignmentCode
-        ? assignmentPrice
-        : matched
-          ? matched.price
-          : 0;
+      // Chi phí thực hiện: dùng executionPrice
+      let price = 0;
+      if (material?.assignmentCode) {
+        price = assignmentPriceResult?.executionPrice ?? 0;
+      } else if (matched) {
+        price = matched.executionPrice ?? 0;
+      }
 
       return {
         material: doc.material,

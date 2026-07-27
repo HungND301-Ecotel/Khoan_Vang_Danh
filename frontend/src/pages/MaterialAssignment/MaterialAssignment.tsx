@@ -21,6 +21,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import MaterialAssignmentModal from "./MaterialAssignmentModal/MaterialAssignment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MaterialAssignmentInputType, Materials } from "../../types";
@@ -44,6 +45,10 @@ import PageAction from "../../components/Common/PageAction";
 import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function MaterialAssignment() {
+  const [searchParams] = useSearchParams();
+  const type = searchParams.get("type") || "in"; // "in" = trong khoán, "out" = ngoài khoán
+  const isOutPlan = type === "out";
+
   const [open, setOpen] = useState(false);
   const [selectedMaterialAssignment, setSelectedMaterialAssignment] =
     useState<Materials | null>(null);
@@ -58,9 +63,10 @@ export default function MaterialAssignment() {
   });
 
   const queryClient = useQueryClient();
+  const modalTitle = isOutPlan ? "Vật tư tài sản khác" : "Vật tư tài sản trong khoán";
   const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
     Partial<MaterialAssignmentInputType>
-  >(setOpen, "Vật tư tài sản trong khoán");
+  >(setOpen, modalTitle);
 
   const {
     data: materialAssignments = {
@@ -71,11 +77,11 @@ export default function MaterialAssignment() {
     isLoading,
     isFetching,
   } = useQuery({
-    queryKey: ["materialAssignments", searchValue, page, limit],
+    queryKey: ["materialAssignments", searchValue, page, limit, type],
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/materialAssignments?q=${searchValue}&page=${page}&limit=${limit}&type=in`,
+          `/materialAssignments?q=${searchValue}&page=${page}&limit=${limit}&type=${type}`,
         );
         return response.data.data;
       } catch (error) {
@@ -230,7 +236,7 @@ export default function MaterialAssignment() {
   });
 
   const exportExcel = useMutation({
-    mutationFn: MaterialAssignmentService.exportFile,
+    mutationFn: () => MaterialAssignmentService.exportFile(type),
     onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
@@ -248,28 +254,37 @@ export default function MaterialAssignment() {
         <Typography>{(page - 1) * limit + index + 1}</Typography>
       ),
     },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
-      dataIndex: "assignmentCode",
-      key: "assignmentCode",
-      width: 200,
-      render: (_, record) => (
-        <Typography>{record.assignmentCode?.code}</Typography>
-      ),
-      sorter: (a, b) =>
-        (a.assignmentCode?.code ?? "").localeCompare(
-          b.assignmentCode?.code ?? "",
-          "vi",
-          { sensitivity: "base" },
-        ),
-    },
+    // Mã giao khoán - chỉ hiển thị khi trong khoán
+    ...(!isOutPlan
+      ? [
+          {
+            title: (
+              <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>
+            ),
+            dataIndex: "assignmentCode",
+            key: "assignmentCode",
+            width: 200,
+            render: (_: any, record: Materials) => (
+              <Typography>{record.assignmentCode?.code}</Typography>
+            ),
+            sorter: (a: Materials, b: Materials) =>
+              (a.assignmentCode?.code ?? "").localeCompare(
+                b.assignmentCode?.code ?? "",
+                "vi",
+                { sensitivity: "base" },
+              ),
+          },
+        ]
+      : []),
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
       dataIndex: "code",
       key: "code",
       width: 200,
-      render: (_, record) => <Typography>{record.code}</Typography>,
-      sorter: (a, b) =>
+      render: (_: any, record: Materials) => (
+        <Typography>{record.code}</Typography>
+      ),
+      sorter: (a: Materials, b: Materials) =>
         (a.code ?? "").localeCompare(b.code ?? "", "vi", {
           sensitivity: "base",
         }),
@@ -278,8 +293,10 @@ export default function MaterialAssignment() {
       title: <Typography sx={{ fontWeight: "bold" }}>Tên vật tư</Typography>,
       dataIndex: "name",
       key: "name",
-      render: (value, record) => <Typography>{value}</Typography>,
-      sorter: (a, b) =>
+      render: (value: any, record: Materials) => (
+        <Typography>{value}</Typography>
+      ),
+      sorter: (a: Materials, b: Materials) =>
         (a.name ?? "").localeCompare(b.name ?? "", "vi", {
           sensitivity: "base",
         }),
@@ -288,29 +305,50 @@ export default function MaterialAssignment() {
       title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
       dataIndex: "uom",
       key: "uom",
-      render: (_, record) => <Typography>{record.uom?.name}</Typography>,
+      render: (_: any, record: Materials) => (
+        <Typography>{record.uom?.name}</Typography>
+      ),
     },
+    // Số lượng - chỉ hiển thị khi trong khoán
+    ...(!isOutPlan
+      ? [
+          {
+            title: (
+              <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>
+            ),
+            dataIndex: "quantity",
+            key: "quantity",
+            render: (_: any, record: Materials) => (
+              <Typography>{formatDecimal(record?.quantity)}</Typography>
+            ),
+          },
+        ]
+      : []),
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
-      dataIndex: "quantity",
-      key: "quantity",
-      render: (_, record) => (
-        <Typography>{formatDecimal(record?.quantity)}</Typography>
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>Đơn giá kế hoạch</Typography>
+      ),
+      dataIndex: "plannedPrice",
+      key: "plannedPrice",
+      render: (_: any, record: Materials) => (
+        <Typography>{formattedPrice(record?.plannedPrice)}</Typography>
       ),
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>,
-      dataIndex: "price",
-      key: "price",
-      render: (_, record) => (
-        <Typography>{formattedPrice(record?.currentPrice)}</Typography>
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>Đơn giá thực hiện</Typography>
+      ),
+      dataIndex: "executionPrice",
+      key: "executionPrice",
+      render: (_: any, record: Materials) => (
+        <Typography>{formattedPrice(record?.executionPrice)}</Typography>
       ),
     },
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
       dataIndex: "edit",
       width: 50,
-      render: (_, record) => (
+      render: (_: any, record: Materials) => (
         <IconButton onClick={() => handleOpen(record)}>
           <Edit />
         </IconButton>
@@ -330,6 +368,9 @@ export default function MaterialAssignment() {
     setSearchValue("");
   };
 
+  const breadcrumbSuffix = isOutPlan ? "khác" : "trong khoán";
+  const titleSuffix = isOutPlan ? "khác" : "trong khoán";
+
   return (
     <>
       <Box
@@ -341,7 +382,7 @@ export default function MaterialAssignment() {
         <Breadcrumbs aria-label="breadcrumb">
           <Typography>Danh mục</Typography>
           <Typography>Vật tư tài sản</Typography>
-          <Typography>Vật tư tài sản trong khoán</Typography>
+          <Typography>Vật tư tài sản {breadcrumbSuffix}</Typography>
         </Breadcrumbs>
         <Box mt={3}>
           <Box>
@@ -350,7 +391,7 @@ export default function MaterialAssignment() {
                 variant="h4"
                 sx={{ color: (theme) => custom_theme.palette.table_name.main }}
               >
-                Vật tư tài sản trong khoán
+                Vật tư tài sản {titleSuffix}
               </Typography>
               <PageAction
                 selectedIds={selectedMaterialAssignments}
@@ -388,6 +429,7 @@ export default function MaterialAssignment() {
           minimizedData={minimizedData}
           onMinimize={handleMinimize}
           clearMinimize={clearMinimize}
+          isOutPlan={isOutPlan}
         />
       </Box>
       <ImportErrorDialog

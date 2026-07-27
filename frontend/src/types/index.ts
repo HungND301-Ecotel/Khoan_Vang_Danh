@@ -61,7 +61,8 @@ export interface AssignmentCodeInputType {
   code?: string;
   name: string;
   uom?: string;
-  price?: number;
+  executionPrice?: number;
+  plannedPrice?: number;
   deviceCode?: string;
 }
 export interface AssignmentCodeOutputType {
@@ -69,7 +70,8 @@ export interface AssignmentCodeOutputType {
   code?: string;
   name: string;
   uom?: UnitType;
-  price?: number;
+  executionPrice?: number;
+  plannedPrice?: number;
   deviceCode?: DeviceCodeType;
 }
 //
@@ -82,11 +84,13 @@ export interface Materials {
   assignmentCode?: AssignmentCodeOutputType;
   quantity?: number;
   priceHistory: {
-    price: number;
-    startMonth: string;
-    endMonth: string;
+    startDate: string;       // "dd/MM/yyyy"
+    endDate: string;         // "dd/MM/yyyy"
+    executionPrice: number;  // Đơn giá thực hiện
+    plannedPrice?: number;   // Đơn giá kế hoạch
   }[];
-  currentPrice?: number;
+  executionPrice?: number;   // Đơn giá thực hiện hiện tại
+  plannedPrice?: number;     // Đơn giá kế hoạch hiện tại
 }
 export interface MaterialAssignmentOutputType {
   _id?: string;
@@ -105,9 +109,10 @@ export interface MaterialAssignmentInputType {
   currentPrice?: number;
   assignmentCode?: string;
   priceHistory: {
-    price?: number;
-    startMonth?: string;
-    endMonth?: string;
+    startDate?: string;       // "dd/MM/yyyy"
+    endDate?: string;         // "dd/MM/yyyy"
+    executionPrice?: number;  // Đơn giá thực hiện
+    plannedPrice?: number;    // Đơn giá kế hoạch
   }[];
 }
 export interface UnitType {

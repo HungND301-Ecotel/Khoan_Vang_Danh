@@ -12,7 +12,7 @@ const { checkUniqueCode } = require("../utils/codeValidator");
 
 exports.create = async (req, res) => {
   try {
-    const { code, name, uom, price, deviceCode } = req.body;
+    const { code, name, uom, deviceCode } = req.body;
     const { isDuplicate, collectionName } = await checkUniqueCode(
       code,
       null,
@@ -30,10 +30,13 @@ exports.create = async (req, res) => {
       code,
       name,
       uom,
-      price,
       deviceCode,
+      executionPrice: 0,
+      plannedPrice: 0,
     });
     await newAssignmentCode.save();
+    // Tính giá từ vật tư con
+    await updatePriceAssignmentCode(newAssignmentCode._id);
     res.status(201).json({ status: "success", message: "Tạo thành công" });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -140,7 +143,8 @@ const columnMapping = {
   "Mã giao khoán": "code",
   "Tên giao khoán": "name",
   ĐVT: "uom",
-  "Đơn giá": "price",
+  "Đơn giá kế hoạch": "plannedPrice",
+  "Đơn giá thực hiện": "executionPrice",
   id: "_id",
   _id: "_id", // **Bổ sung key cho các cột ẩn chứa dropdown**
   deviceCodes: "ignored",
@@ -415,7 +419,8 @@ exports.export = async (req, res) => {
       { header: "Mã giao khoán", key: "code", width: 20 },
       { header: "Tên giao khoán", key: "name", width: 20 },
       { header: "ĐVT", key: "uom", width: 20 },
-      { header: "Đơn giá", key: "price", width: 20 },
+      { header: "Đơn giá kế hoạch", key: "plannedPrice", width: 20 },
+      { header: "Đơn giá thực hiện", key: "executionPrice", width: 20 },
       { header: "_id", key: "_id", width: 20 }, // Thêm cột _id
     ];
 
@@ -424,7 +429,8 @@ exports.export = async (req, res) => {
       code: i?.code || "",
       name: i?.name || "",
       uom: i?.uom?.name || "",
-      price: i?.price || "",
+      plannedPrice: i?.plannedPrice || 0,
+      executionPrice: i?.executionPrice || 0,
       _id: i?._id || "", // Thêm _id
     }));
 
@@ -463,7 +469,7 @@ exports.export = async (req, res) => {
       formulae: [`=$Y$2:$Y$${unitList.length + 1}`],
     }); // 🔑 Cột cần mở khóa chỉnh sửa
 
-    const editableKeys = ["deviceCode", "code", "name", "uom", "price"];
+    const editableKeys = ["deviceCode", "code", "name", "uom", "plannedPrice", "executionPrice"];
 
     const buffer = await configExport(workbook, worksheet, editableKeys, MAX);
 

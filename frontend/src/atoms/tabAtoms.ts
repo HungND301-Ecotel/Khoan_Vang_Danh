@@ -25,6 +25,8 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/devicecode": "Mã thiết bị",
   "/assignmentcode": "Mã giao khoán",
   "/materialassignment": "Vật tư trong khoán",
+  "/materialassignment?type=in": "Vật tư trong khoán",
+  "/materialassignment?type=out": "Vật tư khác",
   "/materialassignmentoutplan": "Vật tư khác",
   "/rockratio": "Tỷ lệ đá lẫn trong gương",
   "/mirrorratio": "Tỷ lệ gương than mềm",

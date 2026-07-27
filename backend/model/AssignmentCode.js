@@ -18,8 +18,13 @@ const AssignmentCode = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'DeviceCode'
     },
-    price: {
-        type: Number
+    executionPrice: {
+        type: Number,
+        default: 0
+    },
+    plannedPrice: {
+        type: Number,
+        default: 0
     },
 }, {
     timestamps: true

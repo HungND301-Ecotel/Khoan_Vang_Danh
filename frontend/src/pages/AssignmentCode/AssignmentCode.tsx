@@ -1,12 +1,5 @@
-import {
-  Edit,
-} from "@mui/icons-material";
-import {
-  Box,
-  Breadcrumbs,
-  IconButton,
-  Typography,
-} from "@mui/material";
+import { Edit } from "@mui/icons-material";
+import { Box, Breadcrumbs, IconButton, Typography } from "@mui/material";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import AssignmentCodeModal from "./AssignmentCodeModal/AssignmentCodeModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,8 +32,8 @@ export default function AssignmentCode() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
-  Partial<AssignmentCodeInputType>
->(setOpen, "Mã giao khoán");
+    Partial<AssignmentCodeInputType>
+  >(setOpen, "Mã giao khoán");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleUploadClick = () => {
@@ -238,11 +231,23 @@ export default function AssignmentCode() {
       render: (_, record) => <Typography>{record.uom?.name}</Typography>,
     },
     {
-      title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>,
-      dataIndex: "price",
-      key: "price",
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>Đơn giá kế hoạch</Typography>
+      ),
+      dataIndex: "plannedPrice",
+      key: "plannedPrice",
       render: (_, record) => (
-        <Typography>{formattedPrice(record.price)}</Typography>
+        <Typography>{formattedPrice(record.plannedPrice)}</Typography>
+      ),
+    },
+    {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>Đơn giá thực hiện</Typography>
+      ),
+      dataIndex: "executionPrice",
+      key: "executionPrice",
+      render: (_, record) => (
+        <Typography>{formattedPrice(record.executionPrice)}</Typography>
       ),
     },
     {
@@ -263,7 +268,6 @@ export default function AssignmentCode() {
       setSelectedAssignmentCodes(newSelectedAssignmentCodes);
     },
   };
-
 
   return (
     <Box

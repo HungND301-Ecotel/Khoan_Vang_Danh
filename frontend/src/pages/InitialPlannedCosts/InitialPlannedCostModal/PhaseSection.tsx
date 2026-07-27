@@ -31,7 +31,6 @@ export default function PhaseSection({
   getError,
 }: PhaseSectionProps) {
   const phases = formik.values.groups[gIdx]?.phases || [];
-  console.log(phases);
 
   return (
     <FieldArray name={`groups.${gIdx}.phases`}>
@@ -234,17 +233,36 @@ export default function PhaseSection({
                         Mã giao khoán
                       </Typography>
                       <AppMultiAutocomplete
-                        options={(
-                          formik.values.groups[gIdx].phases[pIdx]
-                            .assignmentCodes || []
-                        )
-                          .filter((ac: any) => !ac.checked)
-                          .map((ac: any) => ({
-                            _id: ac.assignmentCode,
-                            code: ac.code,
-                            name: ac.name || "",
-                            norm: ac.norm,
-                          }))}
+                        options={
+                          // Lấy từ định mức giao khoán, ẩn mã đã chọn
+                          (
+                            assignmentnormsData.find(
+                              (n: any) =>
+                                n._id ===
+                                formik.values.groups[gIdx].phases[pIdx]
+                                  .assignmentNormCode,
+                            )?.norms || []
+                          )
+                            .filter((n: any) => {
+                              // Ẩn các mã đã checked = true
+                              const currentCodes =
+                                formik.values.groups[gIdx].phases[pIdx]
+                                  .assignmentCodes || [];
+                              const acId =
+                                n.assignmentCode?._id || n.assignmentCode;
+                              const isSelected = currentCodes.some(
+                                (c: any) =>
+                                  c.assignmentCode === acId && c.checked,
+                              );
+                              return !isSelected;
+                            })
+                            .map((n: any) => ({
+                              _id: n.assignmentCode?._id || n.assignmentCode,
+                              code: n.assignmentCode?.code || "",
+                              name: n.assignmentCode?.name || "",
+                              norm: n.norm || 0,
+                            }))
+                        }
                         value={(
                           formik.values.groups[gIdx].phases[pIdx]
                             .assignmentCodes || []
@@ -259,13 +277,51 @@ export default function PhaseSection({
                         getOptionLabel={(option: any) => option.code || ""}
                         onChange={(newValue: any[]) => {
                           const newCheckedIds = newValue.map((v) => v._id);
-                          const updatedCodes = (
+                          const currentCodes =
                             formik.values.groups[gIdx].phases[pIdx]
-                              .assignmentCodes || []
-                          ).map((ac: any) => ({
-                            ...ac,
-                            checked: newCheckedIds.includes(ac.assignmentCode),
-                          }));
+                              .assignmentCodes || [];
+
+                          // Lấy danh sách mã từ định mức
+                          const normDoc = assignmentnormsData.find(
+                            (n: any) =>
+                              n._id ===
+                              formik.values.groups[gIdx].phases[pIdx]
+                                .assignmentNormCode,
+                          );
+                          const normCodes = normDoc?.norms || [];
+
+                          // Tạo lại toàn bộ assignmentCodes từ định mức
+                          const adjustmentNormCode =
+                            formik.values.groups[gIdx].phases[pIdx]
+                              .adjustmentNormCode;
+                          const adjustmentDoc = adjustmentnormsData.find(
+                            (a: any) => a._id === adjustmentNormCode,
+                          );
+
+                          const updatedCodes = normCodes.map((n: any) => {
+                            const acId =
+                              n.assignmentCode?._id || n.assignmentCode;
+                            const existingCode = currentCodes.find(
+                              (c: any) => c.assignmentCode === acId,
+                            );
+                            const adjNorm = adjustmentDoc?.norms?.find(
+                              (an: any) =>
+                                (an.assignmentCode?._id ||
+                                  an.assignmentCode) === acId,
+                            );
+                            const adjFactor = adjNorm?.norm ?? 1;
+
+                            return {
+                              assignmentCode: acId,
+                              code: n.assignmentCode?.code || "",
+                              name: n.assignmentCode?.name || "",
+                              baseNorm: n.norm || 0,
+                              adjustmentNorm: adjFactor,
+                              norm: (n.norm || 0) * adjFactor,
+                              checked: newCheckedIds.includes(acId),
+                            };
+                          });
+
                           formik.setFieldValue(
                             `groups.${gIdx}.phases.${pIdx}.assignmentCodes`,
                             updatedCodes,

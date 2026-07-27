@@ -28,18 +28,29 @@ import api from "../../../config/api.config";
 import { Divider } from "antd";
 import utc from "dayjs/plugin/utc";
 import dayjs from "dayjs";
-import FieldMonthYear from "../../../ui/FieldMonth_Year";
+import FieldDate from "../../../ui/FieldDate";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 import FieldInput from "../../../components/TextField/FieldInput";
 import BaseModal from "../../../components/Common/BaseModal";
 dayjs.extend(utc);
 
-const validationSchema = yup.object({
-  assignmentCode: yup.string().required("Mã giao khoán không được để trống"),
-  code: yup.string().required("Mã vật tư không được để trống"),
-  name: yup.string().required("Tên vật tư giao khoán không được để trống"),
-});
+const validationSchema = (isOutPlan: boolean) =>
+  yup.object({
+    assignmentCode: isOutPlan
+      ? yup.string().optional()
+      : yup.string().required("Mã giao khoán không được để trống"),
+    code: yup.string().required("Mã vật tư không được để trống"),
+    name: yup.string().required("Tên vật tư giao khoán không được để trống"),
+  });
+
+// Format date dd/MM/yyyy
+const formatDate = (date: Date) => {
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 
 export default function MaterialAssignmentModal({
   open,
@@ -49,6 +60,7 @@ export default function MaterialAssignmentModal({
   minimizedData,
   onMinimize,
   clearMinimize,
+  isOutPlan = false,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
@@ -57,6 +69,7 @@ export default function MaterialAssignmentModal({
   minimizedData?: any;
   onMinimize?: (data: any) => void;
   clearMinimize?: () => void;
+  isOutPlan?: boolean;
 }) {
   const {
     data: assignmentCodes = {
@@ -104,24 +117,22 @@ export default function MaterialAssignmentModal({
         : selectedMaterialAssignment &&
             Array.isArray(selectedMaterialAssignment.priceHistory)
           ? selectedMaterialAssignment.priceHistory.map((item) => ({
-              price: item.price,
-              startMonth: item.startMonth
-                ? dayjs(item.startMonth).format("YYYY-MM")
-                : "",
-              endMonth: item.endMonth
-                ? dayjs(item.endMonth).format("YYYY-MM")
-                : "",
+              startDate: item.startDate || "",
+              endDate: item.endDate || "",
+              executionPrice: item.executionPrice || 0,
+              plannedPrice: item.plannedPrice || 0,
             }))
           : [
               {
-                price: 0,
-                startMonth: dayjs(new Date()).format("YYYY-MM"),
-                endMonth: dayjs(new Date()).format("YYYY-MM"),
+                startDate: formatDate(new Date()),
+                endDate: formatDate(new Date()),
+                executionPrice: 0,
+                plannedPrice: 0,
               },
             ],
     },
     enableReinitialize: true,
-    validationSchema,
+    validationSchema: validationSchema(isOutPlan),
     onSubmit: (values) => {
       const transformedValues: MaterialAssignmentInputType = {
         ...values,
@@ -131,9 +142,8 @@ export default function MaterialAssignmentModal({
             : Number(values.quantity),
         priceHistory: values.priceHistory.map((item: any) => ({
           ...item,
-          price: Number(item.price),
-          startMonth: dayjs(new Date(item.startMonth)).format("YYYY-MM"),
-          endMonth: dayjs(new Date(item.endMonth)).format("YYYY-MM"),
+          executionPrice: Number(item.executionPrice),
+          plannedPrice: item.plannedPrice ? Number(item.plannedPrice) : null,
         })),
       };
       handleSubmit(transformedValues);
@@ -150,15 +160,20 @@ export default function MaterialAssignmentModal({
     if (onMinimize) onMinimize({ ...formik.values, _id: selectedMaterialAssignment?._id || minimizedData?._id });
   };
 
+  const titleSuffix = isOutPlan ? "ngoài khoán" : "trong khoán";
+  const breadcrumbSuffix = isOutPlan ? "ngoài khoán" : "trong khoán";
+
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
       onMinimize={handleMinimize}
-      title={(selectedMaterialAssignment || minimizedData?._id) ? "Chỉnh sửa vật tư, tài sản trong khoán"
-          : "Tạo mới vật tư, tài sản trong khoán"
+      title={
+        selectedMaterialAssignment || minimizedData?._id
+          ? `Chỉnh sửa vật tư, tài sản ${titleSuffix}`
+          : `Tạo mới vật tư, tài sản ${titleSuffix}`
       }
-      breadcrumbs={["Danh mục", "Vật tư, tài sản trong khoán"]}
+      breadcrumbs={["Danh mục", `Vật tư, tài sản ${breadcrumbSuffix}`]}
       showZoom={true}
       actions={
         <>
@@ -187,7 +202,9 @@ export default function MaterialAssignmentModal({
               textTransform: "none",
             }}
           >
-            {(selectedMaterialAssignment || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
+            {selectedMaterialAssignment || minimizedData?._id
+              ? "Cập nhật"
+              : "Xác nhận"}
           </Button>
         </>
       }
@@ -195,19 +212,21 @@ export default function MaterialAssignmentModal({
       <FormikProvider value={formik}>
         <Box component="form" onSubmit={formik.handleSubmit}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {/* Mã giao khoán */}
-            <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                Mã giao khoán
-              </Typography>
-              <FieldAutoCompleted
-                formik={formik}
-                field="assignmentCode"
-                labelkey="code"
-                title=""
-                data={assignmentCodes.data}
-              />
-            </Box>
+            {/* Mã giao khoán - chỉ hiển thị khi trong khoán */}
+            {!isOutPlan && (
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Mã giao khoán
+                </Typography>
+                <FieldAutoCompleted
+                  formik={formik}
+                  field="assignmentCode"
+                  labelkey="code"
+                  title=""
+                  data={assignmentCodes.data}
+                />
+              </Box>
+            )}
 
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
@@ -221,12 +240,17 @@ export default function MaterialAssignmentModal({
               </Typography>
               <FieldInput formik={formik} field="name" />
             </Box>
-            <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                Số lượng
-              </Typography>
-              <TextFieldNumber formik={formik} field="quantity" />
-            </Box>
+
+            {/* Số lượng - chỉ hiển thị khi trong khoán */}
+            {!isOutPlan && (
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Số lượng
+                </Typography>
+                <TextFieldNumber formik={formik} field="quantity" />
+              </Box>
+            )}
+
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
                 Đơn vị tính
@@ -242,7 +266,7 @@ export default function MaterialAssignmentModal({
 
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 2 }}>
-                Đơn giá
+                Đơn giá theo ngày
               </Typography>
               <FieldArray name="priceHistory">
                 {({ push, remove }) => (
@@ -251,59 +275,66 @@ export default function MaterialAssignmentModal({
                   >
                     {formik.values.priceHistory.map(
                       (item: any, index: number) => (
-                        <Grid
-                          container
-                          spacing={2}
-                          key={index}
-                          alignItems="center"
-                        >
-                          <Grid item xs={4}>
-                            <Typography
-                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
-                            >
-                              Từ tháng
-                            </Typography>
-                            <FieldMonthYear
-                              formik={formik}
-                              fieldName={`priceHistory.${index}.startMonth`}
-                            />
-                          </Grid>
-                          <Grid item xs={4}>
-                            <Typography
-                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
-                            >
-                              Đến tháng
-                            </Typography>
-                            <FieldMonthYear
-                              formik={formik}
-                              fieldName={`priceHistory.${index}.endMonth`}
-                            />
-                          </Grid>
-
-                          <Grid item xs={3}>
-                            <Typography
-                              sx={{ fontSize: "12px", color: "#666", mb: 1 }}
-                            >
-                              Đơn giá
-                            </Typography>
-                            <TextFieldNumber
-                              formik={formik}
-                              field={`priceHistory.${index}.price`}
-                            />
-                          </Grid>
-
-                          <Grid item xs={1}>
-                            {formik.values.priceHistory.length > 1 && (
-                              <IconButton
-                                color="error"
-                                onClick={() => remove(index)}
-                                sx={{ mt: 2 }}
+                        <Box key={index}>
+                          <Grid container spacing={2} alignItems="center">
+                            <Grid item xs={3}>
+                              <Typography
+                                sx={{ fontSize: "12px", color: "#666", mb: 1 }}
                               >
-                                <Delete />
-                              </IconButton>
-                            )}
+                                Từ ngày
+                              </Typography>
+                              <FieldDate
+                                formik={formik}
+                                fieldName={`priceHistory.${index}.startDate`}
+                              />
+                            </Grid>
+                            <Grid item xs={3}>
+                              <Typography
+                                sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                              >
+                                Đến ngày
+                              </Typography>
+                              <FieldDate
+                                formik={formik}
+                                fieldName={`priceHistory.${index}.endDate`}
+                              />
+                            </Grid>
+                            <Grid item xs={2}>
+                              <Typography
+                                sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                              >
+                                Đơn giá kế hoạch
+                              </Typography>
+                              <TextFieldNumber
+                                formik={formik}
+                                field={`priceHistory.${index}.plannedPrice`}
+                              />
+                            </Grid>
+                            <Grid item xs={3}>
+                              <Typography
+                                sx={{ fontSize: "12px", color: "#666", mb: 1 }}
+                              >
+                                Đơn giá thực hiện
+                              </Typography>
+                              <TextFieldNumber
+                                formik={formik}
+                                field={`priceHistory.${index}.executionPrice`}
+                              />
+                            </Grid>
+
+                            <Grid item xs={1}>
+                              {formik.values.priceHistory.length > 1 && (
+                                <IconButton
+                                  color="error"
+                                  onClick={() => remove(index)}
+                                  sx={{ mt: 2 }}
+                                >
+                                  <Delete />
+                                </IconButton>
+                              )}
+                            </Grid>
                           </Grid>
-                        </Grid>
+                        </Box>
                       ),
                     )}
 
@@ -313,9 +344,10 @@ export default function MaterialAssignmentModal({
                         color="primary"
                         onClick={() =>
                           push({
-                            price: 0,
-                            startMonth: dayjs(new Date()).format("YYYY-MM"),
-                            endMonth: dayjs(new Date()).format("YYYY-MM"),
+                            startDate: formatDate(new Date()),
+                            endDate: formatDate(new Date()),
+                            executionPrice: 0,
+                            plannedPrice: 0,
                           })
                         }
                       >

@@ -5,8 +5,7 @@ const {
 } = require("../utils/recalculateAssignmentCodePrice");
 const ProductionScope = require("../model/ProductionScope");
 const Department = require("../model/Department");
-
-const monthToNumber = (month) => (month ? Number(month.replace("-", "")) : "");
+const { dateToNumber } = require("../utils/helpers");
 
 exports.create = async (req, res) => {
   try {
@@ -303,11 +302,8 @@ exports.getOne = async (req, res) => {
     const assignmentNorms = materialbudget.assignmentNormCode?.norms || [];
     const adjustmentNorms = materialbudget.adjustmentNormCode?.norms || [];
     const today = new Date();
-    const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}`;
-
-    const currentMonthNum = monthToNumber(currentYearMonth);
+    const todayStr = `${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
+    const checkDateNum = dateToNumber(todayStr);
 
     const result = [];
 
@@ -325,34 +321,37 @@ exports.getOne = async (req, res) => {
       }).populate("uom");
 
       const materialsWithPrice = materials.map((item) => {
-        let currentPrice = null;
+        let plannedPrice = null;
 
         if (Array.isArray(item.priceHistory)) {
           const matched = item.priceHistory.find((priceItem) => {
-            const start = monthToNumber(priceItem.startMonth);
-            const end = monthToNumber(priceItem.endMonth);
-            return start <= currentMonthNum && currentMonthNum <= end;
+            const start = dateToNumber(priceItem.startDate);
+            const end = dateToNumber(priceItem.endDate);
+            return start <= checkDateNum && checkDateNum <= end;
           });
 
-          if (matched) currentPrice = matched.price;
+          // Chi phí kế hoạch: chỉ lấy plannedPrice
+          if (matched) plannedPrice = matched.plannedPrice ?? 0;
         }
 
         return {
           ...item.toObject(),
-          currentPrice,
+          plannedPrice,
         };
       });
 
       const totalNorm =
         norm.norm && adjustmentNorm?.norm ? norm.norm * adjustmentNorm.norm : 0;
       const quantity = totalNorm * materialbudget.production;
-      const cost = quantity * (assignment.price || 0);
+      // Chi phí kế hoạch: dùng plannedPrice
+      const assignmentPrice = assignment.plannedPrice ?? 0;
+      const cost = quantity * assignmentPrice;
       result.push({
         _id: assignment._id,
         name: assignment.name,
         code: assignment.code,
         uom: assignment.uom?.name,
-        price: assignment.price,
+        price: assignmentPrice,
         assignmentNorm: norm?.norm,
         adjustmentNorm: adjustmentNorm?.norm,
         totalNorm: totalNorm,

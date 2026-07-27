@@ -12,7 +12,7 @@ const {
   updatePriceAssignmentCode,
   recalculateAssignmentCodePrice,
 } = require("../utils/recalculateAssignmentCodePrice");
-const { monthToNumber } = require("../utils/helpers");
+const { monthToNumber, dateToNumber } = require("../utils/helpers");
 const mongoose = require("mongoose");
 const { checkUniqueCode } = require("../utils/codeValidator");
 
@@ -155,36 +155,32 @@ exports.getGroup = async (req, res) => {
         .sort({ code: 1 });
 
       const today = new Date();
-      const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}`;
+      const todayStr = `${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
+      const checkDate = req.query.date || todayStr;
+      const checkDateNum = dateToNumber(checkDate);
+
       const materialsWithPrice = materials.map((item) => {
-        let currentPrice = null;
+        let executionPrice = null;
+        let plannedPrice = null;
 
         if (Array.isArray(item.priceHistory)) {
           let matched = null;
-          if (req.query.month) {
-            matched = item.priceHistory.find((priceItem) => {
-              const start = monthToNumber(priceItem.startMonth);
-              const end = monthToNumber(priceItem.endMonth);
-              const check = monthToNumber(req.query.month);
-              return start <= check && check <= end;
-            });
-          } else {
-            matched = item.priceHistory.find((priceItem) => {
-              const start = monthToNumber(priceItem.startMonth);
-              const end = monthToNumber(priceItem.endMonth);
-              const month = monthToNumber(currentYearMonth);
-              return start <= month && month <= end;
-            });
-          }
+          matched = item.priceHistory.find((priceItem) => {
+            const start = dateToNumber(priceItem.startDate);
+            const end = dateToNumber(priceItem.endDate);
+            return start <= checkDateNum && checkDateNum <= end;
+          });
 
-          if (matched) currentPrice = matched.price;
+          if (matched) {
+            executionPrice = matched.executionPrice ?? null;
+            plannedPrice = matched.plannedPrice ?? null;
+          }
         }
 
         return {
           ...item.toObject(),
-          currentPrice,
+          executionPrice,
+          plannedPrice,
         };
       });
 
@@ -273,28 +269,31 @@ exports.get = async (req, res) => {
     );
 
     const today = new Date();
-    const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}`;
-
-    const currentMonthNum = monthToNumber(currentYearMonth);
+    const todayStr = `${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
+    const checkDate = req.query.date || todayStr;
+    const checkDateNum = dateToNumber(checkDate);
 
     pagination.data = pagination.data.map((item) => {
-      let currentPrice = null;
+      let executionPrice = null;
+      let plannedPrice = null;
 
       if (Array.isArray(item.priceHistory)) {
         const matched = item.priceHistory.find((priceItem) => {
-          const start = monthToNumber(priceItem.startMonth);
-          const end = monthToNumber(priceItem.endMonth);
-          return start <= currentMonthNum && currentMonthNum <= end;
+          const start = dateToNumber(priceItem.startDate);
+          const end = dateToNumber(priceItem.endDate);
+          return start <= checkDateNum && checkDateNum <= end;
         });
 
-        if (matched) currentPrice = matched.price;
+        if (matched) {
+          executionPrice = matched.executionPrice ?? null;
+          plannedPrice = matched.plannedPrice ?? null;
+        }
       }
 
       return {
         ...item,
-        currentPrice,
+        executionPrice,
+        plannedPrice,
       };
     });
 
@@ -376,33 +375,49 @@ const columnMapping = {
 
 const parsePriceRanges = (value) => {
   if (!value || typeof value !== "string") return [];
-  const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+  // Format: "dd/MM/yyyy~dd/MM/yyyy=plannedPrice&executionPrice"
+  // Ví dụ: "01/04/2026~01/05/2026=10000&5000"
+  //         ngày bắt đầu~kết thúc = đơn giá kế hoạch&đơn giá thực hiện
+  const DATE_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
 
   return value
     .split(",")
     .map((v) => v.trim())
     .filter(Boolean)
     .map((item) => {
-      const [range, price] = item.split("=");
-      if (!range || price === undefined) return null;
+      const [range, priceStr] = item.split("=");
+      if (!range || priceStr === undefined) return null;
 
-      const [startMonth, endMonth] = range.split("~");
-      const numericPrice = Number(price);
+      const [startDate, endDate] = range.split("~");
+
+      // Parse prices: "10000&5000" → plannedPrice=10000, executionPrice=5000
+      // Thứ tự: kế hoạch trước, thực hiện sau
+      let executionPrice, plannedPrice;
+      if (priceStr.includes("&")) {
+        const [plan, exec] = priceStr.split("&");
+        plannedPrice = Number(plan);
+        executionPrice = Number(exec);
+      } else {
+        // Backward compatible: nếu chỉ có 1 giá, dùng cho cả executionPrice
+        executionPrice = Number(priceStr);
+        plannedPrice = null;
+      }
 
       if (
-        !MONTH_REGEX.test(startMonth) ||
-        !MONTH_REGEX.test(endMonth) ||
-        isNaN(numericPrice)
+        !DATE_REGEX.test(startDate) ||
+        !DATE_REGEX.test(endDate) ||
+        isNaN(executionPrice)
       ) {
         return null;
       }
 
       return {
-        startMonth,
-        endMonth,
-        price: numericPrice,
-        _start: parseInt(startMonth.replace("-", "")),
-        _end: parseInt(endMonth.replace("-", "")),
+        startDate,
+        endDate,
+        executionPrice,
+        plannedPrice: isNaN(plannedPrice) ? null : plannedPrice,
+        _start: dateToNumber(startDate),
+        _end: dateToNumber(endDate),
       };
     })
     .filter(Boolean);
@@ -534,11 +549,11 @@ exports.import = async (req, res) => {
       if (history.length > 0) {
         let hasTimeError = false;
 
-        // Tạm thời chuẩn hóa để so sánh số (YYYYMM)
+        // Tạm thời chuẩn hóa để so sánh số (YYYYMMDD)
         const normalized = history.map((h) => ({
           ...h,
-          _start: parseInt(h.startMonth.replace("-", "")),
-          _end: parseInt(h.endMonth.replace("-", "")),
+          _start: dateToNumber(h.startDate),
+          _end: dateToNumber(h.endDate),
         }));
 
         // 1️⃣ Check start <= end
@@ -546,7 +561,7 @@ exports.import = async (req, res) => {
           if (h._start > h._end) {
             invalidRows.push({
               row: rowIndex,
-              error: `Khoảng thời gian không hợp lệ: ${h.startMonth} > ${h.endMonth}`,
+              error: `Khoảng thời gian không hợp lệ: ${h.startDate} > ${h.endDate}`,
             });
             hasTimeError = true;
             break;
@@ -562,7 +577,7 @@ exports.import = async (req, res) => {
           if (normalized[i + 1]._start <= normalized[i]._end) {
             invalidRows.push({
               row: rowIndex,
-              error: `Thời gian bị chồng chéo: ${normalized[i].startMonth}->${normalized[i].endMonth} và ${normalized[i + 1].startMonth}->${normalized[i + 1].endMonth}`,
+              error: `Thời gian bị chồng chéo: ${normalized[i].startDate}->${normalized[i].endDate} và ${normalized[i + 1].startDate}->${normalized[i + 1].endDate}`,
             });
             hasTimeError = true;
             break;
@@ -689,7 +704,15 @@ exports.export = async (req, res) => {
     ].filter(Boolean);
 
     const formatPriceRanges = (prices = []) =>
-      prices.map((p) => `${p.startMonth}~${p.endMonth}=${p.price}`).join(",");
+      prices
+        .map((p) => {
+          const planPrice = p.plannedPrice || 0;
+          const execPrice = p.executionPrice || 0;
+          // Format: dd/MM/yyyy~dd/MM/yyyy=plannedPrice&executionPrice
+          // Thứ tự: kế hoạch trước, thực hiện sau
+          return `${p.startDate}~${p.endDate}=${planPrice}&${execPrice}`;
+        })
+        .join(",");
 
     const formated = (data || []).map((i) => ({
       code: i?.code || "",

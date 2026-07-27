@@ -1,15 +1,62 @@
 const AssignmentCode = require("../model/AssignmentCode");
 const MaterialAssignment = require("../model/MaterialAssignment");
 const AssignmentNorm = require("../model/AssignmentNorm");
+const { dateToNumber, monthToNumber } = require("./helpers");
 
-const monthToNumber = (month) => (month ? Number(month.replace("-", "")) : "");
+/**
+ * Tìm priceHistory item phù hợp theo date hoặc month
+ * @param {Array} priceHistory - Mảng priceHistory
+ * @param {string|null} date - "dd/MM/yyyy" (mode date)
+ * @param {string|null} month - "yyyy-MM" (mode month)
+ * @returns {object|null} - item phù hợp hoặc null
+ */
+const findMatchingPrice = (priceHistory, date, month) => {
+  if (!Array.isArray(priceHistory) || priceHistory.length === 0) return null;
 
+  if (date) {
+    // Mode DATE: so sánh theo ngày dd/MM/yyyy
+    const checkDateNum = dateToNumber(date);
+    return priceHistory.find((priceItem) => {
+      const start = dateToNumber(priceItem.startDate);
+      const end = dateToNumber(priceItem.endDate);
+      return start <= checkDateNum && checkDateNum <= end;
+    });
+  }
+
+  if (month) {
+    // Mode MONTH: so sánh theo tháng yyyy-MM
+    // Lấy item đầu tiên mà tháng nằm trong khoảng startDate~endDate
+    const checkMonthNum = monthToNumber(month);
+    return priceHistory.find((priceItem) => {
+      // Chuyển dd/MM/yyyy → YYYYMM để so sánh
+      const startParts = priceItem.startDate.split("/");
+      const endParts = priceItem.endDate.split("/");
+      const startMonth = Number(`${startParts[2]}${startParts[1]}`);
+      const endMonth = Number(`${endParts[2]}${endParts[1]}`);
+      return startMonth <= checkMonthNum && checkMonthNum <= endMonth;
+    });
+  }
+
+  return null;
+};
+
+/**
+ * Tính đơn giá trung bình của assignmentCode
+ * @param {string} assignmentCodeId - ID assignmentCode
+ * @param {string|null} startDate - (không dùng, giữ để compat)
+ * @param {string|null} endDate - (không dùng, giữ để compat)
+ * @param {string|null} dateOrMonth - "dd/MM/yyyy" (date) hoặc "yyyy-MM" (month)
+ * @param {object|null} session - MongoDB session
+ * @param {boolean} isMonthMode - true nếu truyền month, false nếu truyền date
+ * @returns {object|null} - { executionPrice, plannedPrice } hoặc null
+ */
 const recalculateAssignmentCodePrice = async (
   assignmentCodeId,
   startDate,
   endDate,
-  month,
+  dateOrMonth,
   session = null,
+  isMonthMode = false,
 ) => {
   let query = MaterialAssignment.find({
     assignmentCode: assignmentCodeId,
@@ -21,52 +68,46 @@ const recalculateAssignmentCodePrice = async (
 
   const allMaterials = await query;
   if (allMaterials.length === 0) {
-    return;
+    return null;
   }
 
-  // const todayStr = new Date().toISOString().split('T')[0];
+  // Xác định mode và giá trị check
+  let checkDate = null;
+  let checkMonth = null;
 
-  const today = new Date();
-  const currentYearMonth = `${today.getFullYear()}-${(today.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}`;
-
-  const currentMonthNum = monthToNumber(currentYearMonth);
+  if (isMonthMode) {
+    checkMonth = dateOrMonth;
+  } else {
+    checkDate = dateOrMonth;
+    // Nếu không truyền gì, lấy hôm nay
+    if (!checkDate) {
+      const today = new Date();
+      checkDate = `${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
+    }
+  }
 
   let totalQty = 0;
-  let totalValue = 0;
+  let totalExecValue = 0;
+  let totalPlanValue = 0;
 
   for (const material of allMaterials) {
-    let matchedPrice = null;
+    const matchedPrice = findMatchingPrice(material.priceHistory, checkDate, checkMonth);
 
-    if (Array.isArray(material.priceHistory)) {
-      if (month) {
-        matchedPrice = material.priceHistory.find((priceItem) => {
-          const start = monthToNumber(priceItem.startMonth);
-          const end = monthToNumber(priceItem.endMonth);
-          const checkMonth = monthToNumber(month);
-          return start <= checkMonth && checkMonth <= end;
-        });
-      } else {
-        matchedPrice = material.priceHistory.find((priceItem) => {
-          const start = monthToNumber(priceItem.startMonth);
-          const end = monthToNumber(priceItem.endMonth);
-          return start <= currentMonthNum && currentMonthNum <= end;
-        });
-      }
-    }
-
-    const price = matchedPrice?.price || 0;
+    const execPrice = matchedPrice?.executionPrice ?? 0;
+    const planPrice = matchedPrice?.plannedPrice ?? 0;
     const qty = material.quantity || 0;
 
     totalQty += qty;
-    totalValue += qty * price;
+    totalExecValue += qty * execPrice;
+    totalPlanValue += qty * planPrice;
   }
 
-  const averagePrice = totalQty > 0 ? Math.round(totalValue / totalQty) : null;
+  const executionPrice = totalQty > 0 ? Math.round(totalExecValue / totalQty) : null;
+  const plannedPrice = totalQty > 0 ? Math.round(totalPlanValue / totalQty) : null;
 
-  return averagePrice;
+  return { executionPrice, plannedPrice };
 };
+
 const updatePriceAssignmentCode = async (assignmentCodeId, session = null) => {
   const result = await recalculateAssignmentCodePrice(
     assignmentCodeId,
@@ -77,12 +118,15 @@ const updatePriceAssignmentCode = async (assignmentCodeId, session = null) => {
   );
   await AssignmentCode.findByIdAndUpdate(
     assignmentCodeId,
-    { price: result },
+    {
+      executionPrice: result?.executionPrice ?? 0,
+      plannedPrice: result?.plannedPrice ?? 0,
+    },
     { session },
   );
 };
 
-const calculatedPhase = async (data, month, type, session = null) => {
+const calculatedPhase = async (data, date, type, session = null) => {
   let query = AssignmentNorm.findById(data.assignmentNormCode);
 
   if (session) {
@@ -93,6 +137,9 @@ const calculatedPhase = async (data, month, type, session = null) => {
 
   const details = [];
   let total = 0;
+
+  // Xác định mode: initial/budget dùng month, used dùng date
+  const isMonthMode = type === "initial" || type === "budget";
 
   if (data.assignmentCodes && Array.isArray(data.assignmentCodes)) {
     for (const inputCodeData of data.assignmentCodes) {
@@ -114,14 +161,26 @@ const calculatedPhase = async (data, month, type, session = null) => {
         ? (norm * phaseQuantity) / 1000
         : norm * phaseQuantity;
 
-      const price = await recalculateAssignmentCodePrice(
+      const priceResult = await recalculateAssignmentCodePrice(
         assignmentId,
         null,
         null,
-        month,
+        date,
+        null,
+        isMonthMode,
       );
 
-      const cost = (price || 0) * (quantity || 0);
+      // Phân biệt theo type:
+      // - "initial"/"budget": dùng plannedPrice
+      // - "used": dùng executionPrice
+      let price = 0;
+      if (type === "initial" || type === "budget") {
+        price = priceResult?.plannedPrice ?? 0;
+      } else {
+        price = priceResult?.executionPrice ?? priceResult?.plannedPrice ?? 0;
+      }
+
+      const cost = price * (quantity || 0);
       total += cost;
 
       details.push({
@@ -130,7 +189,9 @@ const calculatedPhase = async (data, month, type, session = null) => {
         adjustmentNorm,
         norm,
         quantity: quantity || 0,
-        price: price || 0,
+        executionPrice: priceResult?.executionPrice ?? 0,
+        plannedPrice: priceResult?.plannedPrice ?? 0,
+        price: price,
         cost: cost || 0,
       });
     }
@@ -155,6 +216,7 @@ const calculatedPhase = async (data, month, type, session = null) => {
     [detailKey]: details,
   };
 };
+
 module.exports = {
   recalculateAssignmentCodePrice,
   updatePriceAssignmentCode,

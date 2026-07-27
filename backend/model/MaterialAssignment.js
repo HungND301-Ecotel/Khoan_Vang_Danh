@@ -24,9 +24,10 @@ const MaterialAssignment = new mongoose.Schema(
     },
     priceHistory: [
       {
-        price: Number,
-        startMonth: String,
-        endMonth: String,
+        startDate: String,        // "dd/MM/yyyy"
+        endDate: String,          // "dd/MM/yyyy"
+        executionPrice: Number,   // Đơn giá thực hiện
+        plannedPrice: Number,     // Đơn giá kế hoạch
       },
     ],
   },
@@ -37,6 +38,15 @@ const MaterialAssignment = new mongoose.Schema(
 const monthToNumber = (month) => {
   if (!month) return null;
   return Number(month.replace("-", ""));
+};
+
+const dateToNumber = (dateStr) => {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  const parts = dateStr.split("/");
+  if (parts.length !== 3) return null;
+  const [day, month, year] = parts;
+  const num = Number(`${year}${month.padStart(2, "0")}${day.padStart(2, "0")}`);
+  return isNaN(num) ? null : num;
 };
 
 const normalizeItem = (item) => {
@@ -54,8 +64,8 @@ const validatePriceHistory = (priceHistory) => {
     const obj = normalizeItem(item);
     return {
       ...obj,
-      _start: monthToNumber(obj.startMonth),
-      _end: monthToNumber(obj.endMonth),
+      _start: dateToNumber(obj.startDate),
+      _end: dateToNumber(obj.endDate),
     };
   });
 
@@ -63,7 +73,7 @@ const validatePriceHistory = (priceHistory) => {
   for (const item of normalized) {
     if (item._start > item._end) {
       throw new Error(
-        `Khoảng thời gian không hợp lệ: ${item.startMonth} > ${item.endMonth}`,
+        `Khoảng thời gian không hợp lệ: ${item.startDate} > ${item.endDate}`,
       );
     }
   }
@@ -75,10 +85,10 @@ const validatePriceHistory = (priceHistory) => {
   for (let i = 0; i < normalized.length - 1; i++) {
     if (normalized[i + 1]._start <= normalized[i]._end) {
       throw new Error(
-        `Khoảng thời gian bị trùng hoặc chồng chéo: 
-                ${normalized[i].startMonth}->${normalized[i].endMonth}
+        `Khoảng thời gian bị trùng hoặc chồng chéo:
+                ${normalized[i].startDate}->${normalized[i].endDate}
                 và
-                ${normalized[i + 1].startMonth}->${normalized[i + 1].endMonth}`,
+                ${normalized[i + 1].startDate}->${normalized[i + 1].endDate}`,
       );
     }
   }
