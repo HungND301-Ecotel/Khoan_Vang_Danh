@@ -10,8 +10,8 @@ const chartColor = "#1a237e";
 export default function MaterialChart() {
   const {
     data: materialAssignments = {
-      countWithAssignment: 0,
-      countWithoutAssignment: 0,
+      withAssignmentCode: 0,
+      withoutAssignmentCode: 0,
       totalCount: 0,
     },
   } = useQuery({
@@ -22,8 +22,8 @@ export default function MaterialChart() {
         return response.data.data;
       } catch (error) {
         return {
-          countWithAssignment: 0,
-          countWithoutAssignment: 0,
+          withAssignmentCode: 0,
+          withoutAssignmentCode: 0,
           totalCount: 0,
         };
       }
@@ -119,13 +119,13 @@ export default function MaterialChart() {
                 data: [
                   {
                     id: 0,
-                    value: materialAssignments.countWithAssignment,
-                    label: `Trong khoán (${materialAssignments.countWithAssignment})`,
+                    value: materialAssignments.withAssignmentCode,
+                    label: `Trong khoán (${materialAssignments.withAssignmentCode})`,
                   },
                   {
                     id: 1,
-                    value: materialAssignments.countWithoutAssignment,
-                    label: `Ngoài khoán (${materialAssignments.countWithoutAssignment})`,
+                    value: materialAssignments.withoutAssignmentCode,
+                    label: `Ngoài khoán (${materialAssignments.withoutAssignmentCode})`,
                   },
                 ],
                 highlightScope: { faded: "global", highlighted: "item" },
