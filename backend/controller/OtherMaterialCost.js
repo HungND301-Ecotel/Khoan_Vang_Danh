@@ -4,24 +4,50 @@ const { recalculateAssignmentCodePrice } = require('../utils/recalculateAssignme
 const { dateToNumber } = require('../utils/helpers')
 
 /**
- * Chuyển month (yyyy-MM) sang dd/MM/yyyy để so sánh
+ * Chuyển month (yyyy-MM) + day (number) sang dd/MM/yyyy
+ * Ví dụ: month="2026-05", day=15 → "15/05/2026"
  */
-const monthToDate = (month) => {
-    if (!month || !month.match(/^\d{4}-\d{2}$/)) return month;
-    const [year, m] = month.split('-');
-    return `01/${m}/${year}`;
+const monthDayToDate = (month, day) => {
+    if (!month) return null;
+    // Đảm bảo month là string
+    const monthStr = String(month);
+    if (!monthStr.includes('-')) return null;
+    const [year, m] = monthStr.split('-');
+    const d = day ? String(day).padStart(2, '0') : '01';
+    return `${d}/${m}/${year}`;
+};
+
+exports.get = async (req, res) => {
+    try {
+        const { department, month } = req.query;
+        const filter = {};
+
+        if (department) filter.department = department;
+        if (month) filter.month = month;
+
+        const data = await OtherMaterialCost.find(filter)
+            .populate('department', 'code name')
+            .populate({
+                path: 'materials.material',
+                populate: [
+                    { path: 'uom', select: 'name' },
+                    { path: 'assignmentCode', select: 'code name uom', populate: 'uom' }
+                ]
+            })
+            .sort({ date: 1, shift: 1 });
+
+        res.status(200).json({ status: 'success', data });
+    } catch (err) {
+        console.log(err.stack);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
 };
 
 exports.create = async (req, res) => {
     try {
-        const { department, month, materials } = req.body
+        const { department, month, date, shift, materials } = req.body
 
-        const existing = await OtherMaterialCost.findOne({ department, month });
-        if (existing) {
-            return res.status(400).json({ status: 'error', message: 'Mỗi tháng phân xưởng chỉ được tạo 1 Công việc khác' });
-        }
-
-        const checkDate = monthToDate(month);
+        const checkDate = monthDayToDate(month, date);
         const checkDateNum = dateToNumber(checkDate);
 
         const processedMaterials = await Promise.all(
@@ -29,14 +55,19 @@ exports.create = async (req, res) => {
                 const material = await MaterialAssignment.findById(doc?.material);
                 let matched = null;
 
-                if (material && Array.isArray(material.priceHistory)) {
+                if (material && Array.isArray(material.priceHistory) && checkDate) {
                     matched = material.priceHistory.find(priceItem => {
                         const start = dateToNumber(priceItem.startDate)
                         const end = dateToNumber(priceItem.endDate)
                         return start <= checkDateNum && checkDateNum <= end
                     });
                 }
-                const priceResult = await recalculateAssignmentCodePrice(material?.assignmentCode, null, null, checkDate);
+                const priceResult = await recalculateAssignmentCodePrice(
+                    material?.assignmentCode,
+                    null,
+                    null,
+                    checkDate,
+                );
 
                 // Chi phí thực hiện: dùng executionPrice
                 let price = 0;
@@ -55,7 +86,14 @@ exports.create = async (req, res) => {
         );
         const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
 
-        const newOtherMaterialCost = new OtherMaterialCost({ department, month, materials: processedMaterials, totalUsedCost })
+        const newOtherMaterialCost = new OtherMaterialCost({
+            department,
+            month,
+            date,
+            shift,
+            materials: processedMaterials,
+            totalUsedCost
+        })
         await newOtherMaterialCost.save()
 
         res.status(201).json({ status: 'success', message: 'Tạo thành công' })
@@ -67,14 +105,9 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const { department, month, materials } = req.body
+        const { department, month, date, shift, materials } = req.body
 
-        const existing = await OtherMaterialCost.findOne({ department, month, _id: { $ne: req.params.id } });
-        if (existing) {
-            return res.status(400).json({ status: 'error', message: 'Mỗi tháng phân xưởng chỉ được tạo 1 Công việc khác' });
-        }
-
-        const checkDate = monthToDate(month);
+        const checkDate = monthDayToDate(month, date);
         const checkDateNum = dateToNumber(checkDate);
 
         const processedMaterials = await Promise.all(
@@ -82,14 +115,19 @@ exports.update = async (req, res) => {
                 const material = await MaterialAssignment.findById(doc?.material);
                 let matched = null;
 
-                if (material && Array.isArray(material.priceHistory)) {
+                if (material && Array.isArray(material.priceHistory) && checkDate) {
                     matched = material.priceHistory.find(priceItem => {
                         const start = dateToNumber(priceItem.startDate)
                         const end = dateToNumber(priceItem.endDate)
                         return start <= checkDateNum && checkDateNum <= end
                     });
                 }
-                const priceResult = await recalculateAssignmentCodePrice(material?.assignmentCode, null, null, checkDate);
+                const priceResult = await recalculateAssignmentCodePrice(
+                    material?.assignmentCode,
+                    null,
+                    null,
+                    checkDate,
+                );
 
                 // Chi phí thực hiện: dùng executionPrice
                 let price = 0;
@@ -109,7 +147,7 @@ exports.update = async (req, res) => {
         const totalUsedCost = processedMaterials.reduce((sum, item) => sum + item.cost, 0)
 
         const updateData = await OtherMaterialCost.findByIdAndUpdate(req.params.id, {
-            department, month, materials: processedMaterials, totalUsedCost
+            department, month, date, shift, materials: processedMaterials, totalUsedCost
         }, { new: true })
 
         if (!updateData) {

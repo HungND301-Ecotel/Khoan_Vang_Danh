@@ -44,9 +44,9 @@ export default function GroupTable({
     enabled: !!departmentId && !!month,
   });
 
-  const { mutate: deleteMutation, isPending: isDeletePending } = useMutation({
+  const { mutate: deleteOtherTaskMutation, isPending: isDeletePending } = useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/materialbudgets/${id}`).then((res) => res.data);
+      return api.delete(`/othermaterialcosts/${id}`).then((res) => res.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
@@ -211,7 +211,7 @@ export default function GroupTable({
                 "Bạn có chắc muốn xóa bản ghi này không?. Không thể hoàn tác.",
               );
               if (isConfirmed.isConfirmed) {
-                deleteMutation(record._id);
+                deleteOtherTaskMutation(record._id);
               }
             }}
             sx={{

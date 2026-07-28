@@ -497,6 +497,8 @@ export interface MaterialCostUsedInputType {
   department?: string;
   productionScope?: string;
   month: string;
+  date?: number;    // Ngày trong tháng (1-31)
+  shift?: number;   // Ca (1, 2, 3...)
   phases: {
     phase: string;
     production: number;

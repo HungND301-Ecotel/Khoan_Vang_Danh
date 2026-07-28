@@ -7,7 +7,9 @@ const OtherMaterialCost = new mongoose.Schema(
       ref: "Department",
       required: [true, "Department is required"],
     },
-    month: String,
+    month: String,       // "yyyy-MM"
+    date: Number,        // ngày trong tháng (1-31)
+    shift: Number,       // ca (1, 2, 3...)
 
     totalUsedCost: Number,
     materials: [
@@ -28,6 +30,29 @@ const OtherMaterialCost = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+// Kiểm tra trùng lặp: department + month + date + shift
+OtherMaterialCost.pre("save", async function (next) {
+  const conflictQuery = {
+    _id: { $ne: this._id },
+    department: this.department,
+    month: this.month,
+    date: this.date,
+    shift: this.shift,
+  };
+
+  try {
+    const existingDocument =
+      await mongoose.models.OtherMaterialCost.findOne(conflictQuery);
+    if (existingDocument) {
+      const error = new Error("Ngày + Ca này trong tháng đã tồn tại");
+      return next(error);
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 const OtherMaterialCostModel = mongoose.model(
   "OtherMaterialCost",

@@ -102,6 +102,12 @@ export default function MaterialCostUsed() {
       queryClient.invalidateQueries({ queryKey: ["materialcostused-months"] });
       queryClient.invalidateQueries({ queryKey: ["materialcostused-scopes"] });
       queryClient.invalidateQueries({ queryKey: ["materialcostused-phases"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-dates"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-phases-by-date"] });
+      // Invalidate "Công việc khác"
+      queryClient.invalidateQueries({ queryKey: ["othermaterialcosts"] });
+      queryClient.invalidateQueries({ queryKey: ["othermaterialcosts-dates"] });
+      queryClient.invalidateQueries({ queryKey: ["othermaterialcosts-shifts"] });
       setOpen(false);
       clearMinimize();
       showSuccessAlert("Thêm mới thành công");
@@ -129,6 +135,12 @@ export default function MaterialCostUsed() {
       queryClient.invalidateQueries({ queryKey: ["materialcostused-months"] });
       queryClient.invalidateQueries({ queryKey: ["materialcostused-scopes"] });
       queryClient.invalidateQueries({ queryKey: ["materialcostused-phases"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-dates"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-phases-by-date"] });
+      // Invalidate "Công việc khác"
+      queryClient.invalidateQueries({ queryKey: ["othermaterialcosts"] });
+      queryClient.invalidateQueries({ queryKey: ["othermaterialcosts-dates"] });
+      queryClient.invalidateQueries({ queryKey: ["othermaterialcosts-shifts"] });
       setOpen(false);
       setSelected(null);
       clearMinimize();
@@ -167,6 +179,8 @@ export default function MaterialCostUsed() {
       queryClient.invalidateQueries({ queryKey: ["materialcostused-months"] });
       queryClient.invalidateQueries({ queryKey: ["materialcostused-scopes"] });
       queryClient.invalidateQueries({ queryKey: ["materialcostused-phases"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-dates"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-phases-by-date"] });
       setSelectedRows([]);
       showSuccessAlert("Xóa thành công");
     },

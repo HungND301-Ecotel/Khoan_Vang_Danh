@@ -12,7 +12,9 @@ const MaterialCostUsed = new mongoose.Schema(
       ref: "Department",
       required: [true, "Department is required"],
     },
-    month: String,
+    month: String,       // "yyyy-MM"
+    date: Number,        // ngày trong tháng (1-31)
+    shift: Number,       // ca (số thứ tự: 1, 2, 3...)
     phase: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Phase",
@@ -42,25 +44,23 @@ const MaterialCostUsed = new mongoose.Schema(
   },
 );
 
+// Kiểm tra trùng lặp: department + month + date + shift + phase + productionScope
 MaterialCostUsed.pre("save", async function (next) {
-  const newMonth = this.month;
-  const currentScope = this.productionScope;
-  const currentDepartment = this.department;
-  const currentPhase = this.phase;
-
   const conflictQuery = {
     _id: { $ne: this._id },
-    productionScope: currentScope,
-    department: currentDepartment,
-    month: newMonth,
-    phase: currentPhase,
+    productionScope: this.productionScope,
+    department: this.department,
+    month: this.month,
+    date: this.date,
+    shift: this.shift,
+    phase: this.phase,
   };
 
   try {
     const existingDocument =
       await mongoose.models.MaterialCostUsed.findOne(conflictQuery);
     if (existingDocument) {
-      const error = new Error("Diện + Khâu này trong tháng đã tồn tại");
+      const error = new Error("Diện + Khâu + Ngày + Ca này đã tồn tại");
       return next(error);
     }
     next();

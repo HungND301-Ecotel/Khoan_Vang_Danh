@@ -1,4 +1,8 @@
-const monthToNumber = (month) => month ? Number(month.replace('-', '')) : '';
+const monthToNumber = (month) => {
+  if (!month) return '';
+  const monthStr = String(month);
+  return Number(monthStr.replace('-', ''));
+};
 
 /**
  * Chuyển date string "dd/MM/yyyy" → YYYYMMDD number để so sánh

@@ -47,11 +47,16 @@ export default function MaterialCostUsedModal({
 
   const formikForScope = useFormik({
     initialValues: {
-      department: selected?.department?._id || minimizedData?.department || "",
+      department: selected?.department?._id
+        ? String(selected.department._id)
+        : selected?.department || minimizedData?.department || "",
       productionScope:
-        selected?.productionScope?._id || minimizedData?.productionScope || "",
+        selected?.productionScope?._id
+          ? String(selected.productionScope._id)
+          : selected?.productionScope || minimizedData?.productionScope || "",
       month: selected?.month || minimizedData?.month || "",
     },
+    enableReinitialize: true,
     onSubmit: () => {},
   });
 
@@ -92,6 +97,8 @@ export default function MaterialCostUsedModal({
         month: dayjs(values.month, "YYYY-MM").isValid()
           ? values.month
           : dayjs(new Date(values.month)).format("YYYY-MM"),
+        date: values.date ? Number(values.date) : undefined,
+        shift: values.shift ? Number(values.shift) : undefined,
         phase: values.isOtherTask ? undefined : values.phase,
         production: Number(values.production ?? 0),
         unit: values.unit,
@@ -108,13 +115,16 @@ export default function MaterialCostUsedModal({
 
   // Đồng bộ formikForScope với formik để trigger query đúng lúc
   useEffect(() => {
-    formikForScope.setFieldValue("department", formik.values.department);
-    formikForScope.setFieldValue(
-      "productionScope",
-      formik.values.productionScope,
-    );
-    formikForScope.setFieldValue("month", formik.values.month);
+    if (open) {
+      formikForScope.setFieldValue("department", formik.values.department);
+      formikForScope.setFieldValue(
+        "productionScope",
+        formik.values.productionScope,
+      );
+      formikForScope.setFieldValue("month", formik.values.month);
+    }
   }, [
+    open,
     formik.values.department,
     formik.values.productionScope,
     formik.values.month,
@@ -417,6 +427,8 @@ export default function MaterialCostUsedModal({
                 formik.setFieldValue("productionScope", "");
                 formik.setFieldValue("phase", "");
                 formik.setFieldValue("month", "");
+                formik.setFieldValue("date", "");      // Reset date
+                formik.setFieldValue("shift", "");     // Reset shift
                 formik.setFieldValue("production", 0);
                 formik.setFieldValue("unit", "");
                 formik.setFieldValue("assignmentNormCode", undefined);
@@ -495,6 +507,8 @@ export default function MaterialCostUsedModal({
               onChange={(event, newValue) => {
                 formik.setFieldValue("month", newValue?.month || "");
                 formik.setFieldValue("phase", "");
+                formik.setFieldValue("date", "");
+                formik.setFieldValue("shift", "");
               }}
               renderInput={(params) => (
                 <TextField
@@ -512,6 +526,30 @@ export default function MaterialCostUsedModal({
                 />
               )}
             />
+
+            {/* Ngày và Ca */}
+            {formik.values.month && (
+              <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: "12px", color: "#666", mb: 0.5 }}>
+                    Ngày
+                  </Typography>
+                  <TextFieldNumber
+                    formik={formik}
+                    field="date"
+                  />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: "12px", color: "#666", mb: 0.5 }}>
+                    Ca
+                  </Typography>
+                  <TextFieldNumber
+                    formik={formik}
+                    field="shift"
+                  />
+                </Box>
+              </Box>
+            )}
           </Box>
         )}
 
@@ -523,6 +561,30 @@ export default function MaterialCostUsedModal({
               Thời gian
             </Typography>
             <FieldMonthYear formik={formik} fieldName="month" />
+
+            {/* Ngày và Ca cho công việc khác */}
+            {formik.values.month && (
+              <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: "12px", color: "#666", mb: 0.5 }}>
+                    Ngày
+                  </Typography>
+                  <TextFieldNumber
+                    formik={formik}
+                    field="date"
+                  />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: "12px", color: "#666", mb: 0.5 }}>
+                    Ca
+                  </Typography>
+                  <TextFieldNumber
+                    formik={formik}
+                    field="shift"
+                  />
+                </Box>
+              </Box>
+            )}
           </Box>
         )}
 

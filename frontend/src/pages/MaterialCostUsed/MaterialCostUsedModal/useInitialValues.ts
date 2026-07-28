@@ -28,6 +28,8 @@ export function useInitialValues(
           ? selected.month
           : dayjs(selected.month).format("YYYY-MM")
         : "",
+      date: selected?.date || "",      // Ngày trong tháng (number)
+      shift: selected?.shift || "",    // Ca (number)
       // Chỉ còn 1 phase duy nhất, không còn mảng phases
       phase: selected?.phase?._id ? String(selected.phase._id) : "",
       production: Number(selected?.production ?? 0),
@@ -46,8 +48,13 @@ export function useInitialValues(
           (materialassignmentsData || []).map((m: Materials) => [m._id, m]),
         );
 
-        return (selected?.materials || [])
-          .flatMap((group: any) => group.materials || [])
+        // Xử lý cả 2 cấu trúc: MaterialCostUsed (nested) và OtherMaterialCost (flat)
+        const rawMaterials = selected?.materials || [];
+        const materialsList = rawMaterials.length > 0 && rawMaterials[0]?.materials
+          ? rawMaterials.flatMap((group: any) => group.materials || [])  // MaterialCostUsed
+          : rawMaterials;  // OtherMaterialCost (flat array)
+
+        return materialsList
           .map((item: any) => {
             const materialId = item.material?._id || item.material;
             return materialLookup.get(materialId);
@@ -55,14 +62,20 @@ export function useInitialValues(
           .filter(Boolean);
       })(),
 
-      materials: (selected?.materials || [])
-        .flatMap((group: any) => group.materials || [])
-        .map((item: any) => ({
+      materials: (() => {
+        // Xử lý cả 2 cấu trúc: MaterialCostUsed (nested) và OtherMaterialCost (flat)
+        const rawMaterials = selected?.materials || [];
+        const materialsList = rawMaterials.length > 0 && rawMaterials[0]?.materials
+          ? rawMaterials.flatMap((group: any) => group.materials || [])  // MaterialCostUsed
+          : rawMaterials;  // OtherMaterialCost (flat array)
+
+        return materialsList.map((item: any) => ({
           material: item.material?._id
             ? String(item.material._id)
             : item.material,
           quantity: Number(item.quantity ?? 0),
-        })),
+        }));
+      })(),
     };
   }, [selected, minimizedData, materialassignmentsData]);
 }

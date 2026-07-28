@@ -1,33 +1,35 @@
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { Box, IconButton, Paper, Typography } from "@mui/material";
 import { Table } from "antd";
-import dayjs from "dayjs";
 import React, { useState } from "react";
-import ScopeTable from "./ScopeTable";
+import DateTable from "./DateTable";
+import OtherTaskDateTable from "./OtherTaskDateTable";
 import { formattedPrice } from "../../utils/helpers";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../config/api.config";
 
-export default function MonthTable({
+export default function ScopeTable({
   handleOpen,
   department,
+  month,
 }: {
   handleOpen: (record: any) => void;
   department?: any;
+  month: string;
 }) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const departmentId = department?._id || department;
 
-  const { data: months = [], isLoading } = useQuery({
-    queryKey: ["materialcostused-months", departmentId],
+  const { data: scopes = [], isLoading } = useQuery({
+    queryKey: ["materialcostused-scopes", departmentId, month],
     queryFn: async () => {
-      const res = await api.get(`/materialcostuseds/months`, {
-        params: { department: departmentId },
+      const res = await api.get(`/materialcostuseds/scopes`, {
+        params: { department: departmentId, month },
       });
       return res.data.data;
     },
-    enabled: !!departmentId,
+    enabled: !!departmentId && !!month,
   });
 
   const handleView = (record: any) => {
@@ -38,33 +40,44 @@ export default function MonthTable({
 
   const expandedRowRender = (record: any) => (
     <Box sx={{ padding: "10px" }}>
-      <ScopeTable
-        handleOpen={handleOpen}
-        department={department}
-        month={record.month}
-      />
+      {record.isOtherTask ? (
+        // Công việc khác - hiển thị ngày
+        <OtherTaskDateTable
+          handleOpen={handleOpen}
+          department={department}
+          month={month}
+        />
+      ) : (
+        // Diện sản xuất bình thường - hiển thị ngày
+        <DateTable
+          handleOpen={handleOpen}
+          department={department}
+          month={month}
+          productionScope={record.productionScope?._id || record._id}
+        />
+      )}
     </Box>
   );
 
   const innerColumns = [
     {
       title: "",
-      dataIndex: "month",
-      key: "month",
-      render: (text: string) => (
+      dataIndex: "productionScope",
+      key: "productionScope",
+      render: (text: any) => (
         <Typography fontWeight="bold">
-          {text ? dayjs(text).format("MM/YYYY") : ""}
+          {text?.code || text?.name || "Công việc khác"}
         </Typography>
       ),
     },
     {
       title: "",
       width: 150,
-      dataIndex: "totalMonthCost",
-      key: "totalMonthCost",
-      render: (text: string, item: any) => (
+      dataIndex: "totalUsedCost",
+      key: "totalUsedCost",
+      render: (text: number) => (
         <Typography sx={{ fontWeight: "bold" }}>
-          {formattedPrice(item.totalMonthCost)}
+          {formattedPrice(text)}
         </Typography>
       ),
     },
@@ -95,7 +108,7 @@ export default function MonthTable({
     <Paper>
       <Table
         columns={innerColumns}
-        dataSource={months || []}
+        dataSource={scopes || []}
         pagination={false}
         size="small"
         rowKey={(item) => item._id}
@@ -109,13 +122,13 @@ export default function MonthTable({
           expandedRowRender,
           showExpandColumn: false,
         }}
-        onRow={() => ({ className: "month-custom-row" })}
+        onRow={() => ({ className: "scope-custom-row" })}
         rowClassName={(record, index) =>
-          index === 0 ? "month-custom-row first-data-row" : "month-custom-row"
+          index === 0 ? "scope-custom-row first-data-row" : "scope-custom-row"
         }
       />
       <style>{`
-        .month-custom-row > td { background-color: #e0e0e0 !important; }
+        .scope-custom-row > td { background-color: #e8e8e8 !important; }
       `}</style>
     </Paper>
   );

@@ -22,7 +22,18 @@ const syncRelatedData = async (data, oldKey, session) => {
       adjustmentNormCode,
     } = data;
 
-    const searchKey = oldKey || { productionScope, department, month, phase };
+    // Mặc định date=1, shift=1 khi sync từ kế hoạch ban đầu
+    const defaultDate = 1;
+    const defaultShift = 1;
+
+    const searchKey = oldKey || {
+      productionScope,
+      department,
+      month,
+      date: defaultDate,
+      shift: defaultShift,
+      phase,
+    };
 
     // 1. Đồng bộ MaterialCostUsed
     const existingMCU =
@@ -102,6 +113,8 @@ const syncRelatedData = async (data, oldKey, session) => {
         productionScope,
         department,
         month,
+        date: 1,           // Mặc định ngày 1
+        shift: 1,          // Mặc định ca 1
         phase,
         production: 0,
         unit,

@@ -11,6 +11,35 @@ const { monthToNumber, dateToNumber } = require("../utils/helpers");
 const Department = require("../model/Department");
 const InitialPlannedCost = require("../model/InitialPlannedCost"); // 👈 thêm import
 
+// Helper: tính tổng production từ tất cả MaterialCostUsed records cùng productionScope/month/phase
+// (bỏ qua date/shift vì giờ đã tách ra nhiều bản ghi)
+const getTotalProduction = async (
+  productionScope,
+  department,
+  month,
+  phase,
+  session,
+) => {
+  const matchStage = {
+    productionScope: new mongoose.Types.ObjectId(productionScope),
+    department: new mongoose.Types.ObjectId(department),
+    month,
+    phase: new mongoose.Types.ObjectId(phase),
+  };
+
+  const result = await MaterialCostUsed.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: null,
+        totalProduction: { $sum: "$production" },
+      },
+    },
+  ]).session(session);
+
+  return result[0]?.totalProduction || 0;
+};
+
 // Helper: build lại assignmentCodes input cho calculatedPhase từ InitialPlannedCost tương ứng
 const buildBudgetSourceData = async (
   { productionScope, department, month, phase, unit, production },
@@ -111,7 +140,20 @@ const groupMaterialsByAssignmentCode = (materials) => {
   return result;
 };
 
-const buildMaterials = async (materials, date, session = null) => {
+/**
+ * Chuyển month (yyyy-MM) + day (number) sang dd/MM/yyyy
+ * Ví dụ: month="2026-05", day=15 → "15/05/2026"
+ */
+const monthDayToDate = (month, day) => {
+  if (!month || !day) return null;
+  // Đảm bảo month là string
+  const monthStr = String(month);
+  if (!monthStr.includes('-')) return null;
+  const [year, m] = monthStr.split('-');
+  return `${String(day).padStart(2, '0')}/${m}/${year}`;
+};
+
+const buildMaterials = async (materials, month, day, session = null) => {
   const processedMaterials = await Promise.all(
     materials.map(async (doc) => {
       const query = MaterialAssignment.findById(doc.material);
@@ -122,15 +164,10 @@ const buildMaterials = async (materials, date, session = null) => {
 
       let matched = null;
 
-      if (material && Array.isArray(material.priceHistory)) {
-        // date có thể là "dd/MM/yyyy" hoặc "yyyy-MM" (backward compat)
-        // Chuyển về dd/MM/yyyy để so sánh
-        let checkDate = date;
-        if (date && date.match(/^\d{4}-\d{2}$/)) {
-          // Nếu là "2026-01", chuyển thành "01/01/2026"
-          const [year, month] = date.split('-');
-          checkDate = `01/${month}/${year}`;
-        }
+      // Tạo date string dd/MM/yyyy từ month + day
+      const checkDate = monthDayToDate(month, day);
+
+      if (material && Array.isArray(material.priceHistory) && checkDate) {
         const checkDateNum = dateToNumber(checkDate);
 
         matched = material.priceHistory.find((priceItem) => {
@@ -144,7 +181,7 @@ const buildMaterials = async (materials, date, session = null) => {
         material?.assignmentCode,
         null,
         null,
-        date,
+        checkDate,
         session,
       );
 
@@ -182,19 +219,23 @@ exports.create = async (req, res) => {
 
     await session.withTransaction(async () => {
       const { materials: processedMaterials, totalUsedCost } =
-        await buildMaterials(data.materials, data.month, session);
+        await buildMaterials(data.materials, data.month, data.date, session);
 
       saved = await MaterialCostUsed.findOneAndUpdate(
         {
           productionScope: data.productionScope,
           department: data.department,
           month: data.month,
+          date: data.date,
+          shift: data.shift,
           phase: data.phase,
         },
         {
           productionScope: data.productionScope,
           department: data.department,
           month: data.month,
+          date: data.date,
+          shift: data.shift,
           phase: data.phase,
           production: data.production,
           unit: data.unit,
@@ -208,6 +249,15 @@ exports.create = async (req, res) => {
         },
       );
 
+      // Tính tổng production từ tất cả records cùng productionScope/month/phase
+      const totalProduction = await getTotalProduction(
+        data.productionScope,
+        data.department,
+        data.month,
+        data.phase,
+        session,
+      );
+
       const budgetSourceData = await buildBudgetSourceData(
         {
           productionScope: data.productionScope,
@@ -215,7 +265,7 @@ exports.create = async (req, res) => {
           month: data.month,
           phase: data.phase,
           unit: data.unit,
-          production: data.production,
+          production: totalProduction,
         },
         session,
       );
@@ -239,7 +289,7 @@ exports.create = async (req, res) => {
           department: data.department,
           month: data.month,
           phase: data.phase,
-          production: budgetResult.production,
+          production: totalProduction,
           unit: budgetResult.unit,
           assignmentNormCode: budgetResult.assignmentNormCode,
           adjustmentNormCode: budgetResult.adjustmentNormCode,
@@ -291,13 +341,15 @@ exports.createBatch = async (req, res) => {
           productionScope,
           department,
           month,
+          date,
+          shift,
           phase,
           production,
           unit,
         } = data;
 
         const { materials: processedMaterials, totalUsedCost } =
-          await buildMaterials(materials, month, session);
+          await buildMaterials(materials, month, date, session);
 
         let saved;
 
@@ -308,6 +360,8 @@ exports.createBatch = async (req, res) => {
               productionScope,
               department,
               month,
+              date,
+              shift,
               phase,
               production,
               unit,
@@ -325,12 +379,16 @@ exports.createBatch = async (req, res) => {
               productionScope,
               department,
               month,
+              date,
+              shift,
               phase,
             },
             {
               productionScope,
               department,
               month,
+              date,
+              shift,
               phase,
               production,
               unit,
@@ -347,6 +405,15 @@ exports.createBatch = async (req, res) => {
 
         savedDocs.push(saved);
 
+        // Tính tổng production từ tất cả records cùng productionScope/month/phase
+        const totalProduction = await getTotalProduction(
+          data.productionScope,
+          data.department,
+          data.month,
+          data.phase,
+          session,
+        );
+
         const budgetSourceData = await buildBudgetSourceData(
           {
             productionScope: data.productionScope,
@@ -354,7 +421,7 @@ exports.createBatch = async (req, res) => {
             month: data.month,
             phase: data.phase,
             unit: data.unit,
-            production: data.production,
+            production: totalProduction,
           },
           session,
         );
@@ -379,7 +446,7 @@ exports.createBatch = async (req, res) => {
             month,
             phase,
 
-            production: budgetResult.production,
+            production: totalProduction,
             unit: budgetResult.unit,
 
             assignmentNormCode: budgetResult.assignmentNormCode,
@@ -435,6 +502,8 @@ exports.update = async (req, res) => {
         productionScope,
         department,
         month,
+        date,
+        shift,
         phase,
         production,
         unit,
@@ -442,7 +511,7 @@ exports.update = async (req, res) => {
       } = data;
 
       const { materials: processedMaterials, totalUsedCost } =
-        await buildMaterials(materials, month, session);
+        await buildMaterials(materials, month, date, session);
 
       updated = await MaterialCostUsed.findByIdAndUpdate(
         req.params.id,
@@ -450,6 +519,8 @@ exports.update = async (req, res) => {
           productionScope,
           department,
           month,
+          date,
+          shift,
           phase,
           production,
           unit,
@@ -462,6 +533,15 @@ exports.update = async (req, res) => {
         },
       );
 
+      // Tính tổng production từ tất cả records cùng productionScope/month/phase
+      const totalProduction = await getTotalProduction(
+        data.productionScope,
+        data.department,
+        data.month,
+        data.phase,
+        session,
+      );
+
       const budgetSourceData = await buildBudgetSourceData(
         {
           productionScope: data.productionScope,
@@ -469,7 +549,7 @@ exports.update = async (req, res) => {
           month: data.month,
           phase: data.phase,
           unit: data.unit,
-          production: data.production,
+          production: totalProduction,
         },
         session,
       );
@@ -495,7 +575,7 @@ exports.update = async (req, res) => {
           department,
           month,
           phase,
-          production: budgetResult.production,
+          production: totalProduction,
           unit: budgetResult.unit,
           assignmentNormCode: budgetResult.assignmentNormCode,
           adjustmentNormCode: budgetResult.adjustmentNormCode,
@@ -566,6 +646,8 @@ exports.updateBatch = async (req, res) => {
           productionScope,
           department,
           month,
+          date,
+          shift,
           phase,
           production,
           unit,
@@ -573,7 +655,7 @@ exports.updateBatch = async (req, res) => {
         } = data;
 
         const { materials: processedMaterials, totalUsedCost } =
-          await buildMaterials(materials, month, session);
+          await buildMaterials(materials, month, date, session);
 
         const updated = await MaterialCostUsed.findByIdAndUpdate(
           data._id,
@@ -581,6 +663,8 @@ exports.updateBatch = async (req, res) => {
             productionScope,
             department,
             month,
+            date,
+            shift,
             phase,
             production,
             unit,
@@ -595,6 +679,15 @@ exports.updateBatch = async (req, res) => {
 
         updatedDocs.push(updated);
 
+        // Tính tổng production từ tất cả records cùng productionScope/month/phase
+        const totalProduction = await getTotalProduction(
+          data.productionScope,
+          data.department,
+          data.month,
+          data.phase,
+          session,
+        );
+
         const budgetSourceData = await buildBudgetSourceData(
           {
             productionScope: data.productionScope,
@@ -602,7 +695,7 @@ exports.updateBatch = async (req, res) => {
             month: data.month,
             phase: data.phase,
             unit: data.unit,
-            production: data.production,
+            production: totalProduction,
           },
           session,
         );
@@ -629,7 +722,7 @@ exports.updateBatch = async (req, res) => {
             month,
             phase,
 
-            production: budgetResult.production,
+            production: totalProduction,
             unit: budgetResult.unit,
 
             assignmentNormCode: budgetResult.assignmentNormCode,
@@ -1063,7 +1156,121 @@ exports.getPhasesByScope = async (req, res) => {
     const data = docs.map((d) => ({
       _id: d._id,
       key: d._id.toString(),
-      isOtherTask: false,
+      department: d.department,
+      productionScope: d.productionScope,
+      month: d.month,
+      date: d.date,
+      shift: d.shift,
+      phase: d.phase,
+      unit: d.unit,
+      production: d.production,
+      totalUsedCost: d.totalUsedCost,
+      materials: groupMaterialsByAssignmentCode(d.materials || []),
+    }));
+
+    res.status(200).json({ status: "success", data });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+// ===== Cấp 2.5: các ngày trong 1 department + 1 tháng =====
+exports.getDates = async (req, res) => {
+  try {
+    const { department, month, productionScope } = req.query;
+    if (!department || !month) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu department hoặc month",
+      });
+    }
+
+    const deptId = new mongoose.Types.ObjectId(department);
+
+    // Query filter
+    const matchStage = { department: deptId, month };
+    if (productionScope) {
+      matchStage.productionScope = new mongoose.Types.ObjectId(productionScope);
+    }
+
+    const results = await MaterialCostUsed.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: "$date",
+          totalDateCost: { $sum: "$totalUsedCost" },
+          shifts: { $addToSet: "$shift" }, // Các ca trong ngày
+        },
+      },
+      { $sort: { _id: 1 } }, // Sắp xếp theo ngày tăng dần
+    ]);
+
+    const data = results.map((r) => ({
+      _id: r._id,
+      date: r._id,          // Number: 1, 2, 3...
+      totalDateCost: r.totalDateCost,
+      shifts: r.shifts.filter((s) => s != null).sort((a, b) => a - b),
+    }));
+
+    res.status(200).json({ status: "success", data });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+// ===== Cấp 3.5: các phase thuộc 1 department + 1 tháng + 1 ngày + 1 ca =====
+exports.getPhasesByDate = async (req, res) => {
+  try {
+    const { department, month, date, shift, productionScope } = req.query;
+    if (!department || !month || !date) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu department, month hoặc date",
+      });
+    }
+
+    const deptId = new mongoose.Types.ObjectId(department);
+
+    // Query filter
+    const matchStage = {
+      department: deptId,
+      month,
+      date: Number(date),
+    };
+    if (shift) {
+      matchStage.shift = Number(shift);
+    }
+    if (productionScope) {
+      matchStage.productionScope = new mongoose.Types.ObjectId(productionScope);
+    }
+
+    const docs = await MaterialCostUsed.find(matchStage)
+      .populate("phase", "code name")
+      .populate("productionScope", "code name")
+      .populate({
+        path: "materials.material",
+        populate: [
+          { path: "uom", select: "name" },
+          { path: "assignmentCode", select: "code name uom", populate: "uom" },
+        ],
+      })
+      .populate({
+        path: "materials.assignmentCode",
+        select: "code name uom",
+        populate: "uom",
+      })
+      .lean();
+
+    const data = docs.map((d) => ({
+      _id: d._id,
+      key: d._id.toString(),
+      department: d.department,
+      productionScope: d.productionScope,
+      month: d.month,
+      date: d.date,
+      shift: d.shift,
       phase: d.phase,
       unit: d.unit,
       production: d.production,
