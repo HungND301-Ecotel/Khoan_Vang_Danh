@@ -1001,7 +1001,7 @@ export default function Quarterlycontractsettlement() {
                       >
                         {assignment?.assignmentCode ||
                         assignment.assignmentCode === null
-                          ? formattedPrice(assignment?.price)
+                          ? formattedPrice(assignment?.plan_Price)
                           : ""}
                       </TableCell>
                       {Array.from({ length: 10 }).map((_, index) => (
@@ -1028,9 +1028,16 @@ export default function Quarterlycontractsettlement() {
                               ? formatDecimal(assignment?.plan_Quantity)
                               : ""
                             : index === 1
-                              ? ""
+                              ? assignment.assignmentCode
+                                ? formatDecimal(assignment.plan_QuantityInPlan)
+                                : ""
                               : index === 2
-                                ? ""
+                                ? assignment.assignmentCode &&
+                                  assignment.plan_QuantityOutside > 0
+                                  ? formatDecimal(
+                                      assignment.plan_QuantityOutside,
+                                    )
+                                  : ""
                                 : index === 3
                                   ? assignment?.assignmentCode
                                     ? formattedPrice(assignment?.plan_Cost)

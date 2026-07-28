@@ -90,7 +90,7 @@ const TabBar = () => {
         py: 1.5,
         position: "sticky",
         top: "100px",
-        zIndex: 99,
+        zIndex: 10,
         bgcolor: "rgba(255, 255, 255, 0.85)",
         backdropFilter: "blur(10px)",
         borderRadius: "16px",

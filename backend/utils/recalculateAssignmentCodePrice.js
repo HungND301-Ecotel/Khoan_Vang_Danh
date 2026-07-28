@@ -91,7 +91,11 @@ const recalculateAssignmentCodePrice = async (
   let totalPlanValue = 0;
 
   for (const material of allMaterials) {
-    const matchedPrice = findMatchingPrice(material.priceHistory, checkDate, checkMonth);
+    const matchedPrice = findMatchingPrice(
+      material.priceHistory,
+      checkDate,
+      checkMonth,
+    );
 
     const execPrice = matchedPrice?.executionPrice ?? 0;
     const planPrice = matchedPrice?.plannedPrice ?? 0;
@@ -102,8 +106,11 @@ const recalculateAssignmentCodePrice = async (
     totalPlanValue += qty * planPrice;
   }
 
-  const executionPrice = totalQty > 0 ? Math.round(totalExecValue / totalQty) : null;
-  const plannedPrice = totalQty > 0 ? Math.round(totalPlanValue / totalQty) : null;
+  const executionPrice =
+    totalQty > 0 ? Math.round(totalExecValue / totalQty) : null;
+  const plannedPrice =
+    totalQty > 0 ? Math.round(totalPlanValue / totalQty) : null;
+
 
   return { executionPrice, plannedPrice };
 };
@@ -180,7 +187,9 @@ const calculatedPhase = async (data, date, type, session = null) => {
         price = priceResult?.executionPrice ?? priceResult?.plannedPrice ?? 0;
       }
 
-      const cost = price * (quantity || 0);
+      const quantityOutside = inputCodeData.quantityOutside || 0;
+      const totalQuantity = (quantity || 0) + quantityOutside;
+      const cost = price * totalQuantity;
       total += cost;
 
       details.push({
@@ -189,6 +198,7 @@ const calculatedPhase = async (data, date, type, session = null) => {
         adjustmentNorm,
         norm,
         quantity: quantity || 0,
+        quantityOutside: quantityOutside,
         executionPrice: priceResult?.executionPrice ?? 0,
         plannedPrice: priceResult?.plannedPrice ?? 0,
         price: price,

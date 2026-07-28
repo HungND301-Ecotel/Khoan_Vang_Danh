@@ -306,8 +306,8 @@ export default function SettlementReport() {
       let matched = false;
       const updated = cleaned.map((group) => {
         const groupKey = group?.assignmentCode
-          ? `${group.assignmentCode.code}_${group.price}`
-          : `NO_ASSIGNMENTCODE_${group.price}`;
+          ? `${group.assignmentCode.code}`
+          : `NO_ASSIGNMENTCODE`;
         if (groupKey === targetCompoundKey) {
           matched = true;
           return {
@@ -1731,7 +1731,7 @@ export default function SettlementReport() {
                                       },
                                       assignment.assignmentCode?._id ?? null, // 👈 targetAssignmentCodeId (ObjectId thật)
                                       assignment.assignmentCode
-                                        ? assignment.price
+                                        ? assignment.exec_Price
                                         : null,
                                     );
                                   }
@@ -1841,7 +1841,7 @@ export default function SettlementReport() {
                           }}
                         >
                           {assignment.assignmentCode
-                            ? formattedPrice(assignment.price)
+                            ? formattedPrice(assignment.plan_Price)
                             : ""}
                         </TableCell>
                         {canDragDrop && (
@@ -2036,9 +2036,19 @@ export default function SettlementReport() {
                                       ? formatDecimal(blockData.plan_Quantity)
                                       : ""
                                     : i === 1
-                                      ? ""
+                                      ? assignment.assignmentCode && blockData
+                                        ? formatDecimal(
+                                            blockData.plan_QuantityInPlan,
+                                          )
+                                        : ""
                                       : i === 2
-                                        ? ""
+                                        ? assignment.assignmentCode &&
+                                          blockData &&
+                                          blockData.plan_QuantityOutside > 0
+                                          ? formatDecimal(
+                                              blockData.plan_QuantityOutside,
+                                            )
+                                          : ""
                                         : i === 3
                                           ? assignment.assignmentCode &&
                                             blockData

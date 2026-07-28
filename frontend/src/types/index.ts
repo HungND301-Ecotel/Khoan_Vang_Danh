@@ -588,6 +588,7 @@ export interface InitialPlannedCostOutputType {
           adjustmentNorm: number;
           norm: number;
           quantity: number;
+          quantityOutside: number;
           price: number;
           cost: number;
         }[];
@@ -624,6 +625,7 @@ export interface MaterialBudgetCostType {
           adjustmentNorm: number;
           norm: number;
           quantity: number;
+          quantityOutside: number;
           price: number;
           cost: number;
         }[];
@@ -649,11 +651,14 @@ export type DataItem = {
   }[];
   baseNorm: string;
   norm: string;
-  price: number;
+  plan_Price: number;           // Đơn giá kế hoạch
+  exec_Price: number;           // Đơn giá thực hiện
+  plan_Quantity: number;        // Tổng số lượng kế hoạch (quantity + quantityOutside)
+  plan_QuantityInPlan: number;  // Số lượng trong khoán
+  plan_QuantityOutside: number; // Số lượng ngoài khoán
   plan_Cost: number;
-  plan_Quantity: number;
-  used_Cost: number;
   used_Quantity: number;
+  used_Cost: number;
   varianceCost: number;
   varianceQuantity: number;
 };

@@ -1385,7 +1385,7 @@ export default function ContractSettlementReport() {
                           }}
                         >
                           {assignment.assignmentCode
-                            ? formattedPrice(assignment.price)
+                            ? formattedPrice(assignment.plan_Price)
                             : ""}
                         </TableCell>
 
@@ -1590,9 +1590,21 @@ export default function ContractSettlementReport() {
                                               )
                                             : ""
                                           : i === 4
-                                            ? ""
+                                            ? assignment.assignmentCode &&
+                                              blockData
+                                              ? formatDecimal(
+                                                  blockData.plan_QuantityInPlan,
+                                                )
+                                              : ""
                                             : i === 5
-                                              ? ""
+                                              ? assignment.assignmentCode &&
+                                                blockData &&
+                                                blockData.plan_QuantityOutside >
+                                                  0
+                                                ? formatDecimal(
+                                                    blockData.plan_QuantityOutside,
+                                                  )
+                                                : ""
                                               : i === 6
                                                 ? assignment.assignmentCode &&
                                                   blockData

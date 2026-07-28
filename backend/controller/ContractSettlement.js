@@ -31,7 +31,7 @@ function processBudgetAndUsedData(
 ) {
   const mergedGroupsMap = new Map();
 
-  // 1. Hợp nhất budgetCostDetails - lọc theo phase nếu có, đọc thẳng từ doc (không còn lồng trong phases[])
+  // 1. Hợp nhất budgetCostDetails - gộp theo mã giao khoán (không tách theo đơn giá)
   const filteredBudgetDocs = phase
     ? materialBudgetDocs.filter(
         (d) => String(d.phase?._id || d.phase) === String(phase),
@@ -40,23 +40,39 @@ function processBudgetAndUsedData(
 
   filteredBudgetDocs.forEach((budgetDoc) => {
     (budgetDoc.budgetCostDetails || []).forEach((detail) => {
-      const code = detail.assignmentCode?.code;
-      const price = detail.price || 0;
-      const compoundKey = `${code}_${price}`;
+      const code = detail.assignmentCode?.code || "";
+      // Gộp theo mã giao khoán, không tách theo đơn giá
+      const compoundKey = code || `NO_AC_${detail.assignmentCode?._id || ""}`;
+
+      const quantity = detail.quantity || 0;
+      const quantityOutside = detail.quantityOutside || 0;
+      const totalPlanQuantity = quantity + quantityOutside;
+      // Trong budgetCostDetails, price là đơn giá kế hoạch
+      const planPrice = detail.price || 0;
+      // Đơn giá thực hiện lấy từ assignmentCode (đã lưu trong DB)
+      const execPrice = detail.assignmentCode?.executionPrice || 0;
 
       if (mergedGroupsMap.has(compoundKey)) {
         const existing = mergedGroupsMap.get(compoundKey);
-        existing.plan_Quantity += detail.quantity || 0;
+        existing.plan_Quantity += totalPlanQuantity;
+        existing.plan_QuantityInPlan += quantity;
+        existing.plan_QuantityOutside += quantityOutside;
         existing.plan_Cost += detail.cost || 0;
         existing.norm += detail.norm || 0;
+        // Cập nhật đơn giá (lấy từ budgetDetail)
+        if (planPrice && !existing.plan_Price) existing.plan_Price = planPrice;
+        if (execPrice && !existing.exec_Price) existing.exec_Price = execPrice;
       } else {
         mergedGroupsMap.set(compoundKey, {
           assignmentCode: detail.assignmentCode,
           baseNorm: detail.baseNorm,
           adjustmentNorm: detail.adjustmentNorm,
           norm: detail.norm,
-          price: price,
-          plan_Quantity: detail.quantity || 0,
+          plan_Price: planPrice, // Đơn giá kế hoạch (từ budget.price)
+          exec_Price: execPrice, // Đơn giá thực hiện (từ assignmentCode.executionPrice)
+          plan_Quantity: totalPlanQuantity, // Tổng số lượng kế hoạch
+          plan_QuantityInPlan: quantity, // Số lượng trong khoán
+          plan_QuantityOutside: quantityOutside, // Số lượng ngoài khoán
           plan_Cost: detail.cost || 0,
           used_Quantity: 0,
           used_Cost: 0,
@@ -83,8 +99,9 @@ function processBudgetAndUsedData(
       const quantity = mat.quantity || 0;
       const cost = mat.cost || 0;
 
+      // Gộp theo mã giao khoán, không tách theo đơn giá
       const compoundKey = assignmentCodeDoc
-        ? `${code}_${matPrice}`
+        ? code || `NO_AC_${assignmentCodeDoc?._id || ""}`
         : "NO_ASSIGNMENTCODE";
 
       let group = mergedGroupsMap.get(compoundKey);
@@ -95,8 +112,11 @@ function processBudgetAndUsedData(
           baseNorm: "",
           adjustmentNorm: "",
           norm: "",
-          price: assignmentCodeDoc ? matPrice : "",
+          plan_Price: 0,
+          exec_Price: matPrice,
           plan_Quantity: 0,
+          plan_QuantityInPlan: 0,
+          plan_QuantityOutside: 0,
           plan_Cost: 0,
           used_Quantity: 0,
           used_Cost: 0,
@@ -119,11 +139,15 @@ function processBudgetAndUsedData(
     });
   });
 
-  // 3. Tính Variance và sắp xếp — GIỮ NGUYÊN không đổi
+  // 3. Tính Variance và sắp xếp
   const finalGroups = Array.from(mergedGroupsMap.values()).map((group) => {
     if (!group.assignmentCode) {
+      // Vật tư không có mã giao khoán: plan = used
       group.plan_Quantity = group.used_Quantity;
+      group.plan_QuantityInPlan = group.used_Quantity;
+      group.plan_QuantityOutside = 0;
       group.plan_Cost = group.used_Cost;
+      group.plan_Price = group.exec_Price;
     }
     const varianceQuantity = group.plan_Quantity - group.used_Quantity;
     const varianceCost = group.plan_Cost - group.used_Cost;
@@ -265,7 +289,7 @@ async function getMonthGrouped(
       })
       .populate({
         path: "budgetCostDetails.assignmentCode", // 👈 đổi từ "phases.budgetCostDetails.assignmentCode"
-        select: "code name uom deviceCode",
+        select: "code name uom deviceCode executionPrice plannedPrice",
         populate: [{ path: "uom" }, { path: "deviceCode" }],
       })
       .populate({
@@ -405,7 +429,7 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
         })
         .populate({
           path: "budgetCostDetails.assignmentCode", // 👈 đổi
-          select: "code name uom deviceCode",
+          select: "code name uom deviceCode executionPrice plannedPrice",
           populate: [{ path: "uom" }, { path: "deviceCode" }],
         })
         .populate({
@@ -515,7 +539,7 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       };
     });
 
-    // --- otherTasks: GIỮ NGUYÊN không đổi (OtherMaterialCost không có phase) ---
+    // --- otherTasks: Gộp theo mã giao khoán (không tách theo đơn giá) ---
     const otherMaterials = [];
     othersByMonth.forEach((otherDoc) => {
       otherDoc.materials.forEach((mat) => {
@@ -537,14 +561,18 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
     const otherGroupMap = new Map();
     otherMaterials.forEach((mat) => {
       const code = mat.assignmentCode?.code || "";
+      // Gộp theo mã giao khoán, không tách theo đơn giá
       const compoundKey = mat.assignmentCode
-        ? `${code}_${mat.price}`
+        ? code || `NO_AC_${mat.assignmentCode?._id || ""}`
         : `NO_ASSIGNMENTCODE_${mat.price || 0}`;
       if (!otherGroupMap.has(compoundKey)) {
         otherGroupMap.set(compoundKey, {
           assignmentCode: mat.assignmentCode,
-          price: mat.assignmentCode ? mat.price : "",
+          plan_Price: 0, // Đơn giá kế hoạch
+          exec_Price: mat.assignmentCode ? mat.price : "", // Đơn giá thực hiện
           plan_Quantity: 0,
+          plan_QuantityInPlan: 0,
+          plan_QuantityOutside: 0,
           plan_Cost: 0,
           used_Quantity: 0,
           used_Cost: 0,
@@ -554,8 +582,12 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       const group = otherGroupMap.get(compoundKey);
       group.used_Quantity += mat.quantity;
       group.used_Cost += mat.cost;
+      // OtherMaterialCost: plan = used (không có plan riêng)
       group.plan_Quantity += mat.quantity;
+      group.plan_QuantityInPlan += 0; // Không có trong khoán
+      group.plan_QuantityOutside += mat.quantity; // Tất cả đều ngoài khoán
       group.plan_Cost += mat.cost;
+      group.plan_Price = group.exec_Price; // Đơn giá kế hoạch = đơn giá thực hiện
       group.materialUseds.push({
         materialCostId: mat.otherDocId,
         materialItemId: mat.material?._id,
@@ -1542,8 +1574,20 @@ exports.getExcel = async (req, res) => {
               ? numOrEmpty(blockData.plan_Quantity)
               : "",
           );
-          setCell(currentRow, bkCol.start + 1, "");
-          setCell(currentRow, bkCol.start + 2, "");
+          setCell(
+            currentRow,
+            bkCol.start + 1,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_QuantityInPlan)
+              : "",
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 2,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_QuantityOutside)
+              : "",
+          );
           setCell(
             currentRow,
             bkCol.start + 3,
@@ -1616,8 +1660,20 @@ exports.getExcel = async (req, res) => {
               ? numOrEmpty(blockData.plan_Quantity)
               : "",
           );
-          setCell(currentRow, bkCol.start + 4, "");
-          setCell(currentRow, bkCol.start + 5, "");
+          setCell(
+            currentRow,
+            bkCol.start + 4,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_QuantityInPlan)
+              : "",
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 5,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_QuantityOutside)
+              : "",
+          );
           setCell(
             currentRow,
             bkCol.start + 6,
@@ -2052,7 +2108,7 @@ async function getQuarterData(res, quarter, year, department) {
       })
       .populate({
         path: "budgetCostDetails.assignmentCode", // 👈 đổi
-        select: "code name uom deviceCode",
+        select: "code name uom deviceCode executionPrice plannedPrice",
         populate: [{ path: "uom" }, { path: "deviceCode" }],
       })
       .populate({
@@ -2411,8 +2467,20 @@ exports.getQuarterExcel = async (req, res) => {
         dataStart,
         assignment.assignmentCode ? numOrEmpty(assignment.plan_Quantity) : "",
       );
-      setCell(currentRow, dataStart + 1, "");
-      setCell(currentRow, dataStart + 2, "");
+      setCell(
+        currentRow,
+        dataStart + 1,
+        assignment.assignmentCode
+          ? numOrEmpty(assignment.plan_QuantityInPlan)
+          : "",
+      );
+      setCell(
+        currentRow,
+        dataStart + 2,
+        assignment.assignmentCode && assignment.plan_QuantityOutside > 0
+          ? numOrEmpty(assignment.plan_QuantityOutside)
+          : "",
+      );
       setCell(
         currentRow,
         dataStart + 3,
@@ -2623,7 +2691,7 @@ exports.getDashboardData = async (req, res) => {
         const materialBudgets = await MaterialBudget.find(matchQuery)
           .populate({
             path: "budgetCostDetails.assignmentCode",
-            select: "code name uom deviceCode",
+            select: "code name uom deviceCode executionPrice plannedPrice",
             populate: [{ path: "uom" }, { path: "deviceCode" }],
           })
           .lean();

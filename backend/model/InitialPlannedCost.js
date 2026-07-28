@@ -40,7 +40,8 @@ const InitialPlannedCost = new mongoose.Schema(
         baseNorm: Number,
         adjustmentNorm: Number,
         norm: Number,
-        quantity: Number,
+        quantity: Number,        // Số lượng trong khoán
+        quantityOutside: Number, // Số lượng ngoài khoán
         price: Number,
         cost: Number,
       },

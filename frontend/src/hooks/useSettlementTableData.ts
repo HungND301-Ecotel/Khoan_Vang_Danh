@@ -22,7 +22,8 @@ export interface BlockKey {
 export interface RowGroup {
   compoundKey: string; // assignmentCode.code_price
   assignmentCode: any;
-  price: number;
+  plan_Price: number;
+  exec_Price: number;
   maxRows: number; // max materialUseds across all blocks
   blocks: Map<
     string,
@@ -104,19 +105,20 @@ export function useSettlementTableData(
     const allCompoundKeys: string[] = [];
     const compoundKeyMeta = new Map<
       string,
-      { assignmentCode: any; price: number }
+      { assignmentCode: any; plan_Price: number; exec_Price: number }
     >();
 
     blockDataMap.forEach((dataItems) => {
       dataItems.forEach((item) => {
         const key = item.assignmentCode
-          ? `${item.assignmentCode.code}_${item.price}`
-          : `NO_ASSIGNMENTCODE_${item.price}`;
+          ? `${item.assignmentCode.code}`
+          : `NO_ASSIGNMENTCODE`;
         if (!compoundKeyMeta.has(key)) {
           allCompoundKeys.push(key);
           compoundKeyMeta.set(key, {
             assignmentCode: item.assignmentCode,
-            price: item.price,
+            plan_Price: item.plan_Price,
+            exec_Price: item.exec_Price,
           });
         }
       });
@@ -139,8 +141,8 @@ export function useSettlementTableData(
         const dataItems = blockDataMap.get(blockId) ?? [];
         const groupItem = dataItems.find((item) => {
           const k = item.assignmentCode
-            ? `${item.assignmentCode.code}_${item.price}`
-            : `NO_ASSIGNMENTCODE_${item.price}`;
+            ? `${item.assignmentCode.code}`
+            : `NO_ASSIGNMENTCODE`;
           return k === compoundKey;
         });
 
@@ -169,8 +171,8 @@ export function useSettlementTableData(
         const groupItem =
           dataItems.find((item) => {
             const k = item.assignmentCode
-              ? `${item.assignmentCode.code}_${item.price}`
-              : `NO_ASSIGNMENTCODE_${item.price}`;
+              ? `${item.assignmentCode.code}`
+              : `NO_ASSIGNMENTCODE`;
             return k === compoundKey;
           }) ?? null;
 
@@ -204,7 +206,8 @@ export function useSettlementTableData(
       return {
         compoundKey,
         assignmentCode: meta.assignmentCode,
-        price: meta.price,
+        plan_Price: meta.plan_Price,
+        exec_Price: meta.exec_Price,
         maxRows,
         alignedMaterialsMeta,
         blocks,
