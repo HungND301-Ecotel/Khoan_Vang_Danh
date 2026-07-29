@@ -90,7 +90,7 @@ const TabBar = () => {
         py: 1.5,
         position: "sticky",
         top: "100px",
-        zIndex: 99,
+        zIndex: 10,
         bgcolor: "rgba(255, 255, 255, 0.85)",
         backdropFilter: "blur(10px)",
         borderRadius: "16px",
@@ -198,7 +198,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [materialSubMenuEl, setMaterialSubMenuEl] =
     useState<null | HTMLElement>(null);
 
-
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [, setActiveTabId] = useAtom(activeTabIdAtom);
 
@@ -223,7 +222,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    const currentPath = location.pathname;
+    const currentPath = location.pathname + location.search;
     setActiveTabId(currentPath);
 
     setTabs((prev) => {
@@ -239,7 +238,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       }
       return prev;
     });
-  }, [location.pathname, setActiveTabId, setTabs]);
+  }, [location.pathname, location.search, setActiveTabId, setTabs]);
 
   useEffect(() => {
     const fetchSystemConfigs = async () => {
@@ -537,7 +536,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       >
         <MenuItem
           onClick={() => {
-            handleNavigate("/materialassignment");
+            handleNavigate("/materialassignment?type=in");
             setMenuDanhMucEl(null);
             setMaterialSubMenuEl(null);
           }}
@@ -553,7 +552,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            handleNavigate("/materialassignmentoutplan"); // Update with your actual route
+            handleNavigate("/materialassignment?type=out");
             setMenuDanhMucEl(null);
             setMaterialSubMenuEl(null);
           }}

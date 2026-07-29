@@ -40,10 +40,14 @@ import ImportErrorDialog from "../../components/ImportErrorDialog/ImportErrorDia
 import { ShowAlertImport } from "../../utils/AlertImport";
 import { formatDecimal, formattedPrice } from "../../utils/helpers";
 import PageAction from "../../components/Common/PageAction";
+import { useSearchParams } from "react-router-dom";
 
 import useMinimizedModal from "../../hooks/useMinimizedModal";
 
 export default function MaterialAssignment() {
+  const [searchParams] = useSearchParams();
+  const type = searchParams.get("type") || "in"; // "in" = trong khoán, "out" = ngoài khoán
+  const isOutPlan = type === "out";
   const [open, setOpen] = useState(false);
   const [selectedMaterialAssignment, setSelectedMaterialAssignment] =
     useState<Materials | null>(null);
@@ -58,9 +62,12 @@ export default function MaterialAssignment() {
   });
 
   const queryClient = useQueryClient();
+  const modalTitle = isOutPlan
+    ? "Vật tư tài sản khác"
+    : "Vật tư tài sản trong khoán";
   const { minimizedData, handleMinimize, clearMinimize } = useMinimizedModal<
     Partial<MaterialAssignmentInputType>
-  >(setOpen, "Vật tư tài sản trong khoán");
+  >(setOpen, modalTitle);
 
   const {
     data: materialAssignments = {
@@ -71,11 +78,11 @@ export default function MaterialAssignment() {
     isLoading,
     isFetching,
   } = useQuery({
-    queryKey: ["materialAssignments", searchValue, page, limit],
+    queryKey: ["materialAssignments", searchValue, page, limit, type],
     queryFn: async () => {
       try {
         const response = await api.get(
-          `/materialAssignments?q=${searchValue}&page=${page}&limit=${limit}&type=in`,
+          `/materialAssignments?q=${searchValue}&page=${page}&limit=${limit}&type=${type}`,
         );
         return response.data.data;
       } catch (error) {
@@ -230,7 +237,7 @@ export default function MaterialAssignment() {
   });
 
   const exportExcel = useMutation({
-    mutationFn: MaterialAssignmentService.exportFile,
+    mutationFn: () => MaterialAssignmentService.exportFile(type),
     onSuccess: () => {},
     onError: async (error: any) => {
       const message = await parseAxiosError(error);
@@ -248,21 +255,27 @@ export default function MaterialAssignment() {
         <Typography>{(page - 1) * limit + index + 1}</Typography>
       ),
     },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>,
-      dataIndex: "assignmentCode",
-      key: "assignmentCode",
-      width: 200,
-      render: (_, record) => (
-        <Typography>{record.assignmentCode?.code}</Typography>
-      ),
-      sorter: (a, b) =>
-        (a.assignmentCode?.code ?? "").localeCompare(
-          b.assignmentCode?.code ?? "",
-          "vi",
-          { sensitivity: "base" },
-        ),
-    },
+    ...(!isOutPlan
+      ? [
+          {
+            title: (
+              <Typography sx={{ fontWeight: "bold" }}>Mã giao khoán</Typography>
+            ),
+            dataIndex: "assignmentCode",
+            key: "assignmentCode",
+            width: 200,
+            render: (_: any, record: Materials) => (
+              <Typography>{record.assignmentCode?.code}</Typography>
+            ),
+            sorter: (a: Materials, b: Materials) =>
+              (a.assignmentCode?.code ?? "").localeCompare(
+                b.assignmentCode?.code ?? "",
+                "vi",
+                { sensitivity: "base" },
+              ),
+          },
+        ]
+      : []),
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Mã vật tư</Typography>,
       dataIndex: "code",
@@ -290,14 +303,20 @@ export default function MaterialAssignment() {
       key: "uom",
       render: (_, record) => <Typography>{record.uom?.name}</Typography>,
     },
-    {
-      title: <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>,
-      dataIndex: "quantity",
-      key: "quantity",
-      render: (_, record) => (
-        <Typography>{formatDecimal(record?.quantity)}</Typography>
-      ),
-    },
+    ...(!isOutPlan
+      ? [
+          {
+            title: (
+              <Typography sx={{ fontWeight: "bold" }}>Số lượng</Typography>
+            ),
+            dataIndex: "quantity",
+            key: "quantity",
+            render: (_: any, record: Materials) => (
+              <Typography>{formatDecimal(record?.quantity)}</Typography>
+            ),
+          },
+        ]
+      : []),
     {
       title: <Typography sx={{ fontWeight: "bold" }}>Đơn giá</Typography>,
       dataIndex: "price",
@@ -330,6 +349,9 @@ export default function MaterialAssignment() {
     setSearchValue("");
   };
 
+  const breadcrumbSuffix = isOutPlan ? "khác" : "trong khoán";
+  const titleSuffix = isOutPlan ? "khác" : "trong khoán";
+
   return (
     <>
       <Box
@@ -341,7 +363,7 @@ export default function MaterialAssignment() {
         <Breadcrumbs aria-label="breadcrumb">
           <Typography>Danh mục</Typography>
           <Typography>Vật tư tài sản</Typography>
-          <Typography>Vật tư tài sản trong khoán</Typography>
+          <Typography>Vật tư tài sản {breadcrumbSuffix}</Typography>
         </Breadcrumbs>
         <Box mt={3}>
           <Box>
@@ -350,7 +372,7 @@ export default function MaterialAssignment() {
                 variant="h4"
                 sx={{ color: (theme) => custom_theme.palette.table_name.main }}
               >
-                Vật tư tài sản trong khoán
+                Vật tư tài sản {titleSuffix}
               </Typography>
               <PageAction
                 selectedIds={selectedMaterialAssignments}
@@ -388,6 +410,7 @@ export default function MaterialAssignment() {
           minimizedData={minimizedData}
           onMinimize={handleMinimize}
           clearMinimize={clearMinimize}
+          isOutPlan={isOutPlan}
         />
       </Box>
       <ImportErrorDialog

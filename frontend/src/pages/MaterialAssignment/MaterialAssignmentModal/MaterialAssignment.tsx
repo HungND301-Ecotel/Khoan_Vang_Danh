@@ -35,11 +35,14 @@ import FieldInput from "../../../components/TextField/FieldInput";
 import BaseModal from "../../../components/Common/BaseModal";
 dayjs.extend(utc);
 
-const validationSchema = yup.object({
-  assignmentCode: yup.string().required("Mã giao khoán không được để trống"),
-  code: yup.string().required("Mã vật tư không được để trống"),
-  name: yup.string().required("Tên vật tư giao khoán không được để trống"),
-});
+const validationSchema = (isOutPlan: boolean) =>
+  yup.object({
+    assignmentCode: isOutPlan
+      ? yup.string().optional()
+      : yup.string().required("Mã giao khoán không được để trống"),
+    code: yup.string().required("Mã vật tư không được để trống"),
+    name: yup.string().required("Tên vật tư giao khoán không được để trống"),
+  });
 
 export default function MaterialAssignmentModal({
   open,
@@ -49,6 +52,7 @@ export default function MaterialAssignmentModal({
   minimizedData,
   onMinimize,
   clearMinimize,
+  isOutPlan = false,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
@@ -57,6 +61,7 @@ export default function MaterialAssignmentModal({
   minimizedData?: any;
   onMinimize?: (data: any) => void;
   clearMinimize?: () => void;
+  isOutPlan?: boolean;
 }) {
   const {
     data: assignmentCodes = {
@@ -147,18 +152,27 @@ export default function MaterialAssignmentModal({
   };
 
   const handleMinimize = () => {
-    if (onMinimize) onMinimize({ ...formik.values, _id: selectedMaterialAssignment?._id || minimizedData?._id });
+    if (onMinimize)
+      onMinimize({
+        ...formik.values,
+        _id: selectedMaterialAssignment?._id || minimizedData?._id,
+      });
   };
+
+  const titleSuffix = isOutPlan ? "ngoài khoán" : "trong khoán";
+  const breadcrumbSuffix = isOutPlan ? "ngoài khoán" : "trong khoán";
 
   return (
     <BaseModal
       open={open}
       onClose={handleClose}
       onMinimize={handleMinimize}
-      title={(selectedMaterialAssignment || minimizedData?._id) ? "Chỉnh sửa vật tư, tài sản trong khoán"
-          : "Tạo mới vật tư, tài sản trong khoán"
+      title={
+        selectedMaterialAssignment || minimizedData?._id
+          ? "Chỉnh sửa vật tư, tài sản " + titleSuffix
+          : "Tạo mới vật tư, tài sản " + titleSuffix
       }
-      breadcrumbs={["Danh mục", "Vật tư, tài sản trong khoán"]}
+      breadcrumbs={["Danh mục", "Vật tư, tài sản " + breadcrumbSuffix]}
       showZoom={true}
       actions={
         <>
@@ -187,7 +201,9 @@ export default function MaterialAssignmentModal({
               textTransform: "none",
             }}
           >
-            {(selectedMaterialAssignment || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
+            {selectedMaterialAssignment || minimizedData?._id
+              ? "Cập nhật"
+              : "Xác nhận"}
           </Button>
         </>
       }
@@ -196,18 +212,20 @@ export default function MaterialAssignmentModal({
         <Box component="form" onSubmit={formik.handleSubmit}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {/* Mã giao khoán */}
-            <Box>
-              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
-                Mã giao khoán
-              </Typography>
-              <FieldAutoCompleted
-                formik={formik}
-                field="assignmentCode"
-                labelkey="code"
-                title=""
-                data={assignmentCodes.data}
-              />
-            </Box>
+            {!isOutPlan && (
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                  Mã giao khoán
+                </Typography>
+                <FieldAutoCompleted
+                  formik={formik}
+                  field="assignmentCode"
+                  labelkey="code"
+                  title=""
+                  data={assignmentCodes.data}
+                />
+              </Box>
+            )}
 
             <Box>
               <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>

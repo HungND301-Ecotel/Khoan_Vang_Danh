@@ -24,12 +24,16 @@ import api from "../../config/api.config";
 export default function PhaseTable({
   department,
   month,
+  date,
+  shift,
   productionScope,
   isOtherTask,
   handleOpen,
 }: {
-  department: string;
+  department: any;
   month?: string;
+  date?: number;
+  shift?: number;
   productionScope: any;
   isOtherTask?: boolean;
   handleOpen: (record: any) => void;
@@ -37,66 +41,152 @@ export default function PhaseTable({
   const queryClient = useQueryClient();
   const [expandedRowKey, setExpandedRowKey] = useState<React.Key | null>(null);
   const productionScopeId = productionScope?._id || productionScope;
+  const departmentId = department?._id || department;
+
+  // Nếu có date thì dùng API mới, không thì dùng API cũ
+  const useNewApi = date != null;
 
   const { data: phaseDocs = [] } = useQuery({
     queryKey: [
-      "materialcostused-phases",
-      department,
+      useNewApi ? "materialcostused-phases-by-date" : "materialcostused-phases",
+      departmentId,
+      month,
+      date,
+      shift,
       month,
       productionScopeId,
       isOtherTask,
     ],
     queryFn: async () => {
-      const res = await api.get(`/materialcostuseds/phases`, {
-        params: {
-          department,
-          month,
-          productionScope: productionScopeId,
-          isOtherTask: !!isOtherTask,
-        },
-      });
-      return res.data.data;
+      if (useNewApi) {
+        const res = await api.get(`/materialcostuseds/phases-by-date`, {
+          params: {
+            department: departmentId,
+            month,
+            date,
+            shift,
+          },
+        });
+        return res.data.data;
+      } else {
+        const res = await api.get(`/materialcostuseds/phases`, {
+          params: {
+            department: departmentId,
+            month,
+            productionScope: productionScopeId,
+            isOtherTask: !!isOtherTask,
+          },
+        });
+        return res.data.data;
+      }
     },
-    enabled: !!department && !!month && !!productionScopeId,
+    enabled: !!departmentId && !!month && (useNewApi || !!productionScopeId),
   });
 
-  const innerColumns = [
+  const renderMaterials = (materials: any[]) => {
+    if (!materials || materials.length === 0) return null;
+
+    return (
+      <Paper sx={{ margin: "20px" }}>
+        <TableMui>
+          <TableHead sx={{ backgroundColor: "#dcd7d7fa" }}>
+            <TableRow>
+              <TableCell>Mã giao khoán</TableCell>
+              <TableCell>Mã vật tư</TableCell>
+              <TableCell>Tên vật tư, tài sản</TableCell>
+              <TableCell>ĐVT</TableCell>
+              <TableCell>Số lượng</TableCell>
+              <TableCell>Đơn giá bình quân</TableCell>
+              <TableCell>Chi phí thực hiện</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody sx={{ backgroundColor: "white" }}>
+            {materials.map((group: any, idx: number) => (
+              <React.Fragment key={idx}>
+                {/* Hàng nhóm - hiển thị mã GK + tổng SL + đơn giá TB */}
+                <TableRow>
+                  <TableCell>{group?.assignmentCode?.code}</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell>
+                    {group?.assignmentCode?.name || "Vật tư không có định mức"}
+                  </TableCell>
+                  <TableCell>{group?.assignmentCode?.uom?.name}</TableCell>
+                  <TableCell>
+                    {formatDecimal(
+                      group.materials?.reduce(
+                        (sum: number, i: any) => sum + (i?.quantity || 0),
+                        0,
+                      ) || 0,
+                    )}
+                  </TableCell>
+                  <TableCell>{formattedPrice(group.price)}</TableCell>
+                  <TableCell>
+                    {formattedPrice(
+                      group.materials?.reduce(
+                        (sum: number, i: any) => sum + (i?.cost || 0),
+                        0,
+                      ) || 0,
+                    )}
+                  </TableCell>
+                </TableRow>
+                {/* Hàng con - chi tiết từng vật tư */}
+                {group.materials?.map((i: any, iIdx: number) => (
+                  <TableRow key={iIdx}>
+                    <TableCell></TableCell>
+                    <TableCell>{i?.material?.code}</TableCell>
+                    <TableCell>{i?.material?.name}</TableCell>
+                    <TableCell>{i?.material?.uom?.name}</TableCell>
+                    <TableCell>{formatDecimal(i.quantity)}</TableCell>
+                    <TableCell>
+                      {group?.assignmentCode ? "" : formattedPrice(i.price)}
+                    </TableCell>
+                    <TableCell>{formattedPrice(i.cost)}</TableCell>
+                  </TableRow>
+                ))}
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </TableMui>
+      </Paper>
+    );
+  };
+
+  const columns = [
     {
-      title: "",
-      width: 120,
+      title: <Typography sx={{ fontWeight: "bold" }}>Công đoạn</Typography>,
       dataIndex: "index",
       key: "index",
       align: "center" as const,
-      render: (text: string, item: any, index: number) => (
+      render: (_: any, __: any, index: number) => (
         <Typography>Công đoạn {index + 1}</Typography>
       ),
     },
     {
-      title: <Typography>Mã công đoạn</Typography>,
+      title: <Typography sx={{ fontWeight: "bold" }}>Mã công đoạn</Typography>,
       width: 150,
       dataIndex: "code",
       key: "code",
-      render: (text: string, item: any) => (
-        <Typography>{item.phase?.code}</Typography>
+      render: (_: any, record: any) => (
+        <Typography>{record.phase?.code}</Typography>
       ),
     },
     {
-      title: <Typography>Tên công đoạn</Typography>,
+      title: <Typography sx={{ fontWeight: "bold" }}>Tên công đoạn</Typography>,
       dataIndex: "name",
       key: "name",
-      render: (text: string, item: any) => (
-        <Typography>{item.phase?.name}</Typography>
+      render: (_: any, record: any) => (
+        <Typography>{record.phase?.name}</Typography>
       ),
     },
     {
-      title: <Typography>ĐVT</Typography>,
+      title: <Typography sx={{ fontWeight: "bold" }}>ĐVT</Typography>,
       dataIndex: "unit",
       key: "unit",
       align: "center" as const,
       render: (text: string) => <Typography>{text}</Typography>,
     },
     {
-      title: <Typography>Sản lượng</Typography>,
+      title: <Typography sx={{ fontWeight: "bold" }}>Sản lượng</Typography>,
       dataIndex: "production",
       key: "production",
       align: "center" as const,
@@ -105,59 +195,39 @@ export default function PhaseTable({
       ),
     },
     {
-      title: <Typography>Xem</Typography>,
+      title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
       key: "expand",
       width: 60,
       align: "center" as const,
-      render: (_: any, record: any) => {
-        const expanded = expandedRowKey === record._id;
-
-        return (
-          <IconButton
-            onClick={() => {
-              if (expanded) {
-                setExpandedRowKey(null);
-              } else {
-                setExpandedRowKey(record._id);
-              }
-            }}
-          >
-            {expanded ? <Visibility /> : <VisibilityOff />}
-          </IconButton>
-        );
-      },
+      render: (_: any, record: any) => (
+        <IconButton
+          onClick={() => {
+            setExpandedRowKey((prev) =>
+              prev === record._id ? null : record._id,
+            );
+          }}
+        >
+          {expandedRowKey === record._id ? <Visibility /> : <VisibilityOff />}
+        </IconButton>
+      ),
     },
     {
-      title: <Typography>Sửa</Typography>,
+      title: <Typography sx={{ fontWeight: "bold" }}>Sửa</Typography>,
       dataIndex: "edit",
       key: "edit",
       width: 60,
       align: "center" as const,
       render: (_: any, record: any) => (
         <IconButton
-          onClick={() =>
-            handleOpen({
-              ...record,
-              department,
-              month,
-              productionScope,
-              isOtherTask: false,
-            })
-          }
-          sx={{
-            color: "#666",
-            "&:hover": {
-              color: "#1976d2",
-              backgroundColor: "rgba(25, 118, 210, 0.04)",
-            },
-          }}
+          onClick={() => handleOpen(record)}
+          sx={{ color: "#666", "&:hover": { color: "#1976d2" } }}
         >
           <Edit />
         </IconButton>
       ),
     },
     {
-      title: <Typography>Xóa</Typography>,
+      title: <Typography sx={{ fontWeight: "bold" }}>Xóa</Typography>,
       dataIndex: "delete",
       key: "delete",
       width: 60,
@@ -172,13 +242,7 @@ export default function PhaseTable({
               deleteMutation(record._id);
             }
           }}
-          sx={{
-            color: "#666",
-            "&:hover": {
-              color: "#d32f2f",
-              backgroundColor: "rgba(211,47,47,0.04)",
-            },
-          }}
+          sx={{ color: "#666", "&:hover": { color: "#d32f2f" } }}
         >
           <Delete />
         </IconButton>
@@ -186,17 +250,7 @@ export default function PhaseTable({
     },
   ];
 
-  // Nhánh "Công việc khác" - chỉ 1 document duy nhất, không có phase, chỉ hiển thị bảng materials
-  if (isOtherTask) {
-    const doc = phaseDocs[0];
-    return (
-      <Paper sx={{ paddingBottom: "10px" }}>
-        <MaterialsTable materials={doc?.materials || []} />
-      </Paper>
-    );
-  }
-
-  const { mutate: deleteMutation, isPending: isDeletePending } = useMutation({
+  const { mutate: deleteMutation } = useMutation({
     mutationFn: async (id: string) => {
       return api.delete(`/materialcostuseds/${id}`).then((res) => res.data);
     },
@@ -205,13 +259,14 @@ export default function PhaseTable({
       queryClient.invalidateQueries({ queryKey: ["materialcostused-months"] });
       queryClient.invalidateQueries({ queryKey: ["materialcostused-scopes"] });
       queryClient.invalidateQueries({ queryKey: ["materialcostused-phases"] });
+      queryClient.invalidateQueries({ queryKey: ["materialcostused-dates"] });
+      queryClient.invalidateQueries({
+        queryKey: ["materialcostused-phases-by-date"],
+      });
       showSuccessAlert("Xóa thành công");
     },
     onError: (error: any) => {
-      const errorMessage =
-        error.response?.data?.message || error.message || "Lỗi khi xóa";
-      console.error(errorMessage);
-      showErrorAlert(errorMessage);
+      showErrorAlert(error.response?.data?.message || "Lỗi khi xóa");
     },
   });
 
@@ -219,7 +274,7 @@ export default function PhaseTable({
     <Paper sx={{ paddingBottom: "10px" }}>
       {phaseDocs.length > 0 && (
         <Table
-          columns={innerColumns}
+          columns={columns}
           dataSource={phaseDocs}
           pagination={false}
           size="small"
@@ -228,14 +283,11 @@ export default function PhaseTable({
           expandable={{
             showExpandColumn: false,
             expandedRowKeys: expandedRowKey ? [expandedRowKey] : [],
-
             onExpand: (expanded, record) => {
               setExpandedRowKey(expanded ? record._id || null : null);
             },
             expandedRowRender: (record: any) => (
-              <Box sx={{ p: 2 }}>
-                <MaterialsTable materials={record.materials || []} />
-              </Box>
+              <Box sx={{ p: 2 }}>{renderMaterials(record.materials || [])}</Box>
             ),
           }}
         />
@@ -247,67 +299,3 @@ export default function PhaseTable({
   );
 }
 
-// Tách bảng materials thành component dùng chung cho cả 2 nhánh (thường + OtherTask)
-function MaterialsTable({ materials }: { materials: any[] }) {
-  return (
-    <Paper sx={{ margin: "20px" }}>
-      <TableMui>
-        <TableHead sx={{ backgroundColor: "#dcd7d7fa" }}>
-          <TableRow>
-            <TableCell>Mã giao khoán</TableCell>
-            <TableCell>Mã vật tư</TableCell>
-            <TableCell>Tên vật tư, tài sản</TableCell>
-            <TableCell>ĐVT</TableCell>
-            <TableCell>Số lượng</TableCell>
-            <TableCell>Đơn giá bình quân</TableCell>
-            <TableCell>Chi phí thực hiện</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody sx={{ backgroundColor: "white" }}>
-          {materials.map((m: any, idx: number) => (
-            <Fragment key={idx}>
-              <TableRow>
-                <TableCell>{m?.assignmentCode?.code}</TableCell>
-                <TableCell></TableCell>
-                <TableCell>
-                  {m?.assignmentCode?.name || "Vật tư không có định mức"}
-                </TableCell>
-                <TableCell>{m?.assignmentCode?.uom?.name}</TableCell>
-                <TableCell>
-                  {formatDecimal(
-                    m.materials.reduce(
-                      (sum: number, i: any) => sum + (i?.quantity || 0),
-                      0,
-                    ),
-                  )}
-                </TableCell>
-                <TableCell>{formattedPrice(m.price)}</TableCell>
-                <TableCell>
-                  {formattedPrice(
-                    m.materials.reduce(
-                      (sum: number, i: any) => sum + (i?.cost || 0),
-                      0,
-                    ),
-                  )}
-                </TableCell>
-              </TableRow>
-              {m.materials.map((i: any, iIdx: number) => (
-                <TableRow key={iIdx}>
-                  <TableCell></TableCell>
-                  <TableCell>{i?.material?.code}</TableCell>
-                  <TableCell>{i?.material?.name}</TableCell>
-                  <TableCell>{i?.material?.uom?.name}</TableCell>
-                  <TableCell>{formatDecimal(i.quantity)}</TableCell>
-                  <TableCell>
-                    {m?.assignmentCode ? "" : formattedPrice(i.price)}
-                  </TableCell>
-                  <TableCell>{formattedPrice(i.cost)}</TableCell>
-                </TableRow>
-              ))}
-            </Fragment>
-          ))}
-        </TableBody>
-      </TableMui>
-    </Paper>
-  );
-}

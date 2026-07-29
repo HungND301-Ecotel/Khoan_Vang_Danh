@@ -22,14 +22,37 @@ const syncRelatedData = async (data, oldKey, session) => {
       adjustmentNormCode,
     } = data;
 
-    const searchKey = oldKey || { productionScope, department, month, phase };
+    const defaultDate = 1;
+    const defaultShift = 1;
+
+    const mcuSearchKey = oldKey
+      ? {
+          ...oldKey,
+          date: oldKey.date ?? defaultDate,
+          shift: oldKey.shift ?? defaultShift,
+        }
+      : {
+          productionScope,
+          department,
+          month,
+          date: defaultDate,
+          shift: defaultShift,
+          phase,
+        };
+    const budgetSearchKey = oldKey
+      ? {
+          productionScope: oldKey.productionScope,
+          department: oldKey.department,
+          month: oldKey.month,
+          phase: oldKey.phase,
+        }
+      : { productionScope, department, month, phase };
 
     // 1. Đồng bộ MaterialCostUsed
     const existingMCU =
-      await MaterialCostUsed.findOne(searchKey).session(session);
+      await MaterialCostUsed.findOne(mcuSearchKey).session(session);
 
     const mcuProduction = existingMCU?.production ?? 0;
-    console.log("mcuProduction", mcuProduction);
 
     if (existingMCU) {
       existingMCU.productionScope = productionScope;
@@ -91,6 +114,8 @@ const syncRelatedData = async (data, oldKey, session) => {
         productionScope,
         department,
         month,
+        date: 1,
+        shift: 1,
         phase,
         production: 0,
         unit,
@@ -111,7 +136,7 @@ const syncRelatedData = async (data, oldKey, session) => {
       session,
     );
     await MaterialBudget.findOneAndUpdate(
-      searchKey,
+      budgetSearchKey,
       {
         productionScope,
         department,

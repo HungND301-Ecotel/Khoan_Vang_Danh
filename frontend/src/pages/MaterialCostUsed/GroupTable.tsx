@@ -44,24 +44,31 @@ export default function GroupTable({
     enabled: !!departmentId && !!month,
   });
 
-  const { mutate: deleteMutation, isPending: isDeletePending } = useMutation({
-    mutationFn: async (id: string) => {
-      return api.delete(`/materialbudgets/${id}`).then((res) => res.data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
-      queryClient.invalidateQueries({ queryKey: ["materialcostused-months"] });
-      queryClient.invalidateQueries({ queryKey: ["materialcostused-scopes"] });
-      queryClient.invalidateQueries({ queryKey: ["materialcostused-phases"] });
-      showSuccessAlert("Xóa thành công");
-    },
-    onError: (error: any) => {
-      const errorMessage =
-        error.response?.data?.message || error.message || "Lỗi khi xóa";
-      console.error(errorMessage);
-      showErrorAlert(errorMessage);
-    },
-  });
+  const { mutate: deleteOtherTaskMutation } =
+    useMutation({
+      mutationFn: async (id: string) => {
+        return api.delete(`/othermaterialcosts/${id}`).then((res) => res.data);
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["materialcostuseds"] });
+        queryClient.invalidateQueries({
+          queryKey: ["materialcostused-months"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["materialcostused-scopes"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["materialcostused-phases"],
+        });
+        showSuccessAlert("Xóa thành công");
+      },
+      onError: (error: any) => {
+        const errorMessage =
+          error.response?.data?.message || error.message || "Lỗi khi xóa";
+        console.error(errorMessage);
+        showErrorAlert(errorMessage);
+      },
+    });
 
   const handleView = (record: any) => {
     const id = record?._id;
@@ -211,7 +218,7 @@ export default function GroupTable({
                 "Bạn có chắc muốn xóa bản ghi này không?. Không thể hoàn tác.",
               );
               if (isConfirmed.isConfirmed) {
-                deleteMutation(record._id);
+                deleteOtherTaskMutation(record._id);
               }
             }}
             sx={{

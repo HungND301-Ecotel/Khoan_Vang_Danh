@@ -5,6 +5,7 @@ const OtherMaterialCost = require("../model/OtherMaterialCost");
 const Department = require("../model/Department");
 const { PhaseType } = require("../config/constant");
 const ExcelJS = require("exceljs");
+const mongoose = require("mongoose");
 
 function generateMonthRange(fromMonth, toMonth) {
   // fromMonth = "2026-03", toMonth = "2026-06"
@@ -24,10 +25,49 @@ function generateMonthRange(fromMonth, toMonth) {
   }
   return months;
 }
+function pushMaterialUsed(group, muData) {
+  // if (group.assignmentCode) {
+  //   group.materialUseds.push(muData);
+  //   return;
+  // }
+
+  const matId = String(muData.material?._id || muData.material || "");
+  const mergeKey = `${matId}`;
+
+  const existing = group.materialUseds.find((m) => m._mergeKey === mergeKey);
+
+  if (existing) {
+    existing.quantity += muData.quantity;
+    existing.cost += muData.cost;
+    // giữ vết các nguồn gốc để sau này có thể sửa/tra cứu nếu cần
+    existing.sources = existing.sources || [
+      {
+        materialCostId: existing.materialCostId,
+        materialItemId: existing.materialItemId,
+      },
+    ];
+    existing.sources.push({
+      materialCostId: muData.materialCostId,
+      materialItemId: muData.materialItemId,
+    });
+  } else {
+    group.materialUseds.push({
+      ...muData,
+      _mergeKey: mergeKey,
+      sources: [
+        {
+          materialCostId: muData.materialCostId,
+          materialItemId: muData.materialItemId,
+        },
+      ],
+    });
+  }
+}
 function processBudgetAndUsedData(
   materialBudgetDocs,
   materialCostUsedDocs,
   phase,
+  otherMaterialCostDocs = [],
 ) {
   const mergedGroupsMap = new Map();
 
@@ -85,7 +125,7 @@ function processBudgetAndUsedData(
 
       const compoundKey = assignmentCodeDoc
         ? `${code}_${matPrice}`
-        : "NO_ASSIGNMENTCODE";
+        : `NO_ASSIGNMENTCODE`;
 
       let group = mergedGroupsMap.get(compoundKey);
 
@@ -108,13 +148,61 @@ function processBudgetAndUsedData(
       group.used_Quantity += quantity;
       group.used_Cost += cost;
 
-      group.materialUseds.push({
+      pushMaterialUsed(group, {
         materialCostId: usedDoc._id,
         materialItemId: mat._id,
         material: mat.material,
         quantity: quantity,
         price: matPrice,
         cost: cost,
+      });
+    });
+  });
+
+  (otherMaterialCostDocs || []).forEach((otherDoc) => {
+    (otherDoc.materials || []).forEach((mat) => {
+      const assignmentCodeDoc =
+        mat.assignmentCode || mat.material?.assignmentCode || null;
+      const code = assignmentCodeDoc?.code || "";
+      const matPrice = mat.price || 0;
+      const quantity = mat.quantity || 0;
+      const cost = mat.cost || 0;
+
+      const compoundKey = assignmentCodeDoc
+        ? `${code}_${matPrice}`
+        : `NO_ASSIGNMENTCODE`;
+
+      let group = mergedGroupsMap.get(compoundKey);
+      if (!group) {
+        group = {
+          assignmentCode: assignmentCodeDoc,
+          baseNorm: "",
+          adjustmentNorm: "",
+          norm: "",
+          price: assignmentCodeDoc ? matPrice : "",
+          plan_Quantity: 0,
+          plan_Cost: 0,
+          used_Quantity: 0,
+          used_Cost: 0,
+          materialUseds: [],
+        };
+        mergedGroupsMap.set(compoundKey, group);
+      }
+
+      // Công việc khác không có kế hoạch riêng -> plan = used
+      group.plan_Quantity += quantity;
+      group.plan_Cost += cost;
+      group.used_Quantity += quantity;
+      group.used_Cost += cost;
+
+      pushMaterialUsed(group, {
+        materialCostId: otherDoc._id,
+        materialItemId: mat._id,
+        material: mat.material,
+        quantity,
+        price: matPrice,
+        cost,
+        isOther: true,
       });
     });
   });
@@ -436,6 +524,11 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
             },
           ],
         })
+        .populate({
+          path: "materials.assignmentCode", // 👈 THÊM populate này
+          select: "code name uom deviceCode",
+          populate: [{ path: "uom" }, { path: "deviceCode" }],
+        })
         .lean(),
     ]);
 
@@ -519,7 +612,8 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
     const otherMaterials = [];
     othersByMonth.forEach((otherDoc) => {
       otherDoc.materials.forEach((mat) => {
-        const assignmentCodeDoc = mat.material?.assignmentCode || null;
+        const assignmentCodeDoc =
+          mat.assignmentCode || mat.material?.assignmentCode || null;
         const price = mat.price || 0;
         const quantity = mat.quantity || 0;
         const cost = mat.cost || 0;
@@ -539,7 +633,7 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       const code = mat.assignmentCode?.code || "";
       const compoundKey = mat.assignmentCode
         ? `${code}_${mat.price}`
-        : `NO_ASSIGNMENTCODE_${mat.price || 0}`;
+        : `NO_ASSIGNMENTCODE`;
       if (!otherGroupMap.has(compoundKey)) {
         otherGroupMap.set(compoundKey, {
           assignmentCode: mat.assignmentCode,
@@ -556,7 +650,7 @@ async function getMonthGroupedAllScopes(department, fromMonth, toMonth) {
       group.used_Cost += mat.cost;
       group.plan_Quantity += mat.quantity;
       group.plan_Cost += mat.cost;
-      group.materialUseds.push({
+      pushMaterialUsed(group, {
         materialCostId: mat.otherDocId,
         materialItemId: mat.material?._id,
         material: mat.material,
@@ -768,7 +862,7 @@ function transformToTableData(apiResponse) {
     dataItems.forEach((item) => {
       const key = item.assignmentCode
         ? `${item.assignmentCode.code}_${item.price}`
-        : `NO_ASSIGNMENTCODE_${item.price}`;
+        : `NO_ASSIGNMENTCODE`;
       if (!compoundKeyMeta.has(key)) {
         allCompoundKeys.push(key);
         compoundKeyMeta.set(key, {
@@ -795,7 +889,7 @@ function transformToTableData(apiResponse) {
       const groupItem = dataItems.find((item) => {
         const k = item.assignmentCode
           ? `${item.assignmentCode.code}_${item.price}`
-          : `NO_ASSIGNMENTCODE_${item.price}`;
+          : `NO_ASSIGNMENTCODE`;
         return k === compoundKey;
       });
 
@@ -824,7 +918,7 @@ function transformToTableData(apiResponse) {
         dataItems.find((item) => {
           const k = item.assignmentCode
             ? `${item.assignmentCode.code}_${item.price}`
-            : `NO_ASSIGNMENTCODE_${item.price}`;
+            : `NO_ASSIGNMENTCODE`;
           return k === compoundKey;
         }) ?? null;
 
@@ -1455,7 +1549,7 @@ exports.getExcel = async (req, res) => {
       setCell(
         currentRow,
         8,
-        assignment.assignmentCode ? "" : assignment.price,
+        assignment.assignmentCode ? numOrEmpty(assignment.price) : "",
         { font: { bold: true } },
       );
 
@@ -2015,61 +2109,81 @@ async function getQuarterData(res, quarter, year, department) {
   let totalCutting = 0;
   let totalExcavation = 0;
 
-  const [materialCostUseds, materialBudgets] = await Promise.all([
-    MaterialCostUsed.find(matchQuery)
-      .populate({ path: "productionScope", select: "code name" })
-      .populate({ path: "department", select: "code name" })
-      .populate({
-        path: "phase", // 👈 đổi
-        select: "code name phaseGroup",
-        populate: [{ path: "phaseGroup", populate: "code name" }],
-      })
-      .populate({
-        path: "materials.material",
-        populate: [
-          { path: "uom", select: "name" },
-          {
-            path: "assignmentCode",
-            select: "code name uom deviceCode",
-            populate: [{ path: "uom" }, { path: "deviceCode" }],
-          },
-        ],
-      })
-      .populate({
-        path: "materials.assignmentCode",
-        select: "code name uom deviceCode",
-        populate: [{ path: "uom" }, { path: "deviceCode" }],
-      })
-      .lean(),
+  const [materialCostUseds, materialBudgets, otherMaterialCosts] =
+    await Promise.all([
+      MaterialCostUsed.find(matchQuery)
+        .populate({ path: "productionScope", select: "code name" })
+        .populate({ path: "department", select: "code name" })
+        .populate({
+          path: "phase", // 👈 đổi
+          select: "code name phaseGroup",
+          populate: [{ path: "phaseGroup", populate: "code name" }],
+        })
+        .populate({
+          path: "materials.material",
+          populate: [
+            { path: "uom", select: "name" },
+            {
+              path: "assignmentCode",
+              select: "code name uom deviceCode",
+              populate: [{ path: "uom" }, { path: "deviceCode" }],
+            },
+          ],
+        })
+        .populate({
+          path: "materials.assignmentCode",
+          select: "code name uom deviceCode",
+          populate: [{ path: "uom" }, { path: "deviceCode" }],
+        })
+        .lean(),
 
-    MaterialBudget.find(matchQuery)
-      .populate({ path: "productionScope", select: "code name" })
-      .populate({ path: "department", select: "code name" })
-      .populate({
-        path: "phase", // 👈 đổi
-        select: "code name phaseGroup",
-        populate: [{ path: "phaseGroup", populate: "code name" }],
-      })
-      .populate({
-        path: "budgetCostDetails.assignmentCode", // 👈 đổi
-        select: "code name uom deviceCode",
-        populate: [{ path: "uom" }, { path: "deviceCode" }],
-      })
-      .populate({
-        path: "assignmentNormCode", // 👈 đổi
-        select: "norms code",
-        populate: [{ path: "norms.assignmentCode", populate: "uom" }],
-      })
-      .populate({
-        path: "adjustmentNormCode", // 👈 đổi
-        select: "norms code rockRatio",
-        populate: [
-          { path: "norms.assignmentCode", populate: "uom" },
-          { path: "rockRatio", select: "name" },
-        ],
-      })
-      .lean(),
-  ]);
+      MaterialBudget.find(matchQuery)
+        .populate({ path: "productionScope", select: "code name" })
+        .populate({ path: "department", select: "code name" })
+        .populate({
+          path: "phase", // 👈 đổi
+          select: "code name phaseGroup",
+          populate: [{ path: "phaseGroup", populate: "code name" }],
+        })
+        .populate({
+          path: "budgetCostDetails.assignmentCode", // 👈 đổi
+          select: "code name uom deviceCode",
+          populate: [{ path: "uom" }, { path: "deviceCode" }],
+        })
+        .populate({
+          path: "assignmentNormCode", // 👈 đổi
+          select: "norms code",
+          populate: [{ path: "norms.assignmentCode", populate: "uom" }],
+        })
+        .populate({
+          path: "adjustmentNormCode", // 👈 đổi
+          select: "norms code rockRatio",
+          populate: [
+            { path: "norms.assignmentCode", populate: "uom" },
+            { path: "rockRatio", select: "name" },
+          ],
+        })
+        .lean(),
+      OtherMaterialCost.find(matchQuery)
+        .populate({ path: "department", select: "code name" })
+        .populate({
+          path: "materials.material",
+          populate: [
+            { path: "uom", select: "name" },
+            {
+              path: "assignmentCode",
+              select: "code name uom deviceCode",
+              populate: [{ path: "uom" }, { path: "deviceCode" }],
+            },
+          ],
+        })
+        .populate({
+          path: "materials.assignmentCode", // 👈 THÊM populate này
+          select: "code name uom deviceCode",
+          populate: [{ path: "uom" }, { path: "deviceCode" }],
+        })
+        .lean(),
+    ]);
 
   // Tổng hợp sản lượng - bỏ vòng lặp budgetDoc.phases, đọc thẳng từ doc
   materialBudgets.forEach((budgetDoc) => {
@@ -2094,6 +2208,7 @@ async function getQuarterData(res, quarter, year, department) {
     materialBudgets,
     materialCostUseds,
     null,
+    otherMaterialCosts,
   );
 
   const info = { totalCoal, totalCutting, totalExcavation };
@@ -2402,7 +2517,7 @@ exports.getQuarterExcel = async (req, res) => {
       setCell(
         currentRow,
         7,
-        assignment.assignmentCode ? "" : assignment.price,
+        assignment.assignmentCode ? numOrEmpty(assignment.price) : "",
         { font: { bold: true } },
       );
 
@@ -2683,48 +2798,81 @@ exports.getDashboardData = async (req, res) => {
 
 exports.updateMaterialAssignmentCode = async (req, res) => {
   try {
-    const { materialCostId, materialItemId, newAssignmentCodeId, newPrice } =
+    const { materialId, department, month, newAssignmentCodeId, newPrice } =
       req.body;
 
-    if (!materialCostId || !materialItemId) {
+    if (!materialId) {
       return res.status(400).json({
         status: "error",
-        message: "Thiếu materialCostId hoặc materialItemId.",
+        message: "Thiếu materialId.",
       });
     }
 
-    // Xây dựng $set fields
-    const setFields = {
-      "materials.$.assignmentCode": newAssignmentCodeId || null,
-    };
+    // 👇 Ép kiểu ObjectId thật để dùng trong aggregation pipeline
+    const materialObjectId = new mongoose.Types.ObjectId(materialId);
+    const assignmentCodeObjectId = newAssignmentCodeId
+      ? new mongoose.Types.ObjectId(newAssignmentCodeId)
+      : null;
 
-    // Nếu có giá mới (lấy từ group đích trên FE), tính lại price và cost
-    if (newPrice != null) {
-      // Lấy quantity hiện tại của item
-      const doc = await MaterialCostUsed.findOne(
-        { _id: materialCostId, "materials._id": materialItemId },
-        { "materials.$": 1 },
-      ).lean();
+    let price = 0;
 
-      if (!doc || !doc.materials || doc.materials.length === 0) {
-        return res.status(404).json({
-          status: "error",
-          message: "Không tìm thấy vật tư cần cập nhật.",
+    if (assignmentCodeObjectId) {
+      price = newPrice != null ? Number(newPrice) : 0;
+    } else {
+      const material = await MaterialAssignment.findById(materialObjectId);
+      let matched = null;
+
+      if (material && Array.isArray(material.priceHistory)) {
+        const checkMonth = monthToNumber(month);
+        matched = material.priceHistory.find((priceItem) => {
+          const start = monthToNumber(priceItem.startMonth);
+          const end = monthToNumber(priceItem.endMonth);
+          return start <= checkMonth && checkMonth <= end;
         });
       }
 
-      const quantity = doc.materials[0].quantity || 0;
-      setFields["materials.$.price"] = newPrice;
-      setFields["materials.$.cost"] = quantity * newPrice;
+      price = matched ? matched.price : 0;
     }
 
-    // Dùng positional operator để update đúng subdocument theo _id
-    const result = await MaterialCostUsed.updateOne(
-      { _id: materialCostId, "materials._id": materialItemId },
-      { $set: setFields },
-    );
+    const matchFilter = { "materials.material": materialObjectId };
+    if (department) matchFilter.department = department;
+    if (month) matchFilter.month = month;
 
-    if (result.matchedCount === 0) {
+    const mergeFields = {
+      assignmentCode: assignmentCodeObjectId,
+      price: price || 0,
+      cost: { $multiply: ["$$m.quantity", price || 0] },
+    };
+
+    const updatePipeline = [
+      {
+        $set: {
+          materials: {
+            $map: {
+              input: "$materials",
+              as: "m",
+              in: {
+                $cond: [
+                  { $eq: ["$$m.material", materialObjectId] }, // 👈 giờ so sánh ObjectId với ObjectId
+                  { $mergeObjects: ["$$m", mergeFields] },
+                  "$$m",
+                ],
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    const [resultPhase, resultOther] = await Promise.all([
+      MaterialCostUsed.updateMany(matchFilter, updatePipeline),
+      OtherMaterialCost.updateMany(matchFilter, updatePipeline),
+    ]);
+
+    const totalMatched = resultPhase.matchedCount + resultOther.matchedCount;
+    const totalModified = resultPhase.modifiedCount + resultOther.modifiedCount;
+
+    if (totalMatched === 0) {
       return res.status(404).json({
         status: "error",
         message: "Không tìm thấy vật tư cần cập nhật.",
@@ -2733,7 +2881,7 @@ exports.updateMaterialAssignmentCode = async (req, res) => {
 
     res.status(200).json({
       status: "success",
-      message: "Cập nhật mã giao khoán, đơn giá và chi phí thành công.",
+      message: `Đã cập nhật mã giao khoán, đơn giá và chi phí cho ${totalModified} bản ghi.`,
     });
   } catch (err) {
     console.log(err.stack);

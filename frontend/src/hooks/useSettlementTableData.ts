@@ -111,7 +111,7 @@ export function useSettlementTableData(
       dataItems.forEach((item) => {
         const key = item.assignmentCode
           ? `${item.assignmentCode.code}_${item.price}`
-          : `NO_ASSIGNMENTCODE_${item.price}`;
+          : `NO_ASSIGNMENTCODE`;
         if (!compoundKeyMeta.has(key)) {
           allCompoundKeys.push(key);
           compoundKeyMeta.set(key, {
@@ -140,14 +140,14 @@ export function useSettlementTableData(
         const groupItem = dataItems.find((item) => {
           const k = item.assignmentCode
             ? `${item.assignmentCode.code}_${item.price}`
-            : `NO_ASSIGNMENTCODE_${item.price}`;
+            : `NO_ASSIGNMENTCODE`;
           return k === compoundKey;
         });
 
         if (groupItem && groupItem.materialUseds) {
           const materialCounts = new Map<string, number>();
           groupItem.materialUseds.forEach((mu: any) => {
-            const baseKey = `${mu.material?._id}_${mu.price}`;
+            const baseKey = `${mu.material?._id}`;
             const count = (materialCounts.get(baseKey) ?? 0) + 1;
             materialCounts.set(baseKey, count);
             const matKey = `${baseKey}_${count}`;
@@ -170,7 +170,7 @@ export function useSettlementTableData(
           dataItems.find((item) => {
             const k = item.assignmentCode
               ? `${item.assignmentCode.code}_${item.price}`
-              : `NO_ASSIGNMENTCODE_${item.price}`;
+              : `NO_ASSIGNMENTCODE`;
             return k === compoundKey;
           }) ?? null;
 
@@ -180,7 +180,7 @@ export function useSettlementTableData(
           const materialCounts = new Map<string, number>();
           const matMap = new Map<string, any>();
           groupItem.materialUseds.forEach((mu: any) => {
-            const baseKey = `${mu.material?._id}_${mu.price}`;
+            const baseKey = `${mu.material?._id}`;
             const count = (materialCounts.get(baseKey) ?? 0) + 1;
             materialCounts.set(baseKey, count);
             const matKey = `${baseKey}_${count}`;

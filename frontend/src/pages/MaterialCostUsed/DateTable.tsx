@@ -1,47 +1,52 @@
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { Box, IconButton, Paper, Typography } from "@mui/material";
 import { Table } from "antd";
-import dayjs from "dayjs";
 import React, { useState } from "react";
-import ScopeTable from "./ScopeTable";
+import ShiftTable from "./ShiftTable";
 import { formattedPrice } from "../../utils/helpers";
 import { useQuery } from "@tanstack/react-query";
 import api from "../../config/api.config";
 
-export default function MonthTable({
+export default function DateTable({
   handleOpen,
   department,
+  month,
+  productionScope,
 }: {
   handleOpen: (record: any) => void;
   department?: any;
+  month: string;
+  productionScope?: string;
 }) {
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
   const departmentId = department?._id || department;
 
-  const { data: months = [], isLoading } = useQuery({
-    queryKey: ["materialcostused-months", departmentId],
+  const { data: dates = [], isLoading } = useQuery({
+    queryKey: ["materialcostused-dates", departmentId, month, productionScope],
     queryFn: async () => {
-      const res = await api.get(`/materialcostuseds/months`, {
-        params: { department: departmentId },
+      const res = await api.get(`/materialcostuseds/dates`, {
+        params: { department: departmentId, month, productionScope },
       });
       return res.data.data;
     },
-    enabled: !!departmentId,
+    enabled: !!departmentId && !!month,
   });
 
   const handleView = (record: any) => {
-    const id = record?._id;
-    if (!id) return;
-    setExpandedRow((prev) => (prev === id ? null : id));
+    const date = record?.date;
+    if (date == null) return;
+    setExpandedRow((prev) => (prev === date ? null : date));
   };
 
   const expandedRowRender = (record: any) => (
     <Box sx={{ padding: "10px" }}>
-      <ScopeTable
+      <ShiftTable
         handleOpen={handleOpen}
         department={department}
-        month={record.month}
+        month={month}
+        date={record.date}
+        productionScope={productionScope}
       />
     </Box>
   );
@@ -49,22 +54,20 @@ export default function MonthTable({
   const innerColumns = [
     {
       title: "",
-      dataIndex: "month",
-      key: "month",
-      render: (text: string) => (
-        <Typography fontWeight="bold">
-          {text ? dayjs(text).format("MM/YYYY") : ""}
-        </Typography>
+      dataIndex: "date",
+      key: "date",
+      render: (text: number) => (
+        <Typography fontWeight="bold">Ngày {text}</Typography>
       ),
     },
     {
       title: "",
       width: 150,
-      dataIndex: "totalMonthCost",
-      key: "totalMonthCost",
-      render: (text: string, item: any) => (
+      dataIndex: "totalDateCost",
+      key: "totalDateCost",
+      render: (text: number) => (
         <Typography sx={{ fontWeight: "bold" }}>
-          {formattedPrice(item.totalMonthCost)}
+          {formattedPrice(text)}
         </Typography>
       ),
     },
@@ -85,7 +88,7 @@ export default function MonthTable({
             },
           }}
         >
-          {expandedRow === record?._id ? <Visibility /> : <VisibilityOff />}
+          {expandedRow === record?.date ? <Visibility /> : <VisibilityOff />}
         </IconButton>
       ),
     },
@@ -95,27 +98,27 @@ export default function MonthTable({
     <Paper>
       <Table
         columns={innerColumns}
-        dataSource={months || []}
+        dataSource={dates || []}
         pagination={false}
         size="small"
-        rowKey={(item) => item._id}
+        rowKey={(item) => item.date}
         showHeader={false}
         loading={isLoading}
         expandable={{
-          expandedRowKeys: expandedRow ? [expandedRow] : [],
+          expandedRowKeys: expandedRow != null ? [expandedRow] : [],
           onExpand: (expanded, record) => {
-            setExpandedRow(expanded ? record._id || null : null);
+            setExpandedRow(expanded ? record.date : null);
           },
           expandedRowRender,
           showExpandColumn: false,
         }}
-        onRow={() => ({ className: "month-custom-row" })}
+        onRow={() => ({ className: "date-custom-row" })}
         rowClassName={(record, index) =>
-          index === 0 ? "month-custom-row first-data-row" : "month-custom-row"
+          index === 0 ? "date-custom-row first-data-row" : "date-custom-row"
         }
       />
       <style>{`
-        .month-custom-row > td { background-color: #e0e0e0 !important; }
+        .date-custom-row > td { background-color: #e8e8e8 !important; }
       `}</style>
     </Paper>
   );

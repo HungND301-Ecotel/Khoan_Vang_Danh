@@ -13,5 +13,7 @@ router.get("/", MaterialCostUsedController.get);
 router.get("/months", MaterialCostUsedController.getMonths);
 router.get("/scopes", MaterialCostUsedController.getScopesByMonth);
 router.get("/phases", MaterialCostUsedController.getPhasesByScope);
+router.get("/dates", MaterialCostUsedController.getDates);
+router.get("/phases-by-date", MaterialCostUsedController.getPhasesByDate);
 
 module.exports = router;

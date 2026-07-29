@@ -11,6 +11,32 @@ const { monthToNumber } = require("../utils/helpers");
 const Department = require("../model/Department");
 const InitialPlannedCost = require("../model/InitialPlannedCost"); // 👈 thêm import
 
+const getTotalProduction = async (
+  productionScope,
+  department,
+  month,
+  phase,
+  session,
+) => {
+  const matchStage = {
+    productionScope: new mongoose.Types.ObjectId(productionScope),
+    department: new mongoose.Types.ObjectId(department),
+    month,
+    phase: new mongoose.Types.ObjectId(phase),
+  };
+
+  const result = await MaterialCostUsed.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: null,
+        totalProduction: { $sum: "$production" },
+      },
+    },
+  ]).session(session);
+
+  return result[0]?.totalProduction || 0;
+};
 // Helper: build lại assignmentCodes input cho calculatedPhase từ InitialPlannedCost tương ứng
 const buildBudgetSourceData = async (
   { productionScope, department, month, phase, unit, production },
@@ -83,7 +109,7 @@ const groupMaterialsByAssignmentCode = (materials) => {
     const assignmentCode =
       mat.assignmentCode || material?.assignmentCode || null;
     const assignmentCodeValue = assignmentCode?.code || "";
-    const price = material?.assignmentCode ? mat.price : "";
+    const price = assignmentCode ? mat.price : ""; 
     const compoundKey = assignmentCode ? `${assignmentCodeValue}_${price}` : "";
 
     if (!groupMap[compoundKey]) {
@@ -179,12 +205,16 @@ exports.create = async (req, res) => {
           productionScope: data.productionScope,
           department: data.department,
           month: data.month,
+          date: data.date,
+          shift: data.shift,
           phase: data.phase,
         },
         {
           productionScope: data.productionScope,
           department: data.department,
           month: data.month,
+          date: data.date,
+          shift: data.shift,
           phase: data.phase,
           production: data.production,
           unit: data.unit,
@@ -198,6 +228,14 @@ exports.create = async (req, res) => {
         },
       );
 
+      const totalProduction = await getTotalProduction(
+        data.productionScope,
+        data.department,
+        data.month,
+        data.phase,
+        session,
+      );
+
       const budgetSourceData = await buildBudgetSourceData(
         {
           productionScope: data.productionScope,
@@ -205,7 +243,7 @@ exports.create = async (req, res) => {
           month: data.month,
           phase: data.phase,
           unit: data.unit,
-          production: data.production,
+          production: totalProduction,
         },
         session,
       );
@@ -229,7 +267,7 @@ exports.create = async (req, res) => {
           department: data.department,
           month: data.month,
           phase: data.phase,
-          production: budgetResult.production,
+          production: totalProduction,
           unit: budgetResult.unit,
           assignmentNormCode: budgetResult.assignmentNormCode,
           adjustmentNormCode: budgetResult.adjustmentNormCode,
@@ -281,6 +319,8 @@ exports.createBatch = async (req, res) => {
           productionScope,
           department,
           month,
+          date,
+          shift,
           phase,
           production,
           unit,
@@ -298,6 +338,8 @@ exports.createBatch = async (req, res) => {
               productionScope,
               department,
               month,
+              date,
+              shift,
               phase,
               production,
               unit,
@@ -315,12 +357,16 @@ exports.createBatch = async (req, res) => {
               productionScope,
               department,
               month,
+              date,
+              shift,
               phase,
             },
             {
               productionScope,
               department,
               month,
+              date,
+              shift,
               phase,
               production,
               unit,
@@ -337,6 +383,14 @@ exports.createBatch = async (req, res) => {
 
         savedDocs.push(saved);
 
+        const totalProduction = await getTotalProduction(
+          data.productionScope,
+          data.department,
+          data.month,
+          data.phase,
+          session,
+        );
+
         const budgetSourceData = await buildBudgetSourceData(
           {
             productionScope: data.productionScope,
@@ -344,7 +398,7 @@ exports.createBatch = async (req, res) => {
             month: data.month,
             phase: data.phase,
             unit: data.unit,
-            production: data.production,
+            production: totalProduction,
           },
           session,
         );
@@ -369,7 +423,7 @@ exports.createBatch = async (req, res) => {
             month,
             phase,
 
-            production: budgetResult.production,
+            production: totalProduction,
             unit: budgetResult.unit,
 
             assignmentNormCode: budgetResult.assignmentNormCode,
@@ -425,6 +479,8 @@ exports.update = async (req, res) => {
         productionScope,
         department,
         month,
+        date,
+        shift,
         phase,
         production,
         unit,
@@ -440,6 +496,8 @@ exports.update = async (req, res) => {
           productionScope,
           department,
           month,
+          date,
+          shift,
           phase,
           production,
           unit,
@@ -452,6 +510,14 @@ exports.update = async (req, res) => {
         },
       );
 
+      const totalProduction = await getTotalProduction(
+        data.productionScope,
+        data.department,
+        data.month,
+        data.phase,
+        session,
+      );
+
       const budgetSourceData = await buildBudgetSourceData(
         {
           productionScope: data.productionScope,
@@ -459,7 +525,7 @@ exports.update = async (req, res) => {
           month: data.month,
           phase: data.phase,
           unit: data.unit,
-          production: data.production,
+          production: totalProduction,
         },
         session,
       );
@@ -485,7 +551,7 @@ exports.update = async (req, res) => {
           department,
           month,
           phase,
-          production: budgetResult.production,
+          production: totalProduction,
           unit: budgetResult.unit,
           assignmentNormCode: budgetResult.assignmentNormCode,
           adjustmentNormCode: budgetResult.adjustmentNormCode,
@@ -556,6 +622,8 @@ exports.updateBatch = async (req, res) => {
           productionScope,
           department,
           month,
+          date,
+          shift,
           phase,
           production,
           unit,
@@ -571,6 +639,8 @@ exports.updateBatch = async (req, res) => {
             productionScope,
             department,
             month,
+            date,
+            shift,
             phase,
             production,
             unit,
@@ -585,6 +655,14 @@ exports.updateBatch = async (req, res) => {
 
         updatedDocs.push(updated);
 
+        const totalProduction = await getTotalProduction(
+          data.productionScope,
+          data.department,
+          data.month,
+          data.phase,
+          session,
+        );
+
         const budgetSourceData = await buildBudgetSourceData(
           {
             productionScope: data.productionScope,
@@ -592,7 +670,7 @@ exports.updateBatch = async (req, res) => {
             month: data.month,
             phase: data.phase,
             unit: data.unit,
-            production: data.production,
+            production: totalProduction,
           },
           session,
         );
@@ -619,7 +697,7 @@ exports.updateBatch = async (req, res) => {
             month,
             phase,
 
-            production: budgetResult.production,
+            production: totalProduction,
             unit: budgetResult.unit,
 
             assignmentNormCode: budgetResult.assignmentNormCode,
@@ -999,6 +1077,11 @@ exports.getPhasesByScope = async (req, res) => {
             },
           ],
         })
+        .populate({
+          path: "materials.assignmentCode",
+          select: "code name uom deviceCode",
+          populate: [{ path: "uom" }, { path: "deviceCode" }],
+        })
         .lean();
 
       if (!doc) {
@@ -1053,7 +1136,121 @@ exports.getPhasesByScope = async (req, res) => {
     const data = docs.map((d) => ({
       _id: d._id,
       key: d._id.toString(),
-      isOtherTask: false,
+      department: d.department,
+      productionScope: d.productionScope,
+      month: d.month,
+      date: d.date,
+      shift: d.shift,
+      phase: d.phase,
+      unit: d.unit,
+      production: d.production,
+      totalUsedCost: d.totalUsedCost,
+      materials: groupMaterialsByAssignmentCode(d.materials || []),
+    }));
+
+    res.status(200).json({ status: "success", data });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+// ===== Cấp 2.5: các ngày trong 1 department + 1 tháng =====
+exports.getDates = async (req, res) => {
+  try {
+    const { department, month, productionScope } = req.query;
+    if (!department || !month) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu department hoặc month",
+      });
+    }
+
+    const deptId = new mongoose.Types.ObjectId(department);
+
+    // Query filter
+    const matchStage = { department: deptId, month };
+    if (productionScope) {
+      matchStage.productionScope = new mongoose.Types.ObjectId(productionScope);
+    }
+
+    const results = await MaterialCostUsed.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: "$date",
+          totalDateCost: { $sum: "$totalUsedCost" },
+          shifts: { $addToSet: "$shift" }, // Các ca trong ngày
+        },
+      },
+      { $sort: { _id: 1 } }, // Sắp xếp theo ngày tăng dần
+    ]);
+
+    const data = results.map((r) => ({
+      _id: r._id,
+      date: r._id, // Number: 1, 2, 3...
+      totalDateCost: r.totalDateCost,
+      shifts: r.shifts.filter((s) => s != null).sort((a, b) => a - b),
+    }));
+
+    res.status(200).json({ status: "success", data });
+  } catch (err) {
+    console.error(err.stack);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+// ===== Cấp 3.5: các phase thuộc 1 department + 1 tháng + 1 ngày + 1 ca =====
+exports.getPhasesByDate = async (req, res) => {
+  try {
+    const { department, month, date, shift, productionScope } = req.query;
+    if (!department || !month || !date) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu department, month hoặc date",
+      });
+    }
+
+    const deptId = new mongoose.Types.ObjectId(department);
+
+    // Query filter
+    const matchStage = {
+      department: deptId,
+      month,
+      date: Number(date),
+    };
+    if (shift) {
+      matchStage.shift = Number(shift);
+    }
+    if (productionScope) {
+      matchStage.productionScope = new mongoose.Types.ObjectId(productionScope);
+    }
+
+    const docs = await MaterialCostUsed.find(matchStage)
+      .populate("phase", "code name")
+      .populate("productionScope", "code name")
+      .populate({
+        path: "materials.material",
+        populate: [
+          { path: "uom", select: "name" },
+          { path: "assignmentCode", select: "code name uom", populate: "uom" },
+        ],
+      })
+      .populate({
+        path: "materials.assignmentCode",
+        select: "code name uom",
+        populate: "uom",
+      })
+      .lean();
+
+    const data = docs.map((d) => ({
+      _id: d._id,
+      key: d._id.toString(),
+      department: d.department,
+      productionScope: d.productionScope,
+      month: d.month,
+      date: d.date,
+      shift: d.shift,
       phase: d.phase,
       unit: d.unit,
       production: d.production,
