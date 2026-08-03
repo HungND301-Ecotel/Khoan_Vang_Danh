@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "../../../config/api.config";
 
-export function useModalQueries() {
+export function useModalQueries(month?: string) {
   const { data: productionscopes = { data: [] } } = useQuery({
     queryKey: ["productionscopes"],
     queryFn: async () =>
@@ -14,9 +14,10 @@ export function useModalQueries() {
   });
 
   const { data: assignmentnorms = { data: [] } } = useQuery({
-    queryKey: ["assignmentnorms"],
+    queryKey: ["assignmentnorms", month],
     queryFn: async () =>
-      api.get("/assignmentnorms").then((res) => res.data.data),
+      api.get(`/assignmentnorms?month=${month}`).then((res) => res.data.data),
+    enabled: !!month,
   });
 
   const { data: departments = { data: [] } } = useQuery({

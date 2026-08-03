@@ -192,6 +192,8 @@ export interface StepType {
 export interface ExcavationNormInputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   phase?: string;
   phaseGroup?: string;
   hardness?: string;
@@ -205,6 +207,8 @@ export interface ExcavationNormInputType {
 export interface ExcavationNormOutputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   phase?: PhaseInputType;
   phaseGroup?: PhaseGroupType;
   hardness?: HardnessType;
@@ -220,6 +224,8 @@ export interface ExcavationNormOutputType {
 export interface CuttingNormInputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   phase?: string;
   phaseGroup?: string;
   crossSection?: string;
@@ -232,6 +238,8 @@ export interface CuttingNormInputType {
 export interface CuttingNormOutputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   phase?: PhaseInputType;
   phaseGroup?: PhaseGroupType;
   crossSection?: CrossSectionOutputType;
@@ -246,6 +254,8 @@ export interface CuttingNormOutputType {
 export interface CoalCuttingNormZRYInputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   length?: string;
   hardness?: string;
   thickness?: string;
@@ -257,6 +267,8 @@ export interface CoalCuttingNormZRYInputType {
 export interface CoalCuttingNormZRYOutputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   length?: LengthType;
   hardness?: HardnessType;
   thickness?: ThicknessType;
@@ -270,6 +282,8 @@ export interface CoalCuttingNormZRYOutputType {
 export interface CoalCuttingNormZHInputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   length?: string;
   hardness?: string;
   thickness?: string;
@@ -281,6 +295,8 @@ export interface CoalCuttingNormZHInputType {
 export interface CoalCuttingNormZHOutputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   length?: LengthType;
   hardness?: HardnessType;
   thickness?: ThicknessType;
@@ -294,6 +310,8 @@ export interface CoalCuttingNormZHOutputType {
 export interface CoalCuttingNormKBInputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   curbSlope?: string;
   hardness?: string;
   thickness?: string;
@@ -305,6 +323,8 @@ export interface CoalCuttingNormKBInputType {
 export interface CoalCuttingNormKBOutputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   curbSlope?: CurbSlopeType;
   hardness?: HardnessType;
   thickness?: ThicknessType;
@@ -319,6 +339,8 @@ export interface CoalCuttingNormKBOutputType {
 export interface AssignmentNormInputType {
   _id?: string;
   code: string;
+  startMonth?: string;
+  endMonth?: string;
   phase?: string;
   phaseGroup?: string;
   crossSection?: string;
@@ -338,6 +360,9 @@ export interface AssignmentNormOutputType {
   _id?: string;
   name?: string;
   code: string;
+  year?: number;
+  startMonth?: string;
+  endMonth?: string;
   phase?: PhaseInputType;
   phaseGroup?: PhaseGroupType;
   crossSection?: CrossSectionOutputType;
@@ -645,6 +670,8 @@ export type DataItem = {
   price: number;
   plan_Cost: number;
   plan_Quantity: number;
+  plan_InNormQuantity?: number;
+  plan_ExtraQuantity?: number;
   used_Cost: number;
   used_Quantity: number;
   varianceCost: number;

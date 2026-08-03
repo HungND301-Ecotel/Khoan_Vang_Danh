@@ -39,14 +39,6 @@ export default function InitialPlannedCostModal({
     );
   }, [systemConfigs]);
 
-  const {
-    productionscopes,
-    phases,
-    assignmentnorms,
-    departments,
-    adjustmentnorms,
-  } = useModalQueries();
-
   const initialValues = useInitialValues(
     selected,
     minimizedData,
@@ -116,6 +108,14 @@ export default function InitialPlannedCostModal({
       handleSubmit(items); // luôn gửi mảng, kể cả sửa (mảng 1 phần tử, có _id)
     },
   });
+
+  const {
+    productionscopes,
+    phases,
+    assignmentnorms,
+    departments,
+    adjustmentnorms,
+  } = useModalQueries(formik.values.month);
 
   const handleClose = () => {
     formik.resetForm();

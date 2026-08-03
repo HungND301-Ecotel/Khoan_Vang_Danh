@@ -51,6 +51,9 @@ import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted
 import FieldInput from "../../../components/TextField/FieldInput";
 import BaseModal from "../../../components/Common/BaseModal";
 import { SYSTEM_KEYS } from "../../../utils/constant";
+import dayjs from "dayjs";
+import FieldMonthYear from "../../../ui/FieldMonth_Year";
+import { BookText } from "lucide-react";
 
 const validationSchema = yup.object({
   phaseGroup: yup.string().required("Nhóm công đoạn không được để trống"),
@@ -58,6 +61,8 @@ const validationSchema = yup.object({
   excavationTech: yup.string().required("Công nghệ xúc không được để trống"),
   step: yup.string().required("Bước chống không được để trống"),
   code: yup.string().required("Mã định mức không được để trống"),
+  startMonth: yup.string().required("Tháng bắt đầu"),
+  endMonth: yup.string().required("Tháng kết thúc"),
   norms: yup
     .array()
     .of(
@@ -79,6 +84,7 @@ export default function ExcavationNormModal({
   minimizedData,
   onMinimize,
   clearMinimize,
+  defaultYear,
 }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
@@ -89,6 +95,7 @@ export default function ExcavationNormModal({
   minimizedData?: any;
   onMinimize?: (data: any) => void;
   clearMinimize?: () => void;
+  defaultYear: number;
 }) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [phaseGroup, setPhaseGroup] = useState<string | null>(null);
@@ -162,6 +169,9 @@ export default function ExcavationNormModal({
       step: minimizedData?.step || "",
       code: minimizedData?.code || selected?.code || "",
       excavationTech: minimizedData?.excavationTech || "",
+      year: selected?.year || minimizedData?.year || defaultYear,
+      startMonth: minimizedData?.startMonth || "",
+      endMonth: minimizedData?.endMonth || "",
       type: "excavation",
       interpolationMethod: minimizedData?.interpolationMethod || "",
       predictingPoint: minimizedData?.predictingPoint || "",
@@ -199,8 +209,8 @@ export default function ExcavationNormModal({
           (norm: any) =>
             (typeof norm.assignmentCode === "string"
               ? norm.assignmentCode
-              : norm.assignmentCode?._id) === ac._id
-        )
+              : norm.assignmentCode?._id) === ac._id,
+        ),
       );
       setSelectedAssignmentCodes(selectedCodes);
       if (minimizedData.upperLimitNorm || minimizedData.lowerLimitNorm) {
@@ -214,6 +224,10 @@ export default function ExcavationNormModal({
         code: selected?.code || "",
         excavationTech: selected?.excavationTech?._id || "",
         type: "excavation",
+        year: selected?.year || defaultYear,
+        startMonth: selected?.startMonth || "",
+        endMonth: selected?.endMonth || "",
+
         norms:
           selected?.norms
             ?.filter((item) => item.assignmentCode?._id)
@@ -437,7 +451,11 @@ export default function ExcavationNormModal({
   };
 
   const handleMinimize = () => {
-    if (onMinimize) onMinimize({ ...formik.values, _id: selected?._id || minimizedData?._id });
+    if (onMinimize)
+      onMinimize({
+        ...formik.values,
+        _id: selected?._id || minimizedData?._id,
+      });
   };
 
   const handleImportData = (excelData: { code: string; norm: number }[]) => {
@@ -468,7 +486,11 @@ export default function ExcavationNormModal({
       open={open}
       onClose={handleClose}
       onMinimize={handleMinimize}
-      title={(selected || minimizedData?._id) ? "Chỉnh sửa định mức đào lò" : "Tạo mới định mức đào lò"}
+      title={
+        selected || minimizedData?._id
+          ? "Chỉnh sửa định mức đào lò"
+          : "Tạo mới định mức đào lò"
+      }
       breadcrumbs={["Danh mục", "Thông số", "Định mức đào lò"]}
       showZoom={true}
       actions={
@@ -498,14 +520,36 @@ export default function ExcavationNormModal({
               textTransform: "none",
             }}
           >
-            {(selected || minimizedData?._id) ? "Cập nhật" : "Xác nhận"}
+            {selected || minimizedData?._id ? "Cập nhật" : "Xác nhận"}
           </Button>
         </>
       }
     >
       <FormikProvider value={formik}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Typography sx={{ fontWeight: 400, fontSize: "14px", mt: "24px" }}>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Box width={"100%"}>
+              <Typography sx={{ fontSize: "14px", fontWeight: 400 }}>
+                Từ tháng
+              </Typography>
+              <FieldMonthYear
+                formik={formik}
+                fieldName={`startMonth`}
+                restrictToYear={formik.values.year}
+              />
+            </Box>
+            <Box width={"100%"}>
+              <Typography sx={{ fontSize: "14px", fontWeight: 400 }}>
+                Đến tháng
+              </Typography>
+              <FieldMonthYear
+                formik={formik}
+                fieldName={`endMonth`}
+                restrictToYear={formik.values.year}
+              />
+            </Box>
+          </Box>
+          <Typography sx={{ fontWeight: 400, fontSize: "14px" }}>
             Nhóm công đoạn
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>

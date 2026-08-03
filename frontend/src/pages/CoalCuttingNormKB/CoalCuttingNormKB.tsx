@@ -238,6 +238,26 @@ export default function CoalCuttingNormKB() {
         }),
     },
     {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>
+          Từ tháng
+        </Typography>
+      ),
+      dataIndex: "startMonth",
+      key: "startMonth",
+      render: (_, record) => <Typography>{record.startMonth}</Typography>,
+    },
+    {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>
+          Đến tháng
+        </Typography>
+      ),
+      dataIndex: "endMonth",
+      key: "endMonth",
+      render: (_, record) => <Typography>{record.endMonth}</Typography>,
+    },
+    {
       title: <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>,
       key: "view",
       width: 70,

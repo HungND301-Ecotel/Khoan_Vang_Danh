@@ -40,6 +40,7 @@ const app = express();
 
 connect();
 require("./data-seeder/seed");
+require("./scripts/migrateAssignmentNormYear");
 app.use(morgan("dev"));
 app.use(cors());
 app.use(express.json());
@@ -72,7 +73,6 @@ app.use("/api/users", UserRouter);
 app.use("/api/system-configs", SystemConfigRouter);
 app.use("/api/departments", DepartmentRouter);
 app.use("/api/othermaterialcosts", OtherMaterialCostRouter);
-
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => {

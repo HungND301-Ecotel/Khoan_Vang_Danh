@@ -312,6 +312,26 @@ export default function CuttingNorm() {
     },
     {
       title: (
+        <Typography sx={{ fontWeight: "bold" }}>
+          Từ tháng
+        </Typography>
+      ),
+      dataIndex: "startMonth",
+      key: "startMonth",
+      render: (_, record) => <Typography>{record.startMonth}</Typography>,
+    },
+    {
+      title: (
+        <Typography sx={{ fontWeight: "bold" }}>
+          Đến tháng
+        </Typography>
+      ),
+      dataIndex: "endMonth",
+      key: "endMonth",
+      render: (_, record) => <Typography>{record.endMonth}</Typography>,
+    },
+    {
+      title: (
         <Box display="flex" alignItems="center" justifyContent="center">
           <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>
         </Box>

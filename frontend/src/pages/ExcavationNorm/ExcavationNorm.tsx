@@ -1,15 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Add,
-  ArrowDropDown,
-  Delete,
   Edit,
-  FileDownload,
-  FileUpload,
-  FilterList,
-  Mail,
-  Print,
-  Search,
   Visibility,
 } from "@mui/icons-material";
 import {
@@ -18,6 +9,7 @@ import {
   Button,
   IconButton,
   InputAdornment,
+  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
@@ -60,13 +52,39 @@ export default function ExcavationNorm() {
     Partial<AssignmentNormInputType>
   >(setOpen, "Định mức đào lò");
 
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+
+  const { data: availableYears = [] } = useQuery({
+    queryKey: ["assignmentnorm-years", "excavation"],
+    queryFn: async () =>
+      api
+        .get(`/assignmentnorms/years?type=excavation`)
+        .then((res) => res.data.data as number[]),
+  });
+
+  // Nếu năm hiện tại chưa có trong danh sách (chưa từng tạo dữ liệu), vẫn cho phép chọn để tạo mới
+  const yearOptions = useMemo(() => {
+    if (availableYears.length === 0) return [currentYear];
+    return availableYears.includes(currentYear)
+      ? availableYears
+      : [currentYear, ...availableYears];
+  }, [availableYears, currentYear]);
+
+  // Khi có dữ liệu năm trả về lần đầu, tự set selectedYear = năm mới nhất (nếu năm hiện tại chưa có data)
+  useEffect(() => {
+    if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[0]); // năm mới nhất trong data
+    }
+  }, [availableYears]);
+
   const { data: assignmentnorms = { totalDOcs: 0, data: [] }, isLoading } =
     useQuery({
-      queryKey: ["assignmentnorms", searchValue, page, limit],
+      queryKey: ["assignmentnorms", searchValue, page, limit, selectedYear],
       queryFn: async () =>
         api
           .get(
-            `/assignmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=excavation`,
+            `/assignmentnorms?q=${searchValue}&page=${page}&limit=${limit}&type=excavation&year=${selectedYear}`,
           )
           .then((res) => res.data.data),
     });
@@ -310,6 +328,18 @@ export default function ExcavationNorm() {
         }),
     },
     {
+      title: <Typography sx={{ fontWeight: "bold" }}>Từ tháng</Typography>,
+      dataIndex: "startMonth",
+      key: "startMonth",
+      render: (_, record) => <Typography>{record.startMonth}</Typography>,
+    },
+    {
+      title: <Typography sx={{ fontWeight: "bold" }}>Đến tháng</Typography>,
+      dataIndex: "endMonth",
+      key: "endMonth",
+      render: (_, record) => <Typography>{record.endMonth}</Typography>,
+    },
+    {
       title: (
         <Box display="flex" alignItems="center" justifyContent="center">
           <Typography sx={{ fontWeight: "bold" }}>Xem</Typography>
@@ -383,12 +413,32 @@ export default function ExcavationNorm() {
         <Box mt={3}>
           <Box>
             <Box sx={{ mb: 2 }}>
-              <Typography
-                variant="h4"
-                sx={{ color: (theme) => custom_theme.palette.table_name.main }}
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
               >
-                Định mức đào lò
-              </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    color: (theme) => custom_theme.palette.table_name.main,
+                  }}
+                >
+                  Định mức đào lò
+                </Typography>
+                <TextField
+                  select
+                  size="small"
+                  label="Năm"
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  sx={{ minWidth: 120 }}
+                >
+                  {yearOptions.map((y) => (
+                    <MenuItem key={y} value={y}>
+                      {y}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
               <PageAction
                 selectedIds={selectedRows}
                 handleDelete={handleDelete}
@@ -437,6 +487,7 @@ export default function ExcavationNorm() {
           minimizedData={minimizedData}
           onMinimize={handleMinimize}
           clearMinimize={clearMinimize}
+          defaultYear={selectedYear}
         />
       </Box>
       <ImportErrorDialog

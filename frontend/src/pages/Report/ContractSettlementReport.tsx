@@ -1508,42 +1508,58 @@ export default function ContractSettlementReport() {
                                               blockData.plan_Quantity,
                                             )
                                           : ""
-                                        : i === 3
-                                          ? assignment.assignmentCode &&
+                                        : i === 1
+                                          ? assignment?.assignmentCode &&
                                             blockData
-                                            ? formattedPrice(
-                                                blockData.plan_Cost,
+                                            ? formatDecimal(
+                                                blockData.plan_InNormQuantity,
                                               )
                                             : ""
-                                          : i === 4
-                                            ? assignment.assignmentCode &&
-                                              blockData
+                                          : i === 2
+                                            ? assignment?.assignmentCode &&
+                                              blockData &&
+                                              (blockData.plan_ExtraQuantity ||
+                                                0) > 0
                                               ? formatDecimal(
-                                                  blockData.used_Quantity,
+                                                  blockData.plan_ExtraQuantity,
                                                 )
                                               : ""
-                                            : i === 7
+                                            : i === 3
                                               ? assignment.assignmentCode &&
                                                 blockData
                                                 ? formattedPrice(
-                                                    blockData.used_Cost,
+                                                    blockData.plan_Cost,
                                                   )
                                                 : ""
-                                              : i === 8
+                                              : i === 4
                                                 ? assignment.assignmentCode &&
                                                   blockData
                                                   ? formatDecimal(
-                                                      blockData.varianceQuantity,
+                                                      blockData.used_Quantity,
                                                     )
                                                   : ""
-                                                : i === 9
+                                                : i === 7
                                                   ? assignment.assignmentCode &&
                                                     blockData
                                                     ? formattedPrice(
-                                                        blockData.varianceCost,
+                                                        blockData.used_Cost,
                                                       )
                                                     : ""
-                                                  : ""}
+                                                  : i === 8
+                                                    ? assignment.assignmentCode &&
+                                                      blockData
+                                                      ? formatDecimal(
+                                                          blockData.varianceQuantity,
+                                                        )
+                                                      : ""
+                                                    : i === 9
+                                                      ? assignment.assignmentCode &&
+                                                        blockData
+                                                        ? formattedPrice(
+                                                            blockData.varianceCost,
+                                                          )
+                                                        : ""
+                                                      : ""}
                                     </TableCell>
                                   ),
                                 )}
@@ -1590,9 +1606,21 @@ export default function ContractSettlementReport() {
                                               )
                                             : ""
                                           : i === 4
-                                            ? ""
+                                            ? assignment?.assignmentCode &&
+                                              blockData
+                                              ? formatDecimal(
+                                                  blockData.plan_InNormQuantity,
+                                                )
+                                              : ""
                                             : i === 5
-                                              ? ""
+                                              ? assignment?.assignmentCode &&
+                                                blockData &&
+                                                (blockData.plan_ExtraQuantity ||
+                                                  0) > 0
+                                                ? formatDecimal(
+                                                    blockData.plan_ExtraQuantity,
+                                                  )
+                                                : ""
                                               : i === 6
                                                 ? assignment.assignmentCode &&
                                                   blockData

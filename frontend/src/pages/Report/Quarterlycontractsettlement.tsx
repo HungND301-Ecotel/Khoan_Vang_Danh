@@ -767,31 +767,48 @@ export default function Quarterlycontractsettlement() {
                               ? assignment?.assignmentCode
                                 ? formatDecimal(assignment?.plan_Quantity)
                                 : ""
-                              : i === 3
+                              : i === 1
                                 ? assignment?.assignmentCode
-                                  ? formattedPrice(assignment?.plan_Cost)
+                                  ? formatDecimal(
+                                      assignment.plan_InNormQuantity,
+                                    )
                                   : ""
-                                : i === 4
-                                  ? assignment?.assignmentCode
-                                    ? formatDecimal(assignment?.used_Quantity)
+                                : i === 2
+                                  ? assignment?.assignmentCode &&
+                                    (assignment.plan_ExtraQuantity || 0) > 0
+                                    ? formatDecimal(
+                                        assignment.plan_ExtraQuantity,
+                                      )
                                     : ""
-                                  : i === 7
+                                  : i === 3
                                     ? assignment?.assignmentCode
-                                      ? formattedPrice(assignment?.used_Cost)
+                                      ? formattedPrice(assignment?.plan_Cost)
                                       : ""
-                                    : i === 8
+                                    : i === 4
                                       ? assignment?.assignmentCode
                                         ? formatDecimal(
-                                            assignment?.varianceQuantity,
+                                            assignment?.used_Quantity,
                                           )
                                         : ""
-                                      : i === 9
+                                      : i === 7
                                         ? assignment?.assignmentCode
                                           ? formattedPrice(
-                                              assignment?.varianceCost,
+                                              assignment?.used_Cost,
                                             )
                                           : ""
-                                        : ""}
+                                        : i === 8
+                                          ? assignment?.assignmentCode
+                                            ? formatDecimal(
+                                                assignment?.varianceQuantity,
+                                              )
+                                            : ""
+                                          : i === 9
+                                            ? assignment?.assignmentCode
+                                              ? formattedPrice(
+                                                  assignment?.varianceCost,
+                                                )
+                                              : ""
+                                            : ""}
                           </TableCell>
                         ))}
                       </TableRow>

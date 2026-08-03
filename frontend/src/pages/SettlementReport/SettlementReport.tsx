@@ -22,7 +22,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../config/api.config";
 
-import { Edit, Save, Undo } from "@mui/icons-material";
+import { Edit, Save, Undo, Check, Close } from "@mui/icons-material";
 import FieldRangeMonthYear from "../../ui/FieldRangeMonth_Year";
 import dayjs from "dayjs";
 import { showErrorAlert } from "../../components/Alert";
@@ -75,6 +75,73 @@ export default function SettlementReport() {
     new Set(),
   );
 
+  const [editingExtraQtyCell, setEditingExtraQtyCell] = useState<{
+    blockId: string;
+    month: string;
+    phaseId?: string;
+    assignmentCodeId: string;
+  } | null>(null);
+  const [editingExtraQtyValue, setEditingExtraQtyValue] = useState<string>("");
+
+  const updateExtraQtyMutation = useMutation({
+    mutationFn: async (payload: {
+      productionScope?: string;
+      department: string;
+      month: string;
+      phase?: string;
+      assignmentCodeId: string;
+      extraQuantity: number;
+    }) => {
+      const res = await api.put("/materialbudgets/extra-quantity", payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      setEditingExtraQtyCell(null);
+      queryClient.invalidateQueries({
+        queryKey: [
+          "contractsettlements",
+          fromMonth,
+          toMonth,
+          selectedPhase,
+          selectedProductionScope,
+          selectedDepartment,
+        ],
+      });
+    },
+    onError: async (error: any) => {
+      const message = await parseAxiosError(error);
+      showErrorAlert(message);
+    },
+  });
+
+  const handleSaveExtraQty = () => {
+    if (!editingExtraQtyCell) return;
+    const { month, phaseId, assignmentCodeId } = editingExtraQtyCell;
+
+    let scopeId = selectedProductionScope;
+    let actualPhaseId = phaseId;
+
+    if (phaseId && phaseId.includes("_")) {
+      const parts = phaseId.split("_");
+      scopeId = parts[0];
+      actualPhaseId = parts[1];
+    }
+
+    if (!selectedDepartment) {
+      showErrorAlert("Thiếu thông tin phân xưởng.");
+      return;
+    }
+
+    updateExtraQtyMutation.mutate({
+      department: selectedDepartment,
+      productionScope: scopeId || undefined,
+      month: month,
+      phase: actualPhaseId || undefined,
+      assignmentCodeId: assignmentCodeId,
+      extraQuantity: Number(editingExtraQtyValue) || 0,
+    });
+  };
+
   const topScrollRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -120,7 +187,8 @@ export default function SettlementReport() {
 
   // Chỉ cho phép kéo thả khi 1 tháng
   const hasPhase = selectedPhase.length > 0;
-  const canDragDrop = fromMonth === toMonth && !selectedProductionScope && !hasPhase;
+  const canDragDrop =
+    fromMonth === toMonth && !selectedProductionScope && !hasPhase;
 
   const isAllScopesMode = !selectedProductionScope;
   const effectiveHasPhase = hasPhase || isAllScopesMode;
@@ -415,52 +483,6 @@ export default function SettlementReport() {
       showErrorAlert(message);
     },
   });
-
-  const [editingMaterial, setEditingMaterial] = useState<{
-    materialCostId: string;
-    materialItemId: string;
-    materialName: string;
-    currentQuantity: number;
-  } | null>(null);
-  const [editQuantityInput, setEditQuantityInput] = useState<string>("");
-
-  const updateQuantityMutation = useMutation({
-    mutationFn: async () => {
-      if (!editingMaterial) return;
-      await api.patch("/contractsettlements/updateMaterialQuantity", {
-        materialCostId: editingMaterial.materialCostId,
-        materialItemId: editingMaterial.materialItemId,
-        newQuantity: Number(editQuantityInput),
-      });
-    },
-    onSuccess: () => {
-      setEditingMaterial(null);
-      queryClient.invalidateQueries({
-        queryKey: [
-          "contractsettlements",
-          fromMonth,
-          toMonth,
-          selectedPhase,
-          selectedProductionScope,
-          selectedDepartment,
-        ],
-      });
-    },
-    onError: async (error: any) => {
-      const message = await parseAxiosError(error);
-      showErrorAlert(message);
-    },
-  });
-
-  const handleOpenEditQuantity = (materialUsedRef: any) => {
-    setEditingMaterial({
-      materialCostId: materialUsedRef.materialCostId,
-      materialItemId: materialUsedRef.materialItemId,
-      materialName: materialUsedRef.material?.name || "",
-      currentQuantity: materialUsedRef.quantity || 0,
-    });
-    setEditQuantityInput(String(materialUsedRef.quantity || 0));
-  };
 
   const hasPending = pendingChanges.length > 0;
   // Hiện 3 cột định mức khi data đã tách công đoạn (bao gồm cả khi không chọn diện)
@@ -1967,54 +1989,174 @@ export default function SettlementReport() {
                                             : "white",
                                   }}
                                 >
-                                  {i === 0
-                                    ? assignment.assignmentCode && blockData
-                                      ? formatDecimal(blockData.plan_Quantity)
-                                      : ""
-                                    : i === 1
-                                      ? ""
-                                      : i === 2
-                                        ? ""
-                                        : i === 3
-                                          ? assignment.assignmentCode &&
-                                            blockData
-                                            ? formattedPrice(
-                                                blockData.plan_Cost,
+                                  {i === 0 ? (
+                                    assignment.assignmentCode && blockData ? (
+                                      formatDecimal(blockData.plan_Quantity)
+                                    ) : (
+                                      ""
+                                    )
+                                  ) : i === 1 ? (
+                                    assignment.assignmentCode && blockData ? (
+                                      formatDecimal(
+                                        blockData.plan_InNormQuantity ??
+                                          blockData.plan_Quantity -
+                                            (blockData.plan_ExtraQuantity || 0),
+                                      )
+                                    ) : (
+                                      ""
+                                    )
+                                  ) : i === 2 ? (
+                                    assignment.assignmentCode && blockData ? (
+                                      editingExtraQtyCell?.blockId ===
+                                        blockId &&
+                                      editingExtraQtyCell?.assignmentCodeId ===
+                                        assignment.assignmentCode._id ? (
+                                        <Box
+                                          display="flex"
+                                          alignItems="center"
+                                          justifyContent="center"
+                                          gap={0.5}
+                                        >
+                                          <TextField
+                                            size="small"
+                                            type="number"
+                                            value={editingExtraQtyValue}
+                                            onChange={(e) =>
+                                              setEditingExtraQtyValue(
+                                                e.target.value,
                                               )
-                                            : ""
-                                          : i === 4
-                                            ? assignment.assignmentCode &&
-                                              blockData
-                                              ? formatDecimal(
-                                                  blockData.used_Quantity,
-                                                )
-                                              : ""
-                                            : i === 5
-                                              ? ""
-                                              : i === 6
-                                                ? ""
-                                                : i === 7
-                                                  ? assignment.assignmentCode &&
-                                                    blockData
-                                                    ? formattedPrice(
-                                                        blockData.used_Cost,
-                                                      )
-                                                    : ""
-                                                  : i === 8
-                                                    ? assignment.assignmentCode &&
-                                                      blockData
-                                                      ? formatDecimal(
-                                                          blockData.varianceQuantity,
-                                                        )
-                                                      : ""
-                                                    : i === 9
-                                                      ? assignment.assignmentCode &&
-                                                        blockData
-                                                        ? formattedPrice(
-                                                            blockData.varianceCost,
-                                                          )
-                                                        : ""
-                                                      : ""}
+                                            }
+                                            autoFocus
+                                            inputProps={{
+                                              style: {
+                                                padding: "2px 4px",
+                                                fontSize: "13px",
+                                                width: "55px",
+                                                textAlign: "center",
+                                              },
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter")
+                                                handleSaveExtraQty();
+                                              if (e.key === "Escape")
+                                                setEditingExtraQtyCell(null);
+                                            }}
+                                          />
+                                          <IconButton
+                                            size="small"
+                                            color="primary"
+                                            onClick={handleSaveExtraQty}
+                                            disabled={
+                                              updateExtraQtyMutation.isPending
+                                            }
+                                            sx={{ p: 0.2 }}
+                                          >
+                                            <Check
+                                              fontSize="small"
+                                              style={{ fontSize: 16 }}
+                                            />
+                                          </IconButton>
+                                          <IconButton
+                                            size="small"
+                                            color="error"
+                                            onClick={() =>
+                                              setEditingExtraQtyCell(null)
+                                            }
+                                            sx={{ p: 0.2 }}
+                                          >
+                                            <Close
+                                              fontSize="small"
+                                              style={{ fontSize: 16 }}
+                                            />
+                                          </IconButton>
+                                        </Box>
+                                      ) : (
+                                        <Box
+                                          display="flex"
+                                          alignItems="center"
+                                          justifyContent="center"
+                                          gap={0.3}
+                                        >
+                                          <span>
+                                            {formatDecimal(
+                                              blockData.plan_ExtraQuantity || 0,
+                                            )}
+                                          </span>
+                                          {!bk.isSummary &&
+                                            !bk.isOther &&
+                                            selectedPhase.length === 1 && (
+                                              <Tooltip title="Sửa số lượng ngoài khoán">
+                                                <IconButton
+                                                  size="small"
+                                                  onClick={() => {
+                                                    setEditingExtraQtyCell({
+                                                      blockId,
+                                                      month: bk.month,
+                                                      phaseId: bk.phaseId,
+                                                      assignmentCodeId:
+                                                        assignment
+                                                          .assignmentCode._id,
+                                                    });
+                                                    setEditingExtraQtyValue(
+                                                      String(
+                                                        blockData.plan_ExtraQuantity ||
+                                                          0,
+                                                      ),
+                                                    );
+                                                  }}
+                                                  sx={{ p: 0.2, ml: 0.2 }}
+                                                >
+                                                  <Edit
+                                                    sx={{
+                                                      fontSize: 14,
+                                                      color: "#1976d2",
+                                                    }}
+                                                  />
+                                                </IconButton>
+                                              </Tooltip>
+                                            )}
+                                        </Box>
+                                      )
+                                    ) : (
+                                      ""
+                                    )
+                                  ) : i === 3 ? (
+                                    assignment.assignmentCode && blockData ? (
+                                      formattedPrice(blockData.plan_Cost)
+                                    ) : (
+                                      ""
+                                    )
+                                  ) : i === 4 ? (
+                                    assignment.assignmentCode && blockData ? (
+                                      formatDecimal(blockData.used_Quantity)
+                                    ) : (
+                                      ""
+                                    )
+                                  ) : i === 5 ? (
+                                    ""
+                                  ) : i === 6 ? (
+                                    ""
+                                  ) : i === 7 ? (
+                                    assignment.assignmentCode && blockData ? (
+                                      formattedPrice(blockData.used_Cost)
+                                    ) : (
+                                      ""
+                                    )
+                                  ) : i === 8 ? (
+                                    assignment.assignmentCode && blockData ? (
+                                      formatDecimal(blockData.varianceQuantity)
+                                    ) : (
+                                      ""
+                                    )
+                                  ) : i === 9 ? (
+                                    assignment.assignmentCode && blockData ? (
+                                      formattedPrice(blockData.varianceCost)
+                                    ) : (
+                                      ""
+                                    )
+                                  ) : (
+                                    ""
+                                  )}
                                 </TableCell>
                               ))}
                             </Fragment>

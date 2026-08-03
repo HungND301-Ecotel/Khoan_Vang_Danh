@@ -584,7 +584,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            handleNavigate("/excavationnorms");
+            handleNavigate("/assignmentnorm?type=excavation");
             setMenuDonGiaEl(null);
           }}
         >
@@ -592,7 +592,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            handleNavigate("/cuttingnorms");
+            handleNavigate("/assignmentnorm?type=cutting");
             setMenuDonGiaEl(null);
           }}
         >

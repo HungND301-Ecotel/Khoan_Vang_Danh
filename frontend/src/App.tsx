@@ -52,6 +52,7 @@ import ContractSettlementReport from "./pages/Report/ContractSettlementReport";
 import ProductionPhaseReport from "./pages/Report/ProductionPhaseReport";
 import ReportLayout from "./layout/ReportLayout";
 import Quarterlycontractsettlement from "./pages/Report/Quarterlycontractsettlement";
+import AssignmentNorm from "./pages/AssignmentNorm/AssignmentNorm";
 
 const PrivateRoute: React.FC = () => {
   const token = localStorage.getItem("token");
@@ -130,8 +131,8 @@ const App = () => {
             <Route path="miningtechs" element={<MiningTech />} />
             <Route path="materialunitprice" element={<Materialunitprice />} />
             <Route path="steps" element={<Step />} />
-            <Route path="excavationnorms" element={<ExcavationNorm />} />
-            <Route path="cuttingnorms" element={<CuttingNorm />} />
+            <Route path="assignmentnorm" element={<AssignmentNorm />} />
+            {/* <Route path="cuttingnorms" element={<CuttingNorm />} /> */}
             <Route path="coalcuttingnorms" element={<CoalCuttingNorm />} />
             <Route path="rockratio" element={<RockRatio />} />
             <Route path="mirrorratio" element={<MirrorRatio />} />

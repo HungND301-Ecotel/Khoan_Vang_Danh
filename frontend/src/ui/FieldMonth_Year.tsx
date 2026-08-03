@@ -11,18 +11,20 @@ export default function FieldMonthYear({
   selectedMonth,
   setSelectedMonth,
   fieldName,
-  disabled
+  disabled,
+  restrictToYear,
+  label,
 }: {
   formik?: any;
   selectedMonth?: string;
   setSelectedMonth?: React.Dispatch<React.SetStateAction<string>>;
   fieldName?: string;
   disabled?: boolean;
+  restrictToYear?: number;
+  label?: string;
 }) {
-
-  const value = formik && fieldName
-    ? getIn(formik.values, fieldName)
-    : selectedMonth;
+  const value =
+    formik && fieldName ? getIn(formik.values, fieldName) : selectedMonth;
 
   const setValue = (val: string) => {
     if (formik && fieldName) {
@@ -33,20 +35,36 @@ export default function FieldMonthYear({
   };
 
   const dayjsValue: Dayjs | null = value ? dayjs(value) : null;
+  const minDate = restrictToYear ? dayjs(`${restrictToYear}-01-01`) : undefined;
+  const maxDate = restrictToYear ? dayjs(`${restrictToYear}-12-31`) : undefined;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="vi">
       <DatePicker
         disabled={disabled}
-        label="Chọn tháng"
+        minDate={minDate}
+        maxDate={maxDate}
+        label={label}
         inputFormat="MM/YYYY" // v5 vẫn hỗ trợ
         views={["year", "month"]}
         openTo="month"
         value={dayjsValue}
-        onChange={(val) => setValue(val ? dayjs(val).format("YYYY-MM") : "")}
+        onChange={(val) => {
+          if (!val) {
+            setValue("");
+            return;
+          }
+          // Nếu có giới hạn năm, ép giá trị về đúng năm đó (phòng trường hợp user vẫn cố mở view năm)
+          const finalVal = restrictToYear
+            ? dayjs(val).year(restrictToYear)
+            : dayjs(val);
+          setValue(finalVal.format("YYYY-MM"));
+        }}
         renderInput={(params) => {
-          const touched = formik && fieldName ? getIn(formik.touched, fieldName) : false;
-          const error = formik && fieldName ? getIn(formik.errors, fieldName) : null;
+          const touched =
+            formik && fieldName ? getIn(formik.touched, fieldName) : false;
+          const error =
+            formik && fieldName ? getIn(formik.errors, fieldName) : null;
           return (
             <TextField
               {...params}

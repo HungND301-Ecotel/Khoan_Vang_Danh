@@ -346,7 +346,15 @@ exports.getOne = async (req, res) => {
       const totalNorm =
         norm.norm && adjustmentNorm?.norm ? norm.norm * adjustmentNorm.norm : 0;
       const quantity = totalNorm * materialbudget.production;
-      const cost = quantity * (assignment.price || 0);
+
+      const matchedDetail = (materialbudget.budgetCostDetails || []).find(
+        (d) =>
+          (d.assignmentCode?._id || d.assignmentCode)?.toString() ===
+          assignment._id.toString(),
+      );
+      const extraQuantity = matchedDetail?.extraQuantity || 0;
+      const cost = (quantity + extraQuantity) * (assignment.price || 0);
+
       result.push({
         _id: assignment._id,
         name: assignment.name,
@@ -356,7 +364,8 @@ exports.getOne = async (req, res) => {
         assignmentNorm: norm?.norm,
         adjustmentNorm: adjustmentNorm?.norm,
         totalNorm: totalNorm,
-        quantity: totalNorm * materialbudget.production,
+        quantity: quantity,
+        extraQuantity: extraQuantity,
         cost: cost,
         materials: materialsWithPrice,
       });
@@ -370,6 +379,87 @@ exports.getOne = async (req, res) => {
       },
     });
   } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+exports.updateExtraQuantity = async (req, res) => {
+  try {
+    const {
+      id,
+      productionScope,
+      department,
+      month,
+      phase,
+      assignmentCodeId,
+      extraQuantity,
+    } = req.body;
+
+    if (!assignmentCodeId) {
+      return res.status(400).json({
+        status: "error",
+        message: "Tham số assignmentCodeId là bắt buộc.",
+      });
+    }
+
+    let budgetDoc;
+    if (id) {
+      budgetDoc = await MaterialBudget.findById(id);
+    } else if (productionScope && department && month && phase) {
+      budgetDoc = await MaterialBudget.findOne({
+        productionScope,
+        department,
+        month,
+        phase,
+      });
+    } else {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "Cần truyền id hoặc bộ 4 tham số (productionScope, department, month, phase).",
+      });
+    }
+
+    if (!budgetDoc) {
+      return res.status(404).json({
+        status: "error",
+        message: "Không tìm thấy bản ghi MaterialBudget.",
+      });
+    }
+
+    const detailItem = (budgetDoc.budgetCostDetails || []).find((detail) => {
+      const detailCodeId = detail.assignmentCode?._id
+        ? detail.assignmentCode._id.toString()
+        : detail.assignmentCode?.toString();
+      return detailCodeId === assignmentCodeId.toString();
+    });
+
+    if (!detailItem) {
+      return res.status(404).json({
+        status: "error",
+        message: "Không tìm thấy mã giao khoán trong MaterialBudget.",
+      });
+    }
+
+    detailItem.extraQuantity = Number(extraQuantity) || 0;
+    detailItem.cost =
+      ((detailItem.quantity || 0) + detailItem.extraQuantity) *
+      (detailItem.price || 0);
+
+    budgetDoc.totalBudgetCost = (budgetDoc.budgetCostDetails || []).reduce(
+      (sum, item) => sum + (item.cost || 0),
+      0,
+    );
+
+    await budgetDoc.save();
+
+    res.status(200).json({
+      status: "success",
+      message: "Cập nhật số lượng ngoài khoán thành công.",
+      data: budgetDoc,
+    });
+  } catch (err) {
+    console.error(err.stack);
     res.status(500).json({ status: "error", message: err.message });
   }
 };

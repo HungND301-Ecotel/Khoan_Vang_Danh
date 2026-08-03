@@ -4,13 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import api from "../../config/api.config";
 import { PhaseOutputType } from "../../types";
 
-import CoalCuttingNormKB from "../CoalCuttingNormKB/CoalCuttingNormKB";
-import CoalCuttingNormZH from "../CoalCuttingNormZH/CoalCuttingNormZH";
-import CoalCuttingNormZRY from "../CoalCuttingNormZRY/CoalCuttingNormZRY";
+import {
+  coalKBConfig,
+  coalZHConfig,
+  coalZRYConfig,
+} from "../../utils/constant";
 import custom_theme from "../../theme";
 import { useAtomValue } from "jotai";
 import { systemConfigsAtom } from "../../atoms/systemConfigAtoms";
 import { SYSTEM_KEYS } from "../../utils/constant";
+import AssignmentNormPage from "../AssignmentNorm/AssignmentNorm";
 
 export default function CoalCuttingNorm() {
   const { data: phases = { data: [] } } = useQuery({
@@ -109,9 +112,15 @@ export default function CoalCuttingNorm() {
       </Box>
 
       <Box sx={{ mt: 2 }}>
-        {currentTab === 0 && <CoalCuttingNormKB />}
-        {currentTab === 1 && <CoalCuttingNormZH />}
-        {currentTab === 2 && <CoalCuttingNormZRY />}
+        {currentTab === 0 && (
+          <AssignmentNormPage config={coalKBConfig} embedded />
+        )}
+        {currentTab === 1 && (
+          <AssignmentNormPage config={coalZHConfig} embedded />
+        )}
+        {currentTab === 2 && (
+          <AssignmentNormPage config={coalZRYConfig} embedded />
+        )}
       </Box>
     </Box>
   );

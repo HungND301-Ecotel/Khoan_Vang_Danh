@@ -1028,9 +1028,16 @@ export default function Quarterlycontractsettlement() {
                               ? formatDecimal(assignment?.plan_Quantity)
                               : ""
                             : index === 1
-                              ? ""
+                              ? assignment?.assignmentCode
+                                ? formatDecimal(assignment?.plan_InNormQuantity)
+                                : ""
                               : index === 2
-                                ? ""
+                                ? assignment?.assignmentCode &&
+                                  assignment?.plan_ExtraQuantity > 0
+                                  ? formatDecimal(
+                                      assignment?.plan_ExtraQuantity,
+                                    )
+                                  : ""
                                 : index === 3
                                   ? assignment?.assignmentCode
                                     ? formattedPrice(assignment?.plan_Cost)

@@ -84,9 +84,17 @@ function processBudgetAndUsedData(
       const price = detail.price || 0;
       const compoundKey = `${code}_${price}`;
 
+      const inNormQty = detail.quantity || 0;
+      const extraQty = detail.extraQuantity || 0;
+      const totalQty = inNormQty + extraQty;
+
       if (mergedGroupsMap.has(compoundKey)) {
         const existing = mergedGroupsMap.get(compoundKey);
-        existing.plan_Quantity += detail.quantity || 0;
+        existing.plan_InNormQuantity =
+          (existing.plan_InNormQuantity || 0) + inNormQty;
+        existing.plan_ExtraQuantity =
+          (existing.plan_ExtraQuantity || 0) + extraQty;
+        existing.plan_Quantity += totalQty;
         existing.plan_Cost += detail.cost || 0;
         existing.norm += detail.norm || 0;
       } else {
@@ -96,7 +104,9 @@ function processBudgetAndUsedData(
           adjustmentNorm: detail.adjustmentNorm,
           norm: detail.norm,
           price: price,
-          plan_Quantity: detail.quantity || 0,
+          plan_InNormQuantity: inNormQty,
+          plan_ExtraQuantity: extraQty,
+          plan_Quantity: totalQty,
           plan_Cost: detail.cost || 0,
           used_Quantity: 0,
           used_Cost: 0,
@@ -136,6 +146,8 @@ function processBudgetAndUsedData(
           adjustmentNorm: "",
           norm: "",
           price: assignmentCodeDoc ? matPrice : "",
+          plan_InNormQuantity: 0,
+          plan_ExtraQuantity: 0,
           plan_Quantity: 0,
           plan_Cost: 0,
           used_Quantity: 0,
@@ -180,6 +192,8 @@ function processBudgetAndUsedData(
           adjustmentNorm: "",
           norm: "",
           price: assignmentCodeDoc ? matPrice : "",
+          plan_InNormQuantity: 0,
+          plan_ExtraQuantity: 0,
           plan_Quantity: 0,
           plan_Cost: 0,
           used_Quantity: 0,
@@ -190,8 +204,11 @@ function processBudgetAndUsedData(
       }
 
       // Công việc khác không có kế hoạch riêng -> plan = used
+      group.plan_InNormQuantity = (group.plan_InNormQuantity || 0) + quantity;
       group.plan_Quantity += quantity;
       group.plan_Cost += cost;
+      group.used_Quantity += quantity;
+      group.used_Cost += cost;
       group.used_Quantity += quantity;
       group.used_Cost += cost;
 
@@ -1710,8 +1727,20 @@ exports.getExcel = async (req, res) => {
               ? numOrEmpty(blockData.plan_Quantity)
               : "",
           );
-          setCell(currentRow, bkCol.start + 4, "");
-          setCell(currentRow, bkCol.start + 5, "");
+          setCell(
+            currentRow,
+            bkCol.start + 4,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_InNormQuantity)
+              : "",
+          );
+          setCell(
+            currentRow,
+            bkCol.start + 5,
+            assignment.assignmentCode && blockData
+              ? numOrEmpty(blockData.plan_ExtraQuantity)
+              : "",
+          );
           setCell(
             currentRow,
             bkCol.start + 6,
@@ -2526,8 +2555,16 @@ exports.getQuarterExcel = async (req, res) => {
         dataStart,
         assignment.assignmentCode ? numOrEmpty(assignment.plan_Quantity) : "",
       );
-      setCell(currentRow, dataStart + 1, "");
-      setCell(currentRow, dataStart + 2, "");
+      setCell(
+        currentRow,
+        dataStart + 1,
+        assignment.assignmentCode ? numOrEmpty(assignment.plan_InNormQuantity) : "",
+      );
+      setCell(
+        currentRow,
+        dataStart + 2,
+        assignment.assignmentCode ? numOrEmpty(assignment.plan_ExtraQuantity) : "",
+      );
       setCell(
         currentRow,
         dataStart + 3,

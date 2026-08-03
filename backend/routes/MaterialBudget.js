@@ -2,6 +2,7 @@ const router = require("express").Router();
 const MaterialBudgetController = require("../controller/MaterialBudget");
 
 router.post("/", MaterialBudgetController.create);
+router.put("/extra-quantity", MaterialBudgetController.updateExtraQuantity);
 router.put("/:id", MaterialBudgetController.update);
 router.delete("/:id", MaterialBudgetController.delete);
 

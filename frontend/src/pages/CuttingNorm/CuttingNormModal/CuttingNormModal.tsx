@@ -34,7 +34,9 @@ import { readExcelFile } from "../../../utils/readExcel";
 import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
 import FieldInput from "../../../components/TextField/FieldInput";
+import FieldMonthYear from "../../../ui/FieldMonth_Year";
 import BaseModal from "../../../components/Common/BaseModal";
+import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
 import { systemConfigsAtom } from "../../../atoms/systemConfigAtoms";
 import { SYSTEM_KEYS } from "../../../utils/constant";
@@ -45,6 +47,8 @@ const validationSchema = yup.object({
   crossSection: yup.string().required("Tiết diện lò xén không được để trống"),
   hardness: yup.string().required("Độ cứng không được để trống"),
   code: yup.string().required("Mã định mức không được để trống"),
+  startMonth: yup.string().required("Từ tháng không được để trống"),
+  endMonth: yup.string().required("Đến tháng không được để trống"),
   norms: yup
     .array()
     .of(
@@ -135,6 +139,8 @@ export default function CuttingNormModal({
       phase: minimizedData?.phase || "",
       hardness: minimizedData?.hardness || "",
       code: minimizedData?.code || selected?.code || "",
+      startMonth: minimizedData?.startMonth || selected?.startMonth || "",
+      endMonth: minimizedData?.endMonth || selected?.endMonth || "",
       crossSection: minimizedData?.crossSection || "",
       type: "cutting",
       interpolationMethod: minimizedData?.interpolationMethod || "",
@@ -189,6 +195,8 @@ export default function CuttingNormModal({
         phase: selected?.phase?._id || "",
         hardness: selected?.hardness?._id || "",
         code: selected?.code || "",
+        startMonth: selected?.startMonth || "",
+        endMonth: selected?.endMonth || "",
         crossSection: selected?.crossSection?._id || "",
         type: "cutting",
         norms:
@@ -522,6 +530,22 @@ export default function CuttingNormModal({
             title=""
           />
         </Box>
+
+        {/* Từ tháng - Đến tháng */}
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={6}>
+            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+              Từ tháng
+            </Typography>
+            <FieldMonthYear formik={formik} fieldName="startMonth" />
+          </Grid>
+          <Grid item xs={6}>
+            <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+              Đến tháng
+            </Typography>
+            <FieldMonthYear formik={formik} fieldName="endMonth" />
+          </Grid>
+        </Grid>
 
         {/* Tiết diện lò xén */}
         <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1, mt: 2 }}>

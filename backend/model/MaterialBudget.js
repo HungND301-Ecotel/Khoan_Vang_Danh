@@ -40,6 +40,10 @@ const MaterialBudget = new mongoose.Schema(
         adjustmentNorm: Number,
         norm: Number,
         quantity: Number,
+        extraQuantity: {
+          type: Number,
+          default: 0,
+        },
         price: Number,
         cost: Number,
       },

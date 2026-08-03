@@ -1,6 +1,7 @@
 const AssignmentCode = require("../model/AssignmentCode");
 const MaterialAssignment = require("../model/MaterialAssignment");
 const AssignmentNorm = require("../model/AssignmentNorm");
+const MaterialBudget = require("../model/MaterialBudget");
 
 const monthToNumber = (month) => (month ? Number(month.replace("-", "")) : "");
 
@@ -91,6 +92,34 @@ const calculatedPhase = async (data, month, type, session = null) => {
 
   const assignmentDoc = await query.lean();
 
+  const existingExtraQtyMap = new Map();
+  if (
+    type === "budget" &&
+    data.productionScope &&
+    data.department &&
+    data.month &&
+    data.phase
+  ) {
+    let mbQuery = MaterialBudget.findOne({
+      productionScope: data.productionScope,
+      department: data.department,
+      month: data.month,
+      phase: data.phase,
+    });
+    if (session) mbQuery = mbQuery.session(session);
+    const existingBudget = await mbQuery.lean();
+    if (existingBudget && Array.isArray(existingBudget.budgetCostDetails)) {
+      existingBudget.budgetCostDetails.forEach((d) => {
+        const codeId = d.assignmentCode?._id
+          ? d.assignmentCode._id.toString()
+          : d.assignmentCode?.toString();
+        if (codeId) {
+          existingExtraQtyMap.set(codeId, d.extraQuantity || 0);
+        }
+      });
+    }
+  }
+
   const details = [];
   let total = 0;
 
@@ -114,6 +143,11 @@ const calculatedPhase = async (data, month, type, session = null) => {
         ? (norm * phaseQuantity) / 1000
         : norm * phaseQuantity;
 
+      const extraQuantity =
+        type === "budget"
+          ? existingExtraQtyMap.get(assignmentId) ?? inputCodeData.extraQuantity ?? 0
+          : 0;
+
       const price = await recalculateAssignmentCodePrice(
         assignmentId,
         null,
@@ -121,10 +155,10 @@ const calculatedPhase = async (data, month, type, session = null) => {
         month,
       );
 
-      const cost = (price || 0) * (quantity || 0);
+      const cost = (price || 0) * ((quantity || 0) + (extraQuantity || 0));
       total += cost;
 
-      details.push({
+      const detailObj = {
         assignmentCode: assignmentId,
         baseNorm,
         adjustmentNorm,
@@ -132,7 +166,13 @@ const calculatedPhase = async (data, month, type, session = null) => {
         quantity: quantity || 0,
         price: price || 0,
         cost: cost || 0,
-      });
+      };
+
+      if (type === "budget") {
+        detailObj.extraQuantity = extraQuantity || 0;
+      }
+
+      details.push(detailObj);
     }
   }
 

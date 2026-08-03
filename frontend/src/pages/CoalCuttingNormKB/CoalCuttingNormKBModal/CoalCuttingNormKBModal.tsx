@@ -38,12 +38,15 @@ import TextFieldNumber from "../../../components/TextField/TextFieldNumber";
 import { AppMultiAutocomplete } from "../../../components/TextField/AppMultiAutocomplete";
 import FieldInput from "../../../components/TextField/FieldInput";
 import FieldAutoCompleted from "../../../components/TextField/FieldAutoCompleted";
+import FieldMonthYear from "../../../ui/FieldMonth_Year";
 import BaseModal from "../../../components/Common/BaseModal";
+import dayjs from "dayjs";
 const validationSchema = yup.object({
   curbSlope: yup.string().required("Độ dốc vỉa không được để trống"),
-  thickness: yup.string().required("Độ dày vỉa không được để trống"),
   hardness: yup.string().required("Độ cứng không được để trống"),
   code: yup.string().required("Mã định mức không được để trống"),
+  startMonth: yup.string().required("Từ tháng không được để trống"),
+  endMonth: yup.string().required("Đến tháng không được để trống"),
   norms: yup
     .array()
     .of(
@@ -108,6 +111,8 @@ export default function CuttingNormKBModal({
     initialValues: {
       hardness: minimizedData?.hardness || "",
       code: minimizedData?.code || selected?.code || "",
+      startMonth: minimizedData?.startMonth || selected?.startMonth || "",
+      endMonth: minimizedData?.endMonth || selected?.endMonth || "",
       curbSlope: minimizedData?.curbSlope || "",
       thickness: minimizedData?.thickness || "",
       type: "coal_kb",
@@ -162,6 +167,8 @@ export default function CuttingNormKBModal({
         ...formik.values,
         hardness: selected?.hardness?._id || "",
         code: selected?.code || "",
+        startMonth: selected?.startMonth || "",
+        endMonth: selected?.endMonth || "",
         curbSlope: selected?.curbSlope?._id || "",
         thickness: selected?.thickness?._id || "",
         type: "coal_kb",
@@ -501,6 +508,22 @@ export default function CuttingNormKBModal({
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <FieldInput formik={formik} field="code" />
           </Box>
+
+          {/* Từ tháng - Đến tháng */}
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={6}>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Từ tháng
+              </Typography>
+              <FieldMonthYear formik={formik} fieldName="startMonth" />
+            </Grid>
+            <Grid item xs={6}>
+              <Typography sx={{ fontWeight: 500, fontSize: "14px", mb: 1 }}>
+                Đến tháng
+              </Typography>
+              <FieldMonthYear formik={formik} fieldName="endMonth" />
+            </Grid>
+          </Grid>
           {hasExistingRecords && (
             <Box sx={{ display: "flex",mt: 2 }}>
               <FormControlLabel
