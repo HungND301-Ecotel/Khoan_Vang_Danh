@@ -10,6 +10,18 @@ export const validationSchema = Yup.object().shape({
   }),
   month: Yup.string().required("Vui lòng chọn thời gian"),
 
+  date: Yup.number()
+    .typeError("Ngày phải là số")
+    .required("Vui lòng nhập ngày")
+    .min(1, "Ngày từ 1 đến 31")
+    .max(31, "Ngày từ 1 đến 31"),
+
+  shift: Yup.number()
+    .typeError("Ca phải là số")
+    .required("Vui lòng nhập ca")
+    .min(1, "Ca từ 1 đến 3")
+    .max(3, "Ca từ 1 đến 3"),
+
   phase: Yup.string().when("isOtherTask", {
     is: false,
     then: (schema) => schema.required("Vui lòng chọn công đoạn"),

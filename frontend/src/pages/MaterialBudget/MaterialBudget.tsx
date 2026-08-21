@@ -138,7 +138,7 @@ export default function MaterialBudgetCosts() {
     >
       <Breadcrumbs aria-label="breadcrumb">
         <Typography>Thống kê vận hành</Typography>
-        <Typography>Chi phí kế hoạch ban đầu </Typography>
+        <Typography>Chi phí vật tư kế hoạch </Typography>
       </Breadcrumbs>
       <Box mt={3}>
         <Box>
@@ -147,7 +147,7 @@ export default function MaterialBudgetCosts() {
               variant="h4"
               sx={{ color: (theme) => custom_theme.palette.table_name.main }}
             >
-              Chi phí kế hoạch ban đầu
+              Chi phí vật tư kế hoạch
             </Typography>
             <PageAction
               selectedIds={selectedRows}

@@ -45,6 +45,8 @@ import {
   RowGroup,
 } from "../../hooks/useSettlementTableData";
 
+const EMPTY_ARRAY: any[] = [];
+
 export default function SettlementReport() {
   const [fromMonth, setFromMonth] = useState(
     dayjs(new Date()).format("YYYY-MM"),
@@ -195,7 +197,7 @@ export default function SettlementReport() {
 
   const transformedResponse = useMemo(() => {
     if (!apiResponse || !Array.isArray(apiResponse) || apiResponse.length === 0)
-      return [];
+      return EMPTY_ARRAY;
     if (isAllScopesMode) {
       return (apiResponse as MonthlyDataAllScopes[]).map((monthEntry) => {
         const phases: any[] = [];
@@ -283,12 +285,13 @@ export default function SettlementReport() {
     if (!tableRef.current) return;
     const observer = new ResizeObserver((entries) => {
       for (let entry of entries) {
-        setTableWidth(entry.contentRect.width);
+        const width = entry.contentRect.width;
+        setTableWidth((prev) => (prev !== width ? width : prev));
       }
     });
     observer.observe(tableRef.current);
     return () => observer.disconnect();
-  }, [blockKeys, rowGroups]); // re-run if data/columns change
+  }, []);
 
   const handleTopScroll = () => {
     if (tableContainerRef.current && topScrollRef.current) {
@@ -301,28 +304,6 @@ export default function SettlementReport() {
       topScrollRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
     }
   };
-
-  // Sync localData khi API response thay đổi
-  useEffect(() => {
-    if (!transformedResponse?.length) return;
-    const map = new Map<string, DataItem[]>();
-
-    if (effectiveHasPhase) {
-      (transformedResponse as MonthlyDataWithPhase[]).forEach((monthEntry) => {
-        (monthEntry.phases || []).forEach((phaseEntry) => {
-          const key = `${monthEntry.month}_${phaseEntry.phaseId}`;
-          map.set(key, phaseEntry.data);
-        });
-      });
-    } else {
-      (transformedResponse as MonthlyDataNoPhase[]).forEach((monthEntry) => {
-        map.set(monthEntry.month, monthEntry.data);
-      });
-    }
-
-    setLocalData(map);
-    setPendingChanges([]);
-  }, [transformedResponse, effectiveHasPhase]);
 
   const showNorms = (bk: any) => {
     return isShow && !bk.isOther;
@@ -532,7 +513,7 @@ export default function SettlementReport() {
 
     return () =>
       window.removeEventListener("scroll", handleScroll, { capture: true });
-  }, [blockKeys]);
+  }, []);
 
   return (
     <Paper

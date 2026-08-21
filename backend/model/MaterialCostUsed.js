@@ -12,9 +12,22 @@ const MaterialCostUsed = new mongoose.Schema(
       ref: "Department",
       required: [true, "Department is required"],
     },
-    month: String,
-    date: Number,
-    shift: Number,
+    month: {
+      type: String,
+      required: [true, "Month is required"],
+    },
+    date: {
+      type: Number,
+      required: [true, "Date is required"],
+      min: [1, "Date must be at least 1"],
+      max: [31, "Date must be at most 31"],
+    },
+    shift: {
+      type: Number,
+      required: [true, "Shift is required"],
+      min: [1, "Shift must be at least 1"],
+      max: [3, "Shift must be at most 3"],
+    },
     phase: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Phase",
