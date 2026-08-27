@@ -31,6 +31,7 @@ const DepartmentRouter = require("./routes/Department");
 const OtherMaterialCostRouter = require("./routes/othermaterialcosts");
 
 const AuthRouter = require("./routes/Auth");
+const { verifyToken } = require("./middleware/auth.middleware");
 
 require("./utils/cron");
 
@@ -45,7 +46,13 @@ app.use(morgan("dev"));
 app.use(cors());
 app.use(express.json());
 
+// Public routes (không yêu cầu token)
 app.use("/api/auths", AuthRouter);
+
+// Bảo vệ toàn bộ các routes bên dưới bằng verifyToken
+app.use(verifyToken);
+
+// Protected routes (tự động yêu cầu Bearer token)
 app.use("/api/assignmentcodes", AssignmentCodeRouter);
 app.use("/api/units", UnitRouter);
 app.use("/api/materialassignments", MaterialAssignmentRouter);

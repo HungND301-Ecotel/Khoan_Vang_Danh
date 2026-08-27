@@ -252,8 +252,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     fetchSystemConfigs();
   }, [setSystemConfigs]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (refreshToken) {
+      try {
+        await api.post("/auths/logout", { refreshToken });
+      } catch (error) {
+        console.error("Lỗi khi đăng xuất:", error);
+      }
+    }
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     setUser(null);
     navigate("/login");
   };

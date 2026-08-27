@@ -1,54 +1,84 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const jwt = require("jsonwebtoken");
+const User = require("../model/User");
 
 const verifyToken = async (req, res, next) => {
-    try {
-        // 1) Check if token exists
-        let token;
-        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-            token = req.headers.authorization.split(' ')[1];
-        }
-
-        if (!token) {
-            return res.status(401).send({ status: 'error', message: 'You are not logged in! Please log in to get access.' });
-        }
-
-        // 2) Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        // 3) Check if user still exists
-        const currentUser = await User.findById(decoded.userId)
-        if (!currentUser) {
-            req.logger.warn(`⚠️ Không tìm thấy user`);
-            return res.status(401).send({ status: 'error', message: 'The user belonging to this token no longer exists.' });
-        }
-
-        if (currentUser.passwordChangedAt) {
-            const changedTimestamp = Math.floor(currentUser.passwordChangedAt.getTime() / 1000);
-            if (decoded.iat < changedTimestamp) {
-                req.logger.warn(`⚠️ Vui lòng login lại ${currentUser?.username}`);
-                return res.status(401).send({ status: 'error', message: 'Mật khẩu đã thay đổi. Vui lòng đăng nhập lại.' });
-            }
-        }
-        // Grant access to protected route
-        req.user = currentUser;
-        req.userId = currentUser._id;
-        next();
-    } catch (err) {
-        res.status(401).send({ status: 'error', message: 'Invalid token. Please log in again!' });
+  try {
+    // 1) Check if token exists
+    let token;
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
     }
+
+    if (!token) {
+      return res
+        .status(401)
+        .send({
+          status: "error",
+          message: "You are not logged in! Please log in to get access.",
+        });
+    }
+
+    // 2) Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // 3) Check if user still exists
+    const currentUser = await User.findById(decoded.userId);
+    if (!currentUser) {
+      console.warn(`⚠️ Không tìm thấy user`);
+      return res
+        .status(401)
+        .send({
+          status: "error",
+          message: "The user belonging to this token no longer exists.",
+        });
+    }
+
+    if (currentUser.passwordChangedAt) {
+      const changedTimestamp = Math.floor(
+        currentUser.passwordChangedAt.getTime() / 1000,
+      );
+      if (decoded.iat < changedTimestamp) {
+        console.warn(`⚠️ Vui lòng login lại ${currentUser?.username}`);
+        return res
+          .status(401)
+          .send({
+            status: "error",
+            message: "Mật khẩu đã thay đổi. Vui lòng đăng nhập lại.",
+          });
+      }
+    }
+    // Grant access to protected route
+    req.user = currentUser;
+    req.userId = currentUser._id;
+    next();
+  } catch (err) {
+    res
+      .status(401)
+      .send({
+        status: "error",
+        message: "Invalid token. Please log in again!",
+      });
+  }
 };
 
 const restrictTo = (...roles) => {
-    return (req, res, next) => {
-        if (!roles.includes(req.user?.role)) {
-            return res.status(403).send({ status: 'error', message: 'You do not have permission to perform this action' });
-        }
-        next();
-    };
+  return (req, res, next) => {
+    if (!roles.includes(req.user?.role)) {
+      return res
+        .status(403)
+        .send({
+          status: "error",
+          message: "You do not have permission to perform this action",
+        });
+    }
+    next();
+  };
 };
 
 module.exports = {
-    verifyToken,
-    restrictTo
-}; 
+  verifyToken,
+  restrictTo,
+};

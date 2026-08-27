@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
     phone: { type: String },
     avatar: { type: String },
     role: { type: String, default: "admin" },
+    refreshToken: { type: String },
     passwordChangedAt: Date,
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
